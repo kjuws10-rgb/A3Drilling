@@ -206,6 +206,8 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
         private readonly CManualStageMotionSimulation.MotionLease? _lease;
         private readonly SemaphoreSlim _operation = new(1, 1);
         private bool _disposed, _moveOwned, _iofOwned;
+        private Guid _iofPlanId;
+        private bool _iofStartConfirmed, _iofAckConfirmed;
         private string _scenario = "PROCESS_MOVE";
         private readonly string _traceSession = Guid.NewGuid().ToString("N");
         private void Record(string phase, string detail = "", double? value = null) => _owner.Publish(_device, phase, value, $"Flow={_traceSession}; Simulation={_simulation}; {detail}");
@@ -316,11 +318,39 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
             Record(id, "SIMULATED_STAGE_REPLY", value);
         }
 
-        private async Task Wait(string id, int expected, CancellationToken token, TimeSpan? timeout = null)
+        // Read the existing cache only: diagnostics must not add SDK reads or alter peer signals.
+        private void RecordIofSnapshot(string phase, string reason)
+        {
+            try
+            {
+                var ids = new[] { IofStart, IofAck, IofComplete, IofRead, IofRun, "IOF_SETTING", "IOF_TRIGGER_POINT_COUNT", "IOF_TRIGGER_ZERO_POINT_COUNT", "MOTOR_CAMERA_X_BUSY", "MOTOR_STAGE_Y_BUSY" };
+                var values = _interfaces.Melsec.GetCachedSnapshot(ids, out var map);
+                var now = DateTimeOffset.UtcNow;
+                var signals = ids.Select(id =>
+                {
+                    var row = map.SingleOrDefault(item => item.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
+                    var sample = values.GetValueOrDefault(id);
+                    // The cache stores scaled values, not raw received words. Label the inverse as derived.
+                    var rawDerived = sample?.Value is not null && row is { ReadScale: not 0 }
+                        ? Convert.ToDouble(sample.Value, CultureInfo.InvariantCulture) / row.ReadScale : (double?)null;
+                    var age = sample?.UpdatedAt is { } at ? (now - at).TotalMilliseconds : (double?)null;
+                    return FormattableString.Invariant($"{id}[Address={row?.Address}; Type={row?.DataType}; Length={row?.Length}; ReadScale={row?.ReadScale}; WriteScale={row?.WriteScale}; Value={sample?.Value}; RawDerived={rawDerived}; State={sample?.State}; SampleAt={sample?.UpdatedAt:O}; AgeMs={age:F0}; Cycle={sample?.ReadCycleNo}; Error={sample?.ErrorMessage}]");
+                });
+                Record("IOF_SNAPSHOT", $"Plan={_iofPlanId}; Phase={phase}; Reason={reason}; StartConfirmed={_iofStartConfirmed}; AckConfirmed={_iofAckConfirmed}; DriverLastReadAt={_interfaces.Melsec.LastSuccessfulReadAt:O}; DriverReadCode={_interfaces.Melsec.LastReadReturnCode}; DriverReadFailures={_interfaces.Melsec.ConsecutiveReadFailureCount}; " + string.Join(" | ", signals));
+            }
+            catch (Exception error)
+            {
+                Record("IOF_DIAGNOSTIC_FAILED", $"Plan={_iofPlanId}; Phase={phase}; Reason={reason}; {error.Message}");
+            }
+        }
+
+        private async Task Wait(string id, int expected, CancellationToken token, TimeSpan? timeout = null, string? iofPhase = null)
         {
             var clock = Stopwatch.StartNew();
             double? previous = null;
-            Record("WAIT_BEGIN", $"{id}; Expected={expected}; TimeoutMs={(timeout ?? _owner._signalTimeout).TotalMilliseconds}");
+            var nextDiagnostic = TimeSpan.FromSeconds(5);
+            Record("WAIT_BEGIN", $"{id}; Expected={expected}; TimeoutMs={(timeout ?? _owner._signalTimeout).TotalMilliseconds}; IofPhase={iofPhase}");
+            if (iofPhase is not null) RecordIofSnapshot(iofPhase, "WAIT_BEGIN");
             try
             {
                 while (true)
@@ -337,18 +367,24 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
                         throw new InvalidDataException("Stage 신호는 READ_SCALE 적용 후 0/1이어야 합니다: " + id);
                     if (number == expected)
                     {
-                        Record("WAIT_MATCH", $"{id}; Expected={expected}; ElapsedMs={clock.ElapsedMilliseconds}");
+                        Record("WAIT_MATCH", $"{id}; Expected={expected}; ElapsedMs={clock.ElapsedMilliseconds}; IofPhase={iofPhase}");
                         return;
                     }
 
                     if (clock.Elapsed > (timeout ?? _owner._signalTimeout))
-                        throw new TimeoutException($"Stage 신호 대기 시간 초과: {id}={expected}");
+                        throw new TimeoutException($"Stage 신호 대기 시간 초과: {id}={expected}; Actual={number}; IofPhase={iofPhase}; StartConfirmed={_iofStartConfirmed}; AckConfirmed={_iofAckConfirmed}");
+                    if (iofPhase is not null && clock.Elapsed >= nextDiagnostic)
+                    {
+                        RecordIofSnapshot(iofPhase, $"WAITING; ElapsedMs={clock.ElapsedMilliseconds}");
+                        nextDiagnostic = clock.Elapsed + TimeSpan.FromSeconds(5);
+                    }
                     await Task.Delay(20, token).ConfigureAwait(false);
                 }
             }
             catch (Exception error)
             {
-                Record("WAIT_FAILED", $"{id}; ElapsedMs={clock.ElapsedMilliseconds}; {error}");
+                if (iofPhase is not null) RecordIofSnapshot(iofPhase, error is OperationCanceledException ? "WAIT_CANCELED" : "WAIT_FAILED");
+                Record("WAIT_FAILED", $"{id}; Expected={expected}; Actual={previous}; IofPhase={iofPhase}; ElapsedMs={clock.ElapsedMilliseconds}; {error}");
                 if (error is OperationCanceledException) throw;
                 throw CSequenceFailureException.Signal(_scenario, id, error is TimeoutException, error);
             }
@@ -622,6 +658,8 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
                 Check(token);
                 _owner.Actions.ResetToWaiting(IofActions);
                 var plan = new ST_STAGE_IOF_PLAN(Guid.NewGuid(), zeroLine, Array.AsReadOnly(points.ToArray()));
+                _iofPlanId = plan.Id;
+                _iofStartConfirmed = _iofAckConfirmed = false;
                 Record("IOF_PLAN_CAPTURED", $"Plan={plan.Id}; ZeroLine={zeroLine}; Count={points.Count}; Points=" + string.Join(";", points.Select((point, index) => FormattableString.Invariant($"{index + 1}:X={point.X},Y={point.Y}"))));
                 await Step("IOF_PLAN", async () =>
                 {
@@ -632,7 +670,7 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
                     await Stage(IofComplete, 0, token).ConfigureAwait(false);
                     await Stage(IofRead, 0, token).ConfigureAwait(false);
                     await Stage(IofRun, 0, token).ConfigureAwait(false);
-                    await Wait(IofComplete, 0, token).ConfigureAwait(false);
+                    await Wait(IofComplete, 0, token, iofPhase: "INITIAL_COMPLETE_OFF").ConfigureAwait(false);
                     await Write("IOF_SETTING", zeroLine ? 1 : 0, token).ConfigureAwait(false);
                     await Write(zeroLine ? "IOF_TRIGGER_ZERO_POINT_COUNT" : "IOF_TRIGGER_POINT_COUNT", points.Count, token).ConfigureAwait(false);
                     // Stage contract confirmed on 2026-11-03: zero-line sends Y
@@ -655,16 +693,18 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
                     _owner.Publish(_device, "IOF_COORDINATES_READY", points.Count);
                     _iofOwned = true;
                     await Write(IofStart, 1, token).ConfigureAwait(false);
+                    _iofStartConfirmed = true;
                     await Stage(IofRead, 1, token).ConfigureAwait(false);
                     await Stage(IofRun, 1, token).ConfigureAwait(false);
                     await Stage(IofComplete, 1, token).ConfigureAwait(false);
-                    await Wait(IofComplete, 1, token).ConfigureAwait(false);
+                    await Wait(IofComplete, 1, token, iofPhase: "REQUEST_COMPLETE_ON").ConfigureAwait(false);
                 }).ConfigureAwait(false);
                 await Step("IOF_SIGNALS_CLEAR", async () =>
                 {
                     await Write(IofAck, 1, token).ConfigureAwait(false);
+                    _iofAckConfirmed = true;
                     await Stage(IofComplete, 0, token).ConfigureAwait(false);
-                    await Wait(IofComplete, 0, token).ConfigureAwait(false);
+                    await Wait(IofComplete, 0, token, iofPhase: "ACK_COMPLETE_OFF").ConfigureAwait(false);
                     await Write(IofStart, 0, token).ConfigureAwait(false);
                     await Write(IofAck, 0, token).ConfigureAwait(false);
                     _iofOwned = false;
