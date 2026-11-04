@@ -3773,7 +3773,9 @@
             ReleaseCompletedStageTasks, 
             UpdateStageProcessOptions, 
             ZeroLineActions(), 
-            DescribeSequenceSignal
+            DescribeSequenceSignal,
+            (ids, token) => Task.WhenAll(ids.Distinct(StringComparer.OrdinalIgnoreCase)
+                .Select(id => _interfaceManager.Melsec.RefreshCachedValueAsync(id, token)))
         );
         private string DescribeSequenceSignal(string id)
         {
@@ -4698,7 +4700,7 @@
         public string CycleId { get; init; } = "";
     }
     public sealed record ST_STAGE_SIGNAL_SNAPSHOT(bool Connected, IReadOnlyDictionary<string, ST_MELSEC_CACHED_VALUE> Values);
-    /// <summary>Stage is master. Reads only shared snapshots; all writes use the central MELSEC queue.</summary>
+    /// <summary>Stage is master. Snapshots and requested fresh reads share the central MELSEC poller.</summary>
     public sealed partial class CStageRequestSequence(
         Func<ST_STAGE_SIGNAL_SNAPSHOT> read, 
         Func<string, int, CancellationToken, Task> write, 
@@ -4712,7 +4714,8 @@
         Func<CancellationToken, Task>? releaseProcessTasks = null, 
         Func<CancellationToken, Task>? updateProcessOptions = null, 
         ST_STAGE_ZERO_LINE_ACTIONS? zeroLine = null, 
-        Func<string, string>? describeSignal = null
+        Func<string, string>? describeSignal = null,
+        Func<IReadOnlyList<string>, CancellationToken, Task>? refreshSignals = null
     )
     {
         public const string StgAble = "HANDSHAKE_STG_DOREADY_ABLE";
@@ -4980,7 +4983,7 @@
                     while (true)
                     {
                         token.ThrowIfCancellationRequested();
-                        var sample = EnsureConnectedSignals();
+                        var sample = await ReadCurrentSignals(token).ConfigureAwait(false);
                         CheckActiveWork();
                         if (!processPrepared && TrySignal(sample, StgProcessAble, out var able) && able == 1)
                         {
@@ -5094,6 +5097,7 @@
                     {
                         await action(limit.Token).ConfigureAwait(false);
                         limit.Token.ThrowIfCancellationRequested();
+                        await ReadCurrentSignals(limit.Token).ConfigureAwait(false);
                     }
                     catch (OperationCanceledException error)when (!token.IsCancellationRequested && limit.IsCancellationRequested)
                     {
@@ -5102,7 +5106,6 @@
                         throw new TimeoutException($"Sequence action timed out: {id}.");
                     }
 
-                    EnsureConnectedSignals();
                 }, resetToWaitingOnSuccess).ConfigureAwait(false);
                 LogEvent($"ACTION_DONE {id}; ElapsedMs={elapsed.ElapsedMilliseconds}; State={(resetToWaitingOnSuccess ? "WAIT" : "DONE")}");
             }
@@ -5120,7 +5123,7 @@
             LogEvent($"OUTPUT_REQUEST {SignalRoute(id)}; Logical={value}");
             try
             {
-                EnsureConnectedSignals();
+                await ReadCurrentSignals(token).ConfigureAwait(false);
                 var acknowledgedAt = DateTimeOffset.UtcNow;
                 await write(id, value, token).ConfigureAwait(false);
                 LogEvent($"OUTPUT_SENT {SignalRoute(id)}; Logical={value}; ElapsedMs={elapsed.ElapsedMilliseconds}");
@@ -5138,23 +5141,25 @@
         private async Task WaitSignal(string id, int value, CancellationToken token, DateTimeOffset? after = null, TimeSpan? timeout = null)
         {
             var elapsed = Stopwatch.StartNew();
+            using var limit = CancellationTokenSource.CreateLinkedTokenSource(token);
+            limit.CancelAfter(timeout ?? TimeSpan.FromMinutes(2));
             LogEvent($"WAIT_BEGIN {SignalRoute(id)}; Expected={value}; TimeoutMs={(timeout ?? TimeSpan.FromMinutes(2)).TotalMilliseconds}; SampleAfter={after:O}");
             try
             {
                 while (elapsed.Elapsed < (timeout ?? TimeSpan.FromMinutes(2)))
                 {
-                    token.ThrowIfCancellationRequested();
-                    var sample = EnsureConnectedSignals();
+                    limit.Token.ThrowIfCancellationRequested();
+                    var sample = await ReadCurrentSignals(limit.Token, id).ConfigureAwait(false);
                     CheckActiveWork();
                     if (!TrySignal(sample, id, out var actual))
                     {
                         if (!sample.Values.TryGetValue(id, out var pending) || pending.State == EN_MELSEC_CACHE_STATE.Pending)
                         {
-                            await Task.Delay(50, token).ConfigureAwait(false);
+                            await Task.Delay(50, limit.Token).ConfigureAwait(false);
                             continue;
                         }
 
-                        throw new InvalidOperationException($"Invalid or unavailable handshake: {id}.");
+                        throw new InvalidOperationException("Invalid or unavailable handshake: " + DescribeSample(sample, id));
                     }
 
                     if (actual == value && (after is null || sample.Values[id].UpdatedAt >= after))
@@ -5163,13 +5168,15 @@
                         return;
                     }
 
-                    await Task.Delay(50, token).ConfigureAwait(false);
+                    await Task.Delay(50, limit.Token).ConfigureAwait(false);
                 }
 
                 throw new TimeoutException($"Handshake timeout: {id} = {value}.");
             }
             catch (Exception error)
             {
+                if (error is OperationCanceledException && !token.IsCancellationRequested && limit.IsCancellationRequested)
+                    error = new TimeoutException($"Handshake timeout: {id} = {value}.", error);
                 LogEvent($"WAIT_{(error is OperationCanceledException ? "CANCELED" : "FAILED")} {SignalRoute(id)}; Expected={value}; ElapsedMs={elapsed.ElapsedMilliseconds}; {error}");
                 if (error is OperationCanceledException canceled) throw new CSequenceSignalCanceledException(_scenario, id, canceled);
                 throw CSequenceFailureException.Signal(_scenario, id, error is TimeoutException, error);
@@ -5183,21 +5190,53 @@
             catch (Exception error) { throw CSequenceFailureException.Action(CSequenceActionIds.ProcessMachining, error); }
         }
 
-        private ST_STAGE_SIGNAL_SNAPSHOT EnsureConnectedSignals()
+        private string[] CurrentInputs() => _scenario switch
+        {
+            "REVIEW" => [StgReviewAble, StgReviewStart, StgReviewComplete],
+            "TPM" => [StgTpmAble, StgTpmComplete],
+            "PROCESS" => [StgProcessAble, StgProcessStart, StgProcessComplete],
+            _ => [StgAble, StgStart, StgComplete]
+        };
+
+        private string DescribeSample(ST_STAGE_SIGNAL_SNAPSHOT snapshot, string id)
+        {
+            var sample = snapshot.Values.GetValueOrDefault(id);
+            return $"{SignalRoute(id)}; Scenario={_scenario}; Value={sample?.Value}; State={sample?.State}; SampleAt={sample?.UpdatedAt:O}; Error={sample?.ErrorMessage}";
+        }
+
+        private async Task<ST_STAGE_SIGNAL_SNAPSHOT> ReadCurrentSignals(CancellationToken token, string? waitId = null)
         {
             var sample = ReadSignals();
             if (!sample.Connected)
                 throw new InvalidOperationException("MELSEC offline during Stage sequence.");
-            foreach (var id in new[]
+            var inputs = CurrentInputs();
+            var requested = (waitId is null ? inputs : inputs.Append(waitId)).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+            // Inactive DoReady/Process/Review/TPM caches are observations, not gates of this transaction.
+            foreach (var id in requested)
+                if (sample.Values.GetValueOrDefault(id)?.State is EN_MELSEC_CACHE_STATE.Error or EN_MELSEC_CACHE_STATE.Offline)
+                    throw new InvalidOperationException("Stage handshake receive error: " + DescribeSample(sample, id));
+            if (refreshSignals is not null)
             {
-                StgAble,
-                StgStart,
-                StgComplete
+                try
+                {
+                    await refreshSignals(requested, token).ConfigureAwait(false);
+                    sample = ReadSignals();
+                    if (!sample.Connected) throw new InvalidOperationException("MELSEC offline during Stage refresh.");
+                }
+                catch (Exception error)
+                {
+                    LogEvent($"SIGNALS_REFRESH_FAILED Scenario={_scenario}; " + string.Join(" | ", requested.Select(id => DescribeSample(ReadSignals(), id))) + $"; {error}");
+                    throw;
+                }
             }
-
-            )
+            foreach (var id in inputs)
+            {
+                // The target's Pending readback is handled by WaitSignal within its original deadline.
+                if (id == waitId && sample.Values.GetValueOrDefault(id)?.State == EN_MELSEC_CACHE_STATE.Pending)
+                    continue;
                 if (!TrySignal(sample, id, out _))
-                    throw new InvalidOperationException($"Invalid or stale Stage handshake: {id}.");
+                    throw new InvalidOperationException("Invalid or stale Stage handshake: " + DescribeSample(sample, id));
+            }
             return sample;
         }
 
@@ -5266,7 +5305,7 @@
             while (true)
             {
                 token.ThrowIfCancellationRequested();
-                var sample = EnsureConnectedSignals();
+                var sample = await ReadCurrentSignals(token).ConfigureAwait(false);
                 CheckActiveWork();
                 if (TrySignal(sample, StgProcessAble, out var able) && able == 1 && TrySignal(sample, StgProcessStart, out var start) && start == 0 && TrySignal(sample, StgProcessComplete, out var complete) && complete == 0)
                     break;
@@ -5397,7 +5436,9 @@
             await Action(CSequenceActionIds.ReviewMeasure, review.Measure, token, Timeout.InfiniteTimeSpan).ConfigureAwait(false);
             Set("REVIEW_RESULTS", "검사 결과 확인·저장. 0선 후속 1줄은 보정 미적용, 일반 AUTO Review만 전체 OK일 때 다음 Glass 보정 저장.");
             await Action(CSequenceActionIds.ReviewResults, review.Save, token).ConfigureAwait(false);
+            Set("REVIEW_COMPLETE_SEND", "Review 결과 처리 완료; Process Review COMPLETE ON 송신·새 수신 확인.");
             await WriteConfirmed(PrcReviewComplete, 1, token).ConfigureAwait(false);
+            LogEvent($"REVIEW_COMPLETE_ON_CONFIRMED {SignalRoute(PrcReviewComplete)}; ResultsHandled=True");
             Set("REVIEW_WAIT_COMPLETE", "All inspection results handled; waiting for Stage Review COMPLETE.");
             await WaitSignal(StgReviewComplete, 1, token).ConfigureAwait(false);
             Set("REVIEW_SIGNALS_CLEAR", "Clearing Review signals and waiting for all Stage Review signals OFF.");
