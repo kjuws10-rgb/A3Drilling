@@ -701,11 +701,12 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
                 }).ConfigureAwait(false);
                 await Step("IOF_SIGNALS_CLEAR", async () =>
                 {
+                    // Release START before ACK: Stage clears COMPLETE only after both conditions.
+                    await Write(IofStart, 0, token).ConfigureAwait(false);
                     await Write(IofAck, 1, token).ConfigureAwait(false);
                     _iofAckConfirmed = true;
                     await Stage(IofComplete, 0, token).ConfigureAwait(false);
                     await Wait(IofComplete, 0, token, iofPhase: "ACK_COMPLETE_OFF").ConfigureAwait(false);
-                    await Write(IofStart, 0, token).ConfigureAwait(false);
                     await Write(IofAck, 0, token).ConfigureAwait(false);
                     _iofOwned = false;
                 }).ConfigureAwait(false);
