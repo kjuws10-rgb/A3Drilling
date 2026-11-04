@@ -5731,12 +5731,21 @@
         private async Task Run(CancellationToken token)
         {
             var handled = false;
+            ST_RECIPE_DEFINITION? checkedRecipe = null;
+            ST_SYSTEM_PARAMETER[]? checkedSettings = null;
+            CZeroDefenceRecipePlan? checkedPlan = null;
+            IReadOnlyList<ST_ZERO_DEFENCE_POINT>? checkedPoints = null;
+            string? planNotReady = null;
             using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(100));
             try
             {
                 while (await timer.WaitForNextTickAsync(token).ConfigureAwait(false))
                 {
                     var issued = false;
+                    var motionValidationStarted = false;
+                    var recipeId = "";
+                    var group = 0;
+                    ST_ZERO_DEFENCE_POINT? first = null;
                     try
                     {
                         if (!autoEnabled())
@@ -5789,21 +5798,57 @@
                             continue;
                         }
 
-                        handled = true;
-                        var recipeId = selectedRecipe();
-                        var recipe = (await recipes.LoadRecipes(token).ConfigureAwait(false)).Single(r => r.Id.Equals(recipeId, StringComparison.OrdinalIgnoreCase));
+                        recipeId = selectedRecipe();
+                        group = options.CurrentGroup;
+                        var recipe = (await recipes.LoadRecipes(token).ConfigureAwait(false)).SingleOrDefault(r => r.Id.Equals(recipeId, StringComparison.OrdinalIgnoreCase));
+                        if (recipe is null)
+                        {
+                            DiscardCompleted();
+                            SetStatus(new("WAIT", "0선 설정 준비 대기: 선택한 레시피를 확인해 주세요.", group, RecipeId: recipeId));
+                            continue;
+                        }
                         var parameters = settings.LoadSection(EN_SETTING_TAB.Option).Concat(settings.LoadSection(EN_SETTING_TAB.Motor)).ToArray();
-                        var plan = new CZeroDefenceRecipePlan(recipe, parameters);
-                        if (plan.Count is not (2 or 4))
-                            throw new InvalidOperationException("0선방어 검사 개수/현재 그룹을 확인해 주세요.");
-                        var group = Math.Clamp(options.CurrentGroup, 1, 8 / plan.Count);
-                        var points = plan.ReadSelections(requireComplete: true);
-                        var valid = CZeroDefenceTiming.Validate(plan.Count, points, plan.Profile);
-                        if (!valid.IsValid)
-                            throw new InvalidOperationException(valid.Message);
+                        // A plan may still be unconfigured before DoReady. Do not rebuild thousands of Shots
+                        // every observer tick, latch the Align request, or publish a physical Move failure.
+                        if (!ReferenceEquals(recipe, checkedRecipe) || checkedSettings is null || !parameters.SequenceEqual(checkedSettings))
+                        {
+                            checkedRecipe = null;
+                            checkedSettings = null;
+                            checkedPlan = null;
+                            checkedPoints = null;
+                            planNotReady = null;
+                            try
+                            {
+                                checkedPlan = new CZeroDefenceRecipePlan(recipe, parameters);
+                                if (checkedPlan.Count is not (2 or 4))
+                                    throw new InvalidOperationException("0선방어 검사 개수는 2 또는 4여야 합니다.");
+                                checkedPoints = checkedPlan.ReadSelections(requireComplete: true);
+                                var valid = CZeroDefenceTiming.Validate(checkedPlan.Count, checkedPoints, checkedPlan.Profile);
+                                if (!valid.IsValid) throw new InvalidOperationException(valid.Message);
+                            }
+                            catch (Exception error) when (error is InvalidOperationException or ArgumentException or KeyNotFoundException)
+                            {
+                                planNotReady = error.Message;
+                                var head = Enumerable.Range(1, 8).FirstOrDefault(h => error.Message.StartsWith($"H{h:00}:", StringComparison.Ordinal));
+                                if (head > 0 && checkedPlan is not null)
+                                    planNotReady += $" (Cell={checkedPlan.Parameters.GetValueOrDefault(CZeroDefenceRecipePlan.Key(head, "CELL"), "미지정")}, Shot={checkedPlan.Parameters.GetValueOrDefault(CZeroDefenceRecipePlan.Key(head, "SHOT"), "미지정")}, Beam={checkedPlan.Parameters.GetValueOrDefault(CZeroDefenceRecipePlan.Key(head, "BEAM"), "미지정")})";
+                            }
+                            checkedRecipe = recipe;
+                            checkedSettings = parameters;
+                        }
+                        if (planNotReady is not null)
+                        {
+                            handled = false;
+                            DiscardCompleted();
+                            SetStatus(new("WAIT", $"0선 설정 준비 대기: {planNotReady} · RECIPE의 0선방어 검사점을 확인하고 SAVE해 주세요.", group, RecipeId: recipeId));
+                            continue;
+                        }
+                        var plan = checkedPlan!;
+                        var points = checkedPoints!;
+                        group = Math.Clamp(options.CurrentGroup, 1, 8 / plan.Count);
                         if (group != options.CurrentGroup)
                             settings.SetValue(EN_SETTING_TAB.Option, CRunOptionSettings.CurrentGroup, group.ToString(CultureInfo.InvariantCulture), token);
-                        var first = points.Where(point => (point.HeadNo - 1) / plan.Count + 1 == group).OrderBy(point => point.StageY * plan.Profile.StageDirection).ThenBy(point => point.HeadNo).First();
+                        first = points.Where(point => (point.HeadNo - 1) / plan.Count + 1 == group).OrderBy(point => point.StageY * plan.Profile.StageDirection).ThenBy(point => point.HeadNo).First();
                         var route = map.Single(row => row.Use && row.Id == CStageReviewSequences.MoveAble);
                         bool RequestActive()
                         {
@@ -5818,10 +5863,26 @@
                             return busy is { IsValid: true, Value: not null } && (Convert.ToInt32(busy.Value, CultureInfo.InvariantCulture) & AlignBusyMask) != 0
                                 && able is { IsValid: true, Value: not null } && Math.Abs(Convert.ToDouble(able.Value, CultureInfo.InvariantCulture) - 1) < 1e-8;
                         }
+                        // Recipe loading/validation can yield while another transaction acquires the owner.
+                        if (interfaces.StageReviewSequences.IsActive)
+                        {
+                            Waiting("공통 Process Move / IOF 사용 종료 대기");
+                            continue;
+                        }
+                        handled = true;
                         SetStatus(new("RUNNING", "0선 첫 Review X 선대기 이동", group, first, recipeId));
                         // Once issued, Align/DoReady may finish independently. AUTO exit or option OFF cancels this owner.
                         var alreadyAtFirst = false;
-                        using (var session = interfaces.StageReviewSequences.Open(route.DeviceNo, () => !RequestActive(), reviewXOnly: true))
+                        CStageReviewSequences.Session session;
+                        motionValidationStarted = true;
+                        try { session = interfaces.StageReviewSequences.Open(route.DeviceNo, () => !RequestActive(), reviewXOnly: true); }
+                        catch (InvalidOperationException) when (interfaces.StageReviewSequences.IsActive)
+                        {
+                            handled = false;
+                            SetStatus(new("WAIT", "공통 Process Move / IOF 사용 종료 대기", group, first, recipeId));
+                            continue;
+                        }
+                        using (session)
                         {
                             var currentX = await session.ReadStationaryPosition(EN_MANUAL_STAGE_AXIS.ReviewX, token).ConfigureAwait(false);
                             if (!RequestActive() || !StartSignalsOn())
@@ -5859,14 +5920,14 @@
                     }
                     catch (OperationCanceledException)when (!token.IsCancellationRequested)
                     {
-                        SetStatus(new("STOPPED", "0선 선대기 중지"));
+                        SetStatus(new("STOPPED", "0선 선대기 중지", group, first, recipeId));
                     }
                     catch (Exception error)when (error is not OperationCanceledException)
                     {
-                        SetStatus(new("ERROR", error.Message));
+                        SetStatus(new("ERROR", error.Message, group, first, recipeId));
                         // A failed operation already published its own action error. Do not overwrite it,
                         // or the status of a different owner, with a plan/observer error.
-                        if (!issued && !interfaces.StageReviewSequences.IsActive)
+                        if (motionValidationStarted && !issued && !interfaces.StageReviewSequences.IsActive)
                         {
                             interfaces.StageReviewSequences.Actions.ResetToWaiting(["MOVE_TARGETS"]);
                             interfaces.StageReviewSequences.Actions.SetError("MOVE_TARGETS", error.Message);
