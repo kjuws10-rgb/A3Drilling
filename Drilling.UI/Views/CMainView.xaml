@@ -1,0 +1,827 @@
+﻿<UserControl x:Class="Drilling.UI.Views.CMainView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:menu="clr-namespace:Drilling.UI.Menu"
+             xmlns:views="clr-namespace:Drilling.UI.Views"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d">
+    <UserControl.Resources>
+        <Style x:Key="MainSmallText" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+        <Style x:Key="MainValueText" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style x:Key="MainSequenceButton" TargetType="Button">
+            <Setter Property="Width" Value="132" />
+            <Setter Property="Height" Value="46" />
+            <Setter Property="Margin" Value="8,0,0,0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="5">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.45" />
+                    <Setter Property="Cursor" Value="Arrow" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="MainParameterTabButton" TargetType="Button" BasedOn="{StaticResource MainSequenceButton}">
+            <Setter Property="Width" Value="140" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <DataTemplate x:Key="HeadSelectItemTemplate">
+                <Border Margin="4" ToolTip="{Binding StatusDetail}"
+                        SnapsToDevicePixels="True">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}" />
+                            <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}" />
+                            <Setter Property="BorderThickness" Value="1" />
+                        </Style>
+                    </Border.Style>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="32" />
+                        </Grid.RowDefinitions>
+                        <StackPanel Grid.Row="0" VerticalAlignment="Center" Margin="5,3">
+                            <TextBlock Text="{Binding HeadName}"
+                                       HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       FontSize="15"
+                                       FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding ShotCountText}"
+                                       Margin="0,4,0,0"
+                                       HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       FontSize="12" />
+                        </StackPanel>
+                        <Border Grid.Row="1"
+                                Background="{Binding StatusBrush}"
+                                BorderBrush="{DynamicResource PanelBorderBrush}"
+                                BorderThickness="0,1,0,0"
+                                Padding="4,2">
+                            <TextBlock Text="{Binding Status}"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Foreground="{Binding StatusTextBrush}"
+                                       FontSize="14"
+                                       FontWeight="SemiBold" />
+                        </Border>
+                    </Grid>
+                </Border>
+        </DataTemplate>
+        <Style x:Key="MainDataGrid" TargetType="DataGrid" BasedOn="{StaticResource PlainDataGrid}">
+            <Setter Property="MinRowHeight" Value="32" />
+            <Setter Property="ColumnHeaderHeight" Value="34" />
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto" />
+            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
+            <Setter Property="ScrollViewer.CanContentScroll" Value="True" />
+        </Style>
+        <Style x:Key="MainGridText" TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextTrimming" Value="None" />
+            <Setter Property="TextWrapping" Value="NoWrap" />
+        </Style>
+        <Style x:Key="MainOpticCard" TargetType="Border">
+            <Setter Property="Height" Value="146" />
+            <Setter Property="Margin" Value="3" />
+            <Setter Property="Padding" Value="8" />
+            <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="5" />
+        </Style>
+        <Style x:Key="MainOpticItemCard" TargetType="Border">
+            <Setter Property="Height" Value="28" />
+            <Setter Property="Margin" Value="0,5,0,0" />
+            <Setter Property="Padding" Value="6,4" />
+            <Setter Property="Background" Value="{DynamicResource PanelAltBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="3" />
+        </Style>
+        <Style x:Key="MainOpticLabelText" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+            <Setter Property="FontSize" Value="8" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style x:Key="MainOpticValueText" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextWrapping" Value="NoWrap" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+        <Style x:Key="MainOpticSummaryCard" TargetType="Border">
+            <Setter Property="MinHeight" Value="64" />
+            <Setter Property="Padding" Value="8" />
+            <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="5" />
+        </Style>
+        <Style x:Key="MainOpticHeadCard" TargetType="Border">
+            <Setter Property="MinHeight" Value="150" />
+            <Setter Property="Margin" Value="3" />
+            <Setter Property="Padding" Value="8" />
+            <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="5" />
+        </Style>
+        <Style x:Key="MainOpticRowLabelText" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+            <Setter Property="FontSize" Value="9" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+        <Style x:Key="MainOpticCompactValueText" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="TextWrapping" Value="NoWrap" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+        <Style x:Key="MainOpticSubValueText" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+            <Setter Property="FontSize" Value="9" />
+            <Setter Property="TextWrapping" Value="NoWrap" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+        <Style x:Key="MainOpticBadge" TargetType="Border">
+            <Setter Property="Height" Value="18" />
+            <Setter Property="MinWidth" Value="45" />
+            <Setter Property="Padding" Value="5,0" />
+            <Setter Property="CornerRadius" Value="3" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+        </Style>
+        <Style x:Key="MainOpticSectionCard" TargetType="Border">
+            <Setter Property="Margin" Value="0,0,0,8" />
+            <Setter Property="Padding" Value="10" />
+            <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="5" />
+        </Style>
+        <Style x:Key="MainOpticHeadMiniCard" TargetType="Border">
+            <Setter Property="Margin" Value="4" />
+            <Setter Property="Padding" Value="8" />
+            <Setter Property="Background" Value="{DynamicResource PanelAltBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+        <Style x:Key="MainOpticStatusChip" TargetType="Border">
+            <Setter Property="Height" Value="18" />
+            <Setter Property="MinWidth" Value="46" />
+            <Setter Property="Padding" Value="5,0" />
+            <Setter Property="CornerRadius" Value="3" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="58" />
+            <RowDefinition Height="1.15*" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0">
+            <TextBlock Text="MAIN"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       FontSize="28"
+                       FontWeight="SemiBold" />
+            <TextBlock Text="Automatic operation and head status"
+                       Foreground="{DynamicResource TextMutedBrush}"
+                       FontSize="14" />
+        </StackPanel>
+
+        <Grid x:Name="TopStatusRow" Grid.Row="1" Margin="0,10,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="0.85*" />
+                <ColumnDefinition Width="1.6*" />
+                <ColumnDefinition Width="0.85*" />
+            </Grid.ColumnDefinitions>
+            <Border x:Name="HeadStatusPanel" Grid.Column="0" Margin="0,0,10,0" Style="{StaticResource PanelBorder}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="Head Status" Style="{StaticResource PanelTitle}" />
+                    <ItemsControl Grid.Row="1" ItemsSource="{Binding CurrentScreen.MainOperating.HeadPreviews}"
+                                  ItemTemplate="{StaticResource HeadSelectItemTemplate}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><UniformGrid Rows="4" Columns="2" /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                </Grid>
+            </Border>
+            <Border x:Name="SequenceStatusPanel" Grid.Column="1" Style="{StaticResource PanelBorder}">
+                <views:CMainSequenceStatusView x:Name="SequenceStatusView" DataContext="{Binding CurrentScreen.MainOperating.SequenceStatus}" />
+            </Border>
+            <Border x:Name="InterlockStatusPanel" Grid.Column="2" Margin="10,0,0,0" Style="{StaticResource PanelBorder}">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="Interlock / Safety" Style="{StaticResource PanelTitle}" />
+                    <DataGrid x:Name="InterlockGrid" ItemsSource="{Binding CurrentScreen.MainOperating.InterlockItems}"
+                              IsReadOnly="True"
+                              Style="{StaticResource MainDataGrid}"
+                              FontSize="14"
+                              HorizontalScrollBarVisibility="Disabled">
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="Item" Width="*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Content="{Binding Item}" Click="OpenInterlockDetailsDialog"
+                                                Foreground="{DynamicResource TextPrimaryBrush}"
+                                                FontSize="14" FontWeight="SemiBold" Cursor="Hand"
+                                                HorizontalContentAlignment="Left" Padding="12,5"
+                                                BorderThickness="0" Background="Transparent">
+                                            <Button.Template>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                                                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                                          VerticalAlignment="Center" />
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="{DynamicResource MenuItemSelectedBackgroundBrush}" />
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Button.Template>
+                                        </Button>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="State" Width="120">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding State}" Foreground="{Binding StateBrush}"
+                                                   FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </Border>
+        </Grid>
+        <Grid x:Name="BottomStatusRow" Grid.Row="2" Margin="0,10,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.6*" />
+                <ColumnDefinition Width="1.1*" />
+            </Grid.ColumnDefinitions>
+            <Border x:Name="ParameterStatusPanel" Grid.Column="0" Margin="0,0,10,0" Style="{StaticResource PanelBorder}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <ItemsControl x:Name="MainParameterTabs" Grid.Row="0"
+                                  ItemsSource="{Binding CurrentScreen.MainOperating.ParameterTabs}"
+                                  Margin="0,0,0,8">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Rows="1" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Content="{Binding Name}" Width="Auto"
+                                        menu:CButtonCommandBehavior.Command="{Binding DataContext.CurrentScreen.MainOperating.SelectParameterTabCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding Key}"
+                                        Background="{Binding BackgroundBrush}"
+                                        BorderBrush="{Binding BorderBrush}"
+                                        Foreground="{Binding TextBrush}"
+                                        Style="{StaticResource MainParameterTabButton}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Grid Grid.Row="1">
+                        <views:CMainRunOptionView x:Name="RunOptionView" DataContext="{Binding CurrentScreen.MainOperating.RunOptions}"
+                            Visibility="{Binding PanelVisibility}"/>
+                        <views:CMainProtectWindowView x:Name="ProtectWindowView" DataContext="{Binding CurrentScreen.MainOperating.ProtectWindow}"
+                            Visibility="{Binding PanelVisibility, FallbackValue=Collapsed, TargetNullValue=Collapsed}"/>
+                        <DataGrid ItemsSource="{Binding CurrentScreen.MainOperating.HeadParameters}"
+                                  Visibility="{Binding CurrentScreen.MainOperating.HeadParameterVisibility}"
+                                  IsReadOnly="True"
+                                  HorizontalScrollBarVisibility="Auto"
+                                  Style="{StaticResource MainDataGrid}"
+                                  FontSize="11">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Head" Binding="{Binding Head}" Width="58" ElementStyle="{StaticResource MainGridText}" />
+                                <DataGridTextColumn Header="Power (W)" Binding="{Binding Power, StringFormat=F2}" Width="82" ElementStyle="{StaticResource MainGridText}" />
+                                <DataGridTextColumn Header="Freq (kHz)" Binding="{Binding Frequency, StringFormat=F1}" Width="82" ElementStyle="{StaticResource MainGridText}" />
+                                <DataGridTextColumn Header="Shot Count" Binding="{Binding Shot}" Width="82" ElementStyle="{StaticResource MainGridText}" />
+                                <DataGridTextColumn Header="Jump Speed (mm/sec)" Binding="{Binding JumpSpeed, StringFormat=F0}" Width="132" ElementStyle="{StaticResource MainGridText}" />
+                                <DataGridTextColumn Header="DOE Z (mm)" Binding="{Binding DoeZPosition, StringFormat=F3}" Width="86" ElementStyle="{StaticResource MainGridText}" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <Grid Visibility="{Binding CurrentScreen.MainOperating.OpticParameterVisibility}">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <ItemsControl ItemsSource="{Binding CurrentScreen.MainOperating.OpticStatusTabs}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Content="{Binding Name}"
+                                                menu:CButtonCommandBehavior.Command="{Binding DataContext.CurrentScreen.MainOperating.SelectOpticStatusCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding Key}"
+                                                Background="{Binding BackgroundBrush}"
+                                                BorderBrush="{Binding BorderBrush}"
+                                                Foreground="{Binding TextBrush}"
+                                                Style="{StaticResource MainParameterTabButton}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <ItemsControl Grid.Row="1"
+                                          Margin="0,6,0,0"
+                                          ItemsSource="{Binding CurrentScreen.MainOperating.OpticParameterGroups}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Style="{StaticResource MainOpticSummaryCard}">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="92" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Device}"
+                                                               Foreground="{DynamicResource TextPrimaryBrush}"
+                                                               FontSize="13"
+                                                               FontWeight="SemiBold"
+                                                               TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Text="COMMON"
+                                                               Foreground="{DynamicResource TextMutedBrush}"
+                                                               FontSize="8"
+                                                               FontWeight="SemiBold" />
+                                                </StackPanel>
+                                                <ItemsControl Grid.Column="1"
+                                                              ItemsSource="{Binding Items}">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <StackPanel Orientation="Horizontal" />
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <StackPanel Orientation="Horizontal"
+                                                                        Margin="0,0,12,0"
+                                                                        VerticalAlignment="Center">
+                                                                <TextBlock Text="{Binding Item}"
+                                                                           Style="{StaticResource MainOpticRowLabelText}"
+                                                                           Margin="0,0,6,0" />
+                                                                <TextBlock Text="{Binding Current}"
+                                                                           Style="{StaticResource MainOpticValueText}"
+                                                                           Margin="0,0,6,0" />
+                                                                <TextBlock Text="{Binding RecipeTarget}"
+                                                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                                                           FontSize="10"
+                                                                           FontWeight="SemiBold"
+                                                                           VerticalAlignment="Center" />
+                                                            </StackPanel>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                                <Border Grid.Column="2"
+                                                        Style="{StaticResource MainOpticBadge}"
+                                                        Background="{Binding StateBrush}">
+                                                    <TextBlock Text="{Binding State}"
+                                                               Foreground="White"
+                                                               FontSize="9"
+                                                               FontWeight="Bold"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center" />
+                                                </Border>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <ScrollViewer Grid.Row="2"
+                                          Margin="0,8,0,0"
+                                          VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Disabled"
+                                          PanningMode="VerticalOnly">
+                                <Grid>
+
+                                <Border
+                                        Style="{StaticResource MainOpticSectionCard}"
+                                        Visibility="{Binding CurrentScreen.MainOperating.OpticLaserVisibility}">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="*" />
+                                        </Grid.RowDefinitions>
+                                        <TextBlock Text="LASER CURRENT"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   FontSize="13"
+                                                   FontWeight="SemiBold" />
+                                        <ItemsControl Grid.Row="1"
+                                                      Margin="0,8,0,0"
+                                                      ItemsSource="{Binding CurrentScreen.MainOperating.OpticHeadParameters}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <UniformGrid Rows="2" Columns="4" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Style="{StaticResource MainOpticHeadMiniCard}">
+                                                        <Grid>
+                                                            <Grid.RowDefinitions>
+                                                                <RowDefinition Height="Auto" />
+                                                                <RowDefinition Height="*" />
+                                                            </Grid.RowDefinitions>
+                                                            <TextBlock Text="{Binding Head}"
+                                                                       Foreground="{DynamicResource AccentTextBrush}"
+                                                                       FontSize="11"
+                                                                       FontWeight="SemiBold"
+                                                                       HorizontalAlignment="Left" />
+                                                            <Grid Grid.Row="1"
+                                                                  Margin="0,6,0,0"
+                                                                  VerticalAlignment="Center">
+                                                                <Grid.RowDefinitions>
+                                                                    <RowDefinition Height="*" />
+                                                                    <RowDefinition Height="*" />
+                                                                    <RowDefinition Height="*" />
+                                                                </Grid.RowDefinitions>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="64" />
+                                                                    <ColumnDefinition Width="*" />
+                                                                </Grid.ColumnDefinitions>
+
+                                                                <TextBlock Text="POWER"
+                                                                           Style="{StaticResource MainOpticSubValueText}" />
+                                                                <TextBlock Grid.Column="1"
+                                                                           Text="{Binding LaserPower}"
+                                                                           Foreground="{Binding LaserPowerBrush}"
+                                                                           Style="{StaticResource MainOpticCompactValueText}" />
+                                                                <TextBlock Grid.Row="1"
+                                                                           Text="SHUTTER"
+                                                                           Style="{StaticResource MainOpticSubValueText}" />
+                                                                <TextBlock Grid.Row="1"
+                                                                           Grid.Column="1"
+                                                                           Text="{Binding LaserShutter}"
+                                                                           Foreground="{Binding LaserShutterBrush}"
+                                                                           Style="{StaticResource MainOpticCompactValueText}" />
+                                                                <TextBlock Grid.Row="2"
+                                                                           Text="GATE"
+                                                                           Style="{StaticResource MainOpticSubValueText}" />
+                                                                <TextBlock Grid.Row="2"
+                                                                           Grid.Column="1"
+                                                                           Text="{Binding LaserGate}"
+                                                                           Foreground="{Binding LaserGateBrush}"
+                                                                           Style="{StaticResource MainOpticCompactValueText}" />
+                                                            </Grid>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Grid>
+                                </Border>
+
+                                <Border
+                                        Style="{StaticResource MainOpticSectionCard}"
+                                        Visibility="{Binding CurrentScreen.MainOperating.OpticAttenuatorVisibility}">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="*" />
+                                        </Grid.RowDefinitions>
+                                        <TextBlock Text="ATT POSITION"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   FontSize="13"
+                                                   FontWeight="SemiBold" />
+                                        <ItemsControl Grid.Row="1"
+                                                      Margin="0,8,0,0"
+                                                      ItemsSource="{Binding CurrentScreen.MainOperating.OpticHeadParameters}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <UniformGrid Rows="2" Columns="4" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Style="{StaticResource MainOpticHeadMiniCard}">
+                                                        <Grid>
+                                                            <Grid.RowDefinitions>
+                                                                <RowDefinition Height="Auto" />
+                                                                <RowDefinition Height="*" />
+                                                            </Grid.RowDefinitions>
+                                                            <TextBlock Text="{Binding Head}"
+                                                                       Foreground="{DynamicResource AccentTextBrush}"
+                                                                       FontSize="11"
+                                                                       FontWeight="SemiBold"
+                                                                       HorizontalAlignment="Left" />
+                                                            <Grid Grid.Row="1"
+                                                                  Margin="0,8,0,0"
+                                                                  VerticalAlignment="Center">
+                                                                <Grid.RowDefinitions>
+                                                                    <RowDefinition Height="*" />
+                                                                    <RowDefinition Height="*" />
+                                                                </Grid.RowDefinitions>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="32" />
+                                                                    <ColumnDefinition Width="*" />
+                                                                </Grid.ColumnDefinitions>
+
+                                                                <TextBlock Text="CUR"
+                                                                           Style="{StaticResource MainOpticSubValueText}" />
+                                                                <TextBlock Grid.Column="1"
+                                                                           Text="{Binding AttenuatorCurrent}"
+                                                                           Style="{StaticResource MainOpticCompactValueText}"
+                                                                           Foreground="{Binding AttenuatorStateBrush}" />
+                                                                <TextBlock Grid.Row="1"
+                                                                           Text="TGT"
+                                                                           Style="{StaticResource MainOpticSubValueText}" />
+                                                                <TextBlock Grid.Row="1"
+                                                                           Grid.Column="1"
+                                                                           Text="{Binding AttenuatorTarget}"
+                                                                           Style="{StaticResource MainOpticCompactValueText}"
+                                                                           Foreground="{DynamicResource TextSecondaryBrush}" />
+                                                            </Grid>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Grid>
+                                </Border>
+
+                                <Border
+                                        Style="{StaticResource MainOpticSectionCard}"
+                                        Margin="0"
+                                        Visibility="{Binding CurrentScreen.MainOperating.OpticBetVisibility}">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="*" />
+                                        </Grid.RowDefinitions>
+                                        <TextBlock Text="BET"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   FontSize="13"
+                                                   FontWeight="SemiBold" />
+                                        <ItemsControl Grid.Row="1"
+                                                      Margin="0,8,0,0"
+                                                      ItemsSource="{Binding CurrentScreen.MainOperating.OpticHeadParameters}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <UniformGrid Rows="2" Columns="4" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Style="{StaticResource MainOpticHeadMiniCard}">
+                                                        <Grid>
+                                                            <Grid.RowDefinitions>
+                                                                <RowDefinition Height="Auto" />
+                                                                <RowDefinition Height="*" />
+                                                            </Grid.RowDefinitions>
+                                                            <TextBlock Text="{Binding Head}"
+                                                                       Foreground="{DynamicResource AccentTextBrush}"
+                                                                       FontSize="11"
+                                                                       FontWeight="SemiBold"
+                                                                       HorizontalAlignment="Left" />
+                                                            <Grid Grid.Row="1"
+                                                                  Margin="0,6,0,0"
+                                                                  VerticalAlignment="Center">
+                                                                <Grid.RowDefinitions>
+                                                                    <RowDefinition Height="Auto" />
+                                                                    <RowDefinition Height="*" />
+                                                                    <RowDefinition Height="*" />
+                                                                </Grid.RowDefinitions>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="34" />
+                                                                    <ColumnDefinition Width="*" />
+                                                                    <ColumnDefinition Width="*" />
+                                                                </Grid.ColumnDefinitions>
+
+                                                                <TextBlock Grid.Column="1"
+                                                                           Text="CUR"
+                                                                           Style="{StaticResource MainOpticSubValueText}" />
+                                                                <TextBlock Grid.Column="2"
+                                                                           Text="TGT"
+                                                                           Style="{StaticResource MainOpticSubValueText}" />
+                                                                <TextBlock Grid.Row="1"
+                                                                           Text="MAG"
+                                                                           Style="{StaticResource MainOpticSubValueText}" />
+                                                                <TextBlock Grid.Row="1"
+                                                                           Grid.Column="1"
+                                                                           Text="{Binding BetMagnificationCurrentStep}"
+                                                                           Style="{StaticResource MainOpticCompactValueText}"
+                                                                           Foreground="{Binding BetStateBrush}" />
+                                                                <TextBlock Grid.Row="1"
+                                                                           Grid.Column="2"
+                                                                           Text="{Binding BetMagnificationTargetStep}"
+                                                                           Style="{StaticResource MainOpticCompactValueText}"
+                                                                           Foreground="{DynamicResource TextSecondaryBrush}" />
+                                                                <TextBlock Grid.Row="2"
+                                                                           Text="DIV"
+                                                                           Style="{StaticResource MainOpticSubValueText}" />
+                                                                <TextBlock Grid.Row="2"
+                                                                           Grid.Column="1"
+                                                                           Text="{Binding BetDivergenceCurrentStep}"
+                                                                           Style="{StaticResource MainOpticCompactValueText}"
+                                                                           Foreground="{Binding BetStateBrush}" />
+                                                                <TextBlock Grid.Row="2"
+                                                                           Grid.Column="2"
+                                                                           Text="{Binding BetDivergenceTargetStep}"
+                                                                           Style="{StaticResource MainOpticCompactValueText}"
+                                                                           Foreground="{DynamicResource TextSecondaryBrush}" />
+                                                            </Grid>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Grid>
+                                </Border>
+                                </Grid>
+                            </ScrollViewer>
+                        </Grid>
+
+                        <DataGrid Visibility="{Binding CurrentScreen.MainOperating.MotorStatusVisibility}"
+                                  ItemsSource="{Binding CurrentScreen.MainOperating.MotorStatusItems}"
+                                  AutoGenerateColumns="False" IsReadOnly="True"
+                                  Style="{StaticResource MainDataGrid}" FontSize="11"
+                                  CanUserAddRows="False" CanUserDeleteRows="False"
+                                  CanUserSortColumns="False" CanUserReorderColumns="False"
+                                  HeadersVisibility="Column" RowHeight="38"
+                                  VerticalAlignment="Top" MinHeight="155">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*" />
+                                <DataGridTextColumn Header="Cur Pos (mm)" Binding="{Binding Position}" Width="*">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="ToolTip" Value="{Binding PositionMessage}" />
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Cur Speed(mm/sec)" Binding="{Binding Speed}" Width="1.4*">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="ToolTip" Value="{Binding SpeedMessage}" />
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <Grid x:Name="ScannerStatusWorkspace" Visibility="{Binding CurrentScreen.MainOperating.ScannerStatusVisibility}">
+                            <Grid.Resources>
+                                <Style x:Key="ScannerCompactLabel" TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+                                    <Setter Property="FontSize" Value="11" />
+                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                    <Setter Property="VerticalAlignment" Value="Center" />
+                                </Style>
+                                <Style x:Key="ScannerCompactValue" TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                                    <Setter Property="FontSize" Value="13" />
+                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                    <Setter Property="VerticalAlignment" Value="Center" />
+                                    <Setter Property="TextAlignment" Value="Right" />
+                                    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                                    <Setter Property="ToolTip" Value="{Binding Text, RelativeSource={RelativeSource Self}}" />
+                                </Style>
+                            </Grid.Resources>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <ItemsControl x:Name="ScannerHeadSelector" Grid.Row="0"
+                                          ItemsSource="{Binding CurrentScreen.MainOperating.ScannerStatusHeadTabs}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate><UniformGrid Rows="1" Columns="8" /></ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Content="{Binding Name}" Width="Auto" Height="28" Margin="0,0,4,0" FontSize="12"
+                                                menu:CButtonCommandBehavior.Command="{Binding DataContext.CurrentScreen.MainOperating.SelectScannerStatusHeadCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding Key}"
+                                                Background="{Binding BackgroundBrush}" BorderBrush="{Binding BorderBrush}" Foreground="{Binding TextBrush}"
+                                                Style="{StaticResource MainParameterTabButton}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <ItemsControl x:Name="ScannerAxisCards" Grid.Row="1" Margin="0,8,0,0"
+                                          ItemsSource="{Binding CurrentScreen.MainOperating.ScannerStatusItems}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate><UniformGrid Rows="1" Columns="3" /></ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Margin="0,0,4,0" Padding="8" CornerRadius="4" BorderThickness="1"
+                                                Background="{DynamicResource PanelAltBackgroundBrush}" BorderBrush="{DynamicResource PanelBorderBrush}">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="*" MinHeight="22" />
+                                                        <RowDefinition Height="*" MinHeight="22" />
+                                                        <RowDefinition Height="*" MinHeight="22" />
+                                                        <RowDefinition Height="*" MinHeight="22" />
+                                                        <RowDefinition Height="*" MinHeight="22" />
+                                                        <RowDefinition Height="*" MinHeight="22" />
+                                                        <RowDefinition Height="*" MinHeight="22" />
+                                                        <RowDefinition Height="*" MinHeight="22" />
+                                                        <RowDefinition Height="*" MinHeight="22" />
+                                                </Grid.RowDefinitions>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="84" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <Border Grid.ColumnSpan="2" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource PanelBorderBrush}"
+                                                        Padding="0,0,0,6" Margin="0,0,0,4">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                                        <TextBlock Text="{Binding Axis}" Foreground="{DynamicResource AccentTextBrush}" FontSize="16" FontWeight="Bold" />
+                                                        <TextBlock Grid.Column="1" Text="{Binding AxisNo}" Style="{StaticResource ScannerCompactValue}" />
+                                                    </Grid>
+                                                </Border>
+                                                    <TextBlock Grid.Row="1" Text="POSITION" Style="{StaticResource ScannerCompactLabel}" />
+                                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Position}"
+                                                               Style="{StaticResource ScannerCompactValue}" />
+                                                    <TextBlock Grid.Row="2" Text="AUX" Style="{StaticResource ScannerCompactLabel}" />
+                                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding AuxFeedback}"
+                                                               Style="{StaticResource ScannerCompactValue}" />
+                                                    <TextBlock Grid.Row="3" Text="CURRENT" Style="{StaticResource ScannerCompactLabel}" />
+                                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding CurrentFeedback}"
+                                                               Style="{StaticResource ScannerCompactValue}" />
+                                                    <TextBlock Grid.Row="4" Text="GALVO TEMP" Style="{StaticResource ScannerCompactLabel}" />
+                                                    <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding GalvoTemperature}"
+                                                               Style="{StaticResource ScannerCompactValue}" />
+                                                    <TextBlock Grid.Row="5" Text="LASER RAW" Style="{StaticResource ScannerCompactLabel}" />
+                                                    <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding GalvoLaserOutputRaw}"
+                                                               Style="{StaticResource ScannerCompactValue}" />
+                                                    <TextBlock Grid.Row="6" Text="ABLE" Style="{StaticResource ScannerCompactLabel}" />
+                                                    <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding Able}" Foreground="{Binding AbleBrush}"
+                                                               Style="{StaticResource ScannerCompactValue}" />
+                                                    <TextBlock Grid.Row="7" Text="HOME" Style="{StaticResource ScannerCompactLabel}" />
+                                                    <TextBlock Grid.Row="7" Grid.Column="1" Text="{Binding Home}" Foreground="{Binding HomeBrush}"
+                                                               Style="{StaticResource ScannerCompactValue}" />
+                                                    <TextBlock Grid.Row="8" Text="FAULT" Style="{StaticResource ScannerCompactLabel}" />
+                                                    <TextBlock Grid.Row="8" Grid.Column="1" Text="{Binding Fault}" Foreground="{Binding FaultBrush}"
+                                                               Style="{StaticResource ScannerCompactValue}" />
+                                                    <TextBlock Grid.Row="9" Text="ERROR" Style="{StaticResource ScannerCompactLabel}" />
+                                                    <TextBlock Grid.Row="9" Grid.Column="1" Text="{Binding Error}" Foreground="{Binding ErrorBrush}"
+                                                               Style="{StaticResource ScannerCompactValue}" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Grid>
+                    </Grid>
+                </Grid>
+            </Border>
+            <Border x:Name="AutomationStatusPanel" Grid.Column="1" Style="{StaticResource PanelBorder}">
+                <views:CAutomationControllerStatusView DataContext="{Binding CurrentScreen.MainOperating.AutomationControllerStatusItems}" />
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

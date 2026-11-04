@@ -1,0 +1,19 @@
+﻿NAME,DISPLAY NAME,DATA TYPE,UNIT,SHOW,USE,VALUE,MIN,MAX,DESCRIPTION,ORDER
+ShapeName,Shape Type,STRING,,1,1,Circle,0,0,수동 가공 형상 이름,1
+ShapeSize,Shape Size,DOUBLE,mm,1,1,0.35,0.001,100,수동 가공 형상 크기,2
+Direction,Direction,STRING,,1,1,CW,0,0,수동 가공 형상 진행 방향,3
+OffsetX,Offset X,DOUBLE,mm,1,1,0,-100,100,수동 가공 형상 중심 X 오프셋,4
+OffsetY,Offset Y,DOUBLE,mm,1,1,0,-100,100,수동 가공 형상 중심 Y 오프셋,5
+GridRowLines,Grid Row Count,INT,ea,1,1,5,2,200,수동 가공 그리드 행 라인 수,6
+GridColLines,Grid Col Count,INT,ea,1,1,5,2,200,수동 가공 그리드 열 라인 수,7
+LaserPower,Laser Power,DOUBLE,W,1,1,1,0,100,수동 가공 레이저 출력,10
+JumpSpeed,Jump Speed,DOUBLE,m/sec,1,1,1.5,0.001,100,수동 가공 점프 속도,20
+MarkSpeed,Mark Speed,DOUBLE,m/sec,1,1,0.9,0.001,100,수동 가공 마킹 속도,30
+LaserFrequency,Laser Frequency,DOUBLE,kHz,1,1,20,0.001,1000,수동 가공 레이저 주파수,40
+LaserOnDelay,Laser On Delay,DOUBLE,msec,1,1,8,0,10000,수동 형상 가공 전 대기 시간(msec),50
+LaserOffDelay,Laser Off Delay,DOUBLE,msec,1,1,12,0,10000,수동 형상 가공 후 대기 시간(msec),60
+LaserOnMode,LaserAction_Mode,STRING,,1,1,TIME,0,0,레이저 ON 동작 모드(TIME 또는 COUNT),70
+Time,LaserAction_On Time,DOUBLE,msec,1,1,1000,0,30000,레이저 ON 시간(msec),80
+Count,LaserAction_Shot Count,INT,count,1,1,1,1,1000,레이저 ON 샷 수,90
+RepeatCount,LaserAction_Repeat Count,INT,count,1,1,1,1,50,레이저 ON 반복 횟수,100
+RepeatDelayTime,LaserAction_Repeat Delay Time,DOUBLE,msec,1,1,0,0,30000,레이저 ON 반복 사이 대기 시간(msec),110

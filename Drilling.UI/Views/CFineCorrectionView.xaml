@@ -1,0 +1,156 @@
+<UserControl x:Class="Drilling.UI.Views.CFineCorrectionView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:menu="clr-namespace:Drilling.UI.Menu"
+             xmlns:views="clr-namespace:Drilling.UI.Views">
+    <UserControl.Resources>
+        <ControlTemplate x:Key="FineButtonTemplate" TargetType="Button">
+            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" Padding="{TemplateBinding Padding}" CornerRadius="2">
+                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+        </ControlTemplate>
+        <Style x:Key="FineButton" TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+            <Setter Property="Template" Value="{StaticResource FineButtonTemplate}" />
+            <Setter Property="Height" Value="34" /><Setter Property="MinWidth" Value="0" />
+            <Setter Property="Padding" Value="8,0" /><Setter Property="Margin" Value="2,0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag}" Value="True"><Setter Property="Background" Value="{DynamicResource ButtonPrimaryBrush}" /><Setter Property="Foreground" Value="White" /></DataTrigger>
+                <Trigger Property="IsEnabled" Value="False"><Setter Property="Background" Value="{DynamicResource PanelAltBackgroundBrush}" /><Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" /></Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="FineStartButton" TargetType="Button" BasedOn="{StaticResource FineButton}">
+            <Setter Property="Background" Value="{DynamicResource ButtonPrimaryBrush}" /><Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style x:Key="FineStopButton" TargetType="Button" BasedOn="{StaticResource FineButton}">
+            <Setter Property="Background" Value="{DynamicResource ButtonDangerBrush}" /><Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style x:Key="FineSummaryButton" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Padding" Value="10,7" />
+            <Setter Property="Margin" Value="0,0,0,7" />
+            <Setter Property="BorderBrush" Value="{Binding StateBrush}" />
+            <Setter Property="BorderThickness" Value="4,1,1,1" />
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}" CornerRadius="2">
+                    <ContentPresenter HorizontalAlignment="Stretch" />
+                </Border>
+            </ControlTemplate></Setter.Value></Setter>
+            <Style.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource PanelAltBackgroundBrush}" /></Trigger></Style.Triggers>
+        </Style>
+        <Style x:Key="FineStatisticText" TargetType="TextBlock">
+            <Setter Property="TextAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+        </Style>
+    </UserControl.Resources>
+    <Grid>
+        <Grid.ColumnDefinitions><ColumnDefinition Width="3*" /><ColumnDefinition Width="2*" /></Grid.ColumnDefinitions>
+        <views:CFineGlassPreviewView x:Name="GlassPreview" />
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+            <Border Style="{StaticResource PanelBorder}" Padding="10">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                    <StackPanel Orientation="Horizontal"><TextBlock Text="CURRENT RECIPE" FontSize="11" VerticalAlignment="Center" Margin="0,0,12,0" Foreground="{DynamicResource TextPrimaryBrush}" /><TextBlock Text="{Binding RecipeName}" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" /></StackPanel>
+                    <Grid Grid.Row="1" Margin="0,6,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <StackPanel><TextBlock Text="Stage Y Cur (mm)" FontSize="11" Foreground="{DynamicResource TextPrimaryBrush}" /><TextBlock Text="{Binding StageY}" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" /></StackPanel>
+                        <StackPanel Grid.Column="1"><TextBlock Text="Review X Cur (mm)" FontSize="11" Foreground="{DynamicResource TextPrimaryBrush}" /><TextBlock Text="{Binding ReviewX}" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" /></StackPanel>
+                        <TextBlock Grid.Column="2" Text="{Binding Mode}" FontSize="11" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                    </Grid>
+                </Grid>
+            </Border>
+            <Border Grid.Row="1" Style="{StaticResource PanelBorder}" Padding="10" Margin="0,8,0,0">
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="98" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                    <TextBlock Text="LINE SELECT" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="2,0,4,0" VerticalAlignment="Center" />
+                    <UniformGrid Grid.Column="1" Rows="1" IsEnabled="{Binding CanConfigure}">
+                        <Button Content="1 Line" Tag="{Binding IsOneLine}" Style="{StaticResource FineButton}" menu:CButtonCommandBehavior.Command="{Binding SelectLineCountCommand}" CommandParameter="1" />
+                        <Button Content="3 Line" Tag="{Binding IsThreeLine}" Style="{StaticResource FineButton}" menu:CButtonCommandBehavior.Command="{Binding SelectLineCountCommand}" CommandParameter="3" />
+                        <Button Content="5 Line" Tag="{Binding IsFiveLine}" Style="{StaticResource FineButton}" menu:CButtonCommandBehavior.Command="{Binding SelectLineCountCommand}" CommandParameter="5" />
+                        <Button Content="7 Line" Tag="{Binding IsSevenLine}" Style="{StaticResource FineButton}" menu:CButtonCommandBehavior.Command="{Binding SelectLineCountCommand}" CommandParameter="7" />
+                    </UniformGrid>
+                </Grid>
+            </Border>
+            <Border Grid.Row="2" Style="{StaticResource PanelBorder}" Padding="10" Margin="0,8,0,0">
+                <StackPanel>
+                    <Grid Margin="2,0,2,8"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="80" /></Grid.ColumnDefinitions>
+                        <TextBlock Text="INSPECTION METHOD" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}" />
+                        <TextBlock Grid.Column="1" Text="BEAM" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="8,0" />
+                        <ComboBox Grid.Column="2" ItemsSource="{Binding BeamNumbers}" SelectedItem="{Binding SelectedBeam, Mode=TwoWay}"
+                                  IsEnabled="{Binding CanConfigure}" Height="30" HorizontalContentAlignment="Center" />
+                    </Grid>
+                    <UniformGrid Rows="1" IsEnabled="{Binding CanConfigure}">
+                        <Button Content="Flying" Tag="{Binding IsFlying}" Style="{StaticResource FineButton}" menu:CButtonCommandBehavior.Command="{Binding SelectMethodCommand}" CommandParameter="FLYING" />
+                        <Button Content="PtoP" Tag="{Binding IsPtoP}" Style="{StaticResource FineButton}" menu:CButtonCommandBehavior.Command="{Binding SelectMethodCommand}" CommandParameter="P2P" />
+                    </UniformGrid>
+                </StackPanel>
+            </Border>
+            <Border Grid.Row="3" Style="{StaticResource PanelBorder}" Padding="10" Margin="0,8,0,0">
+                <Grid><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                    <TextBlock Text="CORRECTION" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                    <TextBlock Grid.Row="1" Text="{Binding ModelOrder}" TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,5,0,7" />
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding Lines}"><ItemsControl.ItemTemplate><DataTemplate>
+                            <Button Style="{StaticResource FineSummaryButton}" CommandParameter="{Binding}"
+                                    menu:CButtonCommandBehavior.Command="{Binding DataContext.OpenLineDetailsCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                                <StackPanel>
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding Title}" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding StateText}" Foreground="{Binding StateBrush}" FontWeight="Bold" />
+                                    </Grid>
+                                    <TextBlock Text="{Binding Detail}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,3,0,0" />
+                                    <Border BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0,1" Padding="0,4" Margin="0,6,0,0">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="78" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                            <TextBlock Text="Axis (mm)" Style="{StaticResource FineStatisticText}" FontSize="10" />
+                                            <TextBlock Grid.Column="1" Text="START" Style="{StaticResource FineStatisticText}" FontSize="10" />
+                                            <TextBlock Grid.Column="2" Text="END" Style="{StaticResource FineStatisticText}" FontSize="10" />
+                                            <TextBlock Grid.Row="1" Text="Stage Y" Style="{StaticResource FineStatisticText}" FontSize="11" Margin="0,2,0,0" />
+                                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding StartStageY}" Style="{StaticResource FineStatisticText}" FontWeight="SemiBold" Margin="0,2,0,0" />
+                                            <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding EndStageY}" Style="{StaticResource FineStatisticText}" FontWeight="SemiBold" Margin="0,2,0,0" />
+                                            <TextBlock Grid.Row="2" Text="Review X" Style="{StaticResource FineStatisticText}" FontSize="11" Margin="0,2,0,0" />
+                                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding StartReviewX}" Style="{StaticResource FineStatisticText}" FontWeight="SemiBold" Margin="0,2,0,0" />
+                                            <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding EndReviewX}" Style="{StaticResource FineStatisticText}" FontWeight="SemiBold" Margin="0,2,0,0" />
+                                        </Grid>
+                                    </Border>
+                                    <TextBlock Text="{Binding ResultSummary}" Foreground="{Binding NgBrush}" FontSize="12" FontWeight="SemiBold" Margin="0,5,0,6" />
+                                    <TextBlock Text="Vision Flip Convert" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,3" />
+                                    <Grid Margin="0,0,0,2"><Grid.ColumnDefinitions><ColumnDefinition Width="28" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="1" Text="MAX" Style="{StaticResource FineStatisticText}" FontSize="10" />
+                                        <TextBlock Grid.Column="2" Text="MIN" Style="{StaticResource FineStatisticText}" FontSize="10" />
+                                        <TextBlock Grid.Column="3" Text="AVG" Style="{StaticResource FineStatisticText}" FontSize="10" />
+                                    </Grid>
+                                    <ItemsControl ItemsSource="{Binding Statistics}"><ItemsControl.ItemTemplate><DataTemplate>
+                                        <Grid Margin="0,1"><Grid.ColumnDefinitions><ColumnDefinition Width="28" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding Axis}" Style="{StaticResource FineStatisticText}" FontWeight="Bold" />
+                                            <TextBlock Grid.Column="1" Text="{Binding Maximum}" Style="{StaticResource FineStatisticText}" />
+                                            <TextBlock Grid.Column="2" Text="{Binding Minimum}" Style="{StaticResource FineStatisticText}" />
+                                            <TextBlock Grid.Column="3" Text="{Binding Average}" Style="{StaticResource FineStatisticText}" />
+                                        </Grid>
+                                    </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                                </StackPanel>
+                            </Button>
+                        </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                    </ScrollViewer>
+                    <TextBlock Grid.Row="3" Text="{Binding Status}" TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6" />
+                    <UniformGrid Grid.Row="4" Rows="1">
+                        <Button Content="Review Start" Style="{StaticResource FineStartButton}" menu:CButtonCommandBehavior.Command="{Binding ActionCommand}" CommandParameter="START" />
+                        <Button Content="Review Stop" Style="{StaticResource FineStopButton}" menu:CButtonCommandBehavior.Command="{Binding ActionCommand}" CommandParameter="STOP" />
+                        <Button Content="NG RETRY" Style="{StaticResource FineButton}" menu:CButtonCommandBehavior.Command="{Binding ActionCommand}" CommandParameter="NG_RETRY" />
+                    </UniformGrid>
+                    <TextBlock Grid.Row="5" Text="{Binding OffsetStatus}" TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,3" />
+                    <UniformGrid Grid.Row="6" Rows="1">
+                        <Button Content="OFFSET APPLY" Style="{StaticResource FineStartButton}" menu:CButtonCommandBehavior.Command="{Binding ActionCommand}" CommandParameter="OFFSET_APPLY" />
+                        <Button Content="OFFSET INIT" Style="{StaticResource FineStopButton}" menu:CButtonCommandBehavior.Command="{Binding ActionCommand}" CommandParameter="OFFSET_INIT" />
+                        <Button Content="CUR OFFSET VIEW" Style="{StaticResource FineButton}" menu:CButtonCommandBehavior.Command="{Binding ActionCommand}" CommandParameter="OFFSET_VIEW" />
+                    </UniformGrid>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

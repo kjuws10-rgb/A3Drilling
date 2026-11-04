@@ -1,0 +1,441 @@
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:menu="clr-namespace:Drilling.UI.Menu"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:views="clr-namespace:Drilling.UI.Views"
+        mc:Ignorable="d"
+        Title="Laser Drilling"
+        Width="1920"
+        Height="1080"
+        WindowStartupLocation="CenterScreen"
+        WindowState="Maximized"
+        ResizeMode="CanMinimize"
+        Background="{DynamicResource WindowBackgroundBrush}">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+
+        <Style x:Key="HeaderStatusNavButton" TargetType="Button">
+            <Setter Property="Width" Value="22" />
+            <Setter Property="Height" Value="16" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="{DynamicResource ButtonSecondaryBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ButtonSecondaryBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+            <Setter Property="FontSize" Value="9" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource HeaderNavHoverBackgroundBrush}" />
+                                <Setter Property="BorderBrush" Value="{DynamicResource MenuItemSelectedBorderBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource HeaderNavPressedBackgroundBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ThemeToggleButton" TargetType="Button">
+            <Setter Property="MinWidth" Value="124" />
+            <Setter Property="Height" Value="24" />
+            <Setter Property="Padding" Value="10,0" />
+            <Setter Property="Background" Value="{DynamicResource ButtonSecondaryBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ButtonSecondaryBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource HeaderNavHoverBackgroundBrush}" />
+                                <Setter Property="BorderBrush" Value="{DynamicResource MenuItemSelectedBorderBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource ButtonTextOnColorBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource HeaderNavPressedBackgroundBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource ButtonTextOnColorBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <DataTemplate x:Key="HeaderStatusItemTemplate">
+            <Border x:Name="HeaderStatusCard"
+                    Width="102"
+                    Margin="4,2"
+                    Padding="8,5,8,0"
+                    Background="{Binding CardBrush}"
+                    BorderBrush="{DynamicResource HeaderCardBorderBrush}"
+                    BorderThickness="1"
+                    menu:CButtonCommandBehavior.Command="{Binding Open}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="4" />
+                    </Grid.RowDefinitions>
+                    <TextBlock x:Name="HeaderStatusName"
+                               Text="{Binding Name}"
+                               HorizontalAlignment="Center"
+                               Foreground="{Binding CardTextBrush}"
+                               FontSize="11"
+                               FontWeight="SemiBold"
+                               TextWrapping="NoWrap" />
+                    <Border x:Name="HeaderStatusValueBadge"
+                            Grid.Row="1"
+                            Margin="0,2,0,0"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center">
+                        <TextBlock x:Name="HeaderStatusValue"
+                                   Text="{Binding DisplayValue}"
+                                   HorizontalAlignment="Center"
+                                   TextAlignment="Center"
+                                   Foreground="{Binding CardTextBrush}"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   TextWrapping="NoWrap"
+                                   TextTrimming="CharacterEllipsis" />
+                    </Border>
+                    <Grid Grid.Row="2"
+                          Margin="0,2,0,0"
+                          Visibility="{Binding CanNavigate, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="22" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="22" />
+                        </Grid.ColumnDefinitions>
+
+                        <Button Style="{StaticResource HeaderStatusNavButton}"
+                                menu:CButtonCommandBehavior.Command="{Binding Previous}"
+                                Content="&lt;" />
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding PageText}"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Foreground="{Binding CardTextBrush}"
+                                   FontSize="10"
+                                   FontWeight="SemiBold" />
+                        <Button Grid.Column="2"
+                                Style="{StaticResource HeaderStatusNavButton}"
+                                menu:CButtonCommandBehavior.Command="{Binding Next}"
+                                Content="&gt;" />
+                    </Grid>
+                    <Border x:Name="HeaderStatusAccent"
+                            Grid.Row="3"
+                            Background="{Binding AccentBrush}"
+                            Margin="-8,3,-8,0" />
+                </Grid>
+            </Border>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding Name}" Value="VISION">
+                    <Setter TargetName="HeaderStatusValue" Property="FontSize" Value="11" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Name}" Value="ALARM">
+                    <Setter TargetName="HeaderStatusCard" Property="Cursor" Value="Hand" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Name}" Value="RECIPE">
+                    <Setter TargetName="HeaderStatusCard" Property="Width" Value="224" />
+                    <Setter TargetName="HeaderStatusCard" Property="Background" Value="{DynamicResource HeaderCardBackgroundBrush}" />
+                    <Setter TargetName="HeaderStatusName" Property="Text" Value="SELECTED RECIPE" />
+                    <Setter TargetName="HeaderStatusName" Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+                    <Setter TargetName="HeaderStatusName" Property="FontSize" Value="10" />
+                    <Setter TargetName="HeaderStatusValueBadge" Property="Margin" Value="0,3,0,0" />
+                    <Setter TargetName="HeaderStatusValue" Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                    <Setter TargetName="HeaderStatusValue" Property="FontSize" Value="17" />
+                    <Setter TargetName="HeaderStatusValue" Property="FontWeight" Value="Bold" />
+                    <Setter TargetName="HeaderStatusAccent" Property="Background" Value="{DynamicResource AccentTextBrush}" />
+                    <Setter TargetName="HeaderStatusAccent" Property="Height" Value="5" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Viewbox Stretch="Uniform"
+             StretchDirection="Both">
+        <Grid Width="1920"
+              Height="1080"
+              Background="{DynamicResource ShellBackgroundBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="88" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="0" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0"
+                Background="{DynamicResource HeaderBackgroundBrush}"
+                BorderBrush="{DynamicResource HeaderBorderBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="20,6">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="370" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="190" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0"
+                            VerticalAlignment="Center"
+                            Margin="0,0,14,0">
+                    <TextBlock Text="Laser Drilling"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               FontSize="30"
+                               FontWeight="SemiBold" />
+                    <TextBlock Text="SYS &amp; J / Drilling"
+                               Margin="0,4,0,0"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               FontSize="15" />
+                </StackPanel>
+
+                <ItemsControl Grid.Column="1"
+                              ItemsSource="{Binding HeaderContextStatusItems}"
+                              ItemTemplate="{StaticResource HeaderStatusItemTemplate}"
+                              Margin="0,0,12,0"
+                              VerticalAlignment="Stretch">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+
+                <ItemsControl Grid.Column="2"
+                              ItemsSource="{Binding HeaderCommunicationStatusItems}"
+                              ItemTemplate="{StaticResource HeaderStatusItemTemplate}"
+                              Margin="10,0"
+                              HorizontalAlignment="Right">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+
+                <StackPanel Grid.Column="3"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center">
+                    <Button Content="{Binding ThemeToggleText}"
+                            menu:CButtonCommandBehavior.Command="{Binding ToggleThemeCommand}"
+                            Style="{StaticResource ThemeToggleButton}"
+                            HorizontalAlignment="Right"
+                            Margin="0,0,0,5"
+                            ToolTip="{Binding ThemeModeText}" />
+                    <TextBlock Text="{Binding CurrentDateText}"
+                               HorizontalAlignment="Right"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               FontSize="16" />
+                    <TextBlock Text="{Binding CurrentTimeText}"
+                               HorizontalAlignment="Right"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               FontSize="15" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="190" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0"
+                    Background="{DynamicResource SideBarBackgroundBrush}"
+                    BorderBrush="{DynamicResource HeaderBorderBrush}"
+                    BorderThickness="0,0,1,0"
+                    Padding="12,12,12,18">
+                <DockPanel>
+                    <Button x:Name="StageSimulationButton" DockPanel.Dock="Bottom"
+                            Visibility="{Binding MelsecSimulatorVisibility}"
+                            Height="84"
+                            Background="{DynamicResource PanelBackgroundBrush}"
+                            BorderBrush="{DynamicResource PanelBorderBrush}"
+                            BorderThickness="1"
+                            Command="{Binding OpenMelsecStageSimulationCommand}"
+                            Cursor="Hand" Padding="8"
+                            Margin="0,14,0,0">
+                            <TextBlock Text="Melsec Simulator"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       FontSize="13"
+                                       FontWeight="SemiBold" TextWrapping="Wrap" TextAlignment="Center"
+                                       VerticalAlignment="Center" HorizontalAlignment="Center" />
+                    </Button>
+
+                    <ListBox ItemsSource="{Binding Menus}"
+                             SelectedItem="{Binding SelectedMenu}"
+                             BorderThickness="0"
+                             Background="Transparent"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Padding" Value="0" />
+                                <Setter Property="Margin" Value="0,0,0,9" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+                                <Setter Property="Background" Value="Transparent" />
+                                <Setter Property="Opacity" Value="1" />
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                <Setter Property="VerticalContentAlignment" Value="Stretch" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsEnabled}" Value="False">
+                                        <Setter Property="Opacity" Value="0.45" />
+                                    </DataTrigger>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource MenuItemSelectedBackgroundBrush}" />
+                                        <Setter Property="Foreground" Value="{DynamicResource MenuItemSelectedTextBrush}" />
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Height="64"
+                                        Padding="0"
+                                        Background="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=Background}"
+                                        BorderThickness="1">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsSelected}" Value="True">
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource MenuItemSelectedBorderBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="4" />
+                                            <ColumnDefinition Width="36" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Border>
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="Transparent" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsSelected}" Value="True">
+                                                            <Setter Property="Background" Value="{DynamicResource MenuAccentBrush}" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                        </Border>
+                                        <Viewbox Width="22"
+                                                 Height="22"
+                                                 Grid.Column="1"
+                                                 HorizontalAlignment="Left"
+                                                 VerticalAlignment="Center"
+                                                 Margin="11,0,0,0">
+                                            <Path Data="{Binding IconGeometry}"
+                                                  Stroke="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=Foreground}"
+                                                  StrokeThickness="1.9"
+                                                  StrokeStartLineCap="Round"
+                                                  StrokeEndLineCap="Round"
+                                                  StrokeLineJoin="Round"
+                                                  Fill="Transparent" />
+                                        </Viewbox>
+                                        <TextBlock Grid.Column="2"
+                                                   Text="{Binding Name}"
+                                                   Margin="10,0,0,0"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=Foreground}"
+                                                   FontSize="14"
+                                                   FontWeight="SemiBold" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+
+            <Grid Grid.Column="1" Margin="14,12,14,12">
+                <views:CMainView Visibility="{Binding CurrentScreen.IsMainLayout, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <views:CManualView Visibility="{Binding CurrentScreen.IsManualLayout, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <views:CRecipeView Visibility="{Binding CurrentScreen.IsRecipeLayout, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <views:CSettingView Visibility="{Binding CurrentScreen.IsSettingLayout, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <views:CAlarmView Visibility="{Binding CurrentScreen.IsAlarmLayout, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <views:CMonitorView Visibility="{Binding CurrentScreen.IsMonitorLayout, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <views:CCorrectionView Visibility="{Binding CurrentScreen.IsCorrectionLayout, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <views:CPmView Visibility="{Binding CurrentScreen.IsPmLayout, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <views:CExitView Visibility="{Binding CurrentScreen.IsGenericLayout, Converter={StaticResource BooleanToVisibilityConverter}}" />
+            </Grid>
+        </Grid>
+
+        <Border Grid.Row="2"
+                Visibility="Collapsed"
+                Background="{DynamicResource FooterBackgroundBrush}"
+                BorderBrush="{DynamicResource HeaderBorderBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="18,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="170" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Ellipse Width="16" Height="16" Fill="{DynamicResource StatusReadyBrush}" />
+                    <TextBlock Text="Ready"
+                               Margin="10,0,0,0"
+                               Foreground="{DynamicResource StatusReadyBrush}"
+                               FontSize="15"
+                               FontWeight="SemiBold" />
+                </StackPanel>
+
+                <ItemsControl Grid.Column="1"
+                              ItemsSource="{Binding FooterStatusItems}"
+                              VerticalAlignment="Center"
+                              Margin="20,0">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Rows="1" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Value}"
+                                       Foreground="{Binding AccentBrush}"
+                                       FontSize="14"
+                                       FontWeight="SemiBold" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <TextBlock Grid.Column="2"
+                           Text="X 123.590     Y 21.484     Theta 0.002     |     Script PASS     |     User: Engineer"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextMutedBrush}"
+                           FontSize="13" />
+            </Grid>
+        </Border>
+        </Grid>
+    </Viewbox>
+</Window>

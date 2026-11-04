@@ -1,0 +1,159 @@
+<UserControl x:Class="Drilling.UI.Views.CManualPowerStageView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Loaded="ViewLoaded" Unloaded="ViewUnloaded" IsVisibleChanged="ViewVisibilityChanged"
+             DataContextChanged="ViewDataContextChanged"
+             FontFamily="Segoe UI" FontSize="13" Foreground="{DynamicResource TextPrimaryBrush}">
+    <UserControl.Resources>
+        <Style x:Key="StagePanel" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ButtonSecondaryBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="10,7" />
+        </Style>
+        <Style x:Key="StageTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" /><Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="StageButton" TargetType="Button">
+            <Setter Property="Background" Value="SteelBlue" /><Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ButtonSecondaryBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" /><Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="13" /><Setter Property="Padding" Value="6,0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+                <Border x:Name="ButtonBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="3" Padding="{TemplateBinding Padding}">
+                    <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
+                </Border>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.4" /></Trigger>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ButtonBorder" Property="Opacity" Value="0.8" /></Trigger>
+                    <Trigger Property="IsPressed" Value="True"><Setter TargetName="ButtonBorder" Property="Background" Value="#245779" /></Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="StageInput" TargetType="Button" BasedOn="{StaticResource StageButton}">
+            <Setter Property="Background" Value="{DynamicResource GridBackgroundBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+        </Style>
+        <Style x:Key="JogButton" TargetType="Button" BasedOn="{StaticResource StageButton}">
+            <Setter Property="FontSize" Value="17" /><Setter Property="Margin" Value="3" />
+            <Setter Property="IsEnabled" Value="{Binding CanJog}" />
+            <EventSetter Event="PreviewMouseLeftButtonDown" Handler="JogMouseDown" />
+            <EventSetter Event="PreviewMouseLeftButtonUp" Handler="JogMouseUp" />
+            <EventSetter Event="LostMouseCapture" Handler="JogLostCapture" />
+            <EventSetter Event="PreviewKeyDown" Handler="JogKeyDown" />
+            <EventSetter Event="PreviewKeyUp" Handler="JogKeyUp" />
+            <EventSetter Event="LostKeyboardFocus" Handler="JogLostKeyboardFocus" />
+        </Style>
+    </UserControl.Resources>
+    <Grid x:Name="StageMotionContent">
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+        <Border Style="{StaticResource StagePanel}" Margin="0,0,0,6">
+            <StackPanel>
+                <DockPanel Margin="0,0,0,4">
+                    <Border DockPanel.Dock="Right" Background="{Binding ModeBackground}" BorderBrush="{Binding ModeBackground}" BorderThickness="1" Padding="8,4">
+                        <TextBlock Text="{Binding Mode}" Foreground="White" FontSize="12" FontWeight="SemiBold" />
+                    </Border>
+                    <TextBlock Text="STAGE / REVIEW" Style="{StaticResource StageTitle}" />
+                </DockPanel>
+                <TextBlock Text="{Binding StatusText}" FontSize="11" Margin="0,0,0,5" Foreground="{DynamicResource AccentTextBrush}" />
+                <DataGrid ItemsSource="{Binding Axes}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                          CanUserSortColumns="False" CanUserReorderColumns="False" CanUserResizeRows="False" IsReadOnly="True"
+                          HeadersVisibility="Column" RowHeight="26" ColumnHeaderHeight="30" Height="84" FontSize="12"
+                          Background="{DynamicResource GridBackgroundBrush}" BorderThickness="0"
+                          GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="{DynamicResource ButtonSecondaryBorderBrush}"
+                          ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                    <DataGrid.Resources>
+                        <Style TargetType="DataGridColumnHeader">
+                            <Setter Property="Background" Value="SteelBlue" /><Setter Property="Foreground" Value="White" />
+                            <Setter Property="HorizontalContentAlignment" Value="Center" /><Setter Property="VerticalContentAlignment" Value="Center" />
+                            <Setter Property="FontWeight" Value="SemiBold" />
+                        </Style>
+                        <Style TargetType="DataGridCell"><Setter Property="BorderThickness" Value="0" /><Setter Property="Padding" Value="3" />
+                            <Setter Property="VerticalContentAlignment" Value="Center" /></Style>
+                    </DataGrid.Resources>
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Axis" Binding="{Binding Name}" Width="0.9*">
+                            <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock"><Setter Property="VerticalAlignment" Value="Center" /></Style></DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Width="*" Binding="{Binding Position}">
+                            <DataGridTextColumn.Header><TextBlock Text="Cur Pos (mm)" /></DataGridTextColumn.Header>
+                            <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock">
+                                <Setter Property="FontWeight" Value="SemiBold" /><Setter Property="HorizontalAlignment" Value="Center" />
+                                <Setter Property="VerticalAlignment" Value="Center" /><Setter Property="ToolTip" Value="{Binding PositionMessage}" />
+                            </Style></DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Width="1.2*" Binding="{Binding Speed}">
+                            <DataGridTextColumn.Header><TextBlock Text="Cur Speed (mm/sec)" FontSize="11" /></DataGridTextColumn.Header>
+                            <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock">
+                                <Setter Property="FontWeight" Value="SemiBold" /><Setter Property="HorizontalAlignment" Value="Center" />
+                                <Setter Property="VerticalAlignment" Value="Center" /><Setter Property="ToolTip" Value="{Binding SpeedMessage}" />
+                            </Style></DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </StackPanel>
+        </Border>
+        <Border Grid.Row="1" Style="{StaticResource StagePanel}" Margin="0,0,0,6">
+            <StackPanel>
+                <TextBlock Text="ABS MOVE" Style="{StaticResource StageTitle}" Margin="0,0,0,3" />
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="76" /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition Width="68" /></Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="1" Text="Position (mm)" FontSize="11" HorizontalAlignment="Center" Margin="0,0,6,0" />
+                    <TextBlock Grid.Column="2" Text="Speed (mm/sec)" FontSize="11" HorizontalAlignment="Center" Margin="0,0,6,0" />
+                </Grid>
+                <ItemsControl ItemsSource="{Binding Axes}"><ItemsControl.ItemTemplate><DataTemplate>
+                    <Grid Height="32"><Grid.ColumnDefinitions><ColumnDefinition Width="76" /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition Width="68" /></Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                        <Button Grid.Column="1" Content="{Binding Absolute}" Tag="ABS" Click="OpenPositionInput" Style="{StaticResource StageInput}"
+                                IsEnabled="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=UserControl}}" Margin="0,2,6,2" />
+                        <Button Grid.Column="2" Content="{Binding AbsoluteSpeed}" Tag="ABS_SPEED" Click="OpenPositionInput" Style="{StaticResource StageInput}"
+                                IsEnabled="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=UserControl}}" Margin="0,2,6,2" />
+                        <Button Grid.Column="3" Content="MOVE" Command="{Binding AbsoluteCommand}" Style="{StaticResource StageButton}" Margin="0,2" />
+                    </Grid>
+                </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+            </StackPanel>
+        </Border>
+        <Border Grid.Row="2" Style="{StaticResource StagePanel}" Margin="0,0,0,6">
+            <StackPanel>
+                <TextBlock Text="REL MOVE" Style="{StaticResource StageTitle}" Margin="0,0,0,3" />
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="76" /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition Width="68" /></Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="1" Text="Distance (mm)" FontSize="11" HorizontalAlignment="Center" Margin="0,0,6,0" />
+                    <TextBlock Grid.Column="2" Text="Speed (mm/sec)" FontSize="11" HorizontalAlignment="Center" Margin="0,0,6,0" />
+                </Grid>
+                <ItemsControl ItemsSource="{Binding Axes}"><ItemsControl.ItemTemplate><DataTemplate>
+                    <Grid Height="32"><Grid.ColumnDefinitions><ColumnDefinition Width="76" /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition Width="68" /></Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                        <Button Grid.Column="1" Content="{Binding Relative}" Tag="REL" Click="OpenPositionInput" Style="{StaticResource StageInput}"
+                                IsEnabled="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=UserControl}}" Margin="0,2,6,2" />
+                        <Button Grid.Column="2" Content="{Binding RelativeSpeed}" Tag="REL_SPEED" Click="OpenPositionInput" Style="{StaticResource StageInput}"
+                                IsEnabled="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=UserControl}}" Margin="0,2,6,2" />
+                        <Button Grid.Column="3" Content="MOVE" Command="{Binding RelativeCommand}" Style="{StaticResource StageButton}" Margin="0,2" />
+                    </Grid>
+                </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+            </StackPanel>
+        </Border>
+        <Border Grid.Row="3" Style="{StaticResource StagePanel}">
+            <Grid><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                <TextBlock Text="JOG MOVE" Style="{StaticResource StageTitle}" />
+                <Viewbox Grid.Row="1" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Grid Width="282" Height="132" IsEnabled="{Binding CanJog}">
+                    <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+                    <Button Grid.Row="0" Grid.Column="1" Content="Y +" Tag="Y+" Style="{StaticResource JogButton}" />
+                    <Button Grid.Row="1" Grid.Column="0" Content="X -" Tag="X-" Style="{StaticResource JogButton}" />
+                    <Border Grid.Row="1" Grid.Column="1" BorderBrush="{DynamicResource ButtonSecondaryBorderBrush}" BorderThickness="1" Background="{DynamicResource GridBackgroundBrush}" Margin="3" CornerRadius="3" />
+                    <Button Grid.Row="1" Grid.Column="2" Content="X +" Tag="X+" Style="{StaticResource JogButton}" />
+                    <Button Grid.Row="2" Grid.Column="1" Content="Y -" Tag="Y-" Style="{StaticResource JogButton}" />
+                </Grid>
+                </Viewbox>
+                <TextBlock Grid.Row="2" Text="SIM 전용 · 실제 JOG 명령 미연결" FontSize="11" HorizontalAlignment="Center" />
+            </Grid>
+        </Border>
+        <Button Grid.Row="4" Content="STOP" Command="{Binding StopCommand}" Style="{StaticResource StageButton}" Background="Firebrick" Height="36" Margin="0,6,0,0" FontSize="15" />
+    </Grid>
+</UserControl>

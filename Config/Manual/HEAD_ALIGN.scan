@@ -1,0 +1,14 @@
+﻿NAME,VALUE
+ShapeName,Grid
+ShapeSize,1.000
+Direction,CW
+OffsetX,0.000
+OffsetY,0.000
+GridRowLines,5
+GridColLines,5
+LaserPower,1.00
+JumpSpeed,1.500
+MarkSpeed,0.900
+LaserFrequency,20.000
+LaserOnDelay,8.000
+LaserOffDelay,12.000

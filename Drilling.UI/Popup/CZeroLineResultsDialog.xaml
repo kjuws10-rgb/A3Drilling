@@ -1,0 +1,72 @@
+<Window x:Class="Drilling.UI.Popup.CZeroLineResultsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="0선방어 결과" Width="1320" Height="690" MinWidth="1080" MinHeight="600"
+        WindowStartupLocation="CenterOwner" FontFamily="Segoe UI"
+        Background="{DynamicResource ShellBackgroundBrush}" Foreground="{DynamicResource TextPrimaryBrush}">
+    <Window.Resources>
+        <Style x:Key="ResultText" TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center" /><Setter Property="Margin" Value="5,0" />
+        </Style>
+        <Style x:Key="StateText" TargetType="TextBlock" BasedOn="{StaticResource ResultText}">
+            <Setter Property="FontWeight" Value="Bold" /><Setter Property="Foreground" Value="{Binding StateBrush}" />
+            <Style.Triggers><DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=DataGridRow}}" Value="True">
+                <Setter Property="Foreground" Value="White" />
+            </DataTrigger></Style.Triggers>
+        </Style>
+    </Window.Resources>
+    <Grid Margin="14">
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+        <Border Style="{StaticResource PanelBorder}" Padding="12" Margin="0,0,0,10">
+            <StackPanel>
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Content="닫기" Click="CloseClicked" Width="90" Height="34" Style="{StaticResource SecondaryButton}" />
+                    <Border DockPanel.Dock="Right" Background="{Binding GroupBrush}" Padding="18,6" Margin="8,0,14,0" CornerRadius="3">
+                        <TextBlock Text="{Binding GroupJudge}" Foreground="White" FontSize="18" FontWeight="Bold" />
+                    </Border>
+                    <TextBlock Text="{Binding Header}" FontSize="22" FontWeight="Bold" VerticalAlignment="Center" />
+                </DockPanel>
+                <TextBlock Text="{Binding Context}" FontSize="15" FontWeight="SemiBold" Margin="0,9,0,0" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding Summary}" FontSize="15" Margin="0,6,0,0" />
+                <TextBlock Text="{Binding Detail}" FontSize="12" Margin="0,5,0,0" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding Tolerance}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,5,0,0" TextWrapping="Wrap" />
+            </StackPanel>
+        </Border>
+        <DataGrid x:Name="ResultGrid" Grid.Row="1" Style="{StaticResource PlainDataGrid}"
+                  ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow, Mode=TwoWay}"
+                  AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False" CanUserSortColumns="False"
+                  SelectionMode="Single" SelectionUnit="FullRow" MinRowHeight="38" ColumnHeaderHeight="48" FontSize="13"
+                  EnableRowVirtualization="True" EnableColumnVirtualization="True" ScrollViewer.HorizontalScrollBarVisibility="Auto">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="HEAD" Binding="{Binding Head}" Width="84" ElementStyle="{StaticResource ResultText}" />
+                <DataGridTextColumn Header="CELL" Binding="{Binding Cell}" Width="74" ElementStyle="{StaticResource ResultText}" />
+                <DataGridTextColumn Header="SHOT" Binding="{Binding Shot}" Width="64" ElementStyle="{StaticResource ResultText}" />
+                <DataGridTextColumn Header="BEAM" Binding="{Binding Beam}" Width="58" ElementStyle="{StaticResource ResultText}" />
+                <DataGridTextColumn Header="STATE" Binding="{Binding State}" Width="85" ElementStyle="{StaticResource StateText}" />
+                <DataGridTextColumn Header="Recv X&#10;(mm)" Binding="{Binding RecvX}" Width="90" ElementStyle="{StaticResource ResultText}" />
+                <DataGridTextColumn Header="Recv Y&#10;(mm)" Binding="{Binding RecvY}" Width="90" ElementStyle="{StaticResource ResultText}" />
+                <DataGridTextColumn Header="Flip Convert X&#10;(mm)" Binding="{Binding ConvertedX}" Width="108" ElementStyle="{StaticResource ResultText}" />
+                <DataGridTextColumn Header="Flip Convert Y&#10;(mm)" Binding="{Binding ConvertedY}" Width="108" ElementStyle="{StaticResource ResultText}" />
+                <DataGridTextColumn Header="RESULT" Binding="{Binding Judge}" Width="80" ElementStyle="{StaticResource StateText}" />
+                <DataGridTextColumn Header="사유" Binding="{Binding Reason}" Width="*" MinWidth="170">
+                    <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock" BasedOn="{StaticResource ResultText}">
+                        <Setter Property="TextTrimming" Value="CharacterEllipsis" /><Setter Property="ToolTip" Value="{Binding Reason}" />
+                    </Style></DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+        <Border Grid.Row="2" Style="{StaticResource PanelBorder}" Padding="12" Margin="0,10,0,0">
+            <StackPanel>
+                <TextBlock Text="{Binding SelectedTitle}" FontWeight="Bold" FontSize="16" />
+                <TextBlock Text="{Binding SelectedRaw}" FontSize="13" Margin="0,7,0,0" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding SelectedCoordinates}" FontSize="13" Margin="0,5,0,0" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding SelectedReason}" Foreground="{Binding SelectedRow.StateBrush}" FontWeight="SemiBold" FontSize="13" Margin="0,5,0,0" TextWrapping="Wrap" />
+            </StackPanel>
+        </Border>
+        <StackPanel Grid.Row="3" Margin="0,9,0,0">
+            <TextBlock Text="{Binding ResultFile}" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" FontSize="11" />
+            <TextBlock Text="Recv = Target − Hole (허용오차 판정 기준) · Flip Convert = Vision Flip 적용값 · 창을 닫아도 검사는 계속됩니다."
+                       Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,5,0,0" />
+        </StackPanel>
+    </Grid>
+</Window>

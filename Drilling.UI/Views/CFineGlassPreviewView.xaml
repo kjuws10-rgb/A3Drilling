@@ -1,0 +1,91 @@
+<UserControl x:Class="Drilling.UI.Views.CFineGlassPreviewView"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:menu="clr-namespace:Drilling.UI.Menu" xmlns:views="clr-namespace:Drilling.UI.Views">
+    <UserControl.Resources>
+        <ControlTemplate x:Key="FineButtonTemplate" TargetType="Button">
+            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" Padding="{TemplateBinding Padding}" CornerRadius="2">
+                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+        </ControlTemplate>
+        <Style x:Key="FineLineVisual" TargetType="Canvas">
+            <Style.Triggers><DataTrigger Binding="{Binding Line.StateText}" Value="RUNNING">
+                <DataTrigger.EnterActions><BeginStoryboard x:Name="FineLineBlink"><Storyboard>
+                    <DoubleAnimation Storyboard.TargetProperty="Opacity" From="1" To="0.35" Duration="0:0:0.4" AutoReverse="True" RepeatBehavior="Forever" />
+                </Storyboard></BeginStoryboard></DataTrigger.EnterActions>
+                <DataTrigger.ExitActions><StopStoryboard BeginStoryboardName="FineLineBlink" /></DataTrigger.ExitActions>
+            </DataTrigger></Style.Triggers>
+        </Style>
+        <Style x:Key="FineLineNumberButton" TargetType="Button">
+            <Setter Property="Template" Value="{StaticResource FineButtonTemplate}" />
+            <Setter Property="Width" Value="28" /><Setter Property="Height" Value="16" />
+            <Setter Property="MinWidth" Value="0" /><Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="{Binding Line.StateBrush}" />
+            <Setter Property="BorderBrush" Value="{Binding Line.StateBrush}" />
+            <Setter Property="Foreground" Value="White" /><Setter Property="FontSize" Value="10" />
+            <Setter Property="FontWeight" Value="Bold" /><Setter Property="Cursor" Value="Hand" />
+        </Style>
+    </UserControl.Resources>
+        <Border Style="{StaticResource PanelBorder}" Padding="12" Margin="0,0,10,0">
+            <Grid>
+                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                    <TextBlock Text="GLASS PREVIEW" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                    <WrapPanel Grid.Row="1" HorizontalAlignment="Right" Margin="0,5,0,0">
+                        <TextBlock Text="■ WAIT  " Foreground="DarkGoldenrod" FontSize="11" />
+                        <TextBlock Text="■ RUNNING (Blink)  " Foreground="SeaGreen" FontSize="11" />
+                        <TextBlock Text="■ COMPLETE  " Foreground="SeaGreen" FontSize="11" />
+                        <TextBlock Text="■ NG / ERROR" Foreground="Firebrick" FontSize="11" />
+                    </WrapPanel>
+                </Grid>
+                <ScrollViewer x:Name="FinePreviewScroll" Grid.Row="1" Margin="0,6" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                              SizeChanged="PreviewSizeChanged" ScrollChanged="PreviewScrollChanged">
+                    <Canvas Width="{Binding PreviewWidth}" Height="{Binding PreviewHeight}">
+                        <Canvas Width="860" Height="520" RenderTransform="{Binding PreviewTransform}" IsHitTestVisible="False">
+                            <Image Source="{Binding PreviewImage}" Width="860" Height="520" Stretch="Fill" Opacity="0.5" />
+                        </Canvas>
+                        <Rectangle Canvas.Left="{Binding GlassBounds.Left}" Canvas.Top="{Binding GlassBounds.Top}" Width="{Binding GlassBounds.Width}" Height="{Binding GlassBounds.Height}"
+                                   Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.5" IsHitTestVisible="False" />
+                        <ItemsControl ItemsSource="{Binding Cells}" Width="{Binding PreviewWidth}" Height="{Binding PreviewHeight}">
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemContainerStyle><Style TargetType="ContentPresenter">
+                                <Setter Property="Canvas.Left" Value="{Binding Bounds.Left}" /><Setter Property="Canvas.Top" Value="{Binding Bounds.Top}" />
+                            </Style></ItemsControl.ItemContainerStyle>
+                            <ItemsControl.ItemTemplate><DataTemplate>
+                                <Rectangle Width="{Binding Bounds.Width}" Height="{Binding Bounds.Height}" Fill="Transparent" ToolTip="{Binding Tooltip}" ToolTipService.InitialShowDelay="0" />
+                            </DataTemplate></ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <ItemsControl ItemsSource="{Binding Connections}" Width="{Binding PreviewWidth}" Height="{Binding PreviewHeight}" IsHitTestVisible="False">
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate><DataTemplate>
+                                <Polyline Points="{Binding}" Stroke="{DynamicResource TextMutedBrush}" StrokeThickness="1" StrokeDashArray="3,3" Opacity="0.35" />
+                            </DataTemplate></ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <ItemsControl ItemsSource="{Binding LineVisuals}" Width="{Binding PreviewWidth}" Height="{Binding PreviewHeight}">
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate><DataTemplate>
+                                <Canvas Style="{StaticResource FineLineVisual}"
+                                        Width="{Binding DataContext.PreviewWidth, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        Height="{Binding DataContext.PreviewHeight, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                                    <Polyline Points="{Binding Segment}" Stroke="{Binding Line.StateBrush}" StrokeThickness="2.2" IsHitTestVisible="False" />
+                                    <Polyline Points="{Binding Arrow}" Stroke="{Binding Line.StateBrush}" StrokeThickness="2" IsHitTestVisible="False" />
+                                    <Polyline Points="{Binding Leader}" Stroke="{DynamicResource TextMutedBrush}" StrokeThickness="0.8" StrokeDashArray="2,2" Opacity="0.4" IsHitTestVisible="False" />
+                                    <Button Canvas.Left="{Binding BadgeX}" Canvas.Top="{Binding BadgeY}" Content="{Binding Line.OrderNo}"
+                                            Style="{StaticResource FineLineNumberButton}" CommandParameter="{Binding Line}"
+                                            menu:CButtonCommandBehavior.Command="{Binding DataContext.OpenLineDetailsCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                                </Canvas>
+                            </DataTemplate></ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Image Source="{Binding MonitorNgImage}" Width="{Binding PreviewWidth}" Height="{Binding PreviewHeight}" IsHitTestVisible="False" />
+                        <Ellipse Canvas.Left="{Binding MonitorFocusX}" Canvas.Top="{Binding MonitorFocusY}" Width="14" Height="14"
+                                 Stroke="#0066FF" StrokeThickness="3" Fill="#550066FF" Visibility="{Binding MonitorFocusVisibility}" IsHitTestVisible="False" Panel.ZIndex="1001" />
+                        <views:CReviewCameraOverlay DataContext="{Binding Camera}" Panel.ZIndex="1000"
+                            Width="{Binding DataContext.PreviewWidth, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            Height="{Binding DataContext.PreviewHeight, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                    </Canvas>
+                </ScrollViewer>
+                <TextBlock Grid.Row="2" Text="{Binding Summary}" TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource TextPrimaryBrush}" />
+            </Grid>
+        </Border>
+</UserControl>

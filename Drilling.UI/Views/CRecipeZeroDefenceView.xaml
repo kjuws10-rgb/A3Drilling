@@ -1,0 +1,134 @@
+<UserControl x:Class="Drilling.UI.Views.CRecipeZeroDefenceView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:menu="clr-namespace:Drilling.UI.Menu">
+    <UserControl.Resources>
+        <Style x:Key="ZeroButton" TargetType="Button">
+            <Setter Property="Height" Value="30"/><Setter Property="Margin" Value="3"/>
+            <Setter Property="FontSize" Value="13"/><Setter Property="Padding" Value="10,0"/>
+            <Setter Property="Background" Value="{DynamicResource ButtonSecondaryBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        </Style>
+    </UserControl.Resources>
+    <Grid>
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+        <DockPanel Margin="0,0,0,8">
+            <TextBlock Text="한 글래스당 검사 개수" VerticalAlignment="Center" FontWeight="Bold" Margin="4,0,14,0" Foreground="{DynamicResource TextPrimaryBrush}"/>
+            <Button Content="2" Width="64" CommandParameter="2" menu:CButtonCommandBehavior.Command="{Binding SelectCountCommand}">
+                <Button.Style><Style TargetType="Button" BasedOn="{StaticResource ZeroButton}"><Style.Triggers><DataTrigger Binding="{Binding IsTwo}" Value="True"><Setter Property="Background" Value="#4882B2"/><Setter Property="Foreground" Value="White"/></DataTrigger></Style.Triggers></Style></Button.Style>
+            </Button>
+            <Button Content="4" Width="64" CommandParameter="4" menu:CButtonCommandBehavior.Command="{Binding SelectCountCommand}">
+                <Button.Style><Style TargetType="Button" BasedOn="{StaticResource ZeroButton}"><Style.Triggers><DataTrigger Binding="{Binding IsFour}" Value="True"><Setter Property="Background" Value="#4882B2"/><Setter Property="Foreground" Value="White"/></DataTrigger></Style.Triggers></Style></Button.Style>
+            </Button>
+            <Button Content="선택 그룹 초기화" Style="{StaticResource ZeroButton}" menu:CButtonCommandBehavior.Command="{Binding ClearGroupCommand}" Margin="16,3,3,3"/>
+            <TextBlock Text="{Binding Summary}" VerticalAlignment="Center" Margin="12,0,0,0" TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryBrush}"/>
+        </DockPanel>
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="3*"/><ColumnDefinition Width="2*" MinWidth="350"/></Grid.ColumnDefinitions>
+            <Border BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1" Margin="0,0,10,0" Padding="8">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <ItemsControl x:Name="ZeroGroupCards" ItemsSource="{Binding GroupCards}" Margin="0,0,0,7">
+                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="1"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate><DataTemplate>
+                            <Button Height="46" Margin="2" Padding="2" MinWidth="0" Background="{Binding Background}" Foreground="{Binding Foreground}"
+                                    CommandParameter="{Binding Number}" menu:CButtonCommandBehavior.Command="{Binding DataContext.SelectGroupCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                                <StackPanel><TextBlock Text="{Binding Name}" FontSize="12" FontWeight="Bold" TextAlignment="Center"/><TextBlock Text="{Binding Detail}" FontSize="10" TextAlignment="Center"/></StackPanel>
+                                <Button.Template><ControlTemplate TargetType="Button"><Border Background="{TemplateBinding Background}" BorderBrush="#7890A5" BorderThickness="1"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Button.Template>
+                            </Button>
+                        </DataTemplate></ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <DockPanel Grid.Row="1" Margin="0,0,0,6">
+                        <Button DockPanel.Dock="Right" Content="GLASS" Style="{StaticResource ZeroButton}" menu:CButtonCommandBehavior.Command="{Binding BackToGlassCommand}"/>
+                        <TextBlock Text="{Binding PreviewTitle}" VerticalAlignment="Center" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                    </DockPanel>
+                    <WrapPanel Grid.Row="2" Margin="1,0,0,5">
+                        <TextBlock Text="■ 선택 불가" Foreground="DimGray" FontSize="11" Margin="0,0,12,0"/>
+                        <TextBlock Text="■ MASKING" Foreground="LightCoral" FontSize="11" Margin="0,0,12,0"/>
+                        <TextBlock Text="■ CHESS" Foreground="MediumOrchid" FontSize="11" Margin="0,0,12,0"/>
+                        <TextBlock Text="■ 지정 완료" Foreground="SeaGreen" FontSize="11"/>
+                    </WrapPanel>
+                    <Viewbox Grid.Row="3" Stretch="Uniform" Visibility="{Binding GlassVisibility}">
+                        <Canvas Width="860" Height="{Binding PreviewCanvasHeight}" Background="White">
+                            <Image Source="{Binding PreviewImage}" Width="860" Height="520" Stretch="Fill"/>
+                            <Rectangle Canvas.Left="{Binding GlassFrame.CanvasLeft}" Canvas.Top="{Binding GlassFrame.CanvasTop}"
+                                       Width="{Binding GlassFrame.Width}" Height="{Binding GlassFrame.Height}" Stroke="#4882B2" StrokeThickness="1.5" IsHitTestVisible="False"/>
+                            <ItemsControl x:Name="ZeroCellGrid" ItemsSource="{Binding Cells}" Width="860" Height="520">
+                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemContainerStyle><Style TargetType="ContentPresenter"><Setter Property="Canvas.Left" Value="{Binding Bounds.X}"/><Setter Property="Canvas.Top" Value="{Binding Bounds.Y}"/></Style></ItemsControl.ItemContainerStyle>
+                                <ItemsControl.ItemTemplate><DataTemplate>
+                                    <Button Width="{Binding Bounds.Width}" Height="{Binding Bounds.Height}" MinWidth="0" MinHeight="0" Padding="0" Margin="0" CommandParameter="{Binding Number}" IsEnabled="{Binding CanOpen}"
+                                            ToolTip="{Binding Detail}" ToolTipService.ShowOnDisabled="True" menu:CButtonCommandBehavior.Command="{Binding DataContext.SelectCellCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                                        <Button.Template><ControlTemplate TargetType="Button"><Border x:Name="CellBox" Background="Transparent" BorderBrush="Transparent" BorderThickness="1"><TextBlock Text="{Binding SelectedHeads}" FontSize="8" FontWeight="Bold" Foreground="DarkGreen" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding HasSelection}" Value="True"><Setter TargetName="CellBox" Property="Background" Value="#662E8B57"/><Setter TargetName="CellBox" Property="BorderBrush" Value="SeaGreen"/></DataTrigger>
+                                            <DataTrigger Binding="{Binding IsUnavailable}" Value="True"><Setter TargetName="CellBox" Property="Background" Value="#D3D3D3"/><Setter TargetName="CellBox" Property="BorderBrush" Value="DimGray"/></DataTrigger>
+                                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="CellBox" Property="BorderBrush" Value="RoyalBlue"/></Trigger>
+                                        </ControlTemplate.Triggers></ControlTemplate></Button.Template>
+                                    </Button>
+                                </DataTemplate></ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <ItemsControl x:Name="ZeroSelectionLabels" ItemsSource="{Binding SelectionLabels}" Width="860" Height="{Binding PreviewCanvasHeight}" IsHitTestVisible="False">
+                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate><DataTemplate>
+                                    <Canvas Width="860" Height="{Binding DataContext.PreviewCanvasHeight, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                                        <Polyline Points="{Binding Leader}" Stroke="SeaGreen" StrokeThickness="1.2" Opacity="0.6"/>
+                                        <Border Canvas.Left="{Binding Left}" Canvas.Top="{Binding Top}" Width="{Binding Width}" Height="44" Background="White" BorderBrush="SeaGreen" BorderThickness="1.5">
+                                            <TextBlock Text="{Binding Text}" Foreground="DarkGreen" FontSize="{Binding FontSize}" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                    </Canvas>
+                                </DataTemplate></ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Canvas>
+                    </Viewbox>
+                    <ItemsControl x:Name="ZeroShotGrid" Grid.Row="3" ItemsSource="{Binding ShotRows}" Visibility="{Binding ShotVisibility}" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
+                        <ItemsControl.Template><ControlTemplate TargetType="ItemsControl"><ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" CanContentScroll="True"><ItemsPresenter/></ScrollViewer></ControlTemplate></ItemsControl.Template>
+                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate><DataTemplate>
+                            <ItemsControl ItemsSource="{Binding Shots}">
+                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate><DataTemplate>
+                                    <Button Width="62" Height="44" Margin="2" MinWidth="0" Padding="1" FontWeight="Bold" Foreground="Black"
+                                            Background="{Binding Background}" IsEnabled="{Binding CanSelect}" ToolTip="{Binding Detail}" ToolTipService.ShowOnDisabled="True"
+                                            CommandParameter="{Binding Key}" menu:CButtonCommandBehavior.Command="{Binding DataContext.SelectShotCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                                        <TextBlock Text="{Binding Label}" TextAlignment="Center" FontSize="11"/>
+                                        <Button.Template><ControlTemplate TargetType="Button"><Border x:Name="ShotBox" Background="{TemplateBinding Background}" BorderBrush="#7890A5" BorderThickness="1"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Button.Template>
+                                    </Button>
+                                </DataTemplate></ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </DataTemplate></ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Grid>
+            </Border>
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="4*" MinHeight="160" MaxHeight="240"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*" MinHeight="32"/></Grid.RowDefinitions>
+                <DataGrid x:Name="ZeroHeadGrid" ItemsSource="{Binding HeadRows}" AutoGenerateColumns="False" IsReadOnly="True" IsHitTestVisible="False" Focusable="False"
+                          SelectionMode="Single" SelectionUnit="FullRow" RowHeight="19" ColumnHeaderHeight="22" CanUserAddRows="False" CanUserDeleteRows="False"
+                          HeadersVisibility="Column" FontSize="12" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Disabled">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Head" Binding="{Binding Head}" Width="48"/>
+                        <DataGridTextColumn Header="그룹" Binding="{Binding GroupNo}" Width="38"/>
+                        <DataGridTextColumn Header="Cell" Binding="{Binding Cell}" Width="65"/>
+                        <DataGridTextColumn Header="Shot" Binding="{Binding Shot}" Width="45"/>
+                        <DataGridTextColumn Header="Beam" Binding="{Binding Beam}" Width="45"/>
+                        <DataGridTextColumn Header="상태" Binding="{Binding State}" Width="*"/>
+                    </DataGrid.Columns>
+                    <DataGrid.RowStyle><Style TargetType="DataGridRow"><Setter Property="ToolTip" Value="{Binding Tooltip}"/><Style.Triggers><DataTrigger Binding="{Binding IsSelected}" Value="True"><Setter Property="Background" Value="LightSkyBlue"/></DataTrigger></Style.Triggers></Style></DataGrid.RowStyle>
+                </DataGrid>
+                <TextBlock Grid.Row="1" Text="{Binding CandidateText}" FontSize="12" FontWeight="Bold" TextWrapping="Wrap" Margin="2,6,0,3" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                <ItemsControl x:Name="ZeroBeamGrid" Grid.Row="2" ItemsSource="{Binding Beams}" ToolTip="X: Review X / Y: Stage Y · mm">
+                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="4" Rows="4"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate><DataTemplate>
+                        <Button Margin="1" Padding="0" MinWidth="0" MinHeight="0" Background="{Binding Background}" Foreground="{Binding Foreground}"
+                                IsEnabled="{Binding CanSelect}" ToolTip="{Binding Detail}" ToolTipService.ShowOnDisabled="True" CommandParameter="{Binding Number}"
+                                menu:CButtonCommandBehavior.Command="{Binding DataContext.SelectBeamCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                            <StackPanel><TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="10" TextAlignment="Center"/><TextBlock Text="{Binding Coordinates}" FontSize="9" TextAlignment="Center"/></StackPanel>
+                            <Button.Template><ControlTemplate TargetType="Button"><Border Background="{TemplateBinding Background}" BorderBrush="#7890A5" BorderThickness="1" CornerRadius="2"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Button.Template>
+                        </Button>
+                    </DataTemplate></ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Grid.Row="4" Text="{Binding TimingSummary}" FontSize="10" TextWrapping="Wrap" Margin="2,1,0,3" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <ScrollViewer Grid.Row="5" VerticalScrollBarVisibility="Auto"><TextBlock Text="{Binding Status}" Foreground="{Binding StatusBrush}" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap" Margin="2"/></ScrollViewer>
+            </Grid>
+        </Grid>
+    </Grid>
+</UserControl>

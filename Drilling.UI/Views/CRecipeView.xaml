@@ -1,0 +1,1798 @@
+<UserControl x:Class="Drilling.UI.Views.CRecipeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:menu="clr-namespace:Drilling.UI.Menu"
+             xmlns:views="clr-namespace:Drilling.UI.Views"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             FontFamily="Segoe UI"
+             IsVisibleChanged="RecipeView_IsVisibleChanged">
+    <UserControl.Resources>
+        <Style x:Key="RecipeSmallText" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+            <Setter Property="FontSize" Value="13" />
+        </Style>
+
+        <Style x:Key="RecipeValueText" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <Style x:Key="RecipeInputButton" TargetType="Button">
+            <Setter Property="IsEnabled" Value="{Binding DataContext.CurrentScreen.Recipe.IsViewRecipeSelected, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+            <Setter Property="Background" Value="{DynamicResource GridBackgroundBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ButtonSecondaryBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="Padding" Value="5,2" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value><ControlTemplate TargetType="Button"><Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"><ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" Margin="{TemplateBinding Padding}" /></Border></ControlTemplate></Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource MenuItemSelectedBackgroundBrush}" /><Setter Property="Foreground" Value="{DynamicResource MenuItemSelectedTextBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource MenuItemSelectedBorderBrush}" /></Trigger>
+                <Trigger Property="IsPressed" Value="True"><Setter Property="Background" Value="{DynamicResource HeaderNavPressedBackgroundBrush}" /><Setter Property="Foreground" Value="{DynamicResource MenuItemSelectedTextBrush}" /></Trigger>
+                <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.42" /></Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="RecipeFillDataGridCell"
+               TargetType="DataGridCell"
+               BasedOn="{StaticResource PlainDataGridCell}">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Stretch" />
+        </Style>
+
+        <Style x:Key="RecipeCompactInputBox" TargetType="Border">
+            <Setter Property="Margin" Value="0,0,6,3" />
+            <Setter Property="Padding" Value="5,2" />
+            <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+
+        <Style x:Key="RecipeComboBoxItem" TargetType="ComboBoxItem">
+            <Setter Property="Background" Value="{DynamicResource GridBackgroundBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="Padding" Value="8,6" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Template">
+                <Setter.Value><ControlTemplate TargetType="ComboBoxItem"><Border x:Name="ItemBorder" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="1" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" /></Border><ControlTemplate.Triggers><Trigger Property="IsHighlighted" Value="True"><Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource MenuItemSelectedBackgroundBrush}" /><Setter TargetName="ItemBorder" Property="BorderBrush" Value="{DynamicResource MenuItemSelectedBorderBrush}" /><Setter Property="Foreground" Value="{DynamicResource MenuItemSelectedTextBrush}" /></Trigger><Trigger Property="IsSelected" Value="True"><Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource ButtonPrimaryBrush}" /><Setter TargetName="ItemBorder" Property="BorderBrush" Value="{DynamicResource ButtonPrimaryBorderBrush}" /><Setter Property="Foreground" Value="{DynamicResource ButtonTextOnColorBrush}" /></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.42" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="RecipeComboBox" TargetType="ComboBox">
+            <Setter Property="IsEnabled" Value="{Binding DataContext.CurrentScreen.Recipe.IsViewRecipeSelected, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="Background" Value="{DynamicResource GridBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ButtonSecondaryBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="ItemContainerStyle" Value="{StaticResource RecipeComboBoxItem}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton x:Name="ToggleButton" Focusable="False" ClickMode="Press" IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                <ToggleButton.Template><ControlTemplate TargetType="ToggleButton"><Border x:Name="Shell" Background="{DynamicResource GridBackgroundBrush}" BorderBrush="{DynamicResource ButtonSecondaryBorderBrush}" BorderThickness="1" TextElement.Foreground="{DynamicResource TextPrimaryBrush}"><Grid><ContentPresenter Margin="8,0,30,0" HorizontalAlignment="Left" VerticalAlignment="Center" Content="{Binding SelectionBoxItem, RelativeSource={RelativeSource AncestorType=ComboBox}}" /><Path Data="M 0 0 L 5 5 L 10 0 Z" Fill="{DynamicResource TextSecondaryBrush}" Width="10" Height="5" Stretch="Fill" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" /></Grid></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Shell" Property="Background" Value="{DynamicResource MenuItemSelectedBackgroundBrush}" /><Setter TargetName="Shell" Property="BorderBrush" Value="{DynamicResource MenuItemSelectedBorderBrush}" /><Setter TargetName="Shell" Property="TextElement.Foreground" Value="{DynamicResource MenuItemSelectedTextBrush}" /></Trigger><Trigger Property="IsChecked" Value="True"><Setter TargetName="Shell" Property="Background" Value="{DynamicResource MenuItemSelectedBackgroundBrush}" /><Setter TargetName="Shell" Property="BorderBrush" Value="{DynamicResource ButtonPrimaryBorderBrush}" /><Setter TargetName="Shell" Property="TextElement.Foreground" Value="{DynamicResource MenuItemSelectedTextBrush}" /></Trigger></ControlTemplate.Triggers></ControlTemplate></ToggleButton.Template>
+                            </ToggleButton>
+                            <Popup x:Name="PART_Popup" AllowsTransparency="True" Focusable="False" IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom"><Border Background="{DynamicResource GridBackgroundBrush}" BorderBrush="{DynamicResource ButtonSecondaryBorderBrush}" BorderThickness="1" MinWidth="{Binding ActualWidth, ElementName=ToggleButton}"><ScrollViewer MaxHeight="220"><ItemsPresenter /></ScrollViewer></Border></Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.42" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="RecipeActionButton" TargetType="Button">
+            <Setter Property="Height" Value="40" />
+            <Setter Property="Foreground" Value="{DynamicResource ButtonTextOnColorBrush}" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="5">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.42" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="RecipeTabButton" TargetType="Button">
+            <Setter Property="Height" Value="34" />
+            <Setter Property="MinWidth" Value="86" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="Background" Value="{DynamicResource ButtonSecondaryBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ButtonSecondaryBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.42" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="RecipeMainTabButton" TargetType="Button">
+            <Setter Property="Height" Value="48" />
+            <Setter Property="MinWidth" Value="148" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="Padding" Value="22,0" />
+            <Setter Property="Background" Value="{DynamicResource ButtonSecondaryBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ButtonSecondaryBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1,1,1,3" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="5,5,0,0">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="RecipeListButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <ContentPresenter />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Visibility="{Binding CurrentScreen.IsRecipeLayout, Converter={StaticResource BooleanToVisibilityConverter}}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="70" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0">
+            <TextBlock Text="RECIPE / MANAGE"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       FontSize="31"
+                       FontWeight="SemiBold" />
+            <TextBlock Text="Recipe item edit, create, modify, save, delete"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
+                       FontSize="16" />
+        </StackPanel>
+
+        <Grid Grid.Row="1" Margin="0,8,0,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition>
+                    <RowDefinition.Style><Style TargetType="RowDefinition"><Setter Property="Height" Value="232"/>
+                        <Style.Triggers><DataTrigger Binding="{Binding CurrentScreen.Recipe.IsZeroDefenceCategory}" Value="True"><Setter Property="Height" Value="150"/></DataTrigger></Style.Triggers>
+                    </Style></RowDefinition.Style>
+                </RowDefinition>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="260" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border x:Name="RecipeFilesPanel" Grid.RowSpan="2" Grid.Column="0" Style="{StaticResource PanelBorder}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" MinHeight="76" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0"
+                               Text="Recipe List"
+                               Style="{StaticResource PanelTitle}"
+                               FontSize="20" />
+
+                    <Grid Grid.Row="1" Margin="0,6,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="34" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="32" />
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0" Background="{DynamicResource GridHeaderBackgroundBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="78" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border BorderBrush="{DynamicResource ButtonSecondaryBorderBrush}" BorderThickness="1,1,1,1">
+                                <TextBlock Text="No."
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           Style="{StaticResource RecipeSmallText}"
+                                           Foreground="{DynamicResource TextInvertedBrush}"
+                                           FontWeight="SemiBold" />
+                            </Border>
+                            <Border Grid.Column="1" BorderBrush="{DynamicResource ButtonSecondaryBorderBrush}" BorderThickness="0,1,1,1">
+                                <TextBlock Text="Recipe File"
+                                           Margin="18,0,0,0"
+                                           VerticalAlignment="Center"
+                                           Style="{StaticResource RecipeSmallText}"
+                                           Foreground="{DynamicResource TextInvertedBrush}"
+                                           FontWeight="SemiBold" />
+                            </Border>
+                        </Grid>
+
+                        <ScrollViewer Grid.Row="1"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      VerticalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding CurrentScreen.Recipe.RecipeFiles}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Style="{StaticResource RecipeListButton}"
+                                            menu:CButtonCommandBehavior.Command="{Binding DataContext.CurrentScreen.Recipe.ViewCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding FileName}">
+                                        <Grid Height="38">
+                                            <Grid.Style>
+                                                <Style TargetType="Grid">
+                                                    <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsView}" Value="True">
+                                                            <Setter Property="Background" Value="{DynamicResource ButtonWarningBrush}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding IsSelect}" Value="True">
+                                                            <Setter Property="Background" Value="{DynamicResource ButtonDangerBrush}" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Grid.Style>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="78" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1,0,1,1">
+                                                <TextBlock Text="{Binding No}"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"
+                                                           TextAlignment="Center">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock" BasedOn="{StaticResource RecipeValueText}">
+                                                            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsView}" Value="True">
+                                                                    <Setter Property="Foreground" Value="{DynamicResource ButtonTextOnColorBrush}" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding IsSelect}" Value="True">
+                                                                    <Setter Property="Foreground" Value="{DynamicResource ButtonTextOnColorBrush}" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </Border>
+                                            <Border Grid.Column="1"
+                                                    BorderBrush="{DynamicResource PanelBorderBrush}"
+                                                    BorderThickness="0,0,1,1">
+                                                <TextBlock Text="{Binding FileName}"
+                                                           Margin="18,0,0,0"
+                                                           VerticalAlignment="Center">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock" BasedOn="{StaticResource RecipeValueText}">
+                                                            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsView}" Value="True">
+                                                                    <Setter Property="Foreground" Value="{DynamicResource ButtonTextOnColorBrush}" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding IsSelect}" Value="True">
+                                                                    <Setter Property="Foreground" Value="{DynamicResource ButtonTextOnColorBrush}" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </Border>
+                                        </Grid>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        </ScrollViewer>
+
+                        <Grid Grid.Row="2"
+                              Margin="0,6,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="58" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="58" />
+                            </Grid.ColumnDefinitions>
+
+                            <Button Grid.Column="0"
+                                    Content="PREV"
+                                    Height="26"
+                                    FontSize="10"
+                                    Background="{DynamicResource ButtonPrimaryBrush}"
+                                    BorderBrush="{DynamicResource ButtonPrimaryBorderBrush}"
+                                    Style="{StaticResource RecipeActionButton}"
+                                    menu:CButtonCommandBehavior.Command="{Binding CurrentScreen.Recipe.PreviousRecipePageCommand}" />
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding CurrentScreen.Recipe.RecipeFilesPageText}"
+                                       Style="{StaticResource RecipeSmallText}"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       FontWeight="SemiBold"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center" />
+                            <Button Grid.Column="2"
+                                    Content="NEXT"
+                                    Height="26"
+                                    FontSize="10"
+                                    Background="{DynamicResource ButtonPrimaryBrush}"
+                                    BorderBrush="{DynamicResource ButtonPrimaryBorderBrush}"
+                                    Style="{StaticResource RecipeActionButton}"
+                                    menu:CButtonCommandBehavior.Command="{Binding CurrentScreen.Recipe.NextRecipePageCommand}" />
+                        </Grid>
+                    </Grid>
+
+                    <StackPanel Grid.Row="2" Margin="0,10,0,0">
+                        <Button Style="{StaticResource RecipeActionButton}"
+                                Background="{DynamicResource ButtonPrimaryBrush}"
+                                BorderBrush="{DynamicResource ButtonPrimaryBorderBrush}"
+                                Margin="0,0,0,8"
+                                menu:CButtonCommandBehavior.Command="{Binding CurrentScreen.Recipe.SelectCommand}">
+                            <Grid Width="178">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="34" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Viewbox Width="18" Height="18" HorizontalAlignment="Center">
+                                    <Path Data="M5,12 L10,17 L20,7"
+                                          Stroke="{DynamicResource ButtonTextOnColorBrush}"
+                                          StrokeThickness="2.8"
+                                          StrokeStartLineCap="Round"
+                                          StrokeEndLineCap="Round"
+                                          StrokeLineJoin="Round"
+                                          Fill="Transparent" />
+                                </Viewbox>
+                                <TextBlock Grid.Column="1"
+                                           Text="SELECT"
+                                           Margin="18,0,0,0"
+                                           VerticalAlignment="Center"
+                                           TextWrapping="NoWrap" />
+                            </Grid>
+                        </Button>
+                        <Button Style="{StaticResource RecipeActionButton}"
+                                Background="{DynamicResource ButtonPrimaryBrush}"
+                                BorderBrush="{DynamicResource ButtonPrimaryBorderBrush}"
+                                Margin="0,0,0,8"
+                                menu:CButtonCommandBehavior.Command="{Binding CurrentScreen.Recipe.CreateCommand}">
+                            <Grid Width="178">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="34" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Viewbox Width="18" Height="18" HorizontalAlignment="Center">
+                                    <Path Data="M12,3 V21 M3,12 H21"
+                                          Stroke="{DynamicResource ButtonTextOnColorBrush}"
+                                          StrokeThickness="2.8"
+                                          StrokeStartLineCap="Round"
+                                          StrokeEndLineCap="Round"
+                                          Fill="Transparent" />
+                                </Viewbox>
+                                <TextBlock Grid.Column="1"
+                                           Text="CREATE"
+                                           Margin="18,0,0,0"
+                                           VerticalAlignment="Center"
+                                           TextWrapping="NoWrap" />
+                            </Grid>
+                        </Button>
+                        <Button Style="{StaticResource RecipeActionButton}"
+                                Background="{DynamicResource ButtonWarningBrush}"
+                                BorderBrush="{DynamicResource ButtonWarningBorderBrush}"
+                                Margin="0,0,0,8"
+                                menu:CButtonCommandBehavior.Command="{Binding CurrentScreen.Recipe.ModifyCommand}">
+                            <Grid Width="178">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="34" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Viewbox Width="18" Height="18" HorizontalAlignment="Center">
+                                    <Path Data="M5,18 L7,13 L16,4 L20,8 L11,17 Z M14,6 L18,10"
+                                          Stroke="{DynamicResource ButtonTextOnColorBrush}"
+                                          StrokeThickness="2.2"
+                                          StrokeStartLineCap="Round"
+                                          StrokeEndLineCap="Round"
+                                          StrokeLineJoin="Round"
+                                          Fill="Transparent" />
+                                </Viewbox>
+                                <TextBlock Grid.Column="1"
+                                           Text="MODIFY"
+                                           Margin="18,0,0,0"
+                                           VerticalAlignment="Center"
+                                           TextWrapping="NoWrap"
+                                           TextTrimming="CharacterEllipsis" />
+                            </Grid>
+                        </Button>
+                        <Button Style="{StaticResource RecipeActionButton}"
+                                Background="{DynamicResource ButtonSuccessBrush}"
+                                BorderBrush="{DynamicResource StatusReadyBrush}"
+                                Margin="0,0,0,8"
+                                menu:CButtonCommandBehavior.Command="{Binding CurrentScreen.Recipe.SaveCommand}">
+                            <Grid Width="178">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="34" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Viewbox Width="18" Height="18" HorizontalAlignment="Center">
+                                    <Path Data="M5,4 H17 L20,7 V20 H4 V4 Z M8,4 V10 H16 V4 M8,17 H16"
+                                          Stroke="{DynamicResource ButtonTextOnColorBrush}"
+                                          StrokeThickness="2.2"
+                                          StrokeLineJoin="Round"
+                                          Fill="Transparent" />
+                                </Viewbox>
+                                <TextBlock Grid.Column="1"
+                                           Text="SAVE"
+                                           Margin="18,0,0,0"
+                                           VerticalAlignment="Center"
+                                           TextWrapping="NoWrap" />
+                            </Grid>
+                        </Button>
+                        <Button Style="{StaticResource RecipeActionButton}"
+                                Background="{DynamicResource ButtonDangerBrush}"
+                                BorderBrush="{DynamicResource ButtonDangerBorderBrush}"
+                                menu:CButtonCommandBehavior.Command="{Binding CurrentScreen.Recipe.DeleteCommand}">
+                            <Grid Width="178">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="34" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Viewbox Width="18" Height="18" HorizontalAlignment="Center">
+                                    <Path Data="M6,7 H18 M9,7 V5 H15 V7 M8,9 V20 H16 V9 M11,11 V18 M13,11 V18"
+                                          Stroke="{DynamicResource ButtonTextOnColorBrush}"
+                                          StrokeThickness="2.2"
+                                          StrokeStartLineCap="Round"
+                                          StrokeEndLineCap="Round"
+                                          StrokeLineJoin="Round"
+                                          Fill="Transparent" />
+                                </Viewbox>
+                                <TextBlock Grid.Column="1"
+                                           Text="DELETE"
+                                           Margin="18,0,0,0"
+                                           VerticalAlignment="Center"
+                                           TextWrapping="NoWrap" />
+                            </Grid>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Border x:Name="RecipeEditorPanel" Grid.Row="0" Grid.Column="1" Margin="12,0,0,0" Style="{StaticResource PanelBorder}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition>
+                            <RowDefinition.Style>
+                                <Style TargetType="RowDefinition">
+                                    <Setter Property="Height" Value="Auto" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding CurrentScreen.Recipe.IsCellCategory}" Value="True">
+                                            <Setter Property="Height" Value="*" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </RowDefinition.Style>
+                        </RowDefinition>
+                        <RowDefinition>
+                            <RowDefinition.Style>
+                                <Style TargetType="RowDefinition">
+                                    <Setter Property="Height" Value="*" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding CurrentScreen.Recipe.IsCellCategory}" Value="True">
+                                            <Setter Property="Height" Value="160" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </RowDefinition.Style>
+                        </RowDefinition>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0"
+                               Text="Recipe Managed Items"
+                               Style="{StaticResource PanelTitle}"
+                               FontSize="20" />
+
+                    <Border Grid.Row="1"
+                            Margin="0,12,0,10"
+                            Padding="8,8,8,0"
+                            Background="{DynamicResource PanelBackgroundBrush}"
+                            BorderBrush="{DynamicResource PanelBorderBrush}"
+                            BorderThickness="0,0,0,1">
+                        <ItemsControl ItemsSource="{Binding CurrentScreen.Recipe.ItemTabs}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Content="{Binding DisplayName}"
+                                            menu:CButtonCommandBehavior.Command="{Binding DataContext.CurrentScreen.Recipe.SelectCategoryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding Category}">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource RecipeMainTabButton}">
+                                                <Setter Property="Background" Value="{DynamicResource ButtonSecondaryBrush}" />
+                                                <Setter Property="BorderBrush" Value="{DynamicResource ButtonSecondaryBorderBrush}" />
+                                                <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                        <Setter Property="Background" Value="{DynamicResource MenuItemSelectedBackgroundBrush}" />
+                                                        <Setter Property="BorderBrush" Value="{DynamicResource ButtonPrimaryBorderBrush}" />
+                                                        <Setter Property="Foreground" Value="{DynamicResource MenuItemSelectedTextBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Border>
+
+                    <ItemsControl Grid.Row="2"
+                                  ItemsSource="{Binding CurrentScreen.Recipe.GroupTabs}">
+                        <ItemsControl.Style>
+                            <Style TargetType="ItemsControl">
+                                <Setter Property="Visibility" Value="Visible" />
+                                <Setter Property="Margin" Value="0,0,0,12" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CurrentScreen.Recipe.IsCellCategory}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding CurrentScreen.Recipe.IsHeadCategory}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding CurrentScreen.Recipe.IsZeroDefenceCategory}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ItemsControl.Style>
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Content="{Binding Group}"
+                                        menu:CButtonCommandBehavior.Command="{Binding DataContext.CurrentScreen.Recipe.SelectGroupCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding Group}">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource RecipeTabButton}">
+                                            <Setter Property="Height" Value="34" />
+                                            <Setter Property="MinWidth" Value="132" />
+                                            <Setter Property="Margin" Value="0,0,7,7" />
+                                            <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}" />
+                                            <Setter Property="BorderBrush" Value="{DynamicResource ButtonSecondaryBorderBrush}" />
+                                            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource MenuItemSelectedBackgroundBrush}" />
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource MenuItemSelectedBorderBrush}" />
+                                                    <Setter Property="Foreground" Value="{DynamicResource MenuItemSelectedTextBrush}" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding DataContext.CurrentScreen.Recipe.IsHeadCategory, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                                    <Setter Property="Height" Value="28" />
+                                                    <Setter Property="MinWidth" Value="112" />
+                                                    <Setter Property="Margin" Value="0,0,5,5" />
+                                                    <Setter Property="FontSize" Value="12" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Grid Grid.Row="3"
+                          Grid.RowSpan="2"
+                          Margin="0,0,0,4"
+                          Visibility="{Binding CurrentScreen.Recipe.IsCellCategory, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="60*" />
+                            <ColumnDefinition Width="40*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid Grid.Column="0"
+                              Margin="0,0,12,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="38*" />
+                            <RowDefinition Height="7" />
+                            <RowDefinition Height="62*" MinHeight="220" />
+                        </Grid.RowDefinitions>
+                        <Border x:Name="CellParameterPanel"
+                                Grid.Row="0"
+                                Grid.Column="0"
+                                Height="270"
+                                Margin="0,0,0,9"
+                                Padding="10,7"
+                                Background="{DynamicResource GridBackgroundBrush}"
+                                BorderBrush="{DynamicResource PanelBorderBrush}"
+                                BorderThickness="1">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding DataContext.CurrentScreen.Recipe.IsCellPlacementExpanded, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="31" />
+                                    <RowDefinition Height="31" />
+                                    <RowDefinition Height="31" />
+                                    <RowDefinition Height="31" />
+                                    <RowDefinition Height="31" />
+                                    <RowDefinition Height="28" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="72" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="GLASS"
+                                           Grid.RowSpan="3"
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                           FontWeight="SemiBold" />
+                                <TextBlock Grid.Row="3"
+                                           Grid.RowSpan="3"
+                                           Text="PATTERN"
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                           FontWeight="SemiBold" />
+                                <TextBlock Grid.Row="6"
+                                           Text="DK"
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                           FontWeight="SemiBold" />
+                                <Grid Grid.Row="0" Grid.Column="1" VerticalAlignment="Center">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="176" />
+                                        <ColumnDefinition Width="176" />
+                                        <ColumnDefinition Width="176" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Style="{StaticResource RecipeCompactInputBox}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="74" />
+                                                <ColumnDefinition Width="62" />
+                                                <ColumnDefinition Width="30" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="SIZE X" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="10" />
+                                            <Button Grid.Column="1" Content="{Binding CurrentScreen.Recipe.GlassSizeXItem.Value}" Tag="{Binding CurrentScreen.Recipe.GlassSizeXItem}" Click="OpenManagedItemInput" Style="{StaticResource RecipeInputButton}" Width="62" Height="22" FontSize="10" />
+                                            <TextBlock Grid.Column="2" Text="mm" Margin="4,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextMutedBrush}" FontSize="9" />
+                                        </Grid>
+                                    </Border>
+                                    <Border Grid.Column="1" Style="{StaticResource RecipeCompactInputBox}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="74" />
+                                                <ColumnDefinition Width="62" />
+                                                <ColumnDefinition Width="30" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="SIZE Y" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="10" />
+                                            <Button Grid.Column="1" Content="{Binding CurrentScreen.Recipe.GlassSizeYItem.Value}" Tag="{Binding CurrentScreen.Recipe.GlassSizeYItem}" Click="OpenManagedItemInput" Style="{StaticResource RecipeInputButton}" Width="62" Height="22" FontSize="10" />
+                                            <TextBlock Grid.Column="2" Text="mm" Margin="4,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextMutedBrush}" FontSize="9" />
+                                        </Grid>
+                                    </Border>
+                                    <Border Grid.Column="2" Style="{StaticResource RecipeCompactInputBox}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="66" />
+                                                <ColumnDefinition Width="58" />
+                                                <ColumnDefinition Width="40" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="MAX CELL" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="10" />
+                                            <Button Grid.Column="1" Content="{Binding CurrentScreen.Recipe.MaxCellNumberItem.Value}" Tag="{Binding CurrentScreen.Recipe.MaxCellNumberItem}" Click="OpenManagedItemInput" Style="{StaticResource RecipeInputButton}" Width="58" Height="22" FontSize="10" />
+                                            <TextBlock Grid.Column="2" Text="COUNT" Margin="4,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextMutedBrush}" FontSize="8" />
+                                        </Grid>
+                                    </Border>
+                                </Grid>
+                                <Grid Grid.Row="1" Grid.Column="1" VerticalAlignment="Center">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="176" />
+                                        <ColumnDefinition Width="176" />
+                                        <ColumnDefinition Width="176" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Style="{StaticResource RecipeCompactInputBox}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="74" />
+                                                <ColumnDefinition Width="62" />
+                                                <ColumnDefinition Width="30" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="AK MARGIN X" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="9" />
+                                            <Button Grid.Column="1" Content="{Binding CurrentScreen.Recipe.AkMarginXItem.Value}" Tag="{Binding CurrentScreen.Recipe.AkMarginXItem}" Click="OpenManagedItemInput" Style="{StaticResource RecipeInputButton}" Width="62" Height="22" FontSize="10" />
+                                            <TextBlock Grid.Column="2" Text="mm" Margin="4,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextMutedBrush}" FontSize="9" />
+                                        </Grid>
+                                    </Border>
+                                    <Border Grid.Column="1" Style="{StaticResource RecipeCompactInputBox}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="74" />
+                                                <ColumnDefinition Width="62" />
+                                                <ColumnDefinition Width="30" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="AK MARGIN Y" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="9" />
+                                            <Button Grid.Column="1" Content="{Binding CurrentScreen.Recipe.AkMarginYItem.Value}" Tag="{Binding CurrentScreen.Recipe.AkMarginYItem}" Click="OpenManagedItemInput" Style="{StaticResource RecipeInputButton}" Width="62" Height="22" FontSize="10" />
+                                            <TextBlock Grid.Column="2" Text="mm" Margin="4,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextMutedBrush}" FontSize="9" />
+                                        </Grid>
+                                    </Border>
+                                    <Border Grid.Column="2" Style="{StaticResource RecipeCompactInputBox}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="66" />
+                                                <ColumnDefinition Width="58" />
+                                                <ColumnDefinition Width="40" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="MODEL CNT" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="9" />
+                                            <ComboBox Grid.Column="1"
+                                                      ItemsSource="{Binding CurrentScreen.Recipe.CellModelTypeCountItem.ValueOptions}"
+                                                      SelectedItem="{Binding CurrentScreen.Recipe.CellModelTypeCountItem.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                      Style="{StaticResource RecipeComboBox}"
+                                                      Width="58"
+                                                      Height="22"
+                                                      FontSize="10" />
+                                            <TextBlock Grid.Column="2" Text="COUNT" Margin="4,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextMutedBrush}" FontSize="8" />
+                                        </Grid>
+                                    </Border>
+                                </Grid>
+                                <Grid Grid.Row="2" Grid.Column="1" VerticalAlignment="Center">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="176" />
+                                        <ColumnDefinition Width="176" />
+                                        <ColumnDefinition Width="176" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Style="{StaticResource RecipeCompactInputBox}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="74" />
+                                                <ColumnDefinition Width="62" />
+                                                <ColumnDefinition Width="30" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="ESC EDGE" ToolTip="ESC Edge To Glass Edge" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="10" />
+                                            <Button Grid.Column="1" Content="{Binding CurrentScreen.Recipe.EscEdgeToGlassEdgeItem.Value}" Tag="{Binding CurrentScreen.Recipe.EscEdgeToGlassEdgeItem}" Click="OpenManagedItemInput" Style="{StaticResource RecipeInputButton}" Width="62" Height="22" FontSize="10" />
+                                            <TextBlock Grid.Column="2" Text="mm" Margin="4,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextMutedBrush}" FontSize="9" />
+                                        </Grid>
+                                    </Border>
+                                    <Border Grid.Column="1" Style="{StaticResource RecipeCompactInputBox}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="74" />
+                                                <ColumnDefinition Width="62" />
+                                                <ColumnDefinition Width="30" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="SCAN CTR" ToolTip="Glass Center To Scanner Center" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="10" />
+                                            <Button Grid.Column="1" Content="{Binding CurrentScreen.Recipe.GlassCenterToScannerCenterItem.Value}" Tag="{Binding CurrentScreen.Recipe.GlassCenterToScannerCenterItem}" Click="OpenManagedItemInput" Style="{StaticResource RecipeInputButton}" Width="62" Height="22" FontSize="10" />
+                                            <TextBlock Grid.Column="2" Text="mm" Margin="4,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextMutedBrush}" FontSize="9" />
+                                        </Grid>
+                                    </Border>
+                                </Grid>
+                                <Grid Grid.Row="3" Grid.Column="1" VerticalAlignment="Center">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="176" />
+                                        <ColumnDefinition Width="176" />
+                                        <ColumnDefinition Width="176" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Style="{StaticResource RecipeCompactInputBox}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="74" />
+                                                <ColumnDefinition Width="62" />
+                                                <ColumnDefinition Width="30" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="PIXEL SIZE" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="9" />
+                                            <Button Grid.Column="1" Content="{Binding CurrentScreen.Recipe.PixelSizeItem.Value}" Tag="{Binding CurrentScreen.Recipe.PixelSizeItem}" Click="OpenManagedItemInput" Style="{StaticResource RecipeInputButton}" Width="62" Height="22" FontSize="10" />
+                                            <TextBlock Grid.Column="2" Text="mm" Margin="4,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextMutedBrush}" FontSize="9" />
+                                        </Grid>
+                                    </Border>
+                                </Grid>
+                                <Grid Grid.Row="4" Grid.Column="1" VerticalAlignment="Center">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="176" />
+                                        <ColumnDefinition Width="176" />
+                                        <ColumnDefinition Width="176" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Style="{StaticResource RecipeCompactInputBox}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="66" />
+                                                <ColumnDefinition Width="58" />
+                                                <ColumnDefinition Width="40" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="DOE BEAM" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="10" />
+                                            <ComboBox Grid.Column="1"
+                                                      ItemsSource="{Binding CurrentScreen.Recipe.SplitBeamCountItem.ValueOptions}"
+                                                      SelectedItem="{Binding CurrentScreen.Recipe.SplitBeamCountItem.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                      Style="{StaticResource RecipeComboBox}"
+                                                      Width="58"
+                                                      Height="22"
+                                                      FontSize="10" />
+                                            <TextBlock Grid.Column="2" Text="COUNT" Margin="4,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextMutedBrush}" FontSize="8" />
+                                        </Grid>
+                                    </Border>
+                                </Grid>
+                                <TextBlock Grid.Row="5"
+                                           Grid.Column="1"
+                                           Text="{Binding CurrentScreen.Recipe.ShotGroupPatternSummary}"
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource AccentTextBrush}"
+                                           FontSize="9"
+                                           TextWrapping="Wrap" />
+                                <ScrollViewer Grid.Row="6"
+                                              Grid.Column="1"
+                                              Margin="0,4,0,0"
+                                              HorizontalScrollBarVisibility="Disabled"
+                                              VerticalScrollBarVisibility="Disabled"
+                                              CanContentScroll="False">
+                                    <ItemsControl ItemsSource="{Binding CurrentScreen.Recipe.DistortionKeyItems}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <UniformGrid Rows="2" Columns="3" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Margin="0,0,6,3"
+                                                        Padding="5,2"
+                                                        Background="{DynamicResource PanelBackgroundBrush}"
+                                                        BorderBrush="{DynamicResource PanelBorderBrush}"
+                                                        BorderThickness="1">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="28" />
+                                                            <ColumnDefinition Width="14" />
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="14" />
+                                                            <ColumnDefinition Width="*" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="{Binding DisplayText}"
+                                                                   VerticalAlignment="Center"
+                                                                   Foreground="#00723A"
+                                                                   FontSize="11"
+                                                                   FontWeight="SemiBold" />
+                                                        <TextBlock Grid.Column="1"
+                                                                   Text="X"
+                                                                   VerticalAlignment="Center"
+                                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                                   FontSize="10" />
+                                                        <Button Grid.Column="2"
+                                                                Content="{Binding XItem.Value}"
+                                                                Tag="{Binding XItem}"
+                                                                ToolTip="{Binding XLabel}"
+                                                                Click="OpenManagedItemInput"
+                                                                Style="{StaticResource RecipeInputButton}"
+                                                                Height="22"
+                                                                FontSize="10" />
+                                                        <TextBlock Grid.Column="3"
+                                                                   Text="Y"
+                                                                   Margin="4,0,0,0"
+                                                                   VerticalAlignment="Center"
+                                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                                   FontSize="10" />
+                                                        <Button Grid.Column="4"
+                                                                Content="{Binding YItem.Value}"
+                                                                Tag="{Binding YItem}"
+                                                                ToolTip="{Binding YLabel}"
+                                                                Click="OpenManagedItemInput"
+                                                                Style="{StaticResource RecipeInputButton}"
+                                                                Height="22"
+                                                                FontSize="10" />
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </Grid>
+                        </Border>
+                        <DockPanel Grid.Row="1" Grid.Column="0" Margin="0,0,12,7">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="CELL PLACEMENT"
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                           FontWeight="SemiBold" />
+                                <Border Height="24"
+                                        Margin="10,0,0,0"
+                                        Padding="8,0"
+                                        VerticalAlignment="Center"
+                                        Background="{DynamicResource MenuItemSelectedBackgroundBrush}"
+                                        BorderBrush="{DynamicResource ButtonPrimaryBorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="2">
+                                    <TextBlock Text="{Binding CurrentScreen.Recipe.CurrentCellIndicatorText}"
+                                               VerticalAlignment="Center"
+                                               Foreground="{DynamicResource MenuItemSelectedTextBrush}"
+                                               FontSize="11"
+                                               FontWeight="SemiBold" />
+                                </Border>
+                                <Button Content="{Binding DataContext.CurrentScreen.Recipe.CellPlacementExpandButtonText, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        Click="ToggleCellPlacement_Click"
+                                        Style="{StaticResource RecipeTabButton}"
+                                        Width="78"
+                                        MinWidth="0"
+                                        Height="24"
+                                        Margin="8,0,0,0"
+                                        Padding="0"
+                                        FontSize="10" />
+                                <Button Content="WIZARD"
+                                        Click="OpenCellPlacementWizard_Click"
+                                        Style="{StaticResource RecipeTabButton}"
+                                        Width="74"
+                                        MinWidth="0"
+                                        Height="24"
+                                        Margin="8,0,0,0"
+                                        Padding="0"
+                                        FontSize="10" />
+                            </StackPanel>
+                        </DockPanel>
+                        <Grid Grid.Row="2"
+                              Grid.RowSpan="3"
+                              Grid.Column="0"
+                              Margin="0,0,12,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <DataGrid Grid.Row="0"
+                                      ItemsSource="{Binding CurrentScreen.Recipe.CellOverviewRows}"
+                                      AutoGenerateColumns="False"
+                                      CanUserAddRows="False"
+                                      HeadersVisibility="All"
+                                      EnableRowVirtualization="True"
+                                      EnableColumnVirtualization="True"
+                                      ScrollViewer.CanContentScroll="True"
+                                      VirtualizingPanel.IsVirtualizing="True"
+                                      VirtualizingPanel.VirtualizationMode="Recycling"
+                                      FontSize="12"
+                                      RowHeight="31"
+                                      ColumnHeaderHeight="32"
+                                      Style="{StaticResource PlainDataGrid}">
+                            <DataGrid.Resources>
+                                <Style x:Key="CellOverviewValueText" TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                    <Setter Property="Padding" Value="5,0" />
+                                    <Setter Property="VerticalAlignment" Value="Center" />
+                                </Style>
+                                <Style x:Key="CellOverviewValueEditor" TargetType="TextBox">
+                                    <Setter Property="Background" Value="{DynamicResource GridBackgroundBrush}" />
+                                    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                                    <Setter Property="BorderBrush" Value="{DynamicResource ButtonPrimaryBorderBrush}" />
+                                    <Setter Property="BorderThickness" Value="1" />
+                                    <Setter Property="Padding" Value="5,2" />
+                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                    <Setter Property="VerticalContentAlignment" Value="Center" />
+                                </Style>
+                            </DataGrid.Resources>
+                            <DataGrid.RowStyle>
+                                <Style TargetType="DataGridRow">
+                                    <Setter Property="Background" Value="Transparent" />
+                                    <Setter Property="BorderBrush" Value="Transparent" />
+                                    <Setter Property="BorderThickness" Value="2,0,0,0" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                                            <Setter Property="Background" Value="{DynamicResource MenuItemSelectedBackgroundBrush}" />
+                                            <Setter Property="BorderBrush" Value="{DynamicResource ButtonPrimaryBorderBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGrid.RowStyle>
+                            <DataGrid.Columns>
+                                <DataGridTemplateColumn Header="Cell" Width="72">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button Content="{Binding CellNo}"
+                                                    menu:CButtonCommandBehavior.Command="{Binding DataContext.CurrentScreen.Recipe.SelectCellCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding CellNo}"
+                                                    Style="{StaticResource RecipeTabButton}"
+                                                    Width="58"
+                                                    MinWidth="0"
+                                                    Height="25"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    Margin="3,2"
+                                                    Padding="0"
+                                                    FontSize="12" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="AK To 1st Electrode X (mm)" Width="*" MinWidth="180" CellStyle="{StaticResource RecipeFillDataGridCell}"><DataGridTemplateColumn.CellTemplate><DataTemplate><Button Content="{Binding FirstX}" Tag="FirstX" Click="OpenCellOverviewInput" Style="{StaticResource RecipeInputButton}" /></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="AK To 1st Electrode Y (mm)" Width="*" MinWidth="180" CellStyle="{StaticResource RecipeFillDataGridCell}"><DataGridTemplateColumn.CellTemplate><DataTemplate><Button Content="{Binding FirstY}" Tag="FirstY" Click="OpenCellOverviewInput" Style="{StaticResource RecipeInputButton}" /></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="Rotation (deg)" Width="110" CellStyle="{StaticResource RecipeFillDataGridCell}"><DataGridTemplateColumn.CellTemplate><DataTemplate><Button Content="{Binding Rotation}" Tag="Rotation" Click="OpenCellOverviewInput" Style="{StaticResource RecipeInputButton}" /></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="Model" Width="86" CellStyle="{StaticResource RecipeFillDataGridCell}">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <ComboBox ItemsSource="{Binding ModelOptions}"
+                                                      SelectedItem="{Binding ModelType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                      Style="{StaticResource RecipeComboBox}"
+                                                      Height="25"
+                                                      MinWidth="64"
+                                                      HorizontalContentAlignment="Center"
+                                                      VerticalContentAlignment="Center"
+                                                      FontSize="11" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                             </DataGrid.Columns>
+                             </DataGrid>
+                        </Grid>
+                        </Grid>
+                        <Border Grid.Row="0"
+                                Grid.RowSpan="5"
+                                Grid.Column="1"
+                                Background="{DynamicResource GridBackgroundBrush}"
+                                BorderBrush="{DynamicResource PanelBorderBrush}"
+                                BorderThickness="1"
+                                Visibility="{Binding CurrentScreen.Recipe.IsCellDetailVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="38" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <Border Grid.Row="0"
+                                        Padding="7,0"
+                                        Background="{DynamicResource GridHeaderBackgroundBrush}"
+                                        BorderBrush="{DynamicResource PanelBorderBrush}"
+                                        BorderThickness="0,0,0,1">
+                                    <DockPanel LastChildFill="True">
+                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Button Content="&lt;"
+                                                    menu:CButtonCommandBehavior.Command="{Binding CurrentScreen.Recipe.PreviousCellCommand}"
+                                                    Style="{StaticResource RecipeTabButton}"
+                                                    Width="30"
+                                                    MinWidth="0"
+                                                    Height="26"
+                                                    Margin="0,0,5,0"
+                                                    Padding="0"
+                                                    FontSize="14"
+                                                    ToolTip="Previous Cell" />
+                                            <Border Height="26"
+                                                    MinWidth="94"
+                                                    Padding="8,0"
+                                                    Background="{DynamicResource MenuItemSelectedBackgroundBrush}"
+                                                    BorderBrush="{DynamicResource ButtonPrimaryBorderBrush}"
+                                                    BorderThickness="1">
+                                                <TextBlock Text="{Binding CurrentScreen.Recipe.SelectedCellNavigationText}"
+                                                           VerticalAlignment="Center"
+                                                           HorizontalAlignment="Center"
+                                                           Foreground="{DynamicResource MenuItemSelectedTextBrush}"
+                                                           FontSize="11"
+                                                           FontWeight="SemiBold" />
+                                            </Border>
+                                            <Button Content="&gt;"
+                                                    menu:CButtonCommandBehavior.Command="{Binding CurrentScreen.Recipe.NextCellCommand}"
+                                                    Style="{StaticResource RecipeTabButton}"
+                                                    Width="30"
+                                                    MinWidth="0"
+                                                    Height="26"
+                                                    Margin="5,0,0,0"
+                                                    Padding="0"
+                                                    FontSize="14"
+                                                    ToolTip="Next Cell" />
+                                        </StackPanel>
+                                        <Button Content="← BACK"
+                                                DockPanel.Dock="Left"
+                                                menu:CButtonCommandBehavior.Command="{Binding CurrentScreen.Recipe.BackToCellPreviewCommand}"
+                                                Style="{StaticResource RecipeTabButton}"
+                                                Width="72"
+                                                MinWidth="0"
+                                                Height="26"
+                                                Margin="0,0,10,0"
+                                                FontSize="10" />
+                                        <TextBlock Text="{Binding CurrentScreen.Recipe.SelectedCellShotGroupTitle}"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource TextInvertedBrush}"
+                                                   FontSize="11"
+                                                   FontWeight="SemiBold"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </DockPanel>
+                                </Border>
+
+                                <ScrollViewer Grid.Row="1"
+                                              VerticalScrollBarVisibility="Auto"
+                                              HorizontalScrollBarVisibility="Disabled"
+                                              CanContentScroll="False">
+                                <Grid Margin="8"
+                                      Height="{Binding CurrentScreen.Recipe.CellShotMapPanelHeight}">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="10" />
+                                        <RowDefinition Height="*" />
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="48*" />
+                                        <ColumnDefinition Width="10" />
+                                        <ColumnDefinition Width="52*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <Border Grid.Row="{Binding CurrentScreen.Recipe.CellShotMapGridRow}"
+                                            Grid.RowSpan="{Binding CurrentScreen.Recipe.CellShotMapGridRowSpan}"
+                                            Grid.Column="{Binding CurrentScreen.Recipe.CellShotMapGridColumn}"
+                                            Grid.ColumnSpan="{Binding CurrentScreen.Recipe.CellShotMapGridColumnSpan}"
+                                            Padding="7"
+                                            Background="{DynamicResource PanelBackgroundBrush}"
+                                            BorderBrush="{DynamicResource PanelBorderBrush}"
+                                            BorderThickness="1">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="30" />
+                                                <RowDefinition Height="*" />
+                                                <RowDefinition Height="28" />
+                                            </Grid.RowDefinitions>
+                                            <TextBlock Text="CELL SHOT MAP"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                                       FontSize="12"
+                                                       FontWeight="SemiBold" />
+                                            <Grid x:Name="CellShotMapViewport"
+                                                  Grid.Row="1"
+                                                  Background="Transparent"
+                                                  ClipToBounds="True"
+                                                  Cursor="Hand"
+                                                  PreviewMouseWheel="CellShotMap_PreviewMouseWheel"
+                                                  PreviewMouseRightButtonDown="CellShotMap_PreviewMouseRightButtonDown">
+                                                <Grid.ContextMenu>
+                                                    <ContextMenu>
+                                                        <MenuItem Header="RESIZE" Click="CellShotMapResize_Click" />
+                                                    </ContextMenu>
+                                                </Grid.ContextMenu>
+                                                <Grid x:Name="CellShotMapZoomContent"
+                                                      RenderTransformOrigin="0.5,0.5">
+                                                    <Grid.RenderTransform>
+                                                        <TransformGroup>
+                                                            <ScaleTransform x:Name="CellShotMapScaleTransform"
+                                                                            ScaleX="1"
+                                                                            ScaleY="1" />
+                                                            <TranslateTransform x:Name="CellShotMapTranslateTransform" />
+                                                        </TransformGroup>
+                                                    </Grid.RenderTransform>
+                                                    <Viewbox Stretch="Uniform">
+                                                        <Grid x:Name="CellShotMapSurface"
+                                                              Width="{Binding CurrentScreen.Recipe.CellShotMapSurfaceWidth}"
+                                                              Height="{Binding CurrentScreen.Recipe.CellShotMapSurfaceHeight}"
+                                                              Background="Transparent"
+                                                              Cursor="Hand"
+                                                              MouseLeftButtonDown="SelectShotGroupFromMap"
+                                                              MouseMove="CellShotMapSurface_MouseMove"
+                                                              MouseLeave="CellShotMapSurface_MouseLeave">
+                                                            <Image Source="{Binding CurrentScreen.Recipe.CellShotMapImage}"
+                                                                   Stretch="Fill"
+                                                           IsHitTestVisible="False" />
+                                                        </Grid>
+                                                    </Viewbox>
+                                                </Grid>
+                                                <Border x:Name="CellShotMapHoverTip"
+                                                        Panel.ZIndex="10"
+                                                        HorizontalAlignment="Left"
+                                                        VerticalAlignment="Top"
+                                                        Padding="7,3"
+                                                        Background="{DynamicResource PreviewHoverTipBackgroundBrush}"
+                                                        BorderBrush="{DynamicResource PreviewHoverTipBorderBrush}"
+                                                        BorderThickness="1"
+                                                        CornerRadius="2"
+                                                        IsHitTestVisible="False"
+                                                        Visibility="Collapsed">
+                                                    <Border.RenderTransform>
+                                                        <TranslateTransform x:Name="CellShotMapHoverTipTranslateTransform" />
+                                                    </Border.RenderTransform>
+                                                    <TextBlock x:Name="CellShotMapHoverTipText"
+                                                               Foreground="{DynamicResource PreviewHoverTipTextBrush}"
+                                                               FontSize="11"
+                                                               FontWeight="SemiBold" />
+                                                </Border>
+                                            </Grid>
+                                            <StackPanel Grid.Row="2"
+                                                        Orientation="Horizontal"
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center">
+                                                <Ellipse Width="9" Height="9" Fill="#FBBF24" />
+                                                <TextBlock Text="SELECTED" Margin="5,0,12,0" VerticalAlignment="Center" Foreground="{DynamicResource TextMutedBrush}" FontSize="9" />
+                                                <TextBlock Text="×" Margin="0,0,4,0" VerticalAlignment="Center" Foreground="#D71920" FontSize="12" FontWeight="SemiBold" />
+                                                <TextBlock Text="MASKED" Margin="0,0,12,0" VerticalAlignment="Center" Foreground="{DynamicResource TextMutedBrush}" FontSize="9" />
+                                                <TextBlock Text="×" Margin="0,0,4,0" VerticalAlignment="Center" Foreground="#7A1FD0" FontSize="12" FontWeight="SemiBold" />
+                                                <TextBlock Text="CHESS" Margin="0,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextMutedBrush}" FontSize="9" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+
+                                    <Grid Grid.Row="{Binding CurrentScreen.Recipe.CellShotDetailGridRow}"
+                                          Grid.RowSpan="{Binding CurrentScreen.Recipe.CellShotDetailGridRowSpan}"
+                                          Grid.Column="{Binding CurrentScreen.Recipe.CellShotDetailGridColumn}"
+                                          Grid.ColumnSpan="{Binding CurrentScreen.Recipe.CellShotDetailGridColumnSpan}">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*" />
+                                            <RowDefinition Height="{Binding CurrentScreen.Recipe.CellShotDetailVerticalGap}" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="48*" />
+                                            <ColumnDefinition Width="10" />
+                                            <ColumnDefinition Width="52*" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <Border Grid.Row="{Binding CurrentScreen.Recipe.SelectedShotDetailGridRow}"
+                                                Grid.Column="{Binding CurrentScreen.Recipe.SelectedShotDetailGridColumn}"
+                                                Grid.ColumnSpan="{Binding CurrentScreen.Recipe.SelectedShotDetailGridColumnSpan}"
+                                                Padding="7"
+                                                Background="{DynamicResource PanelBackgroundBrush}"
+                                                BorderBrush="{DynamicResource PanelBorderBrush}"
+                                                BorderThickness="1">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="26" />
+                                                    <RowDefinition Height="*" />
+                                                    <RowDefinition Height="24" />
+                                                </Grid.RowDefinitions>
+                                                <TextBlock Text="SELECTED SHOT DETAIL"
+                                                           VerticalAlignment="Center"
+                                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                                           FontSize="12"
+                                                           FontWeight="SemiBold" />
+                                                <Viewbox Grid.Row="1" Stretch="Uniform">
+                                                    <Image Source="{Binding CurrentScreen.Recipe.SelectedShotDetailImage}"
+                                                           Width="360"
+                                                           Height="360"
+                                                           Stretch="Fill" />
+                                                </Viewbox>
+                                                <StackPanel Grid.Row="2"
+                                                            Orientation="Horizontal"
+                                                            HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center">
+                                                    <Ellipse Width="4" Height="4" Fill="#64748B" />
+                                                    <TextBlock Text="PIXEL" Margin="4,0,10,0" Foreground="{DynamicResource TextMutedBrush}" FontSize="9" />
+                                                    <Ellipse Width="8" Height="8" Fill="#00723A" />
+                                                    <TextBlock Text="DOE" Margin="4,0,10,0" Foreground="{DynamicResource TextMutedBrush}" FontSize="9" />
+                                                    <Ellipse Width="8" Height="8" Fill="#D71920" />
+                                                    <TextBlock Text="MASKED" Margin="4,0,10,0" Foreground="{DynamicResource TextMutedBrush}" FontSize="9" />
+                                                    <Ellipse Width="8" Height="8" Fill="#FBBF24" />
+                                                    <TextBlock Text="CENTER" Margin="4,0,0,0" Foreground="{DynamicResource TextMutedBrush}" FontSize="9" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+
+                                        <Border Grid.Row="{Binding CurrentScreen.Recipe.ShotInformationGridRow}"
+                                                Grid.Column="{Binding CurrentScreen.Recipe.ShotInformationGridColumn}"
+                                                Grid.ColumnSpan="{Binding CurrentScreen.Recipe.ShotInformationGridColumnSpan}"
+                                                Padding="8,6"
+                                                Background="{DynamicResource PanelBackgroundBrush}"
+                                                BorderBrush="{DynamicResource PanelBorderBrush}"
+                                                BorderThickness="1">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="26" />
+                                                    <RowDefinition Height="23" />
+                                                    <RowDefinition Height="23" />
+                                                    <RowDefinition Height="6" />
+                                                    <RowDefinition Height="24" />
+                                                    <RowDefinition Height="23" />
+                                                    <RowDefinition Height="28" />
+                                                    <RowDefinition Height="28" />
+                                                </Grid.RowDefinitions>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="70" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <TextBlock Grid.Row="0"
+                                                           Grid.ColumnSpan="2"
+                                                           Text="SHOT INFORMATION"
+                                                           VerticalAlignment="Center"
+                                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                                           FontSize="12"
+                                                           FontWeight="SemiBold" />
+                                                <TextBlock Grid.Row="1" Text="ROW / COL" VerticalAlignment="Center" Foreground="{DynamicResource TextMutedBrush}" FontSize="10" />
+                                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding CurrentScreen.Recipe.SelectedShotGroupGridText}" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="10" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Grid.Row="2" Text="CENTER" VerticalAlignment="Center" Foreground="{DynamicResource TextMutedBrush}" FontSize="10" />
+                                                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding CurrentScreen.Recipe.SelectedShotGroupCenterText}" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="10" TextTrimming="CharacterEllipsis" />
+                                                <Border Grid.Row="3" Grid.ColumnSpan="2" Height="1" VerticalAlignment="Center" Background="{DynamicResource PanelBorderBrush}" />
+                                                <TextBlock Grid.Row="4" Text="STATE" VerticalAlignment="Center" Foreground="{DynamicResource TextMutedBrush}" FontSize="10" />
+                                                <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding CurrentScreen.Recipe.SelectedShotGroupStateText}" VerticalAlignment="Center" FontSize="10" FontWeight="SemiBold">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Foreground" Value="#00723A" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding CurrentScreen.Recipe.SelectedShotGroup.IsChessSkipped}" Value="True">
+                                                                    <Setter Property="Foreground" Value="#7A1FD0" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding CurrentScreen.Recipe.SelectedShotGroup.IsInsideGlass}" Value="False">
+                                                                    <Setter Property="Foreground" Value="#D71920" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding CurrentScreen.Recipe.SelectedShotGroup.IsMasked}" Value="True">
+                                                                    <Setter Property="Foreground" Value="#D71920" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                                <TextBlock Grid.Row="5" Text="MASK" VerticalAlignment="Center" Foreground="{DynamicResource TextMutedBrush}" FontSize="10" />
+                                                <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding CurrentScreen.Recipe.SelectedShotGroup.MaskingStateText}" VerticalAlignment="Center" FontSize="10" FontWeight="SemiBold" TextTrimming="CharacterEllipsis">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding CurrentScreen.Recipe.SelectedShotGroup.IsMasked}" Value="True">
+                                                                    <Setter Property="Foreground" Value="#D71920" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                                <TextBlock Grid.Row="6" Text="OFFSET X" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="10" />
+                                                <Grid Grid.Row="6" Grid.Column="1">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="24" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <Button Content="{Binding CurrentScreen.Recipe.SelectedShotGroup.OffsetX}" Tag="{Binding CurrentScreen.Recipe.SelectedShotGroup}" Uid="OffsetX" Click="OpenShotGroupOffsetInput" Style="{StaticResource RecipeInputButton}" />
+                                                    <TextBlock Grid.Column="1" Text="mm" Margin="5,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextMutedBrush}" FontSize="10" />
+                                                </Grid>
+                                                <TextBlock Grid.Row="7" Text="OFFSET Y" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="10" />
+                                                <Grid Grid.Row="7" Grid.Column="1">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="24" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <Button Content="{Binding CurrentScreen.Recipe.SelectedShotGroup.OffsetY}" Tag="{Binding CurrentScreen.Recipe.SelectedShotGroup}" Uid="OffsetY" Click="OpenShotGroupOffsetInput" Style="{StaticResource RecipeInputButton}" />
+                                                    <TextBlock Grid.Column="1" Text="mm" Margin="5,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextMutedBrush}" FontSize="10" />
+                                                </Grid>
+                                            </Grid>
+                                        </Border>
+                                    </Grid>
+                                </Grid>
+                                </ScrollViewer>
+                            </Grid>
+                            </Border>
+                        <Grid Grid.Row="0"
+                              Grid.RowSpan="5"
+                              Grid.Column="1"
+                              Visibility="{Binding CurrentScreen.Recipe.IsCellPreviewVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <Grid Grid.Row="0" Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="GLASS PREVIEW"
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                           FontWeight="SemiBold" />
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding CurrentScreen.Recipe.CellPreviewSummaryText}"
+                                           Margin="16,0,0,0"
+                                           HorizontalAlignment="Right"
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           FontSize="11"
+                                           FontWeight="SemiBold"
+                                           TextAlignment="Right"
+                                           TextTrimming="CharacterEllipsis" />
+                            </Grid>
+                            <Border Grid.Row="1"
+                                    Background="{DynamicResource GridBackgroundBrush}"
+                                    BorderBrush="{DynamicResource PanelBorderBrush}"
+                                    BorderThickness="1"
+                                    Padding="4">
+                                <Grid x:Name="RecipePreviewViewport"
+                                      Background="Transparent"
+                                      ClipToBounds="True"
+                                      Cursor="Hand"
+                                      LostMouseCapture="RecipePreview_LostMouseCapture"
+                                      PreviewMouseWheel="RecipePreview_PreviewMouseWheel"
+                                      PreviewMouseLeftButtonDown="RecipePreview_PreviewMouseLeftButtonDown"
+                                      PreviewMouseRightButtonDown="RecipePreview_PreviewMouseRightButtonDown"
+                                      PreviewMouseMove="RecipePreview_PreviewMouseMove"
+                                      PreviewMouseLeftButtonUp="RecipePreview_PreviewMouseLeftButtonUp">
+                                    <Grid.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="RESIZE" Click="RecipePreviewResize_Click" />
+                                        </ContextMenu>
+                                    </Grid.ContextMenu>
+                                    <Grid x:Name="RecipePreviewZoomContent"
+                                          RenderTransformOrigin="0.5,0.5">
+                                        <Grid.RenderTransform>
+                                            <TransformGroup>
+                                                <ScaleTransform x:Name="RecipePreviewScaleTransform"
+                                                                ScaleX="1"
+                                                                ScaleY="1" />
+                                                <TranslateTransform x:Name="RecipePreviewTranslateTransform" />
+                                            </TransformGroup>
+                                        </Grid.RenderTransform>
+                                        <Image Source="{Binding CurrentScreen.Recipe.CellPreviewImage}"
+                                               Stretch="Uniform"
+                                               HorizontalAlignment="Stretch"
+                                               VerticalAlignment="Stretch" />
+                                        <ItemsControl ItemsSource="{Binding CurrentScreen.Recipe.CellPreviewLabels}"
+                                                      Style="{StaticResource CellPreviewLabelItemsControl}"
+                                                      IsHitTestVisible="True">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Button Width="{Binding Width}"
+                                                            Height="{Binding Height}"
+                                                            Padding="0"
+                                                            Cursor="Hand"
+                                                            Background="Transparent"
+                                                            BorderThickness="0"
+                                                            MouseMove="CellPreviewLabel_MouseMove"
+                                                            MouseLeave="CellPreviewLabel_MouseLeave"
+                                                            menu:CButtonCommandBehavior.Command="{Binding DataContext.CurrentScreen.Recipe.SelectPreviewCellCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding CellNo}">
+                                                        <Button.Style>
+                                                            <Style TargetType="Button">
+                                                                <Setter Property="Background" Value="Transparent" />
+                                                                <Setter Property="BorderBrush" Value="Transparent" />
+                                                                <Setter Property="BorderThickness" Value="0" />
+                                                                <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                                                                <Setter Property="Template">
+                                                                    <Setter.Value>
+                                                                        <ControlTemplate TargetType="Button">
+                                                                            <Border
+                                                                                    Background="{TemplateBinding Background}"
+                                                                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                                                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                                                                    CornerRadius="2"
+                                                                                    SnapsToDevicePixels="True">
+                                                                                <ContentPresenter HorizontalAlignment="Center"
+                                                                                                  VerticalAlignment="Center" />
+                                                                            </Border>
+                                                                        </ControlTemplate>
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                            </Style>
+                                                        </Button.Style>
+                                                    </Button>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Grid>
+                                    <Border x:Name="RecipePreviewHoverTip"
+                                            Panel.ZIndex="10"
+                                            HorizontalAlignment="Left"
+                                            VerticalAlignment="Top"
+                                            Padding="7,3"
+                                            Background="{DynamicResource PreviewHoverTipBackgroundBrush}"
+                                            BorderBrush="{DynamicResource PreviewHoverTipBorderBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="2"
+                                            IsHitTestVisible="False"
+                                            Visibility="Collapsed">
+                                        <Border.RenderTransform>
+                                            <TranslateTransform x:Name="RecipePreviewHoverTipTranslateTransform" />
+                                        </Border.RenderTransform>
+                                        <TextBlock x:Name="RecipePreviewHoverTipText"
+                                                   Foreground="{DynamicResource PreviewHoverTipTextBrush}"
+                                                   FontSize="11"
+                                                   FontWeight="SemiBold" />
+                                    </Border>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Grid>
+
+                    <Grid Grid.Row="2"
+                          Grid.RowSpan="3"
+                          Visibility="{Binding CurrentScreen.Recipe.IsHeadCategory, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="42*" />
+                            <ColumnDefinition Width="58*" />
+                        </Grid.ColumnDefinitions>
+
+                        <ItemsControl Grid.Row="0"
+                                      Grid.Column="0"
+                                      ItemsSource="{Binding CurrentScreen.Recipe.GroupTabs}"
+                                      Margin="0,0,12,6">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Rows="1" Columns="9" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Content="{Binding Group}"
+                                            menu:CButtonCommandBehavior.Command="{Binding DataContext.CurrentScreen.Recipe.SelectGroupCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding Group}">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource RecipeTabButton}">
+                                                <Setter Property="Height" Value="28" />
+                                                <Setter Property="MinWidth" Value="0" />
+                                                <Setter Property="Margin" Value="0,0,3,0" />
+                                                <Setter Property="FontSize" Value="11" />
+                                                <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}" />
+                                                <Setter Property="BorderBrush" Value="{DynamicResource ButtonSecondaryBorderBrush}" />
+                                                <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                        <Setter Property="Background" Value="{DynamicResource MenuItemSelectedBackgroundBrush}" />
+                                                        <Setter Property="BorderBrush" Value="{DynamicResource MenuItemSelectedBorderBrush}" />
+                                                        <Setter Property="Foreground" Value="{DynamicResource MenuItemSelectedTextBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <DataGrid Grid.Row="1"
+                                  Grid.Column="0"
+                                  Margin="0,0,12,0"
+                                  ItemsSource="{Binding CurrentScreen.Recipe.ManagedItems}"
+                                  IsReadOnly="False"
+                                  Style="{StaticResource PlainDataGrid}"
+                                  FontSize="12"
+                                  ColumnHeaderHeight="38"
+                                  RowHeight="38">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Group" Binding="{Binding Group}" Width="92" IsReadOnly="True" />
+                                <DataGridTextColumn Header="Item" Binding="{Binding Item}" Width="*" MinWidth="190" IsReadOnly="True" />
+                                <DataGridTemplateColumn Header="Value" Width="136" CellStyle="{StaticResource RecipeFillDataGridCell}">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Grid>
+                                                <Button Content="{Binding Value}" Tag="{Binding}" Click="OpenManagedItemInput"
+                                                        Height="Auto" Margin="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                                    <Button.Style><Style TargetType="Button" BasedOn="{StaticResource RecipeInputButton}"><Setter Property="Visibility" Value="Visible" /><Style.Triggers><DataTrigger Binding="{Binding UsesSelectionEditor}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></Button.Style>
+                                                </Button>
+                                                <ComboBox ItemsSource="{Binding ValueOptions}" SelectedItem="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                          Height="Auto" Margin="0" FocusVisualStyle="{x:Null}"
+                                                          HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                                    <ComboBox.Style><Style TargetType="ComboBox" BasedOn="{StaticResource RecipeComboBox}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding UsesSelectionEditor}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></ComboBox.Style>
+                                                </ComboBox>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="Unit" Binding="{Binding Unit}" Width="92" IsReadOnly="True" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <Grid Grid.Row="0"
+                              Grid.RowSpan="2"
+                              Grid.Column="1">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <Grid Grid.Row="0" Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="HEAD PREVIEW"
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                           FontWeight="SemiBold" />
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding CurrentScreen.Recipe.HeadPreviewSummaryText}"
+                                           Margin="16,0,0,0"
+                                           HorizontalAlignment="Right"
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           FontSize="11"
+                                           FontWeight="SemiBold"
+                                           TextAlignment="Right"
+                                           TextTrimming="CharacterEllipsis" />
+                            </Grid>
+                            <Border Grid.Row="1"
+                                    Background="{DynamicResource GridBackgroundBrush}"
+                                    BorderBrush="{DynamicResource PanelBorderBrush}"
+                                    BorderThickness="1"
+                                    Padding="10">
+                                <Border
+                                        Background="{DynamicResource PanelBackgroundBrush}"
+                                        BorderBrush="{DynamicResource PanelBorderBrush}"
+                                        BorderThickness="1"
+                                        Padding="4">
+                                    <Grid>
+                                        <Image Source="{Binding CurrentScreen.Recipe.HeadPreviewImage}"
+                                               Stretch="Uniform"
+                                               HorizontalAlignment="Stretch"
+                                               VerticalAlignment="Stretch" />
+                                        <ItemsControl ItemsSource="{Binding CurrentScreen.Recipe.HeadPreviewLabels}"
+                                                      Style="{StaticResource CellPreviewLabelItemsControl}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Width="{Binding Width}"
+                                                            Height="{Binding Height}"
+                                                            Padding="6,0"
+                                                            Background="{Binding BackgroundBrush}"
+                                                            BorderBrush="{Binding BorderBrush}"
+                                                            BorderThickness="1.4"
+                                                            CornerRadius="2"
+                                                            SnapsToDevicePixels="True">
+                                                        <TextBlock Text="{Binding DisplayText}"
+                                                                   Foreground="{Binding TextBrush}"
+                                                                   FontSize="12"
+                                                                   FontWeight="SemiBold"
+                                                                   HorizontalAlignment="Center"
+                                                                   VerticalAlignment="Center" />
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Grid>
+                                </Border>
+                            </Border>
+                        </Grid>
+                    </Grid>
+
+                    <views:CRecipeZeroDefenceView Grid.Row="3" Grid.RowSpan="2"
+                        DataContext="{Binding CurrentScreen.Recipe.ZeroDefence}"
+                        Visibility="{Binding DataContext.CurrentScreen.Recipe.IsZeroDefenceCategory, RelativeSource={RelativeSource AncestorType=views:CRecipeView}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+                    <DataGrid Grid.Row="4"
+                              ItemsSource="{Binding CurrentScreen.Recipe.ManagedItems}"
+                              IsReadOnly="False"
+                              FontSize="13"
+                              ColumnHeaderHeight="42"
+                              RowHeight="40">
+                        <DataGrid.Style>
+                            <Style TargetType="DataGrid" BasedOn="{StaticResource PlainDataGrid}">
+                                <Setter Property="Visibility" Value="Visible" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CurrentScreen.Recipe.IsCellCategory}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding CurrentScreen.Recipe.IsHeadCategory}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding CurrentScreen.Recipe.IsZeroDefenceCategory}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.Style>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Group" Binding="{Binding Group}" Width="128" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Item" Binding="{Binding Item}" Width="280" IsReadOnly="True" />
+                            <DataGridTemplateColumn Header="Value" Width="170" CellStyle="{StaticResource RecipeFillDataGridCell}">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Grid>
+                                            <Button Content="{Binding Value}" Tag="{Binding}" Click="OpenManagedItemInput"
+                                                    Height="Auto" Margin="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                                <Button.Style><Style TargetType="Button" BasedOn="{StaticResource RecipeInputButton}"><Setter Property="Visibility" Value="Visible" /><Style.Triggers><DataTrigger Binding="{Binding UsesSelectionEditor}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></Button.Style>
+                                            </Button>
+                                            <ComboBox ItemsSource="{Binding ValueOptions}" SelectedItem="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                      Height="Auto" Margin="0" FocusVisualStyle="{x:Null}"
+                                                      HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                                <ComboBox.Style><Style TargetType="ComboBox" BasedOn="{StaticResource RecipeComboBox}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding UsesSelectionEditor}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></ComboBox.Style>
+                                            </ComboBox>
+                                        </Grid>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Unit" Binding="{Binding Unit}" Width="96" IsReadOnly="True" />
+                            <DataGridTextColumn Header="설명" Binding="{Binding Description}" Width="*" IsReadOnly="True" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                </Grid>
+            </Border>
+
+            <Border x:Name="HistoryPanel" Panel.ZIndex="1" Grid.Row="1" Grid.Column="1" Margin="12,12,0,0" Style="{StaticResource PanelBorder}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Change History" Style="{StaticResource PanelTitle}"
+                                   FontSize="20" VerticalAlignment="Center" />
+                        <Button x:Name="HistoryExpandButton" Grid.Column="1" Content="EXPAND"
+                                Click="ToggleHistory_Click" Style="{StaticResource RecipeTabButton}"
+                                Width="100" MinWidth="0" Height="30" FontSize="12" Padding="0" />
+                    </Grid>
+
+                    <DataGrid x:Name="ChangeHistoryGrid" Grid.Row="1"
+                              Grid.Column="0"
+                              ItemsSource="{Binding CurrentScreen.Recipe.ChangeHistory}"
+                              IsReadOnly="True"
+                              Style="{StaticResource PlainDataGrid}"
+                              FontSize="13"
+                              ColumnHeaderHeight="42"
+                              RowHeight="36"
+                              Margin="0,8,0,0">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Time" Binding="{Binding Time}" Width="96" />
+                            <DataGridTextColumn Header="Action" Binding="{Binding Action}" Width="74" />
+                            <DataGridTextColumn Header="Recipe" Binding="{Binding Recipe}" Width="140" />
+                            <DataGridTextColumn Header="Tab" Binding="{Binding Tab}" Width="66" />
+                            <DataGridTextColumn Header="Group" Binding="{Binding Group}" Width="76" />
+                            <DataGridTextColumn Header="Item" Binding="{Binding Item}" Width="*" MinWidth="110" />
+                            <DataGridTextColumn Header="Before" Binding="{Binding Before}" Width="92" />
+                            <DataGridTextColumn Header="After" Binding="{Binding After}" Width="92">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{Binding AfterBrush}" />
+                                        <Setter Property="FontWeight" Value="SemiBold" />
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>
+
+

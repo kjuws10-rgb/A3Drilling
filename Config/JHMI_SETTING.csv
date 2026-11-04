@@ -1,0 +1,233 @@
+﻿TAB,GROUP,NAME,DISPLAY NAME,DATA TYPE,UNIT,SHOW,USE,VALUE,MIN,MAX,DESCRIPTION
+OPTION,POWERMETER,H01_TPM_SETTLE_TIME_MS,H01 TPM Settle Time,INT,ms,1,1,300,0,60000,AUTO Head별 Settle Time; Manual 기본값과 동일
+OPTION,POWERMETER,H01_TPM_MEASURE_COUNT,H01 TPM Measure Count,INT,count,1,1,1,1,1000,AUTO Head별 Measure Count; Manual 기본값과 동일
+OPTION,POWERMETER,H01_TPM_INTERVAL_MS,H01 TPM Interval,INT,ms,1,1,100,0,60000,AUTO Head별 Interval; Manual 기본값과 동일
+OPTION,POWERMETER,H01_TPM_TARGET_POWER_W,H01 TPM Target Power,DOUBLE,W,1,1,1.2,0.0001,10000,AUTO Head별 Target Power; Manual 기본값과 동일
+OPTION,POWERMETER,H01_TPM_TOLERANCE_W,H01 TPM 허용오차,DOUBLE,W,1,1,0.01,0,100,목표 W와 측정 평균 W의 절댓값 허용오차
+OPTION,POWERMETER,H01_TPM_MAX_ATTEMPTS,H01 TPM 최대 검사 횟수,INT,count,1,1,12,1,100,최초 검사 포함 ATT 각도 보정 및 검사 최대 횟수; 각 검사에서 Measure Count만큼 읽어 평균
+OPTION,POWERMETER,H02_TPM_SETTLE_TIME_MS,H02 TPM Settle Time,INT,ms,1,1,300,0,60000,AUTO Head별 Settle Time; Manual 기본값과 동일
+OPTION,POWERMETER,H02_TPM_MEASURE_COUNT,H02 TPM Measure Count,INT,count,1,1,1,1,1000,AUTO Head별 Measure Count; Manual 기본값과 동일
+OPTION,POWERMETER,H02_TPM_INTERVAL_MS,H02 TPM Interval,INT,ms,1,1,100,0,60000,AUTO Head별 Interval; Manual 기본값과 동일
+OPTION,POWERMETER,H02_TPM_TARGET_POWER_W,H02 TPM Target Power,DOUBLE,W,1,1,1.2,0.0001,10000,AUTO Head별 Target Power; Manual 기본값과 동일
+OPTION,POWERMETER,H02_TPM_TOLERANCE_W,H02 TPM 허용오차,DOUBLE,W,1,1,0.01,0,100,목표 W와 측정 평균 W의 절댓값 허용오차
+OPTION,POWERMETER,H02_TPM_MAX_ATTEMPTS,H02 TPM 최대 검사 횟수,INT,count,1,1,12,1,100,최초 검사 포함 ATT 각도 보정 및 검사 최대 횟수; 각 검사에서 Measure Count만큼 읽어 평균
+OPTION,POWERMETER,H03_TPM_SETTLE_TIME_MS,H03 TPM Settle Time,INT,ms,1,1,300,0,60000,AUTO Head별 Settle Time; Manual 기본값과 동일
+OPTION,POWERMETER,H03_TPM_MEASURE_COUNT,H03 TPM Measure Count,INT,count,1,1,1,1,1000,AUTO Head별 Measure Count; Manual 기본값과 동일
+OPTION,POWERMETER,H03_TPM_INTERVAL_MS,H03 TPM Interval,INT,ms,1,1,100,0,60000,AUTO Head별 Interval; Manual 기본값과 동일
+OPTION,POWERMETER,H03_TPM_TARGET_POWER_W,H03 TPM Target Power,DOUBLE,W,1,1,1.2,0.0001,10000,AUTO Head별 Target Power; Manual 기본값과 동일
+OPTION,POWERMETER,H03_TPM_TOLERANCE_W,H03 TPM 허용오차,DOUBLE,W,1,1,0.01,0,100,목표 W와 측정 평균 W의 절댓값 허용오차
+OPTION,POWERMETER,H03_TPM_MAX_ATTEMPTS,H03 TPM 최대 검사 횟수,INT,count,1,1,12,1,100,최초 검사 포함 ATT 각도 보정 및 검사 최대 횟수; 각 검사에서 Measure Count만큼 읽어 평균
+OPTION,POWERMETER,H04_TPM_SETTLE_TIME_MS,H04 TPM Settle Time,INT,ms,1,1,300,0,60000,AUTO Head별 Settle Time; Manual 기본값과 동일
+OPTION,POWERMETER,H04_TPM_MEASURE_COUNT,H04 TPM Measure Count,INT,count,1,1,1,1,1000,AUTO Head별 Measure Count; Manual 기본값과 동일
+OPTION,POWERMETER,H04_TPM_INTERVAL_MS,H04 TPM Interval,INT,ms,1,1,100,0,60000,AUTO Head별 Interval; Manual 기본값과 동일
+OPTION,POWERMETER,H04_TPM_TARGET_POWER_W,H04 TPM Target Power,DOUBLE,W,1,1,1.2,0.0001,10000,AUTO Head별 Target Power; Manual 기본값과 동일
+OPTION,POWERMETER,H04_TPM_TOLERANCE_W,H04 TPM 허용오차,DOUBLE,W,1,1,0.01,0,100,목표 W와 측정 평균 W의 절댓값 허용오차
+OPTION,POWERMETER,H04_TPM_MAX_ATTEMPTS,H04 TPM 최대 검사 횟수,INT,count,1,1,12,1,100,최초 검사 포함 ATT 각도 보정 및 검사 최대 횟수; 각 검사에서 Measure Count만큼 읽어 평균
+OPTION,POWERMETER,H05_TPM_SETTLE_TIME_MS,H05 TPM Settle Time,INT,ms,1,1,300,0,60000,AUTO Head별 Settle Time; Manual 기본값과 동일
+OPTION,POWERMETER,H05_TPM_MEASURE_COUNT,H05 TPM Measure Count,INT,count,1,1,1,1,1000,AUTO Head별 Measure Count; Manual 기본값과 동일
+OPTION,POWERMETER,H05_TPM_INTERVAL_MS,H05 TPM Interval,INT,ms,1,1,100,0,60000,AUTO Head별 Interval; Manual 기본값과 동일
+OPTION,POWERMETER,H05_TPM_TARGET_POWER_W,H05 TPM Target Power,DOUBLE,W,1,1,1.2,0.0001,10000,AUTO Head별 Target Power; Manual 기본값과 동일
+OPTION,POWERMETER,H05_TPM_TOLERANCE_W,H05 TPM 허용오차,DOUBLE,W,1,1,0.01,0,100,목표 W와 측정 평균 W의 절댓값 허용오차
+OPTION,POWERMETER,H05_TPM_MAX_ATTEMPTS,H05 TPM 최대 검사 횟수,INT,count,1,1,12,1,100,최초 검사 포함 ATT 각도 보정 및 검사 최대 횟수; 각 검사에서 Measure Count만큼 읽어 평균
+OPTION,POWERMETER,H06_TPM_SETTLE_TIME_MS,H06 TPM Settle Time,INT,ms,1,1,300,0,60000,AUTO Head별 Settle Time; Manual 기본값과 동일
+OPTION,POWERMETER,H06_TPM_MEASURE_COUNT,H06 TPM Measure Count,INT,count,1,1,1,1,1000,AUTO Head별 Measure Count; Manual 기본값과 동일
+OPTION,POWERMETER,H06_TPM_INTERVAL_MS,H06 TPM Interval,INT,ms,1,1,100,0,60000,AUTO Head별 Interval; Manual 기본값과 동일
+OPTION,POWERMETER,H06_TPM_TARGET_POWER_W,H06 TPM Target Power,DOUBLE,W,1,1,1.2,0.0001,10000,AUTO Head별 Target Power; Manual 기본값과 동일
+OPTION,POWERMETER,H06_TPM_TOLERANCE_W,H06 TPM 허용오차,DOUBLE,W,1,1,0.01,0,100,목표 W와 측정 평균 W의 절댓값 허용오차
+OPTION,POWERMETER,H06_TPM_MAX_ATTEMPTS,H06 TPM 최대 검사 횟수,INT,count,1,1,12,1,100,최초 검사 포함 ATT 각도 보정 및 검사 최대 횟수; 각 검사에서 Measure Count만큼 읽어 평균
+OPTION,POWERMETER,H07_TPM_SETTLE_TIME_MS,H07 TPM Settle Time,INT,ms,1,1,300,0,60000,AUTO Head별 Settle Time; Manual 기본값과 동일
+OPTION,POWERMETER,H07_TPM_MEASURE_COUNT,H07 TPM Measure Count,INT,count,1,1,1,1,1000,AUTO Head별 Measure Count; Manual 기본값과 동일
+OPTION,POWERMETER,H07_TPM_INTERVAL_MS,H07 TPM Interval,INT,ms,1,1,100,0,60000,AUTO Head별 Interval; Manual 기본값과 동일
+OPTION,POWERMETER,H07_TPM_TARGET_POWER_W,H07 TPM Target Power,DOUBLE,W,1,1,1.2,0.0001,10000,AUTO Head별 Target Power; Manual 기본값과 동일
+OPTION,POWERMETER,H07_TPM_TOLERANCE_W,H07 TPM 허용오차,DOUBLE,W,1,1,0.01,0,100,목표 W와 측정 평균 W의 절댓값 허용오차
+OPTION,POWERMETER,H07_TPM_MAX_ATTEMPTS,H07 TPM 최대 검사 횟수,INT,count,1,1,12,1,100,최초 검사 포함 ATT 각도 보정 및 검사 최대 횟수; 각 검사에서 Measure Count만큼 읽어 평균
+OPTION,POWERMETER,H08_TPM_SETTLE_TIME_MS,H08 TPM Settle Time,INT,ms,1,1,300,0,60000,AUTO Head별 Settle Time; Manual 기본값과 동일
+OPTION,POWERMETER,H08_TPM_MEASURE_COUNT,H08 TPM Measure Count,INT,count,1,1,1,1,1000,AUTO Head별 Measure Count; Manual 기본값과 동일
+OPTION,POWERMETER,H08_TPM_INTERVAL_MS,H08 TPM Interval,INT,ms,1,1,100,0,60000,AUTO Head별 Interval; Manual 기본값과 동일
+OPTION,POWERMETER,H08_TPM_TARGET_POWER_W,H08 TPM Target Power,DOUBLE,W,1,1,1.2,0.0001,10000,AUTO Head별 Target Power; Manual 기본값과 동일
+OPTION,POWERMETER,H08_TPM_TOLERANCE_W,H08 TPM 허용오차,DOUBLE,W,1,1,0.01,0,100,목표 W와 측정 평균 W의 절댓값 허용오차
+OPTION,POWERMETER,H08_TPM_MAX_ATTEMPTS,H08 TPM 최대 검사 횟수,INT,count,1,1,12,1,100,최초 검사 포함 ATT 각도 보정 및 검사 최대 횟수; 각 검사에서 Measure Count만큼 읽어 평균
+OPTION,POWERMETER,TPM_COOLING_TIME_MS,TPM Cooling Time,INT,ms,1,1,100,0,60000,출사 종료 후 다음 보정 시도 전 대기 시간
+OPTION,POWERMETER,TPM_TOLERANCE_W,TPM Power Tolerance,DOUBLE,W,0,1,0.01,0,100,이전 버전 공통 기본값; Head별 값이 없는 문서의 호환용; UI 숨김
+OPTION,POWERMETER,TPM_MAX_ATTEMPTS,TPM Maximum Attempts,INT,count,0,1,12,1,100,이전 버전 공통 기본값; Head별 값이 없는 문서의 호환용; UI 숨김
+OPTION,POWERMETER,TPM_STAGE_Y_TOLERANCE_MM,PowerMeasure Stage Y Tolerance,DOUBLE,mm,1,1,0.03,0,1,Stage Y 0 mm 시작 및 출사 유지 판정 허용오차; BUSY도 0이어야 함
+OPTION,POWERMETER,TPM_OPERATION_TIMEOUT_MS,PowerMeasure Operation Timeout,INT,ms,1,1,30000,100,120000,장치 준비와 명령 확인의 제한 시간
+OPTION,RUNOPTION,RUNOPTION_ZERO_DEFENCE_USE,0선방어,BOOL,,1,1,0,0,1,0=OFF; 1=ON; Main Run Option 변경 시 즉시 저장
+OPTION,RUNOPTION,RUNOPTION_CURRENT_GROUP,0선방어 Current Group,INT,,1,1,1,1,4,현재 그룹 1~4; INIT은 1로 저장; 전체 그룹은 Recipe에서 계산하며 저장하지 않음; Recipe 전체 그룹보다 크면 해당 범위로 조정
+OPTION,RUNOPTION,RUNOPTION_FOLLOWUP_USE,후속 1줄검사,BOOL,,1,1,0,0,1,0=OFF; 1=ON
+OPTION,RUNOPTION,RUNOPTION_REVIEW_METHOD,Review Method,INT,,1,1,1,0,1,저장값 0=PtoP; 1=IOF
+OPTION,RUNOPTION,RUNOPTION_REVIEW_LINE,Review Line,INT,,1,1,0,0,3,저장값 0=1줄; 1=3줄; 2=5줄; 3=7줄; 실제 검사 라인 수와 저장값이 다름
+OPTION,RUNOPTION,RUNOPTION_REVIEW_IMMEDIATE_RETRY,Review Immediate Retry,BOOL,,1,1,0,0,1,0=OFF; 1=ON; 허용오차 초과 포함 모든 NG 즉시 재검사
+OPTION,RUNOPTION,RUNOPTION_REVIEW_RETRY_COUNT,Review Retry Count,INT,,1,1,1,1,3,저장값 1=재시도 1회; 2=2회; 3=3회; 최초 검사 제외; Count NCK와 NG가 동일 한도 공유
+OPTION,PATH,LocalScriptPath,Local Script Path,STRING,,1,1,.\Data\Script,0,0,스캔 PC의 생성 스크립트 저장 경로
+OPTION,PATH,AutomationScriptPath,Automation Script Path,STRING,,1,1,/,0,0,Automation1 컨트롤러 스크립트 대상 경로
+OPTION,SCRIPT,SCRIPT_BUFFERED_RUN_USE,Script Buffered Run Use,BOOL,,1,1,OFF,0,1,공정 스크립트 실행 시 Automation1 명령 큐 사용
+OPTION,SCRIPT,SCRIPT_BUFFERED_RUN_LINES_PER_COMMAND,Buffered Run Lines Per Command,INT,line,1,1,1000,2,10000,스크립트 파일을 명령 큐에 추가할 때 명령당 라인 수
+OPTION,SCRIPT,SCRIPT_BUFFERED_RUN_TIMEOUT_MS,Buffered Run Timeout,INT,ms,1,1,600000,0,3600000,버퍼 실행 명령 큐 대기 타임아웃. 0은 무제한
+OPTION,SCRIPT,SCRIPT_BUFFERED_RUN_QUEUE_SIZE,Buffered Run Queue Size,INT,count,1,1,100,1,10000,버퍼 실행용 Automation1 명령 큐 용량
+OPTION,SCRIPT,AUTOMATION1_SIMULATOR_USE,Automation1 Simulator Use,BOOL,,1,1,OFF,0,1,MOF 피드백과 레이저 출력을 제외한 스캐너 전용 시뮬레이터 스크립트 생성
+OPTION,RECIPE,SELECT_RECIPE,Select Recipe,STRING,,0,1,DRILL_A01,0,0,현재 적용된 레시피 파일명
+OPTION,AUTOMATION,H01_AUTOMATION_NO,H01 Automation No,INT,,1,1,0,0,16,H01 헤드가 연결된 Automation1 컨트롤러 번호
+OPTION,AUTOMATION,H01_AUTOMATION_TASK_NO,H01 Automation Task No,INT,,1,1,1,1,32,H01 헤드가 사용하는 Automation1 태스크 번호
+OPTION,AUTOMATION,H02_AUTOMATION_NO,H02 Automation No,INT,,1,1,0,0,16,H02 헤드가 연결된 Automation1 컨트롤러 번호
+OPTION,AUTOMATION,H02_AUTOMATION_TASK_NO,H02 Automation Task No,INT,,1,1,2,1,32,H02 헤드가 사용하는 Automation1 태스크 번호
+OPTION,AUTOMATION,H03_AUTOMATION_NO,H03 Automation No,INT,,1,1,0,0,16,H03 헤드가 연결된 Automation1 컨트롤러 번호
+OPTION,AUTOMATION,H03_AUTOMATION_TASK_NO,H03 Automation Task No,INT,,1,1,3,1,32,H03 헤드가 사용하는 Automation1 태스크 번호
+OPTION,AUTOMATION,H04_AUTOMATION_NO,H04 Automation No,INT,,1,1,0,0,16,H04 헤드가 연결된 Automation1 컨트롤러 번호
+OPTION,AUTOMATION,H04_AUTOMATION_TASK_NO,H04 Automation Task No,INT,,1,1,4,1,32,H04 헤드가 사용하는 Automation1 태스크 번호
+OPTION,AUTOMATION,H05_AUTOMATION_NO,H05 Automation No,INT,,1,1,1,0,16,H05 헤드가 연결된 Automation1 컨트롤러 번호
+OPTION,AUTOMATION,H05_AUTOMATION_TASK_NO,H05 Automation Task No,INT,,1,1,1,1,32,H05 헤드가 사용하는 Automation1 태스크 번호
+OPTION,AUTOMATION,H06_AUTOMATION_NO,H06 Automation No,INT,,1,1,1,0,16,H06 헤드가 연결된 Automation1 컨트롤러 번호
+OPTION,AUTOMATION,H06_AUTOMATION_TASK_NO,H06 Automation Task No,INT,,1,1,2,1,32,H06 헤드가 사용하는 Automation1 태스크 번호
+OPTION,AUTOMATION,H07_AUTOMATION_NO,H07 Automation No,INT,,1,1,1,0,16,H07 헤드가 연결된 Automation1 컨트롤러 번호
+OPTION,AUTOMATION,H07_AUTOMATION_TASK_NO,H07 Automation Task No,INT,,1,1,3,1,32,H07 헤드가 사용하는 Automation1 태스크 번호
+OPTION,AUTOMATION,H08_AUTOMATION_NO,H08 Automation No,INT,,1,1,1,0,16,H08 헤드가 연결된 Automation1 컨트롤러 번호
+OPTION,AUTOMATION,H08_AUTOMATION_TASK_NO,H08 Automation Task No,INT,,1,1,4,1,32,H08 헤드가 사용하는 Automation1 태스크 번호
+OPTION,VISION,VisionXFlip,X Flip,BOOL,,1,1,OFF,0,1,헤드 좌표 변환 전 비전 X 오차 부호 반전
+OPTION,VISION,VisionYFlip,Y Flip,BOOL,,1,1,OFF,0,1,헤드 좌표 변환 전 비전 Y 오차 부호 반전
+OPTION,VISION,VisionXyFlip,XY Flip,BOOL,,1,1,OFF,0,1,X/Y 반전 후 헤드 좌표 변환 전 XY축 변환 적용
+OPTION,VISION,REVIEW_X_ANIMATION_FLIP,Review X Animation Flip,BOOL,,1,1,OFF,0,1,카메라 프리뷰 X 표시 방향만 반전; OFF는 좌→우 X+; ON은 좌→우 X-; AK 기준 위치 유지
+OPTION,VISION,VISION_ANIMATION_USE,Vision Animation Use,BOOL,,1,1,ON,0,1,ON일 때만 Correction Review 프리뷰의 카메라 위치 애니메이션 표시
+OPTION,VISION,MaxHoleCountPerLine,MaxHoleCountPerLine,INT,count,1,1,300,1,29126,1001 송신·1003 수신 배열의 고정 칸 수; Count는 실제 유효 개수; 송신 잔여 칸은 모든 필드 -1; 수신 Count 초과 시 HEAVY 알람 및 검사 중단
+OPTION,VISION,CameraResolution,Camera Resolution,DOUBLE,mm/pixel,1,1,0.0025,0,0,카메라 1 pixel당 길이(mm); 기본 0.0025 mm/pixel=2.5 um/pixel; 오차(mm)=이 값 x 수신 nResolution x (Target-Hole); Vision Flip 적용 후 Tolerance 판정; 양의 유한값만 저장
+OPTION,INTERLOCK,SCANNER_TEMP_LIMIT,Scanner Temp Limit,DOUBLE,°C,1,1,1000,0,1000,스캐너 Galvo Temp 인터락 상한값 (섭씨)
+OPTION,INTERLOCK,DOE_Z_TOLERANCE,DOE Z Tolerance,DOUBLE,mm,1,1,0,0,1000,Recipe값 대비 +- 허용오차
+OPTION,INTERLOCK,ALIGN_OFFSET_TOLERANCE,Align Offset Tolerance,DOUBLE,mm,1,1,0.5,0,100000,Align Offset X 또는 Y의 절댓값 초과 시 Shot 전체 제외 여부 확인; 제외 Shot의 기존 X/Y 유지; 소수 셋째 자리 기준
+OPTION,INTERLOCK,LASER_THG_HOUR_LIMIT,LASER THG Hour Limit,INT,hour,1,1,0,0,100000,레이저 크리스탈 사용 시간 상한값
+OPTION,INTERLOCK,ATTENUATOR_DEGREE_MIN_SW_LIMIT,Attenuator Degree Min SW Limit,DOUBLE,deg,1,1,0.0,0,0,ATT Limit은 Setting > OPTION > INTERLOCK에서 장비 범위에 맞게 변경 가능; 기본 0/0은 0도만 허용; 입력 메타데이터 MIN/MAX 0/0은 입력 범위 제한 없음
+OPTION,INTERLOCK,ATTENUATOR_DEGREE_MAX_SW_LIMIT,Attenuator Degree Max SW Limit,DOUBLE,deg,1,1,0.0,0,0,ATT Limit은 Setting > OPTION > INTERLOCK에서 장비 범위에 맞게 변경 가능; 기본 0/0은 0도만 허용; 입력 메타데이터 MIN/MAX 0/0은 입력 범위 제한 없음
+INTERFACE,HOST,HostIp,Host IP,STRING,,1,1,192.168.0.10,0,0,호스트 통신 IP
+INTERFACE,HOST,Port,Host Port,INT,,1,1,5000,1,65535,호스트 통신 포트
+INTERFACE,HOST,Timeout,Message Timeout,INT,ms,1,1,3000,100,60000,메시지 타임아웃
+INTERFACE,HOST,Retry,Retry Count,INT,count,1,1,3,0,10,재시도 횟수
+IO,OUTPUT,OutputOnDelay,Output ON Delay,INT,ms,1,1,50,0,10000,출력 켜짐 지연 시간
+IO,OUTPUT,OutputOffDelay,Output OFF Delay,INT,ms,1,1,50,0,10000,출력 꺼짐 지연 시간
+IO,INPUT,InputStableTime,Input Stable Time,INT,ms,1,1,20,0,10000,입력 안정화 시간
+MOTOR,REVIEW,REVIEW_X_SPEED,Review X Speed,DOUBLE,mm/sec,1,1,200,0.001,5000,Review X 이동 속도 및 0선방어 이동시간 검증
+MOTOR,REVIEW,REVIEW_X_ACC,Review X Acc,DOUBLE,mm/sec²,1,1,150,0.001,10000,Review X 가속도와 감속도 및 0선방어 이동시간 검증
+MOTOR,STAGE,STAGE_START_POS_Y,Stage Start Pos Y,DOUBLE,mm,1,1,0.000,-10000,10000,스캔 공정 전 스테이지 시작 Y 위치
+MOTOR,AXIS,MoveTimeout,Move Timeout,INT,ms,1,1,10000,100,120000,축 이동 타임아웃
+OPTION,SCANNER,SCAN_ENCODER_SCALE,Scan Encoder Scale,DOUBLE,count/mm,1,1,16000,1,1000000,Automation1 공정 스크립트 wait에 사용하는 스테이지 엔코더 스케일
+OPTION,SCANNER,SCAN_ENCODER_FEEDBACK_FLIP,Scan Encoder Feedback Flip,BOOL,,1,1,OFF,0,1,Automation1 보조 피드백 wait 값 반전 여부
+OPTION,SCANNER,SCAN_START_JUMP_STEP,Scan Start Jump Step,DOUBLE,mm,1,1,5,0.001,1000,첫 가공 포인트 전 스캐너 점프 간격
+OPTION,SCANNER,SCAN_LINE_PRE_APPROACH_USE,Scan Line Pre Approach Use,BOOL,,1,1,OFF,0,1,각 가공 라인의 첫 샷 전 정방향 진입용 사전 점프 사용 여부
+OPTION,SCANNER,SCAN_LINE_PRE_APPROACH_DISTANCE,Scan Line Pre Approach Distance,DOUBLE,mm,1,1,5,0,1000,각 가공 라인의 첫 샷 기준 사전 진입 거리
+OPTION,SCANNER,STAGE_SCAN_DIRECTION_Y,Stage Scan Direction Y,DOUBLE,sign,1,1,-1,-1,1,공정 스크립트 실행 중 스테이지 Y 스캔 방향
+OPTION,SCANNER,HeadGapX,Head Gap X,DOUBLE,mm,1,1,200,-10000,10000,인접 헤드 중심 간 X 피치
+OPTION,SCANNER,HeadGapY,Head Gap Y,DOUBLE,mm,1,1,380,-10000,10000,H02/H04/H06/H08 라인에서 H01/H03/H05/H07 라인까지의 Y 거리
+OPTION,SCANNER,REVIEW_TO_HEAD1_GAP_Y,Review To Head1 Gap Y,DOUBLE,mm,1,1,0,-10000,10000,리뷰 카메라 중심에서 H01/H03/H05/H07 헤드 중심까지의 Y 거리
+OPTION,SCANNER,H01_USE,H01 Use,BOOL,,1,1,ON,0,1,H01 헤드 사용 여부
+OPTION,SCANNER,H02_USE,H02 Use,BOOL,,1,1,ON,0,1,H02 헤드 사용 여부
+OPTION,SCANNER,H03_USE,H03 Use,BOOL,,1,1,ON,0,1,H03 헤드 사용 여부
+OPTION,SCANNER,H04_USE,H04 Use,BOOL,,1,1,ON,0,1,H04 헤드 사용 여부
+OPTION,SCANNER,H05_USE,H05 Use,BOOL,,1,1,ON,0,1,H05 헤드 사용 여부
+OPTION,SCANNER,H06_USE,H06 Use,BOOL,,1,1,ON,0,1,H06 헤드 사용 여부
+OPTION,SCANNER,H07_USE,H07 Use,BOOL,,1,1,ON,0,1,H07 헤드 사용 여부
+OPTION,SCANNER,H08_USE,H08 Use,BOOL,,1,1,ON,0,1,H08 헤드 사용 여부
+OPTION,SCANNER,H01_AK_POSITION_X,H01 AK Position X,DOUBLE,mm,1,1,-5,-10000,10000,얼라인 키 기준 H01 중심 X 위치
+OPTION,SCANNER,H01_SCAN_FIELD_WIDTH_X,H01 Scan Field Width X,DOUBLE,mm,1,1,110,0,10000,H01 헤드 중심 기준 총 할당 폭
+OPTION,SCANNER,H02_SCAN_FIELD_WIDTH_X,H02 Scan Field Width X,DOUBLE,mm,1,1,110,0,10000,H02 헤드 중심 기준 총 할당 폭
+OPTION,SCANNER,H03_SCAN_FIELD_WIDTH_X,H03 Scan Field Width X,DOUBLE,mm,1,1,110,0,10000,H03 헤드 중심 기준 총 할당 폭
+OPTION,SCANNER,H04_SCAN_FIELD_WIDTH_X,H04 Scan Field Width X,DOUBLE,mm,1,1,110,0,10000,H04 헤드 중심 기준 총 할당 폭
+OPTION,SCANNER,H05_SCAN_FIELD_WIDTH_X,H05 Scan Field Width X,DOUBLE,mm,1,1,110,0,10000,H05 헤드 중심 기준 총 할당 폭
+OPTION,SCANNER,H06_SCAN_FIELD_WIDTH_X,H06 Scan Field Width X,DOUBLE,mm,1,1,110,0,10000,H06 헤드 중심 기준 총 할당 폭
+OPTION,SCANNER,H07_SCAN_FIELD_WIDTH_X,H07 Scan Field Width X,DOUBLE,mm,1,1,110,0,10000,H07 헤드 중심 기준 총 할당 폭
+OPTION,SCANNER,H08_SCAN_FIELD_WIDTH_X,H08 Scan Field Width X,DOUBLE,mm,1,1,110,0,10000,H08 헤드 중심 기준 총 할당 폭
+OPTION,SCANNER,H01_SCANNER_XY_FLIP,H01 Scanner XY Flip,BOOL,,1,1,OFF,0,1,H01 스캐너 X/Y 축 교환 여부
+OPTION,SCANNER,H01_SCANNER_X_FLIP,H01 Scanner X Flip,BOOL,,1,1,OFF,0,1,H01 스캐너 X축 방향 반전 여부
+OPTION,SCANNER,H01_SCANNER_Y_FLIP,H01 Scanner Y Flip,BOOL,,1,1,OFF,0,1,H01 스캐너 Y축 방향 반전 여부
+OPTION,SCANNER,H02_SCANNER_XY_FLIP,H02 Scanner XY Flip,BOOL,,1,1,OFF,0,1,H02 스캐너 X/Y 축 교환 여부
+OPTION,SCANNER,H02_SCANNER_X_FLIP,H02 Scanner X Flip,BOOL,,1,1,OFF,0,1,H02 스캐너 X축 방향 반전 여부
+OPTION,SCANNER,H02_SCANNER_Y_FLIP,H02 Scanner Y Flip,BOOL,,1,1,OFF,0,1,H02 스캐너 Y축 방향 반전 여부
+OPTION,SCANNER,H03_SCANNER_XY_FLIP,H03 Scanner XY Flip,BOOL,,1,1,OFF,0,1,H03 스캐너 X/Y 축 교환 여부
+OPTION,SCANNER,H03_SCANNER_X_FLIP,H03 Scanner X Flip,BOOL,,1,1,OFF,0,1,H03 스캐너 X축 방향 반전 여부
+OPTION,SCANNER,H03_SCANNER_Y_FLIP,H03 Scanner Y Flip,BOOL,,1,1,OFF,0,1,H03 스캐너 Y축 방향 반전 여부
+OPTION,SCANNER,H04_SCANNER_XY_FLIP,H04 Scanner XY Flip,BOOL,,1,1,OFF,0,1,H04 스캐너 X/Y 축 교환 여부
+OPTION,SCANNER,H04_SCANNER_X_FLIP,H04 Scanner X Flip,BOOL,,1,1,OFF,0,1,H04 스캐너 X축 방향 반전 여부
+OPTION,SCANNER,H04_SCANNER_Y_FLIP,H04 Scanner Y Flip,BOOL,,1,1,OFF,0,1,H04 스캐너 Y축 방향 반전 여부
+OPTION,SCANNER,H05_SCANNER_XY_FLIP,H05 Scanner XY Flip,BOOL,,1,1,OFF,0,1,H05 스캐너 X/Y 축 교환 여부
+OPTION,SCANNER,H05_SCANNER_X_FLIP,H05 Scanner X Flip,BOOL,,1,1,OFF,0,1,H05 스캐너 X축 방향 반전 여부
+OPTION,SCANNER,H05_SCANNER_Y_FLIP,H05 Scanner Y Flip,BOOL,,1,1,OFF,0,1,H05 스캐너 Y축 방향 반전 여부
+OPTION,SCANNER,H06_SCANNER_XY_FLIP,H06 Scanner XY Flip,BOOL,,1,1,OFF,0,1,H06 스캐너 X/Y 축 교환 여부
+OPTION,SCANNER,H06_SCANNER_X_FLIP,H06 Scanner X Flip,BOOL,,1,1,OFF,0,1,H06 스캐너 X축 방향 반전 여부
+OPTION,SCANNER,H06_SCANNER_Y_FLIP,H06 Scanner Y Flip,BOOL,,1,1,OFF,0,1,H06 스캐너 Y축 방향 반전 여부
+OPTION,SCANNER,H07_SCANNER_XY_FLIP,H07 Scanner XY Flip,BOOL,,1,1,OFF,0,1,H07 스캐너 X/Y 축 교환 여부
+OPTION,SCANNER,H07_SCANNER_X_FLIP,H07 Scanner X Flip,BOOL,,1,1,OFF,0,1,H07 스캐너 X축 방향 반전 여부
+OPTION,SCANNER,H07_SCANNER_Y_FLIP,H07 Scanner Y Flip,BOOL,,1,1,OFF,0,1,H07 스캐너 Y축 방향 반전 여부
+OPTION,SCANNER,H08_SCANNER_XY_FLIP,H08 Scanner XY Flip,BOOL,,1,1,OFF,0,1,H08 스캐너 X/Y 축 교환 여부
+OPTION,SCANNER,H08_SCANNER_X_FLIP,H08 Scanner X Flip,BOOL,,1,1,OFF,0,1,H08 스캐너 X축 방향 반전 여부
+OPTION,SCANNER,H08_SCANNER_Y_FLIP,H08 Scanner Y Flip,BOOL,,1,1,OFF,0,1,H08 스캐너 Y축 방향 반전 여부
+OPTION,SCANNER,H01_X_AXIS,H01 X Axis,STRING,,1,1,GX_1,0,0,H01 Automation1 스캐너 X축 이름
+OPTION,SCANNER,H01_Y_AXIS,H01 Y Axis,STRING,,1,1,GY_1,0,0,H01 Automation1 스캐너 Y축 이름
+OPTION,SCANNER,H01_SCANNER_Z_USE,H01 Scanner Z Use,BOOL,,1,1,OFF,0,1,H01 스캐너 Z축 사용 여부
+OPTION,SCANNER,H01_SCANNER_Z_AXIS,H01 Scanner Z Axis,STRING,,1,1,Z1,0,0,H01 Automation1 스캐너 Z축 이름
+OPTION,SCANNER,H01_ENCODER_AXIS,H01 Encoder Axis,STRING,,1,1,GX_1,0,0,H01 MOF 대기용 Automation1 보조 피드백 축
+OPTION,SCANNER,H01_ENCODER_SCALE,H01 Encoder Scale,DOUBLE,count/mm,1,1,16000,-1000000,1000000,H01 Automation1 대기용 엔코더 스케일
+OPTION,SCANNER,H01_ENCODER_FEEDBACK_FLIP,H01 Encoder Feedback Flip,BOOL,,1,1,OFF,0,1,H01 Automation1 보조 피드백 wait 값 반전 여부
+OPTION,SCANNER,H02_X_AXIS,H02 X Axis,STRING,,1,1,GX_2,0,0,H02 Automation1 스캐너 X축 이름
+OPTION,SCANNER,H02_Y_AXIS,H02 Y Axis,STRING,,1,1,GY_2,0,0,H02 Automation1 스캐너 Y축 이름
+OPTION,SCANNER,H02_SCANNER_Z_USE,H02 Scanner Z Use,BOOL,,1,1,OFF,0,1,H02 스캐너 Z축 사용 여부
+OPTION,SCANNER,H02_SCANNER_Z_AXIS,H02 Scanner Z Axis,STRING,,1,1,Z2,0,0,H02 Automation1 스캐너 Z축 이름
+OPTION,SCANNER,H02_ENCODER_AXIS,H02 Encoder Axis,STRING,,1,1,GX_2,0,0,H02 MOF 대기용 Automation1 보조 피드백 축
+OPTION,SCANNER,H02_ENCODER_SCALE,H02 Encoder Scale,DOUBLE,count/mm,1,1,16000,-1000000,1000000,H02 Automation1 대기용 엔코더 스케일
+OPTION,SCANNER,H02_ENCODER_FEEDBACK_FLIP,H02 Encoder Feedback Flip,BOOL,,1,1,OFF,0,1,H02 Automation1 보조 피드백 wait 값 반전 여부
+OPTION,SCANNER,H03_X_AXIS,H03 X Axis,STRING,,1,1,GX_3,0,0,H03 Automation1 스캐너 X축 이름
+OPTION,SCANNER,H03_Y_AXIS,H03 Y Axis,STRING,,1,1,GY_3,0,0,H03 Automation1 스캐너 Y축 이름
+OPTION,SCANNER,H03_SCANNER_Z_USE,H03 Scanner Z Use,BOOL,,1,1,OFF,0,1,H03 스캐너 Z축 사용 여부
+OPTION,SCANNER,H03_SCANNER_Z_AXIS,H03 Scanner Z Axis,STRING,,1,1,Z3,0,0,H03 Automation1 스캐너 Z축 이름
+OPTION,SCANNER,H03_ENCODER_AXIS,H03 Encoder Axis,STRING,,1,1,GX_3,0,0,H03 MOF 대기용 Automation1 보조 피드백 축
+OPTION,SCANNER,H03_ENCODER_SCALE,H03 Encoder Scale,DOUBLE,count/mm,1,1,16000,-1000000,1000000,H03 Automation1 대기용 엔코더 스케일
+OPTION,SCANNER,H03_ENCODER_FEEDBACK_FLIP,H03 Encoder Feedback Flip,BOOL,,1,1,OFF,0,1,H03 Automation1 보조 피드백 wait 값 반전 여부
+OPTION,SCANNER,H04_X_AXIS,H04 X Axis,STRING,,1,1,GX_4,0,0,H04 Automation1 스캐너 X축 이름
+OPTION,SCANNER,H04_Y_AXIS,H04 Y Axis,STRING,,1,1,GY_4,0,0,H04 Automation1 스캐너 Y축 이름
+OPTION,SCANNER,H04_SCANNER_Z_USE,H04 Scanner Z Use,BOOL,,1,1,OFF,0,1,H04 스캐너 Z축 사용 여부
+OPTION,SCANNER,H04_SCANNER_Z_AXIS,H04 Scanner Z Axis,STRING,,1,1,Z4,0,0,H04 Automation1 스캐너 Z축 이름
+OPTION,SCANNER,H04_ENCODER_AXIS,H04 Encoder Axis,STRING,,1,1,GX_4,0,0,H04 MOF 대기용 Automation1 보조 피드백 축
+OPTION,SCANNER,H04_ENCODER_SCALE,H04 Encoder Scale,DOUBLE,count/mm,1,1,16000,-1000000,1000000,H04 Automation1 대기용 엔코더 스케일
+OPTION,SCANNER,H04_ENCODER_FEEDBACK_FLIP,H04 Encoder Feedback Flip,BOOL,,1,1,OFF,0,1,H04 Automation1 보조 피드백 wait 값 반전 여부
+OPTION,SCANNER,H05_X_AXIS,H05 X Axis,STRING,,1,1,GX_5,0,0,H05 Automation1 스캐너 X축 이름
+OPTION,SCANNER,H05_Y_AXIS,H05 Y Axis,STRING,,1,1,GY_5,0,0,H05 Automation1 스캐너 Y축 이름
+OPTION,SCANNER,H05_SCANNER_Z_USE,H05 Scanner Z Use,BOOL,,1,1,OFF,0,1,H05 스캐너 Z축 사용 여부
+OPTION,SCANNER,H05_SCANNER_Z_AXIS,H05 Scanner Z Axis,STRING,,1,1,Z5,0,0,H05 Automation1 스캐너 Z축 이름
+OPTION,SCANNER,H05_ENCODER_AXIS,H05 Encoder Axis,STRING,,1,1,GX_5,0,0,H05 MOF 대기용 Automation1 보조 피드백 축
+OPTION,SCANNER,H05_ENCODER_SCALE,H05 Encoder Scale,DOUBLE,count/mm,1,1,16000,-1000000,1000000,H05 Automation1 대기용 엔코더 스케일
+OPTION,SCANNER,H05_ENCODER_FEEDBACK_FLIP,H05 Encoder Feedback Flip,BOOL,,1,1,OFF,0,1,H05 Automation1 보조 피드백 wait 값 반전 여부
+OPTION,SCANNER,H06_X_AXIS,H06 X Axis,STRING,,1,1,GX_6,0,0,H06 Automation1 스캐너 X축 이름
+OPTION,SCANNER,H06_Y_AXIS,H06 Y Axis,STRING,,1,1,GY_6,0,0,H06 Automation1 스캐너 Y축 이름
+OPTION,SCANNER,H06_SCANNER_Z_USE,H06 Scanner Z Use,BOOL,,1,1,OFF,0,1,H06 스캐너 Z축 사용 여부
+OPTION,SCANNER,H06_SCANNER_Z_AXIS,H06 Scanner Z Axis,STRING,,1,1,Z6,0,0,H06 Automation1 스캐너 Z축 이름
+OPTION,SCANNER,H06_ENCODER_AXIS,H06 Encoder Axis,STRING,,1,1,GX_6,0,0,H06 MOF 대기용 Automation1 보조 피드백 축
+OPTION,SCANNER,H06_ENCODER_SCALE,H06 Encoder Scale,DOUBLE,count/mm,1,1,16000,-1000000,1000000,H06 Automation1 대기용 엔코더 스케일
+OPTION,SCANNER,H06_ENCODER_FEEDBACK_FLIP,H06 Encoder Feedback Flip,BOOL,,1,1,OFF,0,1,H06 Automation1 보조 피드백 wait 값 반전 여부
+OPTION,SCANNER,H07_X_AXIS,H07 X Axis,STRING,,1,1,GX_7,0,0,H07 Automation1 스캐너 X축 이름
+OPTION,SCANNER,H07_Y_AXIS,H07 Y Axis,STRING,,1,1,GY_7,0,0,H07 Automation1 스캐너 Y축 이름
+OPTION,SCANNER,H07_SCANNER_Z_USE,H07 Scanner Z Use,BOOL,,1,1,OFF,0,1,H07 스캐너 Z축 사용 여부
+OPTION,SCANNER,H07_SCANNER_Z_AXIS,H07 Scanner Z Axis,STRING,,1,1,Z7,0,0,H07 Automation1 스캐너 Z축 이름
+OPTION,SCANNER,H07_ENCODER_AXIS,H07 Encoder Axis,STRING,,1,1,GX_7,0,0,H07 MOF 대기용 Automation1 보조 피드백 축
+OPTION,SCANNER,H07_ENCODER_SCALE,H07 Encoder Scale,DOUBLE,count/mm,1,1,16000,-1000000,1000000,H07 Automation1 대기용 엔코더 스케일
+OPTION,SCANNER,H07_ENCODER_FEEDBACK_FLIP,H07 Encoder Feedback Flip,BOOL,,1,1,OFF,0,1,H07 Automation1 보조 피드백 wait 값 반전 여부
+OPTION,SCANNER,H08_X_AXIS,H08 X Axis,STRING,,1,1,GX_8,0,0,H08 Automation1 스캐너 X축 이름
+OPTION,SCANNER,H08_Y_AXIS,H08 Y Axis,STRING,,1,1,GY_8,0,0,H08 Automation1 스캐너 Y축 이름
+OPTION,SCANNER,H08_SCANNER_Z_USE,H08 Scanner Z Use,BOOL,,1,1,OFF,0,1,H08 스캐너 Z축 사용 여부
+OPTION,SCANNER,H08_SCANNER_Z_AXIS,H08 Scanner Z Axis,STRING,,1,1,Z8,0,0,H08 Automation1 스캐너 Z축 이름
+OPTION,SCANNER,H08_ENCODER_AXIS,H08 Encoder Axis,STRING,,1,1,GX_8,0,0,H08 MOF 대기용 Automation1 보조 피드백 축
+OPTION,SCANNER,H08_ENCODER_SCALE,H08 Encoder Scale,DOUBLE,count/mm,1,1,16000,-1000000,1000000,H08 Automation1 대기용 엔코더 스케일
+OPTION,SCANNER,H08_ENCODER_FEEDBACK_FLIP,H08 Encoder Feedback Flip,BOOL,,1,1,OFF,0,1,H08 Automation1 보조 피드백 wait 값 반전 여부
+OPTION,SCANNER,H01_SCANNER_DIO_NO,H01 Scanner DIO No,INT,bit,1,1,0,0,63,H01 수동 스캐너 DIO 출력 비트 번호
+OPTION,SCANNER,H02_SCANNER_DIO_NO,H02 Scanner DIO No,INT,bit,1,1,0,0,63,H02 수동 스캐너 DIO 출력 비트 번호
+OPTION,SCANNER,H03_SCANNER_DIO_NO,H03 Scanner DIO No,INT,bit,1,1,0,0,63,H03 수동 스캐너 DIO 출력 비트 번호
+OPTION,SCANNER,H04_SCANNER_DIO_NO,H04 Scanner DIO No,INT,bit,1,1,0,0,63,H04 수동 스캐너 DIO 출력 비트 번호
+OPTION,SCANNER,H05_SCANNER_DIO_NO,H05 Scanner DIO No,INT,bit,1,1,0,0,63,H05 수동 스캐너 DIO 출력 비트 번호
+OPTION,SCANNER,H06_SCANNER_DIO_NO,H06 Scanner DIO No,INT,bit,1,1,0,0,63,H06 수동 스캐너 DIO 출력 비트 번호
+OPTION,SCANNER,H07_SCANNER_DIO_NO,H07 Scanner DIO No,INT,bit,1,1,0,0,63,H07 수동 스캐너 DIO 출력 비트 번호
+OPTION,SCANNER,H08_SCANNER_DIO_NO,H08 Scanner DIO No,INT,bit,1,1,0,0,63,H08 수동 스캐너 DIO 출력 비트 번호
+OPTION,SCANNER,H01_SCANNER_AIO_NO,H01 Scanner AIO No,INT,ch,1,1,0,0,3,H01 스캐너 상태 표시용 Analog Input 채널 번호
+OPTION,SCANNER,H02_SCANNER_AIO_NO,H02 Scanner AIO No,INT,ch,1,1,0,0,3,H02 스캐너 상태 표시용 Analog Input 채널 번호
+OPTION,SCANNER,H03_SCANNER_AIO_NO,H03 Scanner AIO No,INT,ch,1,1,0,0,3,H03 스캐너 상태 표시용 Analog Input 채널 번호
+OPTION,SCANNER,H04_SCANNER_AIO_NO,H04 Scanner AIO No,INT,ch,1,1,0,0,3,H04 스캐너 상태 표시용 Analog Input 채널 번호
+OPTION,SCANNER,H05_SCANNER_AIO_NO,H05 Scanner AIO No,INT,ch,1,1,0,0,3,H05 스캐너 상태 표시용 Analog Input 채널 번호
+OPTION,SCANNER,H06_SCANNER_AIO_NO,H06 Scanner AIO No,INT,ch,1,1,0,0,3,H06 스캐너 상태 표시용 Analog Input 채널 번호
+OPTION,SCANNER,H07_SCANNER_AIO_NO,H07 Scanner AIO No,INT,ch,1,1,0,0,3,H07 스캐너 상태 표시용 Analog Input 채널 번호
+OPTION,SCANNER,H08_SCANNER_AIO_NO,H08 Scanner AIO No,INT,ch,1,1,0,0,3,H08 스캐너 상태 표시용 Analog Input 채널 번호
+ALARM,ALARM,ResetTimeout,Reset Timeout,INT,ms,1,1,5000,100,60000,알람 리셋 타임아웃
+ALARM,BUZZER,BuzzerAutoOff,Buzzer Auto Off,BOOL,,1,1,false,0,1,부저 자동 꺼짐 사용

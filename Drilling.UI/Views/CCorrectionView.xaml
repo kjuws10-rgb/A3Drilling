@@ -1,0 +1,715 @@
+<UserControl x:Class="Drilling.UI.Views.CCorrectionView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:menu="clr-namespace:Drilling.UI.Menu"
+             xmlns:views="clr-namespace:Drilling.UI.Views"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             FontFamily="Segoe UI">
+    <UserControl.Resources>
+        <Style x:Key="CorrectionLabelText" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <Style x:Key="CorrectionValueText" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <Style x:Key="CorrectionFlipStateText" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+            <Setter Property="FontSize" Value="9.5" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag}" Value="True">
+                    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <DataTemplate x:Key="CorrectionScannerFlipRowTemplate">
+            <Grid Height="15" Margin="0,0,5,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="29" />
+                    <ColumnDefinition Width="10" />
+                    <ColumnDefinition Width="23" />
+                    <ColumnDefinition Width="10" />
+                    <ColumnDefinition Width="23" />
+                    <ColumnDefinition Width="16" />
+                    <ColumnDefinition Width="23" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0"
+                           Text="{Binding Name}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           FontSize="9.5"
+                           FontWeight="SemiBold"
+                           VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Text="X" Style="{StaticResource CorrectionFlipStateText}" />
+                <TextBlock Grid.Column="2" Text="{Binding XState}" Tag="{Binding XFlip}" Style="{StaticResource CorrectionFlipStateText}" />
+                <TextBlock Grid.Column="3" Text="Y" Style="{StaticResource CorrectionFlipStateText}" />
+                <TextBlock Grid.Column="4" Text="{Binding YState}" Tag="{Binding YFlip}" Style="{StaticResource CorrectionFlipStateText}" />
+                <TextBlock Grid.Column="5" Text="XY" Style="{StaticResource CorrectionFlipStateText}" />
+                <TextBlock Grid.Column="6" Text="{Binding XyState}" Tag="{Binding XyFlip}" Style="{StaticResource CorrectionFlipStateText}" />
+            </Grid>
+        </DataTemplate>
+
+        <Style x:Key="CorrectionTabButton" TargetType="Button">
+            <Setter Property="Height" Value="44" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="Padding" Value="12,0" />
+            <Setter Property="Background" Value="{DynamicResource ButtonSecondaryBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ButtonSecondaryBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1,1,1,3" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="5,5,0,0">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="CorrectionCommandButton" TargetType="Button">
+            <Setter Property="Height" Value="42" />
+            <Setter Property="MinWidth" Value="112" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="5">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="OffsetKindButton" TargetType="Button" BasedOn="{StaticResource CorrectionTabButton}">
+            <Setter Property="Height" Value="32" /><Setter Property="MinWidth" Value="62" />
+            <Setter Property="Margin" Value="0,0,5,3" /><Setter Property="FontSize" Value="12" />
+            <Style.Triggers><DataTrigger Binding="{Binding IsSelected}" Value="True">
+                <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource TextInvertedBrush}" />
+            </DataTrigger></Style.Triggers>
+        </Style>
+
+        <Style x:Key="CorrectionReviewDataGrid"
+               TargetType="DataGrid"
+               BasedOn="{StaticResource PlainDataGrid}">
+            <Setter Property="EnableRowVirtualization" Value="True" />
+            <Setter Property="EnableColumnVirtualization" Value="True" />
+            <Setter Property="ScrollViewer.CanContentScroll" Value="True" />
+            <Setter Property="VirtualizingPanel.IsVirtualizing" Value="True" />
+            <Setter Property="VirtualizingPanel.VirtualizationMode" Value="Recycling" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Visibility="{Binding CurrentScreen.IsCorrectionLayout, Converter={StaticResource BooleanToVisibilityConverter}}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="64" />
+            <RowDefinition Height="50" />
+            <RowDefinition Height="78" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="0" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0">
+            <StackPanel VerticalAlignment="Top">
+                <TextBlock Text="{Binding CurrentScreen.Correction.Title}"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           FontSize="31"
+                           FontWeight="SemiBold" />
+                <TextBlock Text="{Binding CurrentScreen.Correction.Subtitle}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           FontSize="15" />
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Visibility="{Binding CurrentScreen.Correction.IsCorrectionCommandsVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        VerticalAlignment="Center">
+                <Button Content="LOAD"
+                        menu:CButtonCommandBehavior.Command="{Binding CurrentScreen.Correction.ExecuteCommand}"
+                        CommandParameter="LOAD"
+                        Style="{StaticResource CorrectionCommandButton}"
+                        Background="{DynamicResource ButtonSecondaryBrush}"
+                        BorderBrush="{DynamicResource ButtonSecondaryBorderBrush}"
+                        Foreground="{DynamicResource TextSecondaryBrush}" />
+                <Button Content="CALCULATE"
+                        menu:CButtonCommandBehavior.Command="{Binding CurrentScreen.Correction.ExecuteCommand}"
+                        CommandParameter="CALCULATE"
+                        Style="{StaticResource CorrectionCommandButton}"
+                        Background="{DynamicResource ButtonPrimaryBrush}"
+                        BorderBrush="{DynamicResource ButtonPrimaryBorderBrush}"
+                        Foreground="{DynamicResource ButtonTextOnColorBrush}" />
+                <Button Content="APPLY"
+                        menu:CButtonCommandBehavior.Command="{Binding CurrentScreen.Correction.ExecuteCommand}"
+                        CommandParameter="APPLY"
+                        Style="{StaticResource CorrectionCommandButton}"
+                        Background="{DynamicResource ButtonSuccessBrush}"
+                        BorderBrush="{DynamicResource ButtonSuccessBorderBrush}"
+                        Foreground="{DynamicResource ButtonTextOnColorBrush}" />
+                <Button Content="SAVE"
+                        menu:CButtonCommandBehavior.Command="{Binding CurrentScreen.Correction.ExecuteCommand}"
+                        CommandParameter="SAVE"
+                        Style="{StaticResource CorrectionCommandButton}"
+                        Background="{DynamicResource ButtonWarningBrush}"
+                        BorderBrush="{DynamicResource ButtonWarningBorderBrush}"
+                        Foreground="{DynamicResource ButtonTextOnColorBrush}"
+                        Margin="0" />
+            </StackPanel>
+        </Grid>
+
+        <ItemsControl Grid.Row="1"
+                      ItemsSource="{Binding CurrentScreen.Correction.Tabs}"
+                      Margin="0,2,0,4">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <UniformGrid Rows="1" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Button Content="{Binding Name}"
+                            menu:CButtonCommandBehavior.Command="{Binding DataContext.CurrentScreen.Correction.SelectTabCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            CommandParameter="{Binding Name}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource CorrectionTabButton}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource MenuItemSelectedBackgroundBrush}" />
+                                        <Setter Property="BorderBrush" Value="{DynamicResource MenuItemSelectedBorderBrush}" />
+                                        <Setter Property="Foreground" Value="{DynamicResource MenuItemSelectedTextBrush}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Grid Grid.Row="2" Grid.RowSpan="3"
+              Visibility="{Binding CurrentScreen.Correction.IsAlignDistortionTab, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <views:CAlignDistortionView Margin="0,8,0,0"
+                                        DataContext="{Binding CurrentScreen.Correction.AlignDistortion}" />
+        </Grid>
+
+        <TabControl Grid.Row="2" Grid.RowSpan="3" Margin="0,8,0,0"
+                    Background="Transparent" BorderThickness="0" Padding="0"
+                    Visibility="{Binding CurrentScreen.Correction.IsReviewCorrectionTab, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <TabControl.Resources>
+                <Style TargetType="TabItem">
+                    <Setter Property="FontSize" Value="14" />
+                    <Setter Property="FontWeight" Value="SemiBold" />
+                    <Setter Property="MinWidth" Value="140" />
+                    <Setter Property="Padding" Value="20,8" />
+                    <Setter Property="Background" Value="{DynamicResource PanelAltBackgroundBrush}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}" />
+                    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="TabItem">
+                                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="1,1,1,3" Padding="{TemplateBinding Padding}" CornerRadius="5,5,0,0">
+                                    <ContentPresenter ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                    <Style.Triggers><Trigger Property="IsSelected" Value="True">
+                        <Setter Property="Background" Value="{DynamicResource MenuItemSelectedBackgroundBrush}" />
+                        <Setter Property="BorderBrush" Value="{DynamicResource MenuItemSelectedBorderBrush}" />
+                        <Setter Property="Foreground" Value="{DynamicResource MenuItemSelectedTextBrush}" />
+                    </Trigger></Style.Triggers>
+                </Style>
+            </TabControl.Resources>
+            <TabItem Header="SIMPLE" IsSelected="True">
+                <views:CSimpleCorrectionView Margin="0,8,0,0" DataContext="{Binding CurrentScreen.Correction.Simple}" />
+            </TabItem>
+            <TabItem Header="ROUGH">
+                <views:CSimpleCorrectionView Margin="0,8,0,0" DataContext="{Binding CurrentScreen.Correction.Rough}" />
+            </TabItem>
+            <TabItem Header="FINE">
+                <views:CFineCorrectionView Margin="0,8,0,0" DataContext="{Binding CurrentScreen.Correction.Fine}" />
+            </TabItem>
+        </TabControl>
+
+        <ItemsControl Grid.Row="2"
+                      ItemsSource="{Binding CurrentScreen.Correction.SummaryItems}"
+                      Visibility="{Binding CurrentScreen.Correction.IsOtherCorrectionTab, Converter={StaticResource BooleanToVisibilityConverter}}"
+                      Margin="0,0,0,12">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <UniformGrid Rows="1" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border Style="{StaticResource PanelBorder}"
+                            Padding="16,10"
+                            Margin="0,0,10,0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="{Binding Name}"
+                                       Style="{StaticResource CorrectionLabelText}" />
+                            <TextBlock Grid.Row="1"
+                                       Text="{Binding Value}"
+                                       Foreground="{Binding ValueBrush}"
+                                       FontSize="21"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Bottom"
+                                       TextTrimming="CharacterEllipsis" />
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Grid Grid.Row="3"
+              Visibility="{Binding CurrentScreen.Correction.IsOtherCorrectionTab, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="400" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="500" />
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0"
+                    Style="{StaticResource PanelBorder}"
+                    Margin="0,0,12,12">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top"
+                               Text="Correction Source"
+                               Style="{StaticResource PanelTitle}"
+                               FontSize="18" />
+                    <DataGrid ItemsSource="{Binding CurrentScreen.Correction.SourceRows}"
+                              IsReadOnly="True"
+                              Style="{StaticResource CorrectionReviewDataGrid}"
+                              FontSize="12"
+                              ColumnHeaderHeight="40"
+                              RowHeight="40"
+                              ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                              ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="86" />
+                            <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="150" />
+                            <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="170" />
+                            <DataGridTextColumn Header="State" Binding="{Binding State}" Width="78">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{Binding StateBrush}" />
+                                        <Setter Property="FontWeight" Value="SemiBold" />
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Source" Binding="{Binding Source}" Width="150" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </Border>
+
+            <Border Grid.Column="1"
+                    Style="{StaticResource PanelBorder}"
+                    Margin="0,0,12,12">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top"
+                               Text="Correction Candidate"
+                               Style="{StaticResource PanelTitle}"
+                               FontSize="18" />
+                    <DataGrid ItemsSource="{Binding CurrentScreen.Correction.CandidateRows}"
+                              IsReadOnly="True"
+                              Style="{StaticResource CorrectionReviewDataGrid}"
+                              FontSize="13"
+                              ColumnHeaderHeight="42"
+                              RowHeight="42"
+                              ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                              ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Item" Binding="{Binding Item}" Width="190" />
+                            <DataGridTextColumn Header="Target" Binding="{Binding Target}" Width="170" />
+                            <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="150">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{Binding ValueBrush}" />
+                                        <Setter Property="FontWeight" Value="SemiBold" />
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Unit" Binding="{Binding Unit}" Width="80" />
+                            <DataGridTextColumn Header="State" Binding="{Binding State}" Width="110">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{Binding StateBrush}" />
+                                        <Setter Property="FontWeight" Value="SemiBold" />
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </Border>
+
+            <Grid Grid.Column="2"
+                  Margin="0,0,0,12">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="135" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <Border Grid.Row="0"
+                        Style="{StaticResource PanelBorder}"
+                        Margin="0,0,0,4">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="Detail"
+                                   Style="{StaticResource PanelTitle}"
+                                   FontSize="18" />
+                        <ItemsControl Grid.Row="1"
+                                      ItemsSource="{Binding CurrentScreen.Correction.DetailItems}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,1">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="122" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding Name}"
+                                                   Style="{StaticResource CorrectionLabelText}" />
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding Value}"
+                                                   Style="{StaticResource CorrectionValueText}"
+                                                   FontSize="13"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Row="1"
+                        Style="{StaticResource PanelBorder}">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top"
+                                   Text="Apply Preview"
+                                   Style="{StaticResource PanelTitle}"
+                                   FontSize="18" />
+                        <DataGrid ItemsSource="{Binding CurrentScreen.Correction.ApplyRows}"
+                                  IsReadOnly="True"
+                                  Style="{StaticResource CorrectionReviewDataGrid}"
+                                  FontSize="12"
+                                  ColumnHeaderHeight="40"
+                                  RowHeight="39"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                  ScrollViewer.VerticalScrollBarVisibility="Auto">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Item" Binding="{Binding Item}" Width="160" />
+                                <DataGridTextColumn Header="Target" Binding="{Binding Target}" Width="120" />
+                                <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="160">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{Binding ValueBrush}" />
+                                            <Setter Property="FontWeight" Value="SemiBold" />
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Unit" Binding="{Binding Unit}" Width="70" />
+                                <DataGridTextColumn Header="State" Binding="{Binding State}" Width="90" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </DockPanel>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <Grid Grid.Row="2"
+              Grid.RowSpan="3"
+              Visibility="{Binding CurrentScreen.Correction.IsOutputHistoryTab, Converter={StaticResource BooleanToVisibilityConverter}}"
+              Margin="0,0,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*" />
+                <ColumnDefinition Width="1*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0"
+                    Style="{StaticResource PanelBorder}"
+                    Margin="0,0,12,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <StackPanel Margin="0,0,0,8">
+                        <DockPanel>
+                            <TextBlock Text="Offset Viewer" DockPanel.Dock="Left" Style="{StaticResource PanelTitle}"
+                                       FontSize="18" Margin="0,0,12,0" VerticalAlignment="Center" />
+                            <ItemsControl x:Name="OutputOffsetKinds" ItemsSource="{Binding CurrentScreen.Correction.OutputOffsets.Kinds}">
+                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate><DataTemplate>
+                                    <Button Content="{Binding Name}" CommandParameter="{Binding Key}" Style="{StaticResource OffsetKindButton}"
+                                            Command="{Binding DataContext.CurrentScreen.Correction.OutputOffsets.SelectKindCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                                </DataTemplate></ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </DockPanel>
+                        <TextBlock Text="{Binding CurrentScreen.Correction.OutputOffsets.Description}" FontSize="11" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                    </StackPanel>
+
+                    <Border Grid.Row="1"
+                            Visibility="{Binding CurrentScreen.Correction.OutputViewerIsGlassPreviewVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            Background="{DynamicResource GridBackgroundBrush}"
+                            BorderBrush="{DynamicResource PanelBorderBrush}"
+                            BorderThickness="1"
+                            Padding="10">
+                        <Grid x:Name="OutputViewerPreviewViewport"
+                              ClipToBounds="True">
+                            <Image Source="{Binding CurrentScreen.Correction.OutputViewerGlassPreviewImage}"
+                                   Stretch="Uniform"
+                                   HorizontalAlignment="Stretch"
+                                   VerticalAlignment="Stretch" />
+                            <ItemsControl ItemsSource="{Binding CurrentScreen.Correction.OutputViewerCellPreviewLabels}"
+                                          Style="{StaticResource CellPreviewLabelItemsControl}"
+                                          IsHitTestVisible="True">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Width="{Binding Width}"
+                                                Height="{Binding Height}"
+                                                menu:CButtonCommandBehavior.Command="{Binding DataContext.CurrentScreen.Correction.SelectOutputViewerCellCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding CellNo}"
+                                                Padding="0"
+                                                Cursor="Hand"
+                                                Background="Transparent"
+                                                BorderThickness="0"
+                                                MouseMove="OutputViewerCellPreviewLabel_MouseMove"
+                                                MouseLeave="OutputViewerCellPreviewLabel_MouseLeave">
+                                            <Button.Style>
+                                                <Style TargetType="Button">
+                                                    <Setter Property="Background" Value="Transparent" />
+                                                    <Setter Property="BorderBrush" Value="Transparent" />
+                                                    <Setter Property="BorderThickness" Value="0" />
+                                                    <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                                                    <Setter Property="Template">
+                                                        <Setter.Value>
+                                                            <ControlTemplate TargetType="Button">
+                                                                <Border Background="{TemplateBinding Background}"
+                                                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                                                        CornerRadius="2"
+                                                                        SnapsToDevicePixels="True">
+                                                                    <ContentPresenter HorizontalAlignment="Center"
+                                                                                      VerticalAlignment="Center" />
+                                                                </Border>
+                                                            </ControlTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <Border x:Name="OutputViewerPreviewHoverTip"
+                                    Panel.ZIndex="10"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Top"
+                                    Padding="7,3"
+                                    Background="{DynamicResource PreviewHoverTipBackgroundBrush}"
+                                    BorderBrush="{DynamicResource PreviewHoverTipBorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="2"
+                                    IsHitTestVisible="False"
+                                    Visibility="Collapsed">
+                                <Border.RenderTransform>
+                                    <TranslateTransform x:Name="OutputViewerPreviewHoverTipTranslateTransform" />
+                                </Border.RenderTransform>
+                                <TextBlock x:Name="OutputViewerPreviewHoverTipText"
+                                           Foreground="{DynamicResource PreviewHoverTipTextBrush}"
+                                           FontSize="11"
+                                           FontWeight="SemiBold" />
+                            </Border>
+                            <TextBlock Text="{Binding CurrentScreen.Correction.OutputViewerSummary}"
+                                       HorizontalAlignment="Right"
+                                       VerticalAlignment="Bottom"
+                                       Margin="0,0,10,8"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       FontSize="13"
+                                       FontWeight="SemiBold" />
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Row="1"
+                            Visibility="{Binding CurrentScreen.Correction.OutputViewerIsCellDetailVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            Background="{DynamicResource GridBackgroundBrush}"
+                            BorderBrush="{DynamicResource PanelBorderBrush}"
+                            BorderThickness="1"
+                            Padding="10">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Button Content="BACK TO GLASS"
+                                        menu:CButtonCommandBehavior.Command="{Binding CurrentScreen.Correction.BackToOutputViewerGlassCommand}"
+                                        HorizontalAlignment="Left"
+                                        MinWidth="132"
+                                        Height="34"
+                                        Padding="12,0"
+                                        Background="{DynamicResource ButtonSecondaryBrush}"
+                                        BorderBrush="{DynamicResource ButtonSecondaryBorderBrush}"
+                                        Foreground="{DynamicResource TextPrimaryBrush}"
+                                        FontSize="11"
+                                        FontWeight="SemiBold"
+                                        Cursor="Hand" />
+                                <StackPanel Grid.Column="1"
+                                            Orientation="Horizontal"
+                                            HorizontalAlignment="Right"
+                                            VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding CurrentScreen.Correction.OutputViewerSelectedCellName}"
+                                               Foreground="{DynamicResource AccentTextBrush}"
+                                               FontSize="14"
+                                               FontWeight="SemiBold"
+                                               Margin="0,0,18,0" />
+                                    <TextBlock Text="{Binding CurrentScreen.Correction.OutputViewerSummary}"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                               FontSize="13"
+                                               TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </Grid>
+
+                            <ScrollViewer Grid.Row="1"
+                                          VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Auto">
+                                <ItemsControl x:Name="OutputOffsetCards" ItemsSource="{Binding CurrentScreen.Correction.OutputOffsets.ShotRows}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <ItemsControl ItemsSource="{Binding Shots}"
+                                                          HorizontalAlignment="Stretch"
+                                                          Margin="0,0,0,5">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <StackPanel Orientation="Horizontal" />
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Width="208"
+                                                                Height="142"
+                                                                Margin="3"
+                                                                Padding="6"
+                                                                Background="{DynamicResource PanelBackgroundBrush}"
+                                                                BorderBrush="{DynamicResource ButtonSecondaryBorderBrush}"
+                                                                BorderThickness="1"
+                                                                CornerRadius="4" ToolTip="{Binding CoordinateDetail}">
+                                                            <Grid>
+                                                                <Grid.RowDefinitions>
+                                                                    <RowDefinition Height="Auto" />
+                                                                    <RowDefinition Height="*" />
+                                                                </Grid.RowDefinitions>
+                                                                <Grid>
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="*" />
+                                                                        <ColumnDefinition Width="Auto" />
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <TextBlock Text="{Binding ShotName}"
+                                                                               Foreground="{DynamicResource TextPrimaryBrush}"
+                                                                               FontSize="13"
+                                                                               FontWeight="Bold"
+                                                                               TextTrimming="CharacterEllipsis" />
+                                                                    <TextBlock Grid.Column="1"
+                                                                               Text="{Binding Head}"
+                                                                               Foreground="{DynamicResource AccentTextBrush}"
+                                                                               FontSize="11"
+                                                                               FontWeight="SemiBold" />
+                                                                </Grid>
+                                                                <StackPanel Grid.Row="1" VerticalAlignment="Center">
+                                                                    <TextBlock Text="{Binding StoredTitle}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" />
+                                                                    <TextBlock Text="{Binding StoredOffset}" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="13" FontWeight="SemiBold" Margin="0,3,0,8" />
+                                                                    <TextBlock Text="Scanner Converted (mm)" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" />
+                                                                    <TextBlock Text="{Binding ConvertedOffset}" Foreground="{DynamicResource AccentTextBrush}" FontSize="13" FontWeight="SemiBold" Margin="0,3,0,0" />
+                                                                </StackPanel>
+                                                            </Grid>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="1"
+                    Style="{StaticResource PanelBorder}">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top"
+                                Margin="0,0,0,8">
+                        <TextBlock Text="History"
+                                   Style="{StaticResource PanelTitle}"
+                                   FontSize="18" />
+                    </StackPanel>
+                    <DataGrid ItemsSource="{Binding CurrentScreen.Correction.HistoryRows}"
+                              IsReadOnly="True"
+                              Style="{StaticResource PlainDataGrid}"
+                              FontSize="12"
+                              ColumnHeaderHeight="40"
+                              RowHeight="38"
+                              ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                              ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Time" Binding="{Binding DisplayTime}" Width="126" />
+                            <DataGridTextColumn Header="Item" Binding="{Binding Tab}" Width="*" MinWidth="150" />
+                            <DataGridTextColumn Header="Apply" Binding="{Binding ApplyResult}" Width="76">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{Binding ApplyResultBrush}" />
+                                        <Setter Property="FontWeight" Value="SemiBold" />
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

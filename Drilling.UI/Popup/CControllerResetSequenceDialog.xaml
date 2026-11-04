@@ -1,0 +1,287 @@
+<Window x:Class="Drilling.UI.Popup.CControllerResetSequenceDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Controller Reset Sequence"
+        Width="720"
+        MinHeight="600"
+        MaxHeight="820"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="{DynamicResource GridBackgroundBrush}"
+        Foreground="{DynamicResource TextPrimaryBrush}"
+        FontFamily="Segoe UI"
+        Closing="OnWindowClosing">
+    <Window.Resources>
+        <Style x:Key="DialogButton" TargetType="Button">
+            <Setter Property="Height" Value="46" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              RecognizesAccessKey="True" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="TargetComboBoxItem" TargetType="ComboBoxItem">
+            <Setter Property="Background" Value="{DynamicResource GridBackgroundBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="Padding" Value="12,9" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="ItemBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="Transparent"
+                                BorderThickness="1"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource MenuItemSelectedBackgroundBrush}" />
+                                <Setter TargetName="ItemBorder" Property="BorderBrush" Value="{DynamicResource MenuItemSelectedBorderBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource MenuItemSelectedTextBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource ButtonPrimaryBrush}" />
+                                <Setter TargetName="ItemBorder" Property="BorderBrush" Value="{DynamicResource ButtonPrimaryBorderBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource ButtonTextOnColorBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="TargetComboBox" TargetType="ComboBox">
+            <Setter Property="Height" Value="44" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="Background" Value="{DynamicResource GridBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ButtonSecondaryBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="ItemContainerStyle" Value="{StaticResource TargetComboBoxItem}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton x:Name="ToggleButton"
+                                          Focusable="False"
+                                          ClickMode="Press"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border x:Name="Shell"
+                                                Background="{DynamicResource GridBackgroundBrush}"
+                                                BorderBrush="{DynamicResource ButtonSecondaryBorderBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="4">
+                                            <Grid>
+                                                <TextBlock x:Name="SelectedText"
+                                                           Margin="14,0,42,0"
+                                                           HorizontalAlignment="Left"
+                                                           VerticalAlignment="Center"
+                                                           Text="{Binding SelectedItem.DisplayName, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                                           FontSize="15"
+                                                           FontWeight="SemiBold" />
+                                                <Path Data="M 0 0 L 6 6 L 12 0 Z"
+                                                      Fill="{DynamicResource TextSecondaryBrush}"
+                                                      Width="12"
+                                                      Height="6"
+                                                      Stretch="Fill"
+                                                      HorizontalAlignment="Right"
+                                                      VerticalAlignment="Center"
+                                                      Margin="0,0,14,0" />
+                                            </Grid>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Shell" Property="Background" Value="{DynamicResource MenuItemSelectedBackgroundBrush}" />
+                                                <Setter TargetName="Shell" Property="BorderBrush" Value="{DynamicResource MenuItemSelectedBorderBrush}" />
+                                                <Setter TargetName="SelectedText" Property="Foreground" Value="{DynamicResource MenuItemSelectedTextBrush}" />
+                                            </Trigger>
+                                            <Trigger Property="IsChecked" Value="True">
+                                                <Setter TargetName="Shell" Property="Background" Value="{DynamicResource MenuItemSelectedBackgroundBrush}" />
+                                                <Setter TargetName="Shell" Property="BorderBrush" Value="{DynamicResource ButtonPrimaryBorderBrush}" />
+                                                <Setter TargetName="SelectedText" Property="Foreground" Value="{DynamicResource MenuItemSelectedTextBrush}" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <Popup x:Name="PART_Popup"
+                                   AllowsTransparency="True"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   Placement="Bottom"
+                                   StaysOpen="False">
+                                <Border Background="{DynamicResource GridBackgroundBrush}"
+                                        BorderBrush="{DynamicResource ButtonSecondaryBorderBrush}"
+                                        BorderThickness="1"
+                                        MinWidth="{Binding ActualWidth, ElementName=ToggleButton}">
+                                    <ScrollViewer MaxHeight="220">
+                                        <ItemsPresenter />
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SequenceLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+    </Window.Resources>
+
+    <Border Background="{DynamicResource ButtonSecondaryBrush}"
+            BorderBrush="{DynamicResource ButtonSecondaryBorderBrush}"
+            BorderThickness="1"
+            Padding="24">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0">
+                <TextBlock Text="Controller Reset Sequence"
+                           FontSize="24"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}" />
+                <TextBlock Text="Select a controller to run all five steps, or run every controller in order."
+                           Margin="0,8,0,0"
+                           FontSize="14"
+                           Foreground="{DynamicResource TextSecondaryBrush}" />
+                <TextBlock Text="Reset → Enable → Home → DIO ON → DOE Z Recipe Position Move"
+                           Margin="0,6,0,0"
+                           FontSize="13"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           TextWrapping="Wrap" />
+            </StackPanel>
+
+            <StackPanel Grid.Row="1" Margin="0,24,0,0">
+                <TextBlock Text="TARGET"
+                           FontSize="13"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource AccentTextBrush}" />
+                <ComboBox x:Name="TargetComboBox"
+                          Margin="0,8,0,0"
+                          DisplayMemberPath="DisplayName"
+                          SelectionChanged="OnTargetSelectionChanged"
+                          Style="{StaticResource TargetComboBox}" />
+            </StackPanel>
+
+            <ScrollViewer Grid.Row="2"
+                          Margin="0,24,0,0"
+                          MaxHeight="430"
+                          VerticalScrollBarVisibility="Auto">
+                <ItemsControl x:Name="SequenceBlocksControl">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Margin="0,0,0,12"
+                                    Padding="16"
+                                    Background="{DynamicResource GridBackgroundBrush}"
+                                    BorderBrush="{DynamicResource PanelBorderBrush}"
+                                    BorderThickness="1">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Title}"
+                                               FontSize="13"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource AccentTextBrush}" />
+                                    <ItemsControl ItemsSource="{Binding Steps}" Margin="0,10,0,0">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="0,0,0,8">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="44" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="120" />
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <TextBlock Text="{Binding No}" Style="{StaticResource SequenceLabel}" />
+                                                    <TextBlock Grid.Column="1" Text="{Binding Name}" Style="{StaticResource SequenceLabel}" TextWrapping="Wrap" />
+                                                    <TextBlock Grid.Column="2"
+                                                               Text="{Binding State}"
+                                                               HorizontalAlignment="Right"
+                                                               Style="{StaticResource SequenceLabel}"
+                                                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <TextBlock x:Name="StatusText"
+                       Grid.Row="3"
+                       Margin="0,4,0,0"
+                       FontSize="14"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
+                       Text="Ready" />
+
+            <Grid Grid.Row="4" Margin="0,12,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="12" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="12" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Button x:Name="StartButton"
+                        Content="START"
+                        Style="{StaticResource DialogButton}"
+                        Background="{DynamicResource ButtonSuccessBrush}"
+                        BorderBrush="{DynamicResource ButtonSuccessBorderBrush}"
+                        Foreground="{DynamicResource ButtonTextOnColorBrush}"
+                        Click="OnStartClicked" />
+                <Button x:Name="StopButton"
+                        Grid.Column="2"
+                        Content="STOP"
+                        IsEnabled="False"
+                        Style="{StaticResource DialogButton}"
+                        Background="{DynamicResource ButtonDangerBrush}"
+                        BorderBrush="{DynamicResource ButtonDangerBrush}"
+                        Foreground="{DynamicResource ButtonTextOnColorBrush}"
+                        Click="OnStopClicked" />
+                <Button x:Name="CloseButton"
+                        Grid.Column="4"
+                        Content="CLOSE"
+                        Style="{StaticResource DialogButton}"
+                        Background="{DynamicResource ButtonSecondaryBrush}"
+                        BorderBrush="{DynamicResource ButtonSecondaryBorderBrush}"
+                        Click="OnCloseClicked" />
+            </Grid>
+        </Grid>
+    </Border>
+</Window>
