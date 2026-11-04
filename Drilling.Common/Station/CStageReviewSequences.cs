@@ -416,7 +416,8 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
                 await _interfaces.Connect(EN_EQP_MODULE.Melsec, _device, cancellationToken: token).ConfigureAwait(false);
             using var limit = CancellationTokenSource.CreateLinkedTokenSource(token);
             limit.CancelAfter(TimeSpan.FromSeconds(5));
-            foreach (var id in ids)
+            // Register all refreshes together: IDs in one polling block share one fresh read.
+            await Task.WhenAll(ids.Distinct(StringComparer.OrdinalIgnoreCase).Select(async id =>
             {
                 Check(token);
                 Route(id);
@@ -424,7 +425,7 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
                 Record("SIGNAL_INITIAL", $"{id}; Address={Route(id).Address}; State={sample.State}; Value={Convert.ToString(sample.Value, CultureInfo.InvariantCulture)}; SampleAt={sample.UpdatedAt:O}");
                 if (!sample.IsValid)
                     throw new IOException("Stage 초기 상태 읽기 실패: " + id);
-            }
+            })).ConfigureAwait(false);
         }
 
         public void Stop()

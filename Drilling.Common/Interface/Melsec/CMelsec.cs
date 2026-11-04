@@ -51,6 +51,9 @@
         private readonly Dictionary<string, PollBlock> _pollBlockById = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<int, DateTimeOffset> _pollDeviceBackoff = new();
         private List<PollBlock> _pollBlocks = [];
+        private readonly Queue<PollBlock> _requestedPollBlocks = new();
+        private readonly HashSet<PollBlock> _requestedPollBlockSet = new();
+        private bool _serveRequestedPoll = true;
         private int _pollGeneration;
         private int _nextPollBlock;
         public const string StageAlignBusyWordId = "STAGE_MCC_BUSY_FLAGS";
@@ -2571,7 +2574,11 @@
                 generation = _pollGeneration;
                 previousAttempt = block.AttemptNo;
                 if (!block.IsReading)
+                {
                     block.NextReadAt = DateTimeOffset.MinValue;
+                    if (_requestedPollBlockSet.Add(block))
+                        _requestedPollBlocks.Enqueue(block);
+                }
                 _pollDeviceBackoff.Remove(block.DeviceNo);
             }
 
@@ -2689,6 +2696,9 @@
                 }
                 _pollGeneration++;
                 _pollBlocks = blocks;
+                _requestedPollBlocks.Clear();
+                _requestedPollBlockSet.Clear();
+                _serveRequestedPoll = true;
                 _nextPollBlock = 0;
                 _pollDeviceBackoff.Clear();
                 _pollBlockById.Clear();
@@ -2775,7 +2785,23 @@
             lock (_pollLock)
             {
                 generation = _pollGeneration;
-                for (var scanned = 0; scanned < _pollBlocks.Count; scanned++)
+                // A sequence readback must not wait behind a complete monitoring sweep.
+                // Alternate requested reads with round-robin polling so monitoring still advances.
+                var requested = false;
+                if (_serveRequestedPoll)
+                {
+                    while (_requestedPollBlocks.TryDequeue(out var block))
+                    {
+                        _requestedPollBlockSet.Remove(block);
+                        if (block.IsReading || block.NextReadAt > now ||
+                            (_pollDeviceBackoff.TryGetValue(block.DeviceNo, out var retryAt) && retryAt > now))
+                            continue;
+                        selected = block;
+                        requested = true;
+                        break;
+                    }
+                }
+                for (var scanned = 0; selected is null && scanned < _pollBlocks.Count; scanned++)
                 {
                     var index = _nextPollBlock++ % _pollBlocks.Count;
                     if (_nextPollBlock >= _pollBlocks.Count)
@@ -2784,8 +2810,11 @@
                     if (block.NextReadAt > now || (_pollDeviceBackoff.TryGetValue(block.DeviceNo, out var retryAt) && retryAt > now))
                         continue;
                     selected = block;
+                }
+                if (selected is not null)
+                {
                     selected.IsReading = true;
-                    break;
+                    _serveRequestedPoll = !requested;
                 }
             }
 
