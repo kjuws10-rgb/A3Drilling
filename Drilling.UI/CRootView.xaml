@@ -208,7 +208,7 @@
                                Foreground="{DynamicResource TextPrimaryBrush}"
                                FontSize="30"
                                FontWeight="SemiBold" />
-                    <TextBlock Text="SYS &amp; J / Drilling"
+                    <TextBlock Text="{Binding SoftwareVersion, Mode=OneTime}"
                                Margin="0,4,0,0"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                FontSize="15" />
