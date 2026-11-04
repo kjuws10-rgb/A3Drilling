@@ -134,7 +134,8 @@
                 </StackPanel>
                 <StackPanel Orientation="Horizontal">
                     <Border Width="12" Height="12" Background="#E62121" VerticalAlignment="Center" />
-                    <TextBlock Text="Melsec offline" Margin="5,0,0,0" FontSize="10"
+                    <TextBlock Text="MELSEC data unavailable" Margin="5,0,0,0" FontSize="10"
+                               ToolTip="STALE: 수신 지연 / OFFLINE: 연결 끊김 / ERROR: 수신·값 오류 / NOT SET: 맵 미설정"
                                Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center" />
                 </StackPanel>
             </WrapPanel>
