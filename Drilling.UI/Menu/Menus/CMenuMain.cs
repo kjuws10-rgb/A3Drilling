@@ -3104,7 +3104,7 @@
             A("REVIEW_SIGNALS_CLEAR", "Review 신호 초기화")
         ]), 
             // Existing Manual ALIGN REQUEST owns the output. This scenario only observes
-            // scaled available/request/complete values and the raw WFAB4 Align Busy bit.
+            // scaled available/request/complete values and the raw WFAB3 Align Busy bit.
             new("DO_ALIGN", "Do Align", [
             new("SDC_DO_ALIGN_STATUS", "Do Align ABLE", "STAGE → PROCESS", true, EqualsOne: true),
             new("PROCESS_DO_ALIGN", "Do Align REQUEST", "PROCESS → STAGE", true),

@@ -716,9 +716,8 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
             {
                 Check(token);
                 var point = plan.Points[i];
-                // Start the next X move as soon as the preceding capture passed,
-                // overlapping the preceding Vision result request. Do not serialize
-                // camera travel behind potentially slow 1002/1003 responses.
+                // Move X between captures only. Read all Vision results after machining
+                // and the stopped Stage Y end position, not at individual Y crossings.
                 using var moveStop = CancellationTokenSource.CreateLinkedTokenSource(token);
                 var move = i == 0 ? Task.CompletedTask : Move(new(point.ReviewX, ZeroLineFeedback("MOTOR_STAGE_Y_CUR_POS"),
                     plan.Motion.ReviewSpeed, plan.Motion.StageSpeed, plan.Motion.ReviewAcceleration, EN_STAGE_MOVE_MODE.ReviewX), moveStop.Token);
@@ -762,6 +761,31 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
                     try { await move.ConfigureAwait(false); }
                     catch (Exception) when (move.IsFaulted || move.IsCanceled) { } // Original failure/cancellation wins.
                 }
+            }
+        }
+
+        public async Task WaitZeroLineEndPosition(ST_ZERO_LINE_CYCLE_PLAN plan, CancellationToken token)
+        {
+            if (!_stageBufferOwner)
+                throw new InvalidOperationException("0선 Stage Buffer 소유권이 필요합니다.");
+            var endY = plan.Motion.StageStartY + plan.Motion.StageDirection * plan.Motion.StageStroke;
+            if (!double.IsFinite(endY))
+                throw new InvalidDataException("0선 Stage Y 가공 완료 위치가 유효하지 않습니다.");
+            var clock = Stopwatch.StartNew();
+            while (true)
+            {
+                Check(token);
+                var values = _simulation ? null : _interfaces.Melsec.GetCachedSnapshot(["MOTOR_STAGE_Y_CUR_POS", "MOTOR_STAGE_Y_BUSY"], out _);
+                var y = ZeroLineFeedback("MOTOR_STAGE_Y_CUR_POS", values);
+                var busy = ZeroLineFeedback("MOTOR_STAGE_Y_BUSY", values);
+                if (Math.Abs(y - endY) <= CStageReadyPositionCheck.ToleranceMm + 1e-9 && busy == 0)
+                {
+                    Record("ZERO_LINE_STAGE_END_STOPPED", FormattableString.Invariant($"TargetY={endY}; ActualY={y}; Busy={busy}; Tolerance={CStageReadyPositionCheck.ToleranceMm}"));
+                    return;
+                }
+                if (clock.Elapsed > _owner._signalTimeout)
+                    throw new TimeoutException(FormattableString.Invariant($"0선 Stage Y 가공 완료 위치 정지 대기 시간 초과: TargetY={endY}, ActualY={y}, Busy={busy}."));
+                await Task.Delay(20, token).ConfigureAwait(false);
             }
         }
 
