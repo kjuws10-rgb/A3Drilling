@@ -206,11 +206,6 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
         private readonly CManualStageMotionSimulation.MotionLease? _lease;
         private readonly SemaphoreSlim _operation = new(1, 1);
         private bool _disposed, _moveOwned, _iofOwned;
-        private int _zeroLinePassedPoints;
-        // These are observed capture positions, not inspection results. Only a
-        // subsequent Vision 1002/1003 response completes a zero-line inspection.
-        public int ZeroLinePassedPoints => _simulation && !_automatic
-            ? _owner.SimulatedZeroLineCompletedSegments : Volatile.Read(ref _zeroLinePassedPoints);
         private string _scenario = "PROCESS_MOVE";
         private readonly string _traceSession = Guid.NewGuid().ToString("N");
         private void Record(string phase, string detail = "", double? value = null) => _owner.Publish(_device, phase, value, $"Flow={_traceSession}; Simulation={_simulation}; {detail}");
@@ -698,70 +693,17 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
         }
 
         /// <summary>
-        /// Stage owns the Y scan and hardware triggers from the prepared Y array.
-        /// Observe cached Y feedback and move only Review X through Process Move.
-        /// Position passage permits Vision MoveDone/result requests; it never
-        /// substitutes for Vision's count matching or measurement response.
+        /// Starts the Stage-owned scan only in automatic simulation. Real Stage
+        /// travel and triggers are owned by the PLC after IOF preparation; this
+        /// method neither moves Review X nor compares individual capture positions.
         /// </summary>
-        public async Task RunZeroLineCaptureMonitoring(ST_ZERO_LINE_CYCLE_PLAN plan, CancellationToken token)
+        public void BeginZeroLineSimulation(ST_ZERO_LINE_CYCLE_PLAN plan, CancellationToken token)
         {
             if (!_stageBufferOwner)
                 throw new InvalidOperationException("0선 Stage Buffer 소유권이 필요합니다.");
-            if (_simulation && !_automatic)
-                return; // A tester advances completed segments in the simulator panel.
-            Volatile.Write(ref _zeroLinePassedPoints, 0);
-            if (_simulation)
+            Check(token);
+            if (_simulation && _automatic)
                 _lease!.Move(EN_MANUAL_STAGE_AXIS.StageY, plan.Motion.StageStartY + plan.Motion.StageDirection * plan.Motion.StageStroke, plan.Motion.StageSpeed, plan.Motion.StageAcceleration);
-            for (var i = 0; i < plan.Points.Count; i++)
-            {
-                Check(token);
-                var point = plan.Points[i];
-                // Move X between captures only. Read all Vision results after machining
-                // and the stopped Stage Y end position, not at individual Y crossings.
-                using var moveStop = CancellationTokenSource.CreateLinkedTokenSource(token);
-                var move = i == 0 ? Task.CompletedTask : Move(new(point.ReviewX, ZeroLineFeedback("MOTOR_STAGE_Y_CUR_POS"),
-                    plan.Motion.ReviewSpeed, plan.Motion.StageSpeed, plan.Motion.ReviewAcceleration, EN_STAGE_MOVE_MODE.ReviewX), moveStop.Token);
-                try
-                {
-                    var clock = Stopwatch.StartNew();
-                    TimeSpan? xReadySince = null;
-                    while (true)
-                    {
-                        Check(token);
-                        if (move.IsFaulted || move.IsCanceled)
-                            await move.ConfigureAwait(false);
-                        // One shared snapshot per observation, no per-axis polling
-                        // or repeated full-cache copies on this short wait path.
-                        var values = _simulation ? null : _interfaces.Melsec.GetCachedSnapshot(["MOTOR_STAGE_Y_CUR_POS", "MOTOR_CAMERA_X_BUSY", "MOTOR_CAMERA_X_CUR_POS"], out _);
-                        var y = ZeroLineFeedback("MOTOR_STAGE_Y_CUR_POS", values);
-                        var xReady = ZeroLineFeedback("MOTOR_CAMERA_X_BUSY", values) == 0
-                            && Math.Abs(ZeroLineFeedback("MOTOR_CAMERA_X_CUR_POS", values) - point.ReviewX) <= .0005;
-                        xReadySince = xReady ? xReadySince ?? clock.Elapsed : null;
-                        if ((y - point.StageY) * plan.Motion.StageDirection >= 0)
-                        {
-                            if (!xReady || !xReadySince.HasValue || (clock.Elapsed - xReadySince.Value).TotalSeconds < plan.Motion.SettleSeconds)
-                                throw new InvalidOperationException($"0선 H{point.HeadNo:00}: Y 통과 전 Review X 도착/안정화가 완료되지 않았습니다.");
-                            // Let the configured exposure finish before another X move.
-                            await Task.Delay(TimeSpan.FromMilliseconds(Math.Max(1, plan.Motion.ExposureSeconds * 1000)), token).ConfigureAwait(false);
-                            Volatile.Write(ref _zeroLinePassedPoints, i + 1);
-                            if (_simulation)
-                                _owner.SetSimulatedZeroLineCompletedSegments(i + 1);
-                            Record("ZERO_LINE_POSITION_PASSED", FormattableString.Invariant($"Point={i + 1}; Head={point.HeadNo}; TargetY={point.StageY}; ActualY={y}; ReviewX={point.ReviewX}; Vision result pending"));
-                            break;
-                        }
-                        if (clock.Elapsed > TimeSpan.FromMinutes(2))
-                            throw new TimeoutException($"0선 H{point.HeadNo:00}: Stage Y 촬영 위치 통과 대기 시간 초과");
-                        await Task.Delay(10, token).ConfigureAwait(false);
-                    }
-                    await move.ConfigureAwait(false); // Finish the shared handshake before issuing another X move.
-                }
-                finally
-                {
-                    moveStop.Cancel();
-                    try { await move.ConfigureAwait(false); }
-                    catch (Exception) when (move.IsFaulted || move.IsCanceled) { } // Original failure/cancellation wins.
-                }
-            }
         }
 
         public async Task WaitZeroLineEndPosition(ST_ZERO_LINE_CYCLE_PLAN plan, CancellationToken token)
@@ -805,19 +747,6 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
             return result;
         }
 
-        public async Task WaitZeroLineCapture(int number, CancellationToken token)
-        {
-            if (!_stageBufferOwner || number < 1 || number > (_owner.LastIofPlan?.Points.Count ?? 0))
-                throw new ArgumentOutOfRangeException(nameof(number));
-            var clock = Stopwatch.StartNew();
-            while (ZeroLinePassedPoints < number)
-            {
-                Check(token);
-                if (clock.Elapsed > TimeSpan.FromMinutes(2))
-                    throw new TimeoutException("0선 Stage Y 촬영 위치 통과 대기 시간 초과");
-                await Task.Delay(10, token).ConfigureAwait(false);
-            }
-        }
     }
 }
 

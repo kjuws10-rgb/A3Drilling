@@ -2923,7 +2923,7 @@
                 if (card.Id == CSequenceActionIds.ProcessZeroPrepare)
                     card.SetProgress(_zeroCycle is null ? "0선방어 OFF" : _zeroCycle.State is "WAIT" or "PREPARING" or "ERROR" or "STOPPED" ? _zeroCycle.Detail : $"Group {_zeroCycle.Group} · {_zeroCycle.Results?.Count ?? 0}개 준비 완료");
                 if (card.Id == CSequenceActionIds.ProcessZeroMeasure)
-                    card.SetProgress(_zeroCycle is null ? "0선방어 OFF" : $"Group {_zeroCycle.Group} · {_zeroCycle.Results?.Count(result => result.State is "OK" or "NG" or "NCK" or "ERROR") ?? 0}/{_zeroCycle.Results?.Count ?? 0} · NG {_zeroCycle.Results?.Count(result => result.IsNg) ?? 0}");
+                    card.SetProgress(_zeroCycle is null ? "0선방어 OFF" : _zeroCycle.State == "WAIT_RESULTS" ? "Stage IOF 실행 · 12번 결과 수신 대기" : $"Group {_zeroCycle.Group} · {_zeroCycle.Results?.Count(result => result.State is "OK" or "NG" or "NCK" or "ERROR") ?? 0}/{_zeroCycle.Results?.Count ?? 0} · NG {_zeroCycle.Results?.Count(result => result.IsNg) ?? 0}");
                 if (card.Id == CSequenceActionIds.ProcessZeroResults)
                     card.SetProgress((_zeroCycle is null ? "0선방어 OFF" : string.IsNullOrEmpty(_zeroCycle.ResultFile) ? "결과 저장·최종 Flag 게시 대기" : "결과 파일 저장 완료")
                         + (_zeroCycle?.FollowUpRequested == true ? " · 후속 중앙 1줄 IOF 요청·완료 대기 (보정 없음)" : _zeroCycle?.FollowUpCompleted == true ? " · 후속 중앙 1줄 IOF 완료 (보정 미적용)" : "")
@@ -4055,6 +4055,7 @@
             {
                 "WAIT" => "대기",
                 "RUNNING" => "검사 중",
+                "WAIT_RESULTS" => "결과 수신 대기",
                 "STOPPED" => "중지",
                 _ => result.State
             };
