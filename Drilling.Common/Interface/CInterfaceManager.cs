@@ -821,6 +821,32 @@
             return $"{module}[{number}]";
         }
 
+        /// <summary>Seed virtual scanner states once, before startup snapshot readers begin.</summary>
+        internal int InitializeSimulatedScannerOutputs(IReadOnlyList<ST_SYSTEM_PARAMETER> settings)
+        {
+            ArgumentNullException.ThrowIfNull(settings);
+            var initialized = 0;
+            for (var head = 1; head <= 8; head++)
+            {
+                var key = $"H{head:00}_AUTOMATION_NO";
+                var mapping = settings.FirstOrDefault(setting => key.Equals(setting.Key, StringComparison.OrdinalIgnoreCase)
+                    || key.Equals(setting.Name, StringComparison.OrdinalIgnoreCase));
+                var automationNo = head <= 4 ? 0 : 1;
+                if (mapping is not null && !int.TryParse(mapping.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out automationNo))
+                    continue;
+                var laserNo = head - 1;
+                if (!_devices.TryGetValue(CreateDeviceKey(EN_EQP_MODULE.Automation1, automationNo), out var automation)
+                    || !automation.IsSimulation
+                    || !_devices.TryGetValue(CreateDeviceKey(EN_EQP_MODULE.TalonLaser, laserNo), out var laser)
+                    || !laser.IsSimulation)
+                    continue;
+                // No device command or Galvo emission is issued. Later operator OFF remains authoritative.
+                if (_talonStatuses.TryAdd(laserNo, ST_TALON_STATUS.Empty with { LaserOn = true, ShutterOpen = true, GateOpen = true }))
+                    initialized++;
+            }
+            return initialized;
+        }
+
         public ST_LASER_STATUS GetLaserStatus(CancellationToken cancellationToken = default)
         {
             var interfaceData = GetTalonInterfaceData();
