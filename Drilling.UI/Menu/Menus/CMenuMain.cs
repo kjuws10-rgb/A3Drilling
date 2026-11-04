@@ -2925,13 +2925,17 @@
                 if (card.Id == CSequenceActionIds.ProcessZeroMeasure)
                     card.SetProgress(_zeroCycle is null ? "0선방어 OFF" : $"Group {_zeroCycle.Group} · {_zeroCycle.Results?.Count(result => result.State is "OK" or "NG" or "NCK" or "ERROR") ?? 0}/{_zeroCycle.Results?.Count ?? 0} · NG {_zeroCycle.Results?.Count(result => result.IsNg) ?? 0}");
                 if (card.Id == CSequenceActionIds.ProcessZeroResults)
-                    card.SetProgress((_zeroCycle is null ? "0선방어 OFF" : string.IsNullOrEmpty(_zeroCycle.ResultFile) ? "결과 저장·최종 Flag 게시 대기" : "결과 파일 저장 완료") + " · 클릭: 결과");
+                    card.SetProgress((_zeroCycle is null ? "0선방어 OFF" : string.IsNullOrEmpty(_zeroCycle.ResultFile) ? "결과 저장·최종 Flag 게시 대기" : "결과 파일 저장 완료")
+                        + (_zeroCycle?.FollowUpRequested == true ? " · 후속 중앙 1줄 IOF 요청·완료 대기 (보정 없음)" : _zeroCycle?.FollowUpCompleted == true ? " · 후속 중앙 1줄 IOF 완료 (보정 미적용)" : "")
+                        + " · 클릭: 0선 원본 결과");
             }
         }
 
         public void RefreshReviewMonitor(ST_FINE_REVIEW_MONITOR? frame)
         {
             _reviewProgress = frame is null ? "클릭: Review Monitor" : frame.Request.Context?.Origin != "AUTO" ? "최근 MANUAL FINE · 클릭: Monitor" : $"{frame.Progress.Lines.Sum(line => line.Points.Count(point => point.State is EN_REVIEW_POINT_STATE.Ok or EN_REVIEW_POINT_STATE.Ng)):N0} / {frame.Request.Plan.Points.Count:N0} Shots · " + $"NG {frame.Progress.Lines.Sum(line => line.Points.Count(point => point.State == EN_REVIEW_POINT_STATE.Ng))}";
+            if (frame?.Request.Context?.ZeroLineFollowUp == true)
+                _reviewProgress = "0선 후속 · 중앙 1줄 IOF · 보정 없음 · " + _reviewProgress;
             foreach (var card in Cards.Where(card => card.Id == "REVIEW_MEASURE"))
                 card.SetProgress(_reviewProgress);
         }
@@ -4012,7 +4016,9 @@
             Rows = (frame.Results ?? []).Select(result => new CZeroLineResultRow(result, plan)).ToArray();
             Context = plan is null ? $"Group {frame.Group} · {Rows.Count} Points" : $"Recipe : {plan.RecipeId}     Glass : {plan.GlassId}     Group : {frame.Group} / {plan.TotalGroups}     {Rows.Count} Points";
             Summary = $"검사 {Rows.Count(r => r.IsFinished)} / {Rows.Count} · OK {Rows.Count(r => r.Judge == "OK")} · NG {Rows.Count(r => r.Judge == "NG")} · 미완료 {Rows.Count(r => !r.IsFinished)}";
-            Detail = frame.Detail;
+            Detail = frame.Detail
+                + (frame.FollowUpRequested ? " · 후속 중앙 1줄 IOF 요청·완료 대기 (검사 전용·보정 없음)"
+                    : frame.FollowUpCompleted ? " · 후속 중앙 1줄 IOF 완료 (보정 미적용·0선 원본 결과 유지)" : "");
             GroupJudge = frame.Judge;
             GroupBrush = GroupJudge switch
             {

@@ -19,6 +19,11 @@
         private bool _saved;
         private readonly SemaphoreSlim _saveGate = new(1, 1);
         public string Outcome { get; private set; } = "검사 대기";
+        // True only after all requested identities were validated and the diagnostic
+        // result file was saved. Quality NG is still an inspection completion.
+        public bool FollowUpInspectionCompleted => _prepared?.ZeroLineFollowUp == true
+            && _result is { State: EN_REVIEW_SEQUENCE_STATE.Completed } result
+            && result.ResultSaveError.Length == 0 && !string.IsNullOrWhiteSpace(result.ResultFilePath);
 
         public async Task Prepare(CancellationToken token)
         {
@@ -27,8 +32,10 @@
             _saved = false;
             var input = await capture(token).ConfigureAwait(false);
             token.ThrowIfCancellationRequested();
-            _prepared = review.CreateAutoFinePlan(input, token);
-            Outcome = $"{input.GlassId} / {input.Recipe.Name} / Beam 11 / {input.Options.Method} / {input.Options.LineCount} Line / " + $"즉시 재시도 {(input.Options.ImmediateRetry ? "ON" : "OFF")} / {input.Options.CountMismatchRetries}회 · 계획 확정";
+            _prepared = input.ZeroLineFollowUp ? review.CreateZeroLineFollowUpPlan(input, token) : review.CreateAutoFinePlan(input, token);
+            Outcome = input.ZeroLineFollowUp
+                ? $"{input.GlassId} / {input.Recipe.Name} / 0선 FollowUp · 맨 위 Cell 가운데 행 · Beam 11 / IOF 1 Line · 재시도 없음 · 검사만 수행 / 보정 미적용 · 계획 확정"
+                : $"{input.GlassId} / {input.Recipe.Name} / Beam 11 / {input.Options.Method} / {input.Options.LineCount} Line / " + $"즉시 재시도 {(input.Options.ImmediateRetry ? "ON" : "OFF")} / {input.Options.CountMismatchRetries}회 · 계획 확정";
             review.RecordAutoFineLog("AUTO_REVIEW_PLAN", Outcome);
         }
 
@@ -48,10 +55,18 @@
             var ng = measured.Count(point => point.State == EN_REVIEW_POINT_STATE.Ng);
             var method = plan.Request.Method == EN_FINE_INSPECTION_METHOD.Flying ? "IOF" : "PtoP";
             review.RecordAutoFineLog("AUTO_REVIEW_RESULT", $"FINE {method} 검사 결과 · {measured.Length:N0}개 검사 / OK {measured.Length - ng:N0} / NG {ng:N0} · Beam {ST_AUTO_REVIEW_OPTIONS.BeamNo}");
+            if (plan.ZeroLineFollowUp)
+            {
+                Outcome = $"0선 FollowUp IOF 1 Line · 검사 {measured.Length:N0}개 완료 / OK {measured.Length - ng:N0} / NG {ng:N0}개 · 결과 저장 완료 / 보정 미적용";
+                result = result with { Message = Outcome };
+                review.FineMonitor.Publish(result);
+                review.RecordAutoFineLog("ZERO_LINE_FOLLOWUP_RESULT", Outcome);
+            }
             _result = result;
             if (ng > 0)
             {
-                Outcome = $"검사 {measured.Length:N0}개 완료 / NG {ng:N0}개 · 보정 전체 미적용 · 기존 Review Offset 유지";
+                if (!plan.ZeroLineFollowUp)
+                    Outcome = $"검사 {measured.Length:N0}개 완료 / NG {ng:N0}개 · 보정 전체 미적용 · 기존 Review Offset 유지";
                 review.RecordAutoFineLog("AUTO_REVIEW_NG", Outcome);
                 // Immediate retries are completed by StartFineCorrection. Any remaining NG,
                 // including when retry is OFF, fails REVIEW_MEASURE and triggers its CSV HEAVY.
@@ -90,6 +105,16 @@
                 Outcome = $"검사 {measured.Length:N0}개 완료 / NG {ng:N0}개 · 보정 전체 미적용 · 기존 Review Offset 유지";
                 review.RecordAutoFineLog("AUTO_REVIEW_NG", Outcome);
                 throw new InvalidDataException(Outcome);
+            }
+
+            if (plan.ZeroLineFollowUp)
+            {
+                // This diagnostic inspection must not even load the current offset file.
+                // Stage may complete the Review handshake after the result was saved/displayed.
+                _saved = true;
+                Outcome = $"0선 FollowUp IOF 1 Line · 전체 OK / {measured.Length:N0}개 결과 저장 완료 · 검사만 수행 / 기존 Review Offset 유지";
+                review.RecordAutoFineLog("ZERO_LINE_FOLLOWUP_COMPLETE", Outcome);
+                return;
             }
 
             var deltas = CReviewManager.CalculateFineOffsets(plan.OffsetTargets, measured, plan.Request.Plan.VisionFlipType);
@@ -153,11 +178,18 @@
 #region AUTO FINE - 계획 생성
         public static ST_AUTO_FINE_PLAN BuildPlan(ST_AUTO_REVIEW_INPUT input, IReadOnlyList<ST_SYSTEM_PARAMETER> settings)
         {
+            // A zero-line diagnostic is exactly one IOF acquisition, independent of
+            // the operator's normal multi-line/PtoP/retry choices for later Review runs.
+            if (input.ZeroLineFollowUp)
+                input = input with { Options = new(1, EN_FINE_INSPECTION_METHOD.Flying, 1, false) };
             if (input.Options.LineCount is not (1 or 3 or 5 or 7) || input.Options.Method is not (EN_FINE_INSPECTION_METHOD.Flying or EN_FINE_INSPECTION_METHOD.PtoP) || input.Options.CountMismatchRetries is < 1 or > 3)
                 throw new InvalidOperationException("AUTO Review 검사 방식 또는 라인 수가 올바르지 않습니다.");
             var parameters = input.Recipe.Parameters.Where(item => item.Key.Length > 0).GroupBy(item => item.Key, StringComparer.OrdinalIgnoreCase).ToDictionary(group => group.Key, group => group.Last().Value, StringComparer.OrdinalIgnoreCase);
             foreach (var setting in settings.Where(item => item.Key.Length > 0))
-                parameters[setting.Key] = setting.Value;
+                // FollowUp inspects the same frozen Glass/Recipe/Head geometry that
+                // produced the zero-line result. Later settings only fill missing keys.
+                if (!input.ZeroLineFollowUp || !parameters.ContainsKey(setting.Key))
+                    parameters[setting.Key] = setting.Value;
             var frozen = new ReadOnlyDictionary<string, string>(parameters);
             var effectiveRecipe = input.Recipe with
             {
@@ -197,10 +229,11 @@
                 all
             );
             var selected = CReviewRulePlanBuilder.Build(source, new(EN_REVIEW_CORRECTION_RULE.Fine, EN_REVIEW_CORRECTION_SCOPE.HeadCell, ST_AUTO_REVIEW_OPTIONS.BeamNo, "", EN_REVIEW_REFERENCE_LINE.First, input.Options.LineCount)).ShotKeys.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var topCells = input.ZeroLineFollowUp ? FindTopmostCells(frozen) : null;
             var models = all.Select(point => point.CellNo).Distinct().ToDictionary(cell => cell, cell => CRecipeModelPixelCountReader.ReadCellModelType(parameters, cell));
             var modelCounts = models.Values.GroupBy(model => model).ToDictionary(group => group.Key, group => group.Count());
             var lines = new List<ST_FINE_REVIEW_LINE>();
-            foreach (var model in targets.Where(point => selected.Contains(point.ShotKey)).GroupBy(point => models[point.CellNo]).OrderByDescending(group => modelCounts[group.Key]).ThenBy(group => group.Key))
+            foreach (var model in targets.Where(point => selected.Contains(point.ShotKey) && (topCells is null || topCells.Contains(point.CellNo))).GroupBy(point => models[point.CellNo]).OrderByDescending(group => modelCounts[group.Key]).ThenBy(group => group.Key))
             {
                 var row = 0;
                 foreach (var line in model.GroupBy(point => Math.Round(point.DesignY, 6)).OrderBy(group => group.Key))
@@ -221,19 +254,55 @@
 
             if (lines.Count == 0)
                 throw new InvalidOperationException("AUTO FINE 검사 라인을 만들 수 없습니다.");
+            if (input.ZeroLineFollowUp)
+            {
+                var points = lines.SelectMany(line => line.Points).OrderBy(point => point.DesignX).ThenBy(point => point.CellNo).ThenBy(point => point.ShotNo).ToArray();
+                // Different middle-row heights cannot be silently expanded to multiple
+                // acquisitions or replaced with PtoP when the request is one IOF line.
+                if (points.Max(point => point.ReviewTargetY) - points.Min(point => point.ReviewTargetY) > .0005
+                    || points.Max(point => point.DesignY) - points.Min(point => point.DesignY) > .000001)
+                    throw new InvalidOperationException("맨 위 Cell들의 가운데 행이 서로 다른 Y 위치여서 0선 FollowUp IOF 한 줄을 만들 수 없습니다. Cell 배치와 Beam 좌표를 확인해 주세요.");
+                var modelNos = lines.Select(line => line.ModelNo).Distinct().ToArray();
+                lines = [new("ZERO_FOLLOWUP:TOP_MIDDLE:B11", 1, modelNos.Length == 1 ? modelNos[0] : 0, Array.AsReadOnly(points))];
+            }
             var plan = source with
             {
-                Points = Array.AsReadOnly(lines.SelectMany(line => line.Points).ToArray())
+                Points = Array.AsReadOnly(lines.SelectMany(line => line.Points).ToArray()),
+                InspectionMethod = input.ZeroLineFollowUp ? "IOF" : source.InspectionMethod
             };
             var request = new ST_FINE_REVIEW_REQUEST(plan, lines.AsReadOnly(), input.Options.Method)
             {
                 StopOnNgLine = false,
-                CountMismatchRetries = input.Options.CountMismatchRetries,
+                CountMismatchRetries = input.ZeroLineFollowUp ? 0 : input.Options.CountMismatchRetries,
                 ImmediateRetry = input.Options.ImmediateRetry,
-                Context = new(input.Recipe.Name, input.GlassId, "AUTO", input.Options.LineCount, frozen)
+                Context = new(input.Recipe.Name, input.GlassId, "AUTO", input.Options.LineCount, frozen) { ZeroLineFollowUp = input.ZeroLineFollowUp }
             };
-            return new(request, Array.AsReadOnly(targets), frozen);
+            return new(request, input.ZeroLineFollowUp ? Array.Empty<ST_REVIEW_PLAN_POINT>() : Array.AsReadOnly(targets), frozen) { ZeroLineFollowUp = input.ZeroLineFollowUp };
             double Tolerance(string key) => double.TryParse(parameters.GetValueOrDefault(key, "0.03"), NumberStyles.Float, CultureInfo.InvariantCulture, out var value) && double.IsFinite(value) && value >= 0 ? value : throw new InvalidOperationException($"{key} 설정을 확인해 주세요.");
+        }
+
+        private static HashSet<int> FindTopmostCells(IReadOnlyDictionary<string, string> parameters)
+        {
+            double Read(string key, double fallback = 0) => double.TryParse(parameters.GetValueOrDefault(key), NumberStyles.Float, CultureInfo.InvariantCulture, out var value) ? value : fallback;
+            var ranges = new List<(int Cell, double MinimumY)>();
+            var cellCount = (int)Read("MAX_CELL_NUMBER");
+            for (var cellNo = 1; cellNo <= cellCount; cellNo++)
+            {
+                var pattern = CRecipeModelPixelCountReader.ReadPatternForCell(parameters, cellNo);
+                var definition = new ST_CELL_PATTERN_DEFINITION(cellNo, Read($"CELL{cellNo}_ALIGN_TO_1ST_PIXEL_X"), Read($"CELL{cellNo}_ALIGN_TO_1ST_PIXEL_Y"), Read($"CELL{cellNo}_ROTATION"), Read("PIXEL_SIZE", .09), pattern.PixelCountX, pattern.PixelCountY, pattern.ProcessPitch, (int)Read("SPLITED_BEAM_COUNT", 1), Read("AK_MARGIN_X"), Read("AK_MARGIN_Y"));
+                var layout = CCellPatternCalculator.Calculate(definition, includeShotCenters: false);
+                if (!layout.IsValid)
+                    throw new InvalidOperationException(layout.ValidationMessage);
+                // Four corners suffice for a rotated rectangular Shot lattice. Geometry
+                // includes masked/inactive points, so exclusions cannot select a lower Cell row.
+                var minimumY = new[] { (0, 0), (layout.GroupCountX - 1, 0), (0, layout.GroupCountY - 1), (layout.GroupCountX - 1, layout.GroupCountY - 1) }
+                    .Min(corner => CCellPatternCalculator.CalculateShotCenter(definition, corner.Item1, corner.Item2, layout).DesignY);
+                ranges.Add((cellNo, minimumY));
+            }
+            if (ranges.Count == 0)
+                throw new InvalidOperationException("0선 FollowUp의 Cell 배치를 확인할 수 없습니다.");
+            var firstY = ranges.Min(range => range.MinimumY);
+            return ranges.Where(range => Math.Abs(range.MinimumY - firstY) <= .000001).Select(range => range.Cell).ToHashSet();
         }
 #endregion
     }
@@ -243,10 +312,19 @@
         public const int BeamNo = 11;
     }
 
-    public sealed record ST_AUTO_REVIEW_INPUT(ST_RECIPE_DEFINITION Recipe, string GlassId, ST_AUTO_REVIEW_OPTIONS Options);
-    public sealed record ST_AUTO_FINE_PLAN(ST_FINE_REVIEW_REQUEST Request, IReadOnlyList<ST_REVIEW_PLAN_POINT> OffsetTargets, IReadOnlyDictionary<string, string> Parameters);
+    public sealed record ST_AUTO_REVIEW_INPUT(ST_RECIPE_DEFINITION Recipe, string GlassId, ST_AUTO_REVIEW_OPTIONS Options)
+    {
+        public bool ZeroLineFollowUp { get; init; }
+    }
+    public sealed record ST_AUTO_FINE_PLAN(ST_FINE_REVIEW_REQUEST Request, IReadOnlyList<ST_REVIEW_PLAN_POINT> OffsetTargets, IReadOnlyDictionary<string, string> Parameters)
+    {
+        public bool ZeroLineFollowUp { get; init; }
+    }
     /// <summary>Frozen run metadata. AUTO supplies its glass ID and Run Option choices when it starts FINE.</summary>
-    public sealed record ST_FINE_REVIEW_CONTEXT(string RecipeName, string GlassId, string Origin, int LinesPerCell, IReadOnlyDictionary<string, string> Parameters);
+    public sealed record ST_FINE_REVIEW_CONTEXT(string RecipeName, string GlassId, string Origin, int LinesPerCell, IReadOnlyDictionary<string, string> Parameters)
+    {
+        public bool ZeroLineFollowUp { get; init; }
+    }
     public sealed record ST_FINE_REVIEW_MONITOR(
         Guid RunId, 
         long Revision, 

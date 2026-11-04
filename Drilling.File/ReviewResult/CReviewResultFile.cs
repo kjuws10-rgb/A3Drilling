@@ -508,7 +508,7 @@
                     ["SAVED_AT"] = FormatDate(result.SavedAt),
                     ["RECIPE_ID"] = snapshot.RecipeId,
                     ["GLASS_ID"] = result.Request.Context?.GlassId ?? "-",
-                    ["ORIGIN"] = result.Request.Context?.Origin ?? "MANUAL FINE",
+                    ["ORIGIN"] = result.Request.Context?.ZeroLineFollowUp == true ? "AUTO ZERO_LINE_FOLLOWUP (INSPECTION ONLY)" : result.Request.Context?.Origin ?? "MANUAL FINE",
                     ["METHOD"] = result.Request.Method == EN_FINE_INSPECTION_METHOD.Flying ? "FLYING" : "P2P",
                     ["IMMEDIATE_RETRY"] = result.Request.ImmediateRetry ? "ON" : "OFF",
                     ["RETRY_LIMIT"] = Int(result.Request.CountMismatchRetries),
