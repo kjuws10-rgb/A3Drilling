@@ -97,6 +97,9 @@ public sealed class CManager
         RegisterInterfaceList(interfaceData);
         _settingManager = new CSettingManager(_settingFile, _interfaceFile, _interfaceManager);
         _settingManager.LoadAllSections();
+        var simulatedScanners = _interfaceManager.InitializeSimulatedScannerOutputs(_settingManager.LoadSection(EN_SETTING_TAB.Option));
+        AddStartupStep("Initialize Simulated Scanner Outputs", EN_MANAGER_STARTUP_RESULT.Ready,
+            $"Initialized {simulatedScanners} simulated scanner(s): Laser ON / Shutter OPEN / Gate ON.");
         _interfaceManager.ConfigureVisionLineProtocol(_settingManager.GetVisionMaxHoleCountPerLine,
             _ => _alarmManager.SetAlarm("VISION_LINE_HOLE_COUNT_EXCEEDED"));
         _interfaceManager.ConfigureAttenuatorSoftwareLimits(() => _settingManager.LoadSection(EN_SETTING_TAB.Option));
