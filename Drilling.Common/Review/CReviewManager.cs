@@ -2006,7 +2006,7 @@
             // raw Target/Hole pair in the newly confirmed pixel units. No error
             // reduction or calibration feedback is fabricated in simulation.
             var cameraResolution = settingManager.GetVisionCameraResolution();
-            var mark = new ST_VISION_MARK_FIND(1, point.ReviewTargetX / cameraResolution, point.ReviewTargetY / cameraResolution,
+            var mark = new ST_VISION_MARK_FIND(0, point.ReviewTargetX / cameraResolution, point.ReviewTargetY / cameraResolution,
                 (point.ReviewTargetX - errorX) / cameraResolution, (point.ReviewTargetY - errorY) / cameraResolution);
             return CreateVisionMeasurement(point, mark, 1, response, cameraResolution: cameraResolution);
         }
@@ -2063,7 +2063,8 @@
         {
             var camera = cameraResolution ?? settingManager.GetVisionCameraResolution();
             var error = VisionPixelsToMillimeters(mark, resolution, camera);
-            return new ST_REVIEW_MEASURE_RESULT(point.ReviewTargetX + error.X, point.ReviewTargetY + error.Y, judge ?? (mark.Result > 0 ? "" : "NG"), response)
+            // 1000 / 1003 / 1010: nResult 0 means found. Tolerance is checked on application.
+            return new ST_REVIEW_MEASURE_RESULT(point.ReviewTargetX + error.X, point.ReviewTargetY + error.Y, mark.Result == 0 ? judge ?? "OK" : "NG", response)
             {
                 MarkFind = mark,
                 Resolution = resolution,
@@ -3001,7 +3002,7 @@
                     {
                         var measured = await simulationMeasurement(target, cancellationToken);
                         points[target.ShotKey] = ApplyRoughMeasurement(plan, target, CreateVisionMeasurement(target,
-                            new ST_VISION_MARK_FIND(measured.Judge == "NG" ? 0 : 1, measured.TargetX, measured.TargetY, measured.HoleX, measured.HoleY), measured.Resolution, "ROUGH_SIMULATION", measured.Judge));
+                            new ST_VISION_MARK_FIND(measured.Judge == "NG" ? 1 : 0, measured.TargetX, measured.TargetY, measured.HoleX, measured.HoleY), measured.Resolution, "ROUGH_SIMULATION", measured.Judge));
                     }
 
                     active = null;
@@ -3108,6 +3109,8 @@
             public bool IsSimulation { get; }
 
             private bool _keepAlive;
+            private bool _prepared;
+            private int _readStarted;
             internal ZeroLineVisionSession(CReviewManager owner, ST_ZERO_LINE_CYCLE_PLAN plan, bool stageSimulation, bool simulation)
             {
                 _owner = owner;
@@ -3118,35 +3121,35 @@
 
             public async Task PrepareFirst(CancellationToken token)
             {
+                ObjectDisposedException.ThrowIf(_disposed, this);
+                token.ThrowIfCancellationRequested();
                 if (_keepAlive)
                     throw new InvalidOperationException("0선 Keep Alive가 중복 호출되었습니다.");
                 if (!IsSimulation)
                     await _owner.ExecuteVisionCommand("KEEP_ALIVE_REQUEST", "0선 Vision 1900 응답이 없습니다.", token).ConfigureAwait(false);
                 _keepAlive = true;
-                await Arm(0, token).ConfigureAwait(false);
+                if (!IsSimulation)
+                    await _owner.ExecuteVisionCommand(_owner.CreateFlyingReadyCommand(_plan.VisionPlan.Points, zeroLine: true), "0선 Vision 1001 응답이 없습니다.", token).ConfigureAwait(false);
+                _prepared = true;
             }
 
-            public async Task Arm(int index, CancellationToken token)
+            /// <summary>Called once after machining and the stopped Stage Y end position are confirmed.</summary>
+            public async Task<IReadOnlyList<ST_ZERO_LINE_POINT_RESULT>> MeasureAll(CancellationToken token)
             {
                 ObjectDisposedException.ThrowIf(_disposed, this);
                 token.ThrowIfCancellationRequested();
-                if (!_keepAlive)
-                    throw new InvalidOperationException("0선 최초 1900 확인이 필요합니다.");
-                if (!IsSimulation)
-                    await _owner.ExecuteVisionCommand(_owner.CreateFlyingReadyCommand([_plan.VisionPlan.Points[index]], zeroLine: true), "0선 Vision 1001 응답이 없습니다.", token).ConfigureAwait(false);
-            }
-
-            public async Task<ST_ZERO_LINE_POINT_RESULT> Measure(int index, CancellationToken token)
-            {
-                ObjectDisposedException.ThrowIf(_disposed, this);
-                var point = _plan.VisionPlan.Points[index];
-                ST_REVIEW_MEASURE_RESULT measurement;
+                if (!_prepared)
+                    throw new InvalidOperationException("0선 전체 포인트의 Vision 1001 준비가 필요합니다.");
+                if (Interlocked.Exchange(ref _readStarted, 1) != 0)
+                    throw new InvalidOperationException("현재 0선 가공 주기의 결과 수신은 이미 요청되었습니다.");
+                var points = _plan.VisionPlan.Points;
+                IReadOnlyList<ST_REVIEW_MEASURE_RESULT> measurements;
                 if (IsSimulation)
                 {
                     await Task.Delay(80, token).ConfigureAwait(false);
                     var camera = _owner.CameraResolution;
-                    measurement = _owner.CreateVisionMeasurement(point,
-                        new(1, _plan.VisionPlan.ToleranceX * .2 / camera, _plan.VisionPlan.ToleranceY * .2 / camera, 0, 0), 1, "ZERO_LINE_SIMULATION", cameraResolution: camera);
+                    measurements = points.Select(point => _owner.CreateVisionMeasurement(point,
+                        new(0, _plan.VisionPlan.ToleranceX * .2 / camera, _plan.VisionPlan.ToleranceY * .2 / camera, 0, 0), 1, "ZERO_LINE_SIMULATION", cameraResolution: camera)).ToArray();
                 }
                 else
                 {
@@ -3156,15 +3159,20 @@
                     }
                     catch (CFlyingCountMismatchException error)
                     {
-                        return new(point with { State = EN_REVIEW_POINT_STATE.Ng, Judge = "NG" }, "NCK", Detail: error.Message);
+                        return points.Select(point => new ST_ZERO_LINE_POINT_RESULT(point with { State = EN_REVIEW_POINT_STATE.Ng, Judge = "NG" }, "NCK", Detail: error.Message)).ToArray();
                     }
 
                     var response = await _owner.ExecuteVisionCommand("MARK_FIND_LINE", "0선 Vision 1003 응답이 없습니다.", token).ConfigureAwait(false);
-                    measurement = _owner.ParseVisionLineResponse(response, [point]).Single();
+                    // The wire has no point IDs: keep the frozen 1001 / trigger order unchanged.
+                    measurements = _owner.ParseVisionLineResponse(response, points);
                 }
 
-                var judged = ApplyRoughMeasurement(_plan.VisionPlan, point, measurement);
-                return new(judged, judged.State == EN_REVIEW_POINT_STATE.Ok ? "OK" : "NG", measurement.Resolution, measurement.MarkFind);
+                return points.Select((point, index) =>
+                {
+                    var measurement = measurements[index];
+                    var judged = ApplyRoughMeasurement(_plan.VisionPlan, point, measurement);
+                    return new ST_ZERO_LINE_POINT_RESULT(judged, judged.State == EN_REVIEW_POINT_STATE.Ok ? "OK" : "NG", measurement.Resolution, measurement.MarkFind);
+                }).ToArray();
             }
 
             public Task<string> Save(ST_ZERO_LINE_CYCLE_STATUS status, CancellationToken token) => _owner.SaveZeroLineResult(new(_plan, status, _stageSimulation, IsSimulation, DateTimeOffset.Now), token);

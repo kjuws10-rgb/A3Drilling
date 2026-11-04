@@ -1877,7 +1877,7 @@
             "IF_ALIGN", 
             "MCC Busy Word (bit1 Align)", 
             0, 
-            "WFAB4", 
+            "WFAB3",
             "WORD", 
             "IN", 
             "R", 
@@ -1885,7 +1885,7 @@
             "1", 
             "1", 
             "100", 
-            "Spec 0.10 물류 D3075:H3076; WFAB4 원시 Word; bit 1 (mask 2)=MCC_ALIGN_BUSY; 다른 비트로 Align 중 판정 금지; 0선 첫 Review X 선대기 기동 관측", 
+            "FAB3 ALIGN_BUSY 원시 Word; bit 1 (mask 2)=MCC_ALIGN_BUSY; AUTO 및 ReviewAble ON일 때 첫 Review X 선이동 조건",
             use: true
         ), 
         ];

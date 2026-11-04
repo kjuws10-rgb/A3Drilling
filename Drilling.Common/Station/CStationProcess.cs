@@ -4046,7 +4046,10 @@
             token => _zeroLineCycle?.Measure(token) ?? Task.CompletedTask, 
             token => _zeroLineCycle?.Save(token) ?? Task.CompletedTask, 
             () => _zeroLineCycle?.Release() ?? Task.CompletedTask
-        );
+        )
+        {
+            ReadResults = token => _zeroLineCycle?.ReadResults(token) ?? Task.CompletedTask
+        };
         private async Task CaptureZeroLineCycle(ST_STAGE_PROCESS_REQUEST request, CancellationToken token)
         {
             if (_zeroLineCycle is not null)
@@ -4083,7 +4086,9 @@
         {
             if (_recipeManager is null)
                 return;
-            _zeroLinePrewait ??= new(_interfaceManager, _recipeManager, _settingManager, () => StageRequests.IsRunning, selectedRecipe, message => AddProcessLog("INFO", "ZERO_LINE_PREWAIT", message));
+            _zeroLinePrewait ??= new(_interfaceManager, _recipeManager, _settingManager,
+                () => StageRequests.IsRunning && StageRequests.Status.State is not ("STOPPING" or "ERROR" or "STOPPED"),
+                selectedRecipe, message => AddProcessLog("INFO", "ZERO_LINE_PREWAIT", message));
             _zeroLinePrewait.Start();
         }
 
@@ -5398,7 +5403,13 @@
             }
 
             using var inspectionStop = CancellationTokenSource.CreateLinkedTokenSource(token);
-            var inspection = Action(CSequenceActionIds.ProcessZeroMeasure, zeroLine.Measure, inspectionStop.Token, Timeout.InfiniteTimeSpan);
+            var inspection = Action(CSequenceActionIds.ProcessZeroMeasure, async ct =>
+            {
+                await zeroLine.Measure(ct).ConfigureAwait(false); // Capture / X travel only.
+                await machining.WaitAsync(ct).ConfigureAwait(false);
+                if (zeroLine.ReadResults is not null)
+                    await zeroLine.ReadResults(ct).ConfigureAwait(false);
+            }, inspectionStop.Token, Timeout.InfiniteTimeSpan);
             var first = await Task.WhenAny(machining, inspection).ConfigureAwait(false);
             // Measurement/transport errors do not interrupt already running laser Tasks. Await their
             // normal end, then fail without Prc COMPLETE. A machining failure cancels the observer.
@@ -5479,7 +5490,10 @@
 
     public sealed record ST_STAGE_TPM_ACTIONS(Func<CancellationToken, Task> Prepare, Func<CancellationToken, Task> Measure, Func<CancellationToken, Task> Save, Func<Task> Release);
     public sealed record ST_STAGE_REVIEW_ACTIONS(Func<CancellationToken, Task> Prepare, Func<CancellationToken, Task> Measure, Func<CancellationToken, Task> Save);
-    public sealed record ST_STAGE_ZERO_LINE_ACTIONS(Func<bool> Enabled, Func<CancellationToken, Task> Prepare, Func<CancellationToken, Task> Measure, Func<CancellationToken, Task> Save, Func<Task> Release);
+    public sealed record ST_STAGE_ZERO_LINE_ACTIONS(Func<bool> Enabled, Func<CancellationToken, Task> Prepare, Func<CancellationToken, Task> Measure, Func<CancellationToken, Task> Save, Func<Task> Release)
+    {
+        public Func<CancellationToken, Task>? ReadResults { get; init; }
+    }
     public sealed record ST_MANUAL_MOF_STATUS(bool IsRunning, bool RequiresStop, string Message, string ScriptDirectory, IReadOnlyDictionary<string, ST_SEQUENCE_ACTION_STATUS> Actions);
     public static class CManualMofActionIds
     {
@@ -5627,7 +5641,7 @@
                         if (align?.IsValid != true || align.Value is null)
                         {
                             if (!handled)
-                                Waiting("WFAB4 상태 수신 대기");
+                                Waiting("FAB3 ALIGN BUSY 상태 수신 대기");
                             continue;
                         }
 
@@ -5635,7 +5649,7 @@
                         if ((raw & AlignBusyMask) == 0)
                         {
                             handled = false;
-                            Waiting($"WFAB4 ALIGN BUSY 대기 · 현재 {raw} / bit 1 OFF");
+                            Waiting($"FAB3 ALIGN BUSY 대기 · 현재 {raw} / bit 1 OFF");
                             continue;
                         }
 
@@ -5668,14 +5682,51 @@
                         if (group != options.CurrentGroup)
                             settings.SetValue(EN_SETTING_TAB.Option, CRunOptionSettings.CurrentGroup, group.ToString(CultureInfo.InvariantCulture), token);
                         var first = points.Where(point => (point.HeadNo - 1) / plan.Count + 1 == group).OrderBy(point => point.StageY * plan.Profile.StageDirection).ThenBy(point => point.HeadNo).First();
-                        var route = map.Single(row => row.Id == AlignWordId);
+                        var route = map.Single(row => row.Use && row.Id == CStageReviewSequences.MoveAble);
+                        bool RequestActive()
+                        {
+                            var current = CRunOptionSettings.Read(settings);
+                            return autoEnabled() && current.ZeroDefence && current.CurrentGroup == group && recipeId.Equals(selectedRecipe(), StringComparison.OrdinalIgnoreCase);
+                        }
+                        bool StartSignalsOn()
+                        {
+                            var current = interfaces.Melsec.GetCachedSnapshot([AlignWordId, CStageReviewSequences.MoveAble], out _);
+                            var busy = current.GetValueOrDefault(AlignWordId);
+                            var able = current.GetValueOrDefault(CStageReviewSequences.MoveAble);
+                            return busy is { IsValid: true, Value: not null } && (Convert.ToInt32(busy.Value, CultureInfo.InvariantCulture) & AlignBusyMask) != 0
+                                && able is { IsValid: true, Value: not null } && Math.Abs(Convert.ToDouble(able.Value, CultureInfo.InvariantCulture) - 1) < 1e-8;
+                        }
                         SetStatus(new("RUNNING", "0선 첫 Review X 선대기 이동", group, first, recipeId));
                         // Once issued, Align/DoReady may finish independently. AUTO exit or option OFF cancels this owner.
-                        using var session = interfaces.StageReviewSequences.Open(route.DeviceNo, () => !autoEnabled() || !CRunOptionSettings.Read(settings).ZeroDefence, reviewXOnly: true);
-                        issued = true;
-                        var motion = ST_REVIEW_MOTION_PARAMETERS.Read(parameters);
-                        await session.Move(new(first.ReviewX, session.CurrentY, motion.Speed, Math.Max(1, plan.Profile.StageSpeed), motion.Acceleration, EN_STAGE_MOVE_MODE.ReviewX), token).ConfigureAwait(false);
-                        var done = new ST_ZERO_LINE_PREWAIT_STATUS("DONE", "0선 첫 Review X 선대기·SDC 복귀 완료", group, first, recipeId);
+                        var alreadyAtFirst = false;
+                        using (var session = interfaces.StageReviewSequences.Open(route.DeviceNo, () => !RequestActive(), reviewXOnly: true))
+                        {
+                            var currentX = await session.ReadStationaryPosition(EN_MANUAL_STAGE_AXIS.ReviewX, token).ConfigureAwait(false);
+                            if (!RequestActive() || !StartSignalsOn())
+                            {
+                                handled = false;
+                                Waiting("선이동 직전 AUTO / FAB3 / ReviewAble 조건 재확인 대기");
+                                continue;
+                            }
+                            var handshake = interfaces.Melsec.GetCachedSnapshot([CStageReviewSequences.MoveStart, CStageReviewSequences.MoveAck, CStageReviewSequences.MoveComplete], out _);
+                            if (handshake.Count != 3 || handshake.Values.Any(value => value is not { IsValid: true, Value: not null } || Convert.ToDouble(value.Value, CultureInfo.InvariantCulture) != 0))
+                            {
+                                handled = false;
+                                Waiting("이전 SDC 이동 요청 / 응답 복귀 대기");
+                                continue;
+                            }
+                            alreadyAtFirst = Math.Abs(currentX - first.ReviewX) <= .0005 + 1e-9;
+                            if (!alreadyAtFirst)
+                            {
+                                issued = true;
+                                var motion = ST_REVIEW_MOTION_PARAMETERS.Read(parameters);
+                                await session.Move(new(first.ReviewX, session.CurrentY, motion.Speed, Math.Max(1, plan.Profile.StageSpeed), motion.Acceleration, EN_STAGE_MOVE_MODE.ReviewX), token).ConfigureAwait(false);
+                            }
+                        }
+                        token.ThrowIfCancellationRequested();
+                        if (!RequestActive())
+                            throw new OperationCanceledException("0선 선대기 요청이 변경되었습니다.");
+                        var done = new ST_ZERO_LINE_PREWAIT_STATUS("DONE", alreadyAtFirst ? "첫 검사 X 위치 일치 · 선이동 요청 생략" : "0선 첫 Review X 선대기·SDC 복귀 완료", group, first, recipeId);
                         lock (_sync)
                         {
                             _completed = done;
@@ -5754,7 +5805,7 @@
                 Set("PREPARING", $"0선 Group {plan.Group} · {plan.Points.Count}개 Y 배열·IOF Buffer 준비");
                 await _stage.PrepareIof(plan.Points.Select(p => new ST_STAGE_IOF_POINT(p.ReviewX, p.StageY)).ToArray(), true, token).ConfigureAwait(false);
                 _vision = await review.OpenZeroLineVision(plan, stageSimulation, token).ConfigureAwait(false);
-                Set("PREPARING", "0선 Vision 1900 1회·첫 1001 준비");
+                Set("PREPARING", $"0선 Vision 1900 1회·전체 {plan.Points.Count}개 1001 준비");
                 await _vision.PrepareFirst(token).ConfigureAwait(false);
                 Set("READY", "0선 IOF·첫 X·Vision 준비 완료");
             }
@@ -5778,20 +5829,6 @@
                 for (var i = 0; i < results.Length; i++)
                 {
                     token.ThrowIfCancellationRequested();
-                    if (i > 0)
-                    {
-                        try
-                        {
-                            await _vision.Arm(i, token).ConfigureAwait(false);
-                        }
-                        catch (Exception error)when (!token.IsCancellationRequested)
-                        {
-                            FailRemaining(i, "Vision 준비 실패: " + error.Message);
-                            break;
-                        }
-                    }
-
-                    var lateReady = _stage.ZeroLinePassedPoints >= i + 1;
                     results[i] = results[i] with
                     {
                         State = "RUNNING"
@@ -5802,51 +5839,12 @@
                     if (first == _stageRun && (_stageRun.IsFaulted || _stageRun.IsCanceled))
                         await _stageRun.ConfigureAwait(false);
                     await segment.ConfigureAwait(false);
-                    try
-                    {
-                        Set("RUNNING", $"0선 {i + 1}/{results.Length} · Vision 1002 개수 확인·1003 검사 결과 수신", results.ToArray());
-                        results[i] = await _vision.Measure(i, token).ConfigureAwait(false);
-                    }
-                    catch (Exception error)when (!token.IsCancellationRequested)
-                    {
-                        FailRemaining(i, "Vision 측정 실패: " + error.Message);
-                        break;
-                    }
-
-                    if (lateReady && results[i].State == "OK")
-                        results[i] = results[i] with
-                        {
-                            State = "NG",
-                            Point = results[i].Point with
-                            {
-                                State = EN_REVIEW_POINT_STATE.Ng,
-                                Judge = "NG"
-                            },
-                            Detail = "Vision READY 전에 촬영 구간이 통과했습니다."
-                        };
-                    Set("RUNNING", $"0선 {i + 1}/{results.Length} · {results[i].State}", results.ToArray());
+                    results[i] = results[i] with { State = "CAPTURED", Detail = "촬영 위치 통과 · 가공 완료/Stage Y 정지 후 결과 일괄 수신 대기" };
+                    Set("RUNNING", $"0선 {i + 1}/{results.Length} · 촬영 위치 통과", results.ToArray());
                 }
 
                 await _stageRun.ConfigureAwait(false);
-                Set("DONE", $"0선 {results.Length}개 결과 처리 완료 · NG {results.Count(p => p.IsNg)}", results.ToArray());
-                void FailRemaining(int first, string detail)
-                {
-                    // Terminal measurement failure is NG, not an interruption of Stage-owned travel
-                    // or machining. Do not send requests for capture windows already missed while
-                    // the connection timed out. COMPLETE still waits for machining + saved final flags.
-                    for (var j = first; j < results.Length; j++)
-                        results[j] = results[j] with
-                        {
-                            State = "ERROR",
-                            Point = results[j].Point with
-                            {
-                                State = EN_REVIEW_POINT_STATE.Ng,
-                                Judge = "NG"
-                            },
-                            Detail = j == first ? detail : "이전 Vision 실패로 검사하지 못했습니다: " + detail
-                        };
-                    Set("RUNNING", detail + " · 남은 측정 실패 종결, 가공은 계속 진행", results);
-                }
+                Set("CAPTURED", $"0선 {results.Length}개 촬영 위치 통과 · 가공 완료/Stage Y 정지 대기", results.ToArray());
             }
             catch (Exception error)
             {
@@ -5868,6 +5866,43 @@
                 }
 
                 throw;
+            }
+        }
+
+        public async Task ReadResults(CancellationToken token)
+        {
+            if (_stage is null || _vision is null || Status.State != "CAPTURED" || _stageRun?.IsCompletedSuccessfully != true)
+                throw new InvalidOperationException("0선 촬영 위치 통과가 완료되지 않았습니다.");
+            Set("WAIT_STAGE_END", "가공 완료 확인 · Stage Y 가공 완료 위치 정지 대기");
+            try
+            {
+                await _stage.WaitZeroLineEndPosition(plan, token).ConfigureAwait(false);
+            }
+            catch (Exception error)
+            {
+                Set(error is OperationCanceledException ? "STOPPED" : "ERROR", error.Message);
+                throw; // No 1002 / 1003 before a confirmed stopped end position.
+            }
+            try
+            {
+                Set("READING", $"0선 {plan.Points.Count}개 · Vision 1002/1003 일괄 수신");
+                var results = await _vision.MeasureAll(token).ConfigureAwait(false);
+                Set("DONE", $"0선 {results.Count}개 결과 처리 완료 · NG {results.Count(point => point.IsNg)}", results);
+            }
+            catch (OperationCanceledException)when (token.IsCancellationRequested)
+            {
+                Set("STOPPED", "0선 일괄 결과 수신 중지");
+                throw;
+            }
+            catch (Exception error)
+            {
+                var results = Status.Results!.Select(result => result with
+                {
+                    State = "ERROR",
+                    Point = result.Point with { State = EN_REVIEW_POINT_STATE.Ng, Judge = "NG" },
+                    Detail = error.Message
+                }).ToArray();
+                Set("DONE", "0선 일괄 결과 실패: " + error.Message, results);
             }
         }
 
