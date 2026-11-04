@@ -5885,7 +5885,7 @@
         {
             if (_stage is null || _vision is null || Status.State != "WAIT_RESULTS")
                 throw new InvalidOperationException("0선 결과 수신 준비가 완료되지 않았습니다.");
-            Set("WAIT_STAGE_END", "가공 완료 확인 · Stage Y 가공 완료 위치 정지 대기");
+            Set("WAIT_STAGE_END", "가공 완료 확인 · Stage Y 가공 방향 기준 목표 통과 후 정지 대기");
             try
             {
                 await _stage.WaitZeroLineEndPosition(plan, token).ConfigureAwait(false);

@@ -703,9 +703,15 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
                 throw new InvalidOperationException("0선 Stage Buffer 소유권이 필요합니다.");
             Check(token);
             if (_simulation && _automatic)
-                _lease!.Move(EN_MANUAL_STAGE_AXIS.StageY, plan.Motion.StageStartY + plan.Motion.StageDirection * plan.Motion.StageStroke, plan.Motion.StageSpeed, plan.Motion.StageAcceleration);
+            {
+                // Stop one MELSEC coordinate unit beyond the threshold in SIM only.
+                // A strict passed-target check must not stall at an exact virtual endpoint.
+                var simulatedEndY = plan.Motion.StageStartY + plan.Motion.StageDirection * (plan.Motion.StageStroke + .0001);
+                _lease!.Move(EN_MANUAL_STAGE_AXIS.StageY, simulatedEndY, plan.Motion.StageSpeed, plan.Motion.StageAcceleration);
+            }
         }
 
+        /// <summary>After machining, wait for a stop beyond the target in the scan direction.</summary>
         public async Task WaitZeroLineEndPosition(ST_ZERO_LINE_CYCLE_PLAN plan, CancellationToken token)
         {
             if (!_stageBufferOwner)
@@ -713,6 +719,9 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
             var endY = plan.Motion.StageStartY + plan.Motion.StageDirection * plan.Motion.StageStroke;
             if (!double.IsFinite(endY))
                 throw new InvalidDataException("0선 Stage Y 가공 완료 위치가 유효하지 않습니다.");
+            var direction = plan.Motion.StageDirection;
+            if (direction is not (-1 or 1))
+                throw new InvalidDataException("0선 Stage Y 가공 방향은 -1 또는 +1이어야 합니다.");
             var clock = Stopwatch.StartNew();
             while (true)
             {
@@ -720,13 +729,14 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
                 var values = _simulation ? null : _interfaces.Melsec.GetCachedSnapshot(["MOTOR_STAGE_Y_CUR_POS", "MOTOR_STAGE_Y_BUSY"], out _);
                 var y = ZeroLineFeedback("MOTOR_STAGE_Y_CUR_POS", values);
                 var busy = ZeroLineFeedback("MOTOR_STAGE_Y_BUSY", values);
-                if (Math.Abs(y - endY) <= CStageReadyPositionCheck.ToleranceMm + 1e-9 && busy == 0)
+                var passedTarget = direction < 0 ? y < endY : y > endY;
+                if (passedTarget && busy == 0)
                 {
-                    Record("ZERO_LINE_STAGE_END_STOPPED", FormattableString.Invariant($"TargetY={endY}; ActualY={y}; Busy={busy}; Tolerance={CStageReadyPositionCheck.ToleranceMm}"));
+                    Record("ZERO_LINE_STAGE_END_STOPPED", FormattableString.Invariant($"TargetY={endY}; ActualY={y}; Direction={direction}; PassedTarget=True; Busy={busy}"));
                     return;
                 }
                 if (clock.Elapsed > _owner._signalTimeout)
-                    throw new TimeoutException(FormattableString.Invariant($"0선 Stage Y 가공 완료 위치 정지 대기 시간 초과: TargetY={endY}, ActualY={y}, Busy={busy}."));
+                    throw new TimeoutException(FormattableString.Invariant($"0선 Stage Y 목표 통과 후 정지 대기 시간 초과: Direction={direction}, TargetY={endY}, ActualY={y}, PassedTarget={passedTarget}, Busy={busy}."));
                 await Task.Delay(20, token).ConfigureAwait(false);
             }
         }
