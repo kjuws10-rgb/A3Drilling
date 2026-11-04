@@ -5270,8 +5270,13 @@
             await WaitMachiningAndZeroLine(token).ConfigureAwait(false);
             if (zeroLine?.Enabled() == true)
             {
-                Set("PROCESS_ZERO_RESULTS", "Saving 0-line judgments and the final follow-up request.");
-                await Action(CSequenceActionIds.ProcessZeroResults, zeroLine.Save, token).ConfigureAwait(false);
+                Set("PROCESS_ZERO_RESULTS", "가공 완료 후 0선 Vision 결과 일괄 수신·판정·저장 및 후속 요청 처리");
+                await Action(CSequenceActionIds.ProcessZeroResults, async ct =>
+                {
+                    if (zeroLine.ReadResults is not null)
+                        await zeroLine.ReadResults(ct).ConfigureAwait(false);
+                    await zeroLine.Save(ct).ConfigureAwait(false);
+                }, token).ConfigureAwait(false);
             }
 
             Set("PROCESS_RESULTS", "Validating and saving machining results.");
@@ -5418,14 +5423,14 @@
             using var inspectionStop = CancellationTokenSource.CreateLinkedTokenSource(token);
             var inspection = Action(CSequenceActionIds.ProcessZeroMeasure, async ct =>
             {
-                await zeroLine.Measure(ct).ConfigureAwait(false); // Capture / X travel only.
+                // Stage executes the IOF buffer prepared in Action 03. Do not
+                // infer capture success from individual X/Y feedback samples.
+                await zeroLine.Measure(ct).ConfigureAwait(false);
                 await machining.WaitAsync(ct).ConfigureAwait(false);
-                if (zeroLine.ReadResults is not null)
-                    await zeroLine.ReadResults(ct).ConfigureAwait(false);
             }, inspectionStop.Token, Timeout.InfiniteTimeSpan);
             var first = await Task.WhenAny(machining, inspection).ConfigureAwait(false);
-            // Measurement/transport errors do not interrupt already running laser Tasks. Await their
-            // normal end, then fail without Prc COMPLETE. A machining failure cancels the observer.
+            // A zero-line preparation failure does not interrupt already running laser Tasks.
+            // Results are acquired in Action 12 after normal machining completion.
             if (first == machining && !machining.IsCompletedSuccessfully)
                 inspectionStop.Cancel();
             await Task.WhenAll(machining, inspection).ConfigureAwait(false);
@@ -5817,8 +5822,6 @@
     {
         private CStageReviewSequences.Session? _stage;
         private CReviewManager.ZeroLineVisionSession? _vision;
-        private CancellationTokenSource? _stageStop;
-        private Task? _stageRun;
         private bool _saved, _advanced;
         private ST_ZERO_LINE_CYCLE_STATUS _status = new(true, "WAIT", "0선 준비 대기", plan.Group, Array.AsReadOnly(plan.VisionPlan.Points.Select(p => new ST_ZERO_LINE_POINT_RESULT(p, "WAIT")).ToArray()))
         {
@@ -5863,62 +5866,25 @@
             }
         }
 
-        public async Task Measure(CancellationToken token)
+        public Task Measure(CancellationToken token)
         {
+            token.ThrowIfCancellationRequested();
             if (_stage is null || _vision is null || Status.State != "READY")
                 throw new InvalidOperationException("0선 준비가 완료되지 않았습니다.");
-            var results = Status.Results!.ToArray();
-            _stageStop = CancellationTokenSource.CreateLinkedTokenSource(token);
-            _stageRun = _stage.RunZeroLineCaptureMonitoring(plan, _stageStop.Token);
-            try
+            _stage.BeginZeroLineSimulation(plan, token);
+            var results = Status.Results!.Select(result => result with
             {
-                for (var i = 0; i < results.Length; i++)
-                {
-                    token.ThrowIfCancellationRequested();
-                    results[i] = results[i] with
-                    {
-                        State = "RUNNING"
-                    };
-                    Set("RUNNING", $"0선 {i + 1}/{results.Length} · H{results[i].Point.HeadNo:00} Stage Y 촬영 위치 통과 대기", results.ToArray());
-                    var segment = _stage.WaitZeroLineCapture(i + 1, _stageStop.Token);
-                    var first = await Task.WhenAny(segment, _stageRun).ConfigureAwait(false);
-                    if (first == _stageRun && (_stageRun.IsFaulted || _stageRun.IsCanceled))
-                        await _stageRun.ConfigureAwait(false);
-                    await segment.ConfigureAwait(false);
-                    results[i] = results[i] with { State = "CAPTURED", Detail = "촬영 위치 통과 · 가공 완료/Stage Y 정지 후 결과 일괄 수신 대기" };
-                    Set("RUNNING", $"0선 {i + 1}/{results.Length} · 촬영 위치 통과", results.ToArray());
-                }
-
-                await _stageRun.ConfigureAwait(false);
-                Set("CAPTURED", $"0선 {results.Length}개 촬영 위치 통과 · 가공 완료/Stage Y 정지 대기", results.ToArray());
-            }
-            catch (Exception error)
-            {
-                for (var i = 0; i < results.Length; i++)
-                    if (results[i].State == "RUNNING")
-                        results[i] = results[i] with
-                        {
-                            State = error is OperationCanceledException ? "STOPPED" : "ERROR",
-                            Detail = error.Message
-                        };
-                Set(error is OperationCanceledException ? "STOPPED" : "ERROR", error.Message, results.ToArray());
-                _stageStop.Cancel();
-                try
-                {
-                    await _stageRun.ConfigureAwait(false);
-                }
-                catch (Exception)
-                {
-                }
-
-                throw;
-            }
+                State = "WAIT_RESULTS",
+                Detail = "Stage IOF 실행 · 가공 완료 후 Vision 결과 일괄 수신 대기"
+            }).ToArray();
+            Set("WAIT_RESULTS", $"0선 {results.Length}개 · Stage IOF 실행 / Process 12번 결과 수신 대기", results);
+            return Task.CompletedTask;
         }
 
         public async Task ReadResults(CancellationToken token)
         {
-            if (_stage is null || _vision is null || Status.State != "CAPTURED" || _stageRun?.IsCompletedSuccessfully != true)
-                throw new InvalidOperationException("0선 촬영 위치 통과가 완료되지 않았습니다.");
+            if (_stage is null || _vision is null || Status.State != "WAIT_RESULTS")
+                throw new InvalidOperationException("0선 결과 수신 준비가 완료되지 않았습니다.");
             Set("WAIT_STAGE_END", "가공 완료 확인 · Stage Y 가공 완료 위치 정지 대기");
             try
             {
@@ -6008,22 +5974,11 @@
 
         public async Task Release()
         {
-            _stageStop?.Cancel();
-            if (_stageRun is not null)
-                try
-                {
-                    await _stageRun.ConfigureAwait(false);
-                }
-                catch (Exception error)
-                {
-                    log?.Invoke("0선 Stage 위치 감시 종료: " + error.Message);
-                }
-
             try
             {
                 if (!_saved && _vision is not null)
                 {
-                    if (Status.State is "READY" or "RUNNING")
+                    if (Status.State is "READY" or "RUNNING" or "WAIT_RESULTS")
                         Set("STOPPED", "Process 중단으로 0선 검사를 종료했습니다.");
                     using var save = new CancellationTokenSource(TimeSpan.FromSeconds(5));
                     await SaveFile(save.Token).ConfigureAwait(false);
@@ -6035,8 +5990,6 @@
                 _vision = null;
                 _stage?.Dispose();
                 _stage = null;
-                _stageStop?.Dispose();
-                _stageStop = null;
             }
         }
     }
