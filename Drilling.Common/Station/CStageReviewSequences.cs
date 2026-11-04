@@ -122,7 +122,7 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
             return;
         if (device?.ConnectionState != EN_COMM_STATE.Online)
             throw new InvalidOperationException($"MELSEC_{deviceNo}가 연결되어 있지 않습니다.");
-        var values = interfaces.Melsec.GetCachedSnapshot(out var map);
+        var map = interfaces.Melsec.Map;
         var inputs = new[] { MoveAble, MoveComplete, "MOTOR_STAGE_Y_BUSY", "MOTOR_CAMERA_X_BUSY", "MOTOR_STAGE_Y_CUR_POS", "MOTOR_CAMERA_X_CUR_POS" };
         var outputs = new[] { MoveStart, MoveAck, "PROCESS_REVIEW_STOP_SIGNAL", "PROCESS_REVIEW_CONTROL_MODE", "PROCESS_REVIEW_COMMAND_POSITION_X", "PROCESS_REVIEW_COMMAND_POSITION_Y", "PROCESS_REVIEW_COMMAND_SPEED_X", "PROCESS_REVIEW_COMMAND_SPEED_Y" };
         foreach (var id in inputs.Concat(outputs))
@@ -135,11 +135,9 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
                 || (input ? row.Access is not (EN_MELSEC_ACCESS.Read or EN_MELSEC_ACCESS.ReadWrite) : row.Access != EN_MELSEC_ACCESS.ReadWrite)
                 || (coordinate ? row.DataType != EN_MELSEC_DATA_TYPE.Double : row.DataType is not (EN_MELSEC_DATA_TYPE.Word or EN_MELSEC_DATA_TYPE.DWord)))
                 throw new InvalidOperationException($"실제 Process Move 맵의 장치·주소·입출력·자료형을 확인해 주세요: {id}");
-            if (input && (values.GetValueOrDefault(id) is not { IsValid: true, Value: not null } sample || !double.IsFinite(Convert.ToDouble(sample.Value, CultureInfo.InvariantCulture))))
-                throw new InvalidOperationException($"실제 Process Move 상태 수신을 확인해 주세요: {id}");
         }
-        // Permissions may still be OFF here. Move waits for Stage's permission after Review START.
-        // This preparation reads the existing shared snapshot; it never sends a move or starts a poller.
+        // Preparation validates routing only; it never sends a move or starts a poller.
+        // Session.Move freshly verifies permission, previous signals, Busy and position before/after START.
     }
 
     public void ValidateIofReadiness(int deviceNo, int pointCount = 0)

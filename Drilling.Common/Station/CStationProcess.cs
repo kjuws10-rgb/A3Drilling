@@ -3748,19 +3748,11 @@
         {
             var melsec = _interfaceManager.Melsec;
             var cache = melsec.GetCachedSnapshot(melsec.Map.Where(row => row.Id.StartsWith("HANDSHAKE_", StringComparison.OrdinalIgnoreCase)).Select(row => row.Id), out var map);
-            var required = new[]
-            {
-                CStageRequestSequence.StgAble,
-                CStageRequestSequence.StgStart,
-                CStageRequestSequence.StgComplete,
-                CStageRequestSequence.PrcAble,
-                CStageRequestSequence.PrcStart,
-                CStageRequestSequence.PrcComplete
-            };
-            var rows = required.Select(id => map.FirstOrDefault(row => row.Use && row.Id.Equals(id, StringComparison.OrdinalIgnoreCase))).ToArray();
             var devices = _interfaceManager.GetInterfaceCommunicationList(EN_EQP_MODULE.Melsec);
-            var connected = rows.All(row => row is not null && devices.Any(device => device.Number == row.DeviceNo && (device.IsSimulation || device.ConnectionState == EN_COMM_STATE.Online)));
-            return new(connected, cache);
+            var connectedIds = map.Where(row => row.Use && row.Id.StartsWith("HANDSHAKE_", StringComparison.OrdinalIgnoreCase)
+                && devices.Any(device => device.Number == row.DeviceNo && (device.IsSimulation || device.ConnectionState == EN_COMM_STATE.Online)))
+                .Select(row => row.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            return new(connectedIds.Count > 0, cache) { ConnectedSignalIds = connectedIds };
         }, 
             (id, value, token) => Task.Run(() => _interfaceManager.Melsec.WriteWord(id, value, token), token), 
             _sequenceActions, 
@@ -4126,10 +4118,20 @@
     public static class CHandshakeOutputReset
     {
         public static bool IsTarget(ST_MELSEC_MAP_DATA row) => row.Use && row.Direction == EN_MELSEC_DIRECTION.Out && row.Access == EN_MELSEC_ACCESS.ReadWrite && row.Id.StartsWith("HANDSHAKE_PRC_", StringComparison.OrdinalIgnoreCase);
-        public static async Task Reset(CInterfaceManager interfaces, CancellationToken token = default)
+        public static async Task Reset(CInterfaceManager interfaces, CancellationToken token = default, string? scenario = null)
         {
             var failures = new List<string>();
-            var targets = interfaces.Melsec.Map.Where(IsTarget).ToArray();
+            var scope = scenario switch
+            {
+                "DOREADY" => "HANDSHAKE_PRC_DOREADY_",
+                "PROCESS" => "HANDSHAKE_PRC_PROCESS_",
+                "REVIEW" => "HANDSHAKE_PRC_REVIEW_",
+                "TPM" => "HANDSHAKE_PRC_TOP_POWERMETER_",
+                _ => null
+            };
+            var targets = interfaces.Melsec.Map.Where(row => IsTarget(row)
+                && (scope is null || row.Id.StartsWith(scope, StringComparison.OrdinalIgnoreCase)
+                    && row.Id[(scope.Length)..] is "ABLE" or "START" or "COMPLETE")).ToArray();
             if (targets.Length == 0)
                 throw new InvalidOperationException("초기화할 활성 Handshake 출력 맵이 없습니다.");
             foreach (var row in targets)
@@ -4699,7 +4701,10 @@
         public string Scenario { get; init; } = "";
         public string CycleId { get; init; } = "";
     }
-    public sealed record ST_STAGE_SIGNAL_SNAPSHOT(bool Connected, IReadOnlyDictionary<string, ST_MELSEC_CACHED_VALUE> Values);
+    public sealed record ST_STAGE_SIGNAL_SNAPSHOT(bool Connected, IReadOnlyDictionary<string, ST_MELSEC_CACHED_VALUE> Values)
+    {
+        public IReadOnlySet<string>? ConnectedSignalIds { get; init; }
+    }
     /// <summary>Stage is master. Snapshots and requested fresh reads share the central MELSEC poller.</summary>
     public sealed partial class CStageRequestSequence(
         Func<ST_STAGE_SIGNAL_SNAPSHOT> read, 
@@ -4774,6 +4779,9 @@
                 actions.Reset();
                 _reviewActions = review;
                 _scenario = "AUTO";
+                _initializedOutputs.Clear();
+                _doReadyOutputsOwned = false;
+                _processOutputsOwned = false;
                 _reviewOutputsOwned = false;
                 _tpmActions = tpm;
                 _loadLatestScripts = loadLatestScripts;
@@ -4825,52 +4833,36 @@
                 {
                     _scenario = "AUTO";
                     Set(_reviewActions is null ? "WAIT_DOREADY" : "WAIT_REQUEST", "Waiting for Stage DoReady / Review ABLE (START/COMPLETE must be OFF).");
-                    // Synchronize our side first. A previous high COMPLETE can otherwise
-                    // prevent Stage from clearing its own COMPLETE after a reconnect.
-                    while (true)
-                    {
-                        token.ThrowIfCancellationRequested();
-                        var initial = ReadSignals();
-                        if (TrySignal(initial, StgAble, out _) && TrySignal(initial, StgStart, out _) && TrySignal(initial, StgComplete, out _))
-                            break;
-                        await Task.Delay(100, token).ConfigureAwait(false);
-                    }
-
-                    outputsOwned = true;
-                    if (processMachining is not null)
-                    {
-                        _processOutputsOwned = true;
-                        foreach (var id in ProcessOutputs)
-                            await WriteConfirmed(id, 0, token).ConfigureAwait(false);
-                    }
-
-                    foreach (var id in new[]
-                    {
-                        PrcComplete,
-                        PrcStart,
-                        PrcAble
-                    }
-
-                    )
-                        await WriteConfirmed(id, 0, token).ConfigureAwait(false);
-                    if (_reviewActions is not null)
-                    {
-                        _reviewOutputsOwned = true;
-                        foreach (var id in ReviewOutputs)
-                            await WriteConfirmed(id, 0, token).ConfigureAwait(false);
-                    }
-
-                    // Standing ABLE is allowed, but an old START/COMPLETE must never replay a request.
-                    if (_tpmActions is not null)
-                    {
-                        _tpmOutputsOwned = true;
-                        foreach (var id in TpmOutputs) await WriteConfirmed(id, 0, token).ConfigureAwait(false);
-                    }
                     var processOnly = false;
                     while (true)
                     {
                         token.ThrowIfCancellationRequested();
                         var sample = ReadSignals();
+                        // Synchronize only a requested group (or our retained high output).
+                        // Inactive groups never gate another request or acquire output ownership.
+                        var candidates = new[] { "TPM", "REVIEW", "DOREADY", "PROCESS" }.Where(scenario =>
+                            (scenario != "TPM" || _tpmActions is not null)
+                            && (scenario != "REVIEW" || _reviewActions is not null)
+                            && (scenario != "PROCESS" || processMachining is not null)).ToArray();
+                        var requestedScenario = candidates.FirstOrDefault(scenario => InputsFor(scenario).Select((id, index) =>
+                            TrySignal(sample, id, out var value) && value == (index == 0 ? 1 : 0)).All(ready => ready))
+                            ?? candidates.FirstOrDefault(scenario => TrySignal(sample, InputsFor(scenario)[0], out var able) && able == 1)
+                            ?? candidates.FirstOrDefault(scenario => !_initializedOutputs.Contains(scenario)
+                                && OutputsFor(scenario).Any(id => TrySignal(sample, id, out var value) && value == 1));
+                        if (requestedScenario is { } scenario && !_initializedOutputs.Contains(scenario))
+                        {
+                            var outputs = OutputsFor(scenario);
+                            _scenario = scenario;
+                            outputsOwned = true;
+                            SetOutputOwnership(scenario, true);
+                            foreach (var id in outputs)
+                                await WriteConfirmed(id, 0, token).ConfigureAwait(false);
+                            SetOutputOwnership(scenario, false);
+                            _initializedOutputs.Add(scenario);
+                            _scenario = "AUTO";
+                            // Re-arbitrate: a different request may arrive while OFF readback is pending.
+                            continue;
+                        }
                         if (IsTpmReady(sample))
                         {
                             await RunTpm(token).ConfigureAwait(false);
@@ -4903,6 +4895,7 @@
                     if (processOnly)
                     {
                         _scenario = "PROCESS";
+                        _processOutputsOwned = true;
                         BeginLogCycle("PROCESS_ONLY");
                         // Re-capture conditions, but do not rebuild. Re-upload the latest
                         // stored AUTO script set; a Manual/fault transition stopped its Tasks.
@@ -4921,6 +4914,7 @@
                     }
 
                     _scenario = "DOREADY";
+                    _doReadyOutputsOwned = true;
                     BeginLogCycle("DOREADY_PROCESS");
                     LogEvent("ACTIONS_RESET All actions -> WAIT for a new request.");
                     actions.Reset(); // Reset execution feedback only when accepting a new request.
@@ -4965,6 +4959,7 @@
                         token, 
                         resetToWaitingOnSuccess: true
                     ).ConfigureAwait(false);
+                    _doReadyOutputsOwned = false;
                     Set("WAIT_PROCESS", "DoReady handshake cleared; waiting for Stage Process ABLE before MOF initialization and Task RUN.");
                     _scenario = "PROCESS";
                     if (processMachining is not null)
@@ -5023,7 +5018,7 @@
             _cleanupTasks = tasksIssued;
             _cleanupOutputs = outputsOwned;
             var failed = false;
-            if (zeroLine is not null)
+            if ((_processOutputsOwned || tasksIssued) && zeroLine is not null)
             {
                 try
                 {
@@ -5054,12 +5049,8 @@
 
             if (outputsOwned)
             {
-                foreach (var id in new[]
-                {
-                    PrcComplete,
-                    PrcStart,
-                    PrcAble
-                }.Concat(_processOutputsOwned ? ProcessOutputs : []).Concat(_reviewOutputsOwned ? ReviewOutputs : []).Concat(_tpmOutputsOwned ? TpmOutputs : []))
+                foreach (var id in (_doReadyOutputsOwned ? OutputsFor("DOREADY") : [])
+                    .Concat(_processOutputsOwned ? ProcessOutputs : []).Concat(_reviewOutputsOwned ? ReviewOutputs : []).Concat(_tpmOutputsOwned ? TpmOutputs : []))
                 {
                     try
                     {
@@ -5190,13 +5181,35 @@
             catch (Exception error) { throw CSequenceFailureException.Action(CSequenceActionIds.ProcessMachining, error); }
         }
 
-        private string[] CurrentInputs() => _scenario switch
+        private readonly HashSet<string> _initializedOutputs = [];
+        private bool _doReadyOutputsOwned;
+        private static string[] InputsFor(string scenario) => scenario switch
         {
             "REVIEW" => [StgReviewAble, StgReviewStart, StgReviewComplete],
             "TPM" => [StgTpmAble, StgTpmComplete],
             "PROCESS" => [StgProcessAble, StgProcessStart, StgProcessComplete],
             _ => [StgAble, StgStart, StgComplete]
         };
+
+        private string[] CurrentInputs() => InputsFor(_scenario);
+        private static string[] OutputsFor(string scenario) => scenario switch
+        {
+            "REVIEW" => ReviewOutputs,
+            "TPM" => TpmOutputs,
+            "PROCESS" => ProcessOutputs,
+            _ => [PrcComplete, PrcStart, PrcAble]
+        };
+
+        private void SetOutputOwnership(string scenario, bool owned)
+        {
+            switch (scenario)
+            {
+                case "REVIEW": _reviewOutputsOwned = owned; break;
+                case "TPM": _tpmOutputsOwned = owned; break;
+                case "PROCESS": _processOutputsOwned = owned; break;
+                default: _doReadyOutputsOwned = owned; break;
+            }
+        }
 
         private string DescribeSample(ST_STAGE_SIGNAL_SNAPSHOT snapshot, string id)
         {
@@ -5211,6 +5224,9 @@
                 throw new InvalidOperationException("MELSEC offline during Stage sequence.");
             var inputs = CurrentInputs();
             var requested = (waitId is null ? inputs : inputs.Append(waitId)).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+            if (sample.ConnectedSignalIds is { } connected && requested.Any(id => !connected.Contains(id)))
+                throw new InvalidOperationException($"Current Stage handshake route is offline or unassigned: Scenario={_scenario}; "
+                    + string.Join(",", requested.Where(id => !connected.Contains(id))));
             // Inactive DoReady/Process/Review/TPM caches are observations, not gates of this transaction.
             foreach (var id in requested)
                 if (sample.Values.GetValueOrDefault(id)?.State is EN_MELSEC_CACHE_STATE.Error or EN_MELSEC_CACHE_STATE.Offline)
@@ -5243,7 +5259,8 @@
         private static bool TrySignal(ST_STAGE_SIGNAL_SNAPSHOT snapshot, string id, out int value)
         {
             value = -1;
-            if (!snapshot.Connected || !snapshot.Values.TryGetValue(id, out var sample) || !sample.IsValid || sample.Value is null)
+            if (!snapshot.Connected || snapshot.ConnectedSignalIds is { } connected && !connected.Contains(id)
+                || !snapshot.Values.TryGetValue(id, out var sample) || !sample.IsValid || sample.Value is null)
                 return false;
             try
             {
@@ -5312,6 +5329,13 @@
                 await Task.Delay(100, token).ConfigureAwait(false);
             }
 
+            _processOutputsOwned = true;
+            if (!_initializedOutputs.Contains("PROCESS"))
+            {
+                foreach (var id in ProcessOutputs)
+                    await WriteConfirmed(id, 0, token).ConfigureAwait(false);
+                _initializedOutputs.Add("PROCESS");
+            }
             await PrepareProcessTasks(zero, runTasks, token).ConfigureAwait(false);
             await WriteConfirmed(PrcProcessAble, 1, token).ConfigureAwait(false);
             Set("PROCESS_WAIT_START", "Process preparation complete and ABLE acknowledged; waiting for Stage START.", true);
@@ -5368,6 +5392,7 @@
                 token, 
                 resetToWaitingOnSuccess: true
             ).ConfigureAwait(false);
+            _processOutputsOwned = false;
             Set("PROCESS_COMPLETE", "Process handshake completed; waiting for the next DoReady request.");
         }
 
@@ -5412,6 +5437,7 @@
                     await WaitSignal(StgTpmAble, 0, ct).ConfigureAwait(false);
                     actions.ResetToWaiting(["TPM_PREPARE", "TPM_MEASURE", "TPM_RESULTS"]);
                 }, token, resetToWaitingOnSuccess: true).ConfigureAwait(false);
+                _tpmOutputsOwned = false;
                 LogEvent("CYCLE_COMPLETE Kind=TPM");
                 Volatile.Write(ref _logCycleId, "");
             }
@@ -5423,6 +5449,7 @@
         private async Task RunReview(CancellationToken token)
         {
             _scenario = "REVIEW";
+            _reviewOutputsOwned = true;
             BeginLogCycle("REVIEW");
             var review = _reviewActions ?? throw new InvalidOperationException("Review actions are not configured.");
             actions.ResetToWaiting([CSequenceActionIds.ReviewPlan, CSequenceActionIds.ReviewMeasure, CSequenceActionIds.ReviewResults, CSequenceActionIds.ReviewSignalsClear]);
@@ -5462,6 +5489,7 @@
                 token, 
                 resetToWaitingOnSuccess: true
             ).ConfigureAwait(false);
+            _reviewOutputsOwned = false;
             Set("REVIEW_COMPLETE", "Review handshake completed; waiting for Stage's next request.");
             LogEvent("CYCLE_COMPLETE Kind=REVIEW");
             Volatile.Write(ref _logCycleId, "");
@@ -5541,9 +5569,13 @@
             lock (_signalTraceLock)
             {
                 Changed("MELSEC_CONNECTED", snapshot.Connected.ToString(), "");
-                foreach (var(id, sample)in snapshot.Values)
+                var observed = _scenario == "AUTO"
+                    ? InputsFor("DOREADY").Concat(processMachining is not null ? InputsFor("PROCESS") : [])
+                        .Concat(_reviewActions is not null ? InputsFor("REVIEW") : []).Concat(_tpmActions is not null ? InputsFor("TPM") : [])
+                    : CurrentInputs().Concat(OutputsFor(_scenario));
+                foreach (var id in observed)
                 {
-                    if (!id.StartsWith("HANDSHAKE_", StringComparison.OrdinalIgnoreCase))
+                    if (!snapshot.Values.TryGetValue(id, out var sample))
                         continue;
                     var value = Convert.ToString(sample.Value, CultureInfo.InvariantCulture) ?? "<null>";
                     Changed(id, $"State={sample.State}; Value={value}; Error={sample.ErrorMessage}", $"; SampleAt={sample.UpdatedAt:O}");

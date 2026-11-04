@@ -2629,6 +2629,10 @@
 
         private async Task RecoverHeavyAlarm()
         {
+            var stageRequest = _stationManager.StageRequests;
+            var cleanupScenario = _operationMode == EN_SYSTEM_MODE.Auto
+                && (stageRequest.IsRunning || stageRequest.NeedsCleanup || stageRequest.Status.State == "ERROR")
+                ? stageRequest.Status.Scenario : null;
             _heavyRecoveryBlocked = true;
             SetAlarmRecoveryStatus("HEAVY · 진행 동작 정지 및 우리 측 Handshake OFF 확인 중");
             try
@@ -2679,7 +2683,7 @@
                 if (failures.Count > 0)
                     throw new AggregateException("동작 정지 확인 실패", failures);
                 await _interfaceManager.StageReviewSequences.RecoverIdleCleanup();
-                await CHandshakeOutputReset.Reset(_interfaceManager);
+                await CHandshakeOutputReset.Reset(_interfaceManager, scenario: cleanupScenario);
                 // Stage-request AUTO also sets Station=Process; it has no legacy _autoCycleCompletion.
                 // Synchronize the stopped station only after every worker and output cleanup succeeded.
                 _stationManager.Stop();

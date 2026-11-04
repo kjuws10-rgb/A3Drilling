@@ -2291,6 +2291,7 @@
             }
 
             public double ReviewXPosition => _session.CurrentX;
+            public Task<double> ReadReviewXPosition(CancellationToken token) => _session.ReadStationaryPosition(EN_MANUAL_STAGE_AXIS.ReviewX, token);
 
             public Task MoveAndWait(ST_REVIEW_PLAN_POINT point, CancellationToken token, bool reviewXOnly = false) => _session.Move(new(point.ReviewTargetX, point.ReviewTargetY, _motion.Speed, _stageSpeed, _motion.Acceleration, reviewXOnly ? EN_STAGE_MOVE_MODE.ReviewX : EN_STAGE_MOVE_MODE.XY), token);
             public Task VerifyArrival(ST_REVIEW_PLAN_POINT point, CancellationToken token) => _session.VerifyArrival(new(point.ReviewTargetX, point.ReviewTargetY, _motion.Speed, _stageSpeed, _motion.Acceleration), token);
@@ -2481,7 +2482,7 @@
                     // determines the next direction, including a reversed NG retry.
                     if (request.Context?.Origin == "AUTO" || request.IsResume || index > firstIndex)
                     {
-                        var x = motion.ReviewXPosition;
+                        var x = await motion.ReadReviewXPosition(cancellationToken);
                         ordered = Math.Abs(x - sorted[0].ReviewTargetX) <= Math.Abs(x - sorted[^1].ReviewTargetX) ? sorted : sorted.Reverse().ToArray();
                     }
 
@@ -2622,7 +2623,7 @@
                                 // Do not start the next capture or release the lease before both operations settle.
                                 var nextIndex = index + 1;
                                 var next = lines[nextIndex].Points.OrderBy(point => point.ReviewTargetX).ThenBy(point => point.CellNo).ToArray();
-                                var x = motion.ReviewXPosition;
+                                var x = await motion.ReadReviewXPosition(cancellationToken);
                                 var nextStart = Math.Abs(x - next[0].ReviewTargetX) <= Math.Abs(x - next[^1].ReviewTargetX) ? next[0] : next[^1];
                                 using var overlap = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                                 async Task Prefetch()

@@ -2777,8 +2777,32 @@
 
         private void PollNextCacheBlock()
         {
+            // Share one worker wake across cheap reads. A full monitoring sweep must
+            // not become stale merely because the OS rounds the 2 ms thread wait up.
+            var elapsed = Stopwatch.StartNew();
+            for (var attempt = 0; attempt < 4; attempt++)
+            {
+                if (attempt > 0)
+                {
+                    if (elapsed.ElapsedMilliseconds >= 8)
+                        break;
+                    // Control/STOP/write work keeps priority over every extra poll.
+                    lock (_requestLock)
+                        if (_requestQueue.Count > 0 || !_acceptRequests)
+                            break;
+                    lock (_writeLock)
+                        if (_activeWriteCommand is not null || _writeQueue.Count > 0)
+                            break;
+                }
+                if (!TryPollNextCacheBlock())
+                    break;
+            }
+        }
+
+        private bool TryPollNextCacheBlock()
+        {
             if (!_acceptRequests)
-                return;
+                return false;
             PollBlock? selected = null;
             int generation;
             var now = DateTimeOffset.UtcNow;
@@ -2819,7 +2843,7 @@
             }
 
             if (selected == null)
-                return;
+                return false;
             try
             {
                 var first = selected.Items[0].Data;
@@ -2832,7 +2856,7 @@
                     if (!open)
                     {
                         CompletePollingFailure(selected, generation, EN_MELSEC_CACHE_STATE.Offline, "MELSEC communication line is not open.");
-                        return;
+                        return true;
                     }
                 }
 
@@ -2843,7 +2867,7 @@
                 lock (_pollLock)
                 {
                     if (generation != _pollGeneration || !_acceptRequests)
-                        return;
+                        return true;
                     foreach (var pair in values)
                     {
                         var id = NormalizeId(pair.Item.Data.Id);
@@ -2865,6 +2889,7 @@
                 lock (_pollLock)
                     selected.IsReading = false;
             }
+            return true;
         }
 
         private void CompletePollingFailure(PollBlock block, int generation, EN_MELSEC_CACHE_STATE state, string message)
