@@ -4681,7 +4681,11 @@
         }
     }
 
-    public sealed record ST_STAGE_REQUEST_STATUS(string State, string Detail, bool ReadyForProcess = false);
+    public sealed record ST_STAGE_REQUEST_STATUS(string State, string Detail, bool ReadyForProcess = false)
+    {
+        public string Scenario { get; init; } = "";
+        public string CycleId { get; init; } = "";
+    }
     public sealed record ST_STAGE_SIGNAL_SNAPSHOT(bool Connected, IReadOnlyDictionary<string, ST_MELSEC_CACHED_VALUE> Values);
     /// <summary>Stage is master. Reads only shared snapshots; all writes use the central MELSEC queue.</summary>
     public sealed partial class CStageRequestSequence(
@@ -5207,7 +5211,7 @@
 
         private void Set(string state, string detail, bool ready = false)
         {
-            Volatile.Write(ref _status, new(state, detail, ready));
+            Volatile.Write(ref _status, new(state, detail, ready) { Scenario = _scenario, CycleId = LogCycleId });
             LogEvent($"{state}: {detail}");
         }
 

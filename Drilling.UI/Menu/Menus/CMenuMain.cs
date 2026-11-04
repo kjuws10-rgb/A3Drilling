@@ -137,7 +137,7 @@
         {
             var values = interfaceManager.Melsec.GetCachedSnapshot(out var map);
             var connections = interfaceManager.GetInterfaceCommunicationList(EN_EQP_MODULE.Melsec).ToDictionary(device => device.Number, device => device.IsSimulation ? EN_COMM_STATE.Simulation : device.ConnectionState);
-            SequenceStatus.Refresh(values, map, connections, snapshot.SequenceActions);
+            SequenceStatus.Refresh(values, map, connections, snapshot.SequenceActions, snapshot.StageRequest);
             SequenceStatus.RefreshZeroLine(snapshot.ZeroLinePrewait, snapshot.ZeroLine);
             if (_selectedParameterTabKey == ParameterTabProtectWindow)
                 ProtectWindow.RefreshSignals(values, map, connections);
@@ -2882,6 +2882,7 @@
     public sealed class CMainSequenceStatus
     {
         private string _selectedKey = "DO_READY";
+        private (string Cycle, string Scenario)? _lastAutoScenario;
         private IReadOnlyDictionary<string, ST_MELSEC_CACHED_VALUE> _values = new Dictionary<string, ST_MELSEC_CACHED_VALUE>();
         private IReadOnlyDictionary<string, ST_MELSEC_MAP_DATA> _map = new Dictionary<string, ST_MELSEC_MAP_DATA>();
         private IReadOnlyDictionary<int, EN_COMM_STATE> _connections = new Dictionary<int, EN_COMM_STATE>();
@@ -2944,15 +2945,48 @@
             IReadOnlyDictionary<string, ST_MELSEC_CACHED_VALUE> values, 
             IReadOnlyList<ST_MELSEC_MAP_DATA> map, 
             IReadOnlyDictionary<int, EN_COMM_STATE> connections, 
-            IReadOnlyDictionary<string, ST_SEQUENCE_ACTION_STATUS>? actions = null
+            IReadOnlyDictionary<string, ST_SEQUENCE_ACTION_STATUS>? actions = null,
+            ST_STAGE_REQUEST_STATUS? stageRequest = null
         )
         {
             _values = values;
             _map = map.ToDictionary(row => row.Id, StringComparer.OrdinalIgnoreCase);
             _connections = connections;
             _actions = actions ?? new Dictionary<string, ST_SEQUENCE_ACTION_STATUS>();
+            FollowAutoScenario(stageRequest);
             RefreshCards();
             RefreshTabs();
+        }
+
+        private void FollowAutoScenario(ST_STAGE_REQUEST_STATUS? status)
+        {
+            // Follow accepted AUTO work, never a subordinate Move/IOF/Align signal.
+            if (status is null || string.IsNullOrEmpty(status.CycleId) ||
+                status.State is "DISABLED" or "WAIT_REQUEST" or "WAIT_DOREADY" or "WAIT_PROCESS" or
+                    "STOPPING" or "STOPPED" or "ERROR" or "PROCESS_COMPLETE" or "REVIEW_COMPLETE")
+            {
+                _lastAutoScenario = null;
+                return;
+            }
+            var key = status.Scenario switch
+            {
+                "DOREADY" => "DO_READY",
+                "PROCESS" => "PROCESS",
+                "REVIEW" => "REVIEW",
+                "TPM" => "TOP_POWERMETER",
+                _ => null
+            };
+            if (key is null)
+            {
+                _lastAutoScenario = null;
+                return;
+            }
+            var current = (status.CycleId, status.Scenario);
+            if (_lastAutoScenario == current)
+                return;
+            _lastAutoScenario = current;
+            // Switch once per accepted phase. Later refreshes preserve the operator's selection.
+            Select(key);
         }
 
         private void Select(string? key)
