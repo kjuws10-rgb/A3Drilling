@@ -12,6 +12,7 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
 {
     public const string MoveAble = "HANDSHAKE_STG_REVIEW_ABLE_SDC", MoveComplete = "HANDSHAKE_STG_REVIEW_COMPLETE_SDC";
     public const string MoveStart = "HANDSHAKE_PRC_REVIEW_MOVE_START", MoveAck = "HANDSHAKE_PRC_REVIEW_GENERAL_RUNNING";
+    public const string MoveStop = "PROCESS_REVIEW_STOP_SIGNAL";
     public const string PermitX = "IPS_REVIEW_CONTROL_MODE_X", PermitY = "IPS_REVIEW_CONTROL_MODE_Y";
     public const string IofStart = "HANDSHAKE_PRC_IOF_START_REQUEST", IofComplete = "HANDSHAKE_STG_IOF_COMPLETE";
     public const string IofAck = "HANDSHAKE_PRC_IOF_COMPLETE_RESPONSE", IofRead = "IPS_IOF_READ_COMPLETE", IofRun = "IPS_IOF_BUFFER_RUN_COMPLETE";
@@ -23,6 +24,8 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
 
     private readonly ConcurrentDictionary<int, byte> _owners = new();
     private readonly ConcurrentDictionary<int, byte> _cleanupFailures = new();
+    private readonly ConcurrentDictionary<int, Session> _failedSessions = new();
+    private readonly SemaphoreSlim _recovery = new(1, 1);
     private readonly ConcurrentDictionary<int, CancellationTokenSource> _moveStops = new();
     private int _automaticReplies = 1;
     private long _event;
@@ -55,6 +58,40 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
     public event Action<ST_STAGE_FLOW_EVENT>? Trace;
     public bool IsActive => !_owners.IsEmpty;
     public bool HasActiveMove(int deviceNo) => _moveStops.ContainsKey(deviceNo);
+    public bool HasRunningSession => _owners.Keys.Any(device => !_failedSessions.TryGetValue(device, out var session) || !session.IsDisposed);
+
+    /// <summary>Retry failed cleanup only after its original worker has disposed its session.</summary>
+    public async Task RecoverIdleCleanup(CancellationToken token = default)
+    {
+        await _recovery.WaitAsync(token).ConfigureAwait(false);
+        try
+        {
+            foreach (var (device, failed) in _failedSessions.ToArray())
+            {
+                if (!failed.IsDisposed || HasActiveMove(device))
+                    throw new InvalidOperationException("Stage 정리 작업이 아직 실행 중입니다.");
+                var session = new Session(this, interfaces, device, () => false, AutomaticSimulationReplies, false, false);
+                try { await session.RecoverStoppedOutputs(token).ConfigureAwait(false); }
+                finally { session.Dispose(); } // Retain the failed owner until this recovery session is disposed.
+                _failedSessions.TryRemove(device, out _);
+                _cleanupFailures.TryRemove(device, out _);
+                _owners.TryRemove(device, out _);
+            }
+            // Also recover a STOP retained by a previous application version. Never write over a live owner.
+            foreach (var device in interfaces.Melsec.Map.Where(row => row.Use && row.Id == MoveStop).Select(row => row.DeviceNo).Distinct())
+            {
+                using var session = Open(device);
+                try { await session.RecoverRetainedStop(token).ConfigureAwait(false); }
+                catch
+                {
+                    _cleanupFailures[device] = 0;
+                    _failedSessions[device] = session;
+                    throw;
+                }
+            }
+        }
+        finally { _recovery.Release(); }
+    }
 
     /// <summary>Operator Stage STOP cancels the owned move and its normal STOP/IO cleanup.</summary>
     public void RequestMoveStop(int deviceNo)
@@ -142,22 +179,7 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
     public Session Open(int deviceNo, Func<bool>? stopRequested = null, bool reviewXOnly = false, bool stageBufferOwner = false)
     {
         if (_cleanupFailures.ContainsKey(deviceNo))
-        {
-            var values = interfaces.Melsec.GetCachedSnapshot();
-            var clean = new[]
-            {
-                MoveStart,
-                MoveAck,
-                IofStart,
-                IofAck,
-                "MOTOR_STAGE_Y_BUSY",
-                "MOTOR_CAMERA_X_BUSY"
-            }.All(id => values.GetValueOrDefault(id)is { IsValid: true, Value: not null } sample && Convert.ToDouble(sample.Value, CultureInfo.InvariantCulture) == 0);
-            if (!clean)
-                throw new InvalidOperationException("Stage 공통 시퀀스 정리가 실패했습니다. 이동 정지와 요청/응답 OFF를 먼저 확인해 주세요.");
-            _cleanupFailures.TryRemove(deviceNo, out _);
-            _owners.TryRemove(deviceNo, out _);
-        }
+            throw new InvalidOperationException("Stage 공통 시퀀스 정리가 실패했습니다. RESET에서 정지 및 STOP/요청/응답 OFF를 확인해 주세요.");
 
         if (!_owners.TryAdd(deviceNo, 0))
             throw new InvalidOperationException("Stage Process Move / IOF가 이미 사용 중입니다.");
@@ -205,7 +227,10 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
         private readonly CManualStageMotionSimulation? _motion;
         private readonly CManualStageMotionSimulation.MotionLease? _lease;
         private readonly SemaphoreSlim _operation = new(1, 1);
-        private bool _disposed, _moveOwned, _iofOwned;
+        private volatile bool _disposed;
+        private bool _moveOwned, _iofOwned;
+        private EN_STAGE_MOVE_MODE _moveMode;
+        internal bool IsDisposed => _disposed;
         private Guid _iofPlanId;
         private bool _iofStartConfirmed, _iofAckConfirmed;
         private string _scenario = "PROCESS_MOVE";
@@ -259,7 +284,7 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
             Route(id);
             var sample = _interfaces.Melsec.GetCachedValue(id);
             if (sample?.IsValid != true || sample.Value is null)
-                throw new InvalidOperationException($"Stage 신호가 유효하지 않습니다: {id}");
+                throw new InvalidOperationException($"Stage 신호가 유효하지 않습니다: {Describe(id)}");
             var result = Convert.ToDouble(sample.Value, CultureInfo.InvariantCulture);
             if (!double.IsFinite(result))
                 throw new InvalidOperationException($"Stage 값이 유효하지 않습니다: {id}");
@@ -267,6 +292,40 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
         }
 
         private double Feedback(string id) => _simulation ? _interfaces.GetStageMotionSimulationFeedback(_device)[id] : Value(id);
+
+        private string Describe(string id)
+        {
+            var row = Route(id);
+            var sample = _interfaces.Melsec.GetCachedValue(id);
+            return FormattableString.Invariant($"{id}; Address={row.Address}; Value={sample?.Value}; State={sample?.State}; SampleAt={sample?.UpdatedAt:O}; AgeMs={(sample?.UpdatedAt is { } at ? (DateTimeOffset.UtcNow - at).TotalMilliseconds : (double?)null):F0}; Cycle={sample?.ReadCycleNo}; Error={sample?.ErrorMessage}; DriverReadCode={_interfaces.Melsec.LastReadReturnCode}; DriverReadFailures={_interfaces.Melsec.ConsecutiveReadFailureCount}");
+        }
+
+        private async Task RefreshInputs(IEnumerable<string> ids, CancellationToken token, bool cleanup = false)
+        {
+            await Task.WhenAll(ids.Distinct(StringComparer.OrdinalIgnoreCase).Select(async id =>
+            {
+                Check(token, cleanup);
+                Route(id);
+                // A fresh central-poller read can recover Pending/Stale, but must not hide a known I/O failure.
+                var before = _interfaces.Melsec.GetCachedValue(id);
+                if (before?.State is EN_MELSEC_CACHE_STATE.Error or EN_MELSEC_CACHE_STATE.Offline)
+                    throw new IOException("Stage 입력 수신 오류: " + Describe(id));
+                if (before?.IsValid != true)
+                    Record("SIGNAL_REFRESH_REQUIRED", Describe(id));
+                try
+                {
+                    await _interfaces.Melsec.RefreshCachedValueAsync(id, token).ConfigureAwait(false);
+                    Check(token, cleanup);
+                    _ = Value(id);
+                }
+                catch (Exception error) when (error is not OperationCanceledException)
+                {
+                    if (error is TimeoutException)
+                        throw new TimeoutException("Stage 입력 갱신 시간 초과: " + Describe(id), error);
+                    throw new IOException("Stage 입력 갱신 실패: " + Describe(id), error);
+                }
+            })).ConfigureAwait(false);
+        }
         private async Task Write(string id, double value, CancellationToken token, bool cleanup = false)
         {
             Check(token, cleanup);
@@ -347,6 +406,8 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
         private async Task Wait(string id, int expected, CancellationToken token, TimeSpan? timeout = null, string? iofPhase = null)
         {
             var clock = Stopwatch.StartNew();
+            using var limit = CancellationTokenSource.CreateLinkedTokenSource(token);
+            limit.CancelAfter(timeout ?? _owner._signalTimeout);
             double? previous = null;
             var nextDiagnostic = TimeSpan.FromSeconds(5);
             Record("WAIT_BEGIN", $"{id}; Expected={expected}; TimeoutMs={(timeout ?? _owner._signalTimeout).TotalMilliseconds}; IofPhase={iofPhase}");
@@ -355,7 +416,8 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
             {
                 while (true)
                 {
-                    Check(token);
+                    Check(limit.Token);
+                    await RefreshInputs([id], limit.Token).ConfigureAwait(false);
                     var number = Value(id);
                     if (previous != number)
                     {
@@ -378,13 +440,15 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
                         RecordIofSnapshot(iofPhase, $"WAITING; ElapsedMs={clock.ElapsedMilliseconds}");
                         nextDiagnostic = clock.Elapsed + TimeSpan.FromSeconds(5);
                     }
-                    await Task.Delay(20, token).ConfigureAwait(false);
+                    await Task.Delay(20, limit.Token).ConfigureAwait(false);
                 }
             }
             catch (Exception error)
             {
+                if (error is OperationCanceledException && !token.IsCancellationRequested && !_stopRequested() && limit.IsCancellationRequested)
+                    error = new TimeoutException($"Stage 신호 대기 시간 초과: {id}={expected}; IofPhase={iofPhase}; StartConfirmed={_iofStartConfirmed}; AckConfirmed={_iofAckConfirmed}; {Describe(id)}", error);
                 if (iofPhase is not null) RecordIofSnapshot(iofPhase, error is OperationCanceledException ? "WAIT_CANCELED" : "WAIT_FAILED");
-                Record("WAIT_FAILED", $"{id}; Expected={expected}; Actual={previous}; IofPhase={iofPhase}; ElapsedMs={clock.ElapsedMilliseconds}; {error}");
+                Record("WAIT_FAILED", $"{Describe(id)}; Expected={expected}; Actual={previous}; IofPhase={iofPhase}; ElapsedMs={clock.ElapsedMilliseconds}; {error}");
                 if (error is OperationCanceledException) throw;
                 throw CSequenceFailureException.Signal(_scenario, id, error is TimeoutException, error);
             }
@@ -491,6 +555,7 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
             using var stop = CancellationTokenSource.CreateLinkedTokenSource(token);
             _owner._moveStops[_device] = stop;
             token = stop.Token;
+            _moveMode = target.Mode;
             try
             {
                 Check(token);
@@ -567,41 +632,53 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
             }
         }
 
-        private async Task WaitStopped(CancellationToken token, EN_STAGE_MOVE_MODE mode = EN_STAGE_MOVE_MODE.XY)
+        private static string[] FeedbackIds(EN_STAGE_MOVE_MODE mode, bool positions = false) =>
+            (mode == EN_STAGE_MOVE_MODE.ReviewX ? Array.Empty<string>() : new[] { "MOTOR_STAGE_Y_BUSY" }.Concat(positions ? ["MOTOR_STAGE_Y_CUR_POS"] : []))
+            .Concat(mode == EN_STAGE_MOVE_MODE.StageY ? Array.Empty<string>() : new[] { "MOTOR_CAMERA_X_BUSY" }.Concat(positions ? ["MOTOR_CAMERA_X_CUR_POS"] : [])).ToArray();
+
+        private async Task WaitStopped(CancellationToken token, EN_STAGE_MOVE_MODE mode = EN_STAGE_MOVE_MODE.XY, bool cleanup = false)
         {
-            var deadline = DateTimeOffset.UtcNow.AddSeconds(30);
-            while (true)
+            using var limit = CancellationTokenSource.CreateLinkedTokenSource(token);
+            limit.CancelAfter(_owner._signalTimeout);
+            try
             {
-                Check(token);
-                if ((mode == EN_STAGE_MOVE_MODE.ReviewX || Feedback("MOTOR_STAGE_Y_BUSY") == 0) && (mode == EN_STAGE_MOVE_MODE.StageY || Feedback("MOTOR_CAMERA_X_BUSY") == 0))
-                    return;
-                if (DateTimeOffset.UtcNow >= deadline)
-                    throw new TimeoutException("Stage / Review 정지 확인 시간 초과");
-                await Task.Delay(20, token).ConfigureAwait(false);
+                while (true)
+                {
+                    Check(limit.Token, cleanup);
+                    if (!_simulation) await RefreshInputs(FeedbackIds(mode), limit.Token, cleanup).ConfigureAwait(false);
+                    var busy = FeedbackIds(mode).Select(Feedback).ToArray();
+                    if (busy.All(value => value == 0)) return;
+                    await Task.Delay(20, limit.Token).ConfigureAwait(false);
+                }
             }
+            catch (OperationCanceledException error) when (!token.IsCancellationRequested && !(!cleanup && _stopRequested()) && limit.IsCancellationRequested)
+            { throw new TimeoutException("Stage / Review 정지 확인 시간 초과", error); }
         }
 
         internal Task VerifyArrival(ST_STAGE_MOVE_TARGET target, CancellationToken token) => WaitArrival(target, token);
 
         private async Task WaitArrival(ST_STAGE_MOVE_TARGET target, CancellationToken token)
         {
-            if (!_simulation)
-                await InitialRead(["MOTOR_STAGE_Y_BUSY", "MOTOR_CAMERA_X_BUSY", "MOTOR_STAGE_Y_CUR_POS", "MOTOR_CAMERA_X_CUR_POS"], token).ConfigureAwait(false);
-            var deadline = DateTimeOffset.UtcNow.AddSeconds(30);
-            while (true)
+            using var limit = CancellationTokenSource.CreateLinkedTokenSource(token);
+            limit.CancelAfter(_owner._signalTimeout);
+            try
             {
-                Check(token);
-                if ((target.Mode == EN_STAGE_MOVE_MODE.ReviewX || Feedback("MOTOR_STAGE_Y_BUSY") == 0) && (target.Mode == EN_STAGE_MOVE_MODE.StageY || Feedback("MOTOR_CAMERA_X_BUSY") == 0))
+                while (true)
                 {
-                    if ((target.Mode != EN_STAGE_MOVE_MODE.ReviewX && Math.Abs(CurrentY - target.Y) > .0005) || (target.Mode != EN_STAGE_MOVE_MODE.StageY && Math.Abs(CurrentX - target.X) > .0005))
-                        throw new InvalidOperationException("Stage / Review가 목표 위치에 도착하기 전에 정지되었습니다.");
-                    return;
+                    Check(limit.Token);
+                    if (!_simulation) await RefreshInputs(FeedbackIds(target.Mode, positions: true), limit.Token).ConfigureAwait(false);
+                    var busy = FeedbackIds(target.Mode).Select(Feedback).ToArray();
+                    if (busy.All(value => value == 0))
+                    {
+                        if ((target.Mode != EN_STAGE_MOVE_MODE.ReviewX && Math.Abs(CurrentY - target.Y) > .0005) || (target.Mode != EN_STAGE_MOVE_MODE.StageY && Math.Abs(CurrentX - target.X) > .0005))
+                            throw new InvalidOperationException("Stage / Review가 목표 위치에 도착하기 전에 정지되었습니다.");
+                        return;
+                    }
+                    await Task.Delay(20, limit.Token).ConfigureAwait(false);
                 }
-
-                if (DateTimeOffset.UtcNow >= deadline)
-                    throw new TimeoutException("Stage / Review 도착 확인 시간 초과");
-                await Task.Delay(20, token).ConfigureAwait(false);
             }
+            catch (OperationCanceledException error) when (!token.IsCancellationRequested && !_stopRequested() && limit.IsCancellationRequested)
+            { throw new TimeoutException("Stage / Review 도착 확인 시간 초과", error); }
         }
 
         private async Task Abort(bool move)
@@ -617,6 +694,10 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
                     await Write(MoveStart, 0, cleanup.Token, cleanup: true).ConfigureAwait(false);
                     await Write(MoveAck, 0, cleanup.Token, cleanup: true).ConfigureAwait(false);
                     await Stage(MoveComplete, 0, cleanup.Token).ConfigureAwait(false);
+                    // STOP must remain asserted until fresh feedback confirms the commanded axes stopped.
+                    await WaitStopped(cleanup.Token, _moveMode, cleanup: true).ConfigureAwait(false);
+                    Record("MOVE_STOP_CONFIRMED", $"Mode={_moveMode}; Busy=0; releasing STOP");
+                    await Write(MoveStop, 0, cleanup.Token, cleanup: true).ConfigureAwait(false);
                     _moveOwned = false;
                 }
 
@@ -631,11 +712,33 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
             catch (Exception error)
             {
                 _owner._cleanupFailures[_device] = 0;
+                _owner._failedSessions[_device] = this;
                 _owner.Actions.SetError(move ? "MOVE_RELEASE" : "IOF_SIGNALS_CLEAR", "Stage 정리 실패: " + error.Message);
                 _owner.ReportFailure(CSequenceFailureException.Action(move ? "MOVE_RELEASE" : "IOF_SIGNALS_CLEAR", error));
                 Record("CLEANUP_ERROR", error.ToString());
                 System.Diagnostics.Trace.TraceError(error.ToString());
             }
+        }
+
+        internal async Task RecoverStoppedOutputs(CancellationToken token)
+        {
+            using var limit = CancellationTokenSource.CreateLinkedTokenSource(token);
+            limit.CancelAfter(TimeSpan.FromSeconds(5));
+            await Write(MoveStart, 0, limit.Token, cleanup: true).ConfigureAwait(false);
+            await Write(MoveAck, 0, limit.Token, cleanup: true).ConfigureAwait(false);
+            await Write(IofStart, 0, limit.Token, cleanup: true).ConfigureAwait(false);
+            await Write(IofAck, 0, limit.Token, cleanup: true).ConfigureAwait(false);
+            await WaitStopped(limit.Token, cleanup: true).ConfigureAwait(false);
+            await Write(MoveStop, 0, limit.Token, cleanup: true).ConfigureAwait(false);
+            Record("MOVE_STOP_RECOVERED", "Disposed failed owner; fresh XY Busy=0; STOP/START/ACK/IOF outputs OFF confirmed");
+        }
+
+        internal async Task RecoverRetainedStop(CancellationToken token)
+        {
+            await InitialRead([MoveStop], token).ConfigureAwait(false);
+            var stop = Value(MoveStop);
+            if (stop is not (0 or 1)) throw new InvalidDataException("Review STOP은 0/1이어야 합니다.");
+            if (stop == 1) await RecoverStoppedOutputs(token).ConfigureAwait(false);
         }
 
         public async Task<ST_STAGE_IOF_PLAN> PrepareIof(IReadOnlyList<ST_STAGE_IOF_POINT> points, bool zeroLine, CancellationToken token)

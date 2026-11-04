@@ -117,9 +117,18 @@
 
         public async Task ResetAlarmAsync()
         {
-            alarmManager.Reset();
-            var station = stationManager.Reset();
-            var isResetBlocked = station.ProcessStep == EN_PROCESS_STEP.Error;
+            if (!stationManager.CanReset)
+            {
+                setStatusMessage("Alarm reset blocked. 동작 정지 및 신호 정리를 먼저 완료해 주세요.");
+                return;
+            }
+            stationManager.Reset();
+            var deadline = DateTimeOffset.UtcNow.AddSeconds(5);
+            while ((!stationManager.CanReset || stationManager.GetStatus().ProcessStep != EN_PROCESS_STEP.Idle) && DateTimeOffset.UtcNow < deadline)
+                await Task.Delay(20);
+            var station = stationManager.GetStatus();
+            var isResetBlocked = !stationManager.CanReset || station.ProcessStep != EN_PROCESS_STEP.Idle;
+            if (!isResetBlocked) alarmManager.Reset();
             setStatusMessage(isResetBlocked ? $"Alarm reset blocked. {station.Result?.Message ?? "Check InterLock state."}" : "Alarm reset completed. Station is ready.");
             refreshShellStatus();
             await refreshCurrentScreen();

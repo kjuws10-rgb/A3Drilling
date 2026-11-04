@@ -1220,12 +1220,23 @@
             return _snapshot;
         }
 
+        public bool CanReset
+        {
+            get
+            {
+                lock (_sequenceLock)
+                    return !_manualMofRunning && !_manualMofRequiresStop && !StageRequests.IsRunning && !StageRequests.NeedsCleanup
+                        && !_interfaceManager.StageReviewSequences.IsActive && _stageOwnedTasks.IsEmpty && _stageBufferedRuns.IsEmpty
+                        && _sequenceState == EN_STATION_SEQUENCE.Ready && _stationStatus.State != EN_STATION_STATE.Process;
+            }
+        }
+
         public ST_STATION_PROCESS_STATUS Reset(CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
             lock (_sequenceLock)
             {
-                if (_manualMofRunning || _manualMofRequiresStop || _sequenceState != EN_STATION_SEQUENCE.Ready || _stationStatus.State == EN_STATION_STATE.Process)
+                if (!CanReset)
                 {
                     AddProcessLog("WARN", "RESET", "Reset ignored while station is running.");
                     RefreshSnapshot();
@@ -5552,31 +5563,46 @@
 
         public async Task WaitForFirstX(ST_ZERO_LINE_CYCLE_PLAN plan, CancellationToken token)
         {
-            var end = DateTimeOffset.UtcNow.AddSeconds(30);
-            while (true)
+            using var limit = CancellationTokenSource.CreateLinkedTokenSource(token);
+            limit.CancelAfter(TimeSpan.FromSeconds(30));
+            var ids = new[] { "MOTOR_CAMERA_X_CUR_POS", "MOTOR_CAMERA_X_BUSY", CStageReviewSequences.MoveStart, CStageReviewSequences.MoveAck, CStageReviewSequences.MoveComplete, CStageReviewSequences.MoveStop };
+            try
             {
-                token.ThrowIfCancellationRequested();
-                // The Align observer may have completed before AUTO was restarted, or its
-                // completion ticket may already have been consumed. Process preparation is
-                // gated by the actual stopped first X and released SDC signals, not that ticket.
-                if (IsFirstXReady(plan))
+                while (true)
                 {
-                    bool matchingTicket;
-                    lock (_sync)
+                    limit.Token.ThrowIfCancellationRequested();
+                    // Do not compete with an owned pre-move. Once released, verify a new central-poller frame.
+                    if (!interfaces.StageReviewSequences.IsActive)
+                        await Task.WhenAll(ids.Select(id => interfaces.Melsec.RefreshCachedValueAsync(id, limit.Token))).ConfigureAwait(false);
+                    // The Align observer's ticket may already be consumed. Gate on actual stopped X and released SDC.
+                    if (IsFirstXReady(plan))
                     {
-                        matchingTicket = _completed is { } done && _generation > _consumed
-                            && done.RecipeId.Equals(plan.RecipeId, StringComparison.OrdinalIgnoreCase) && done.Group == plan.Group && done.FirstPoint == plan.Points[0];
-                        _consumed = _generation;
+                        bool matchingTicket;
+                        lock (_sync)
+                        {
+                            matchingTicket = _completed is { } done && _generation > _consumed
+                                && done.RecipeId.Equals(plan.RecipeId, StringComparison.OrdinalIgnoreCase) && done.Group == plan.Group && done.FirstPoint == plan.Points[0];
+                            _consumed = _generation;
+                        }
+                        log?.Invoke($"첫 Review X 실제 위치·정지·SDC 복귀 확인: Recipe={plan.RecipeId}; Group={plan.Group}; X={plan.Points[0].ReviewX}; PrewaitTicket={matchingTicket}");
+                        return;
                     }
-                    log?.Invoke($"첫 Review X 실제 위치·정지·SDC 복귀 확인: Recipe={plan.RecipeId}; Group={plan.Group}; X={plan.Points[0].ReviewX}; PrewaitTicket={matchingTicket}");
-                    return;
+                    if (Status.State == "ERROR")
+                        throw new InvalidOperationException(Status.Detail);
+                    await Task.Delay(20, limit.Token).ConfigureAwait(false);
                 }
-                if (Status.State == "ERROR")
-                    throw new InvalidOperationException(Status.Detail);
-
-                if (DateTimeOffset.UtcNow >= end)
-                    throw new TimeoutException("첫 Review X 선대기 완료 대기: " + Status.Detail);
-                await Task.Delay(20, token).ConfigureAwait(false);
+            }
+            catch (Exception error) when (!token.IsCancellationRequested)
+            {
+                var evidence = string.Join(" | ", ids.Select(id =>
+                {
+                    var sample = interfaces.Melsec.GetCachedValue(id);
+                    return $"{id}: Value={sample?.Value}; State={sample?.State}; SampleAt={sample?.UpdatedAt:O}; Error={sample?.ErrorMessage}";
+                }));
+                var detail = $"첫 Review X 준비 실패: TargetX={plan.Points[0].ReviewX}; ActiveOwner={interfaces.StageReviewSequences.IsActive}; Prewait={Status.Detail}; {evidence}";
+                log?.Invoke(detail);
+                if (error is OperationCanceledException) throw new TimeoutException(detail, error);
+                throw new InvalidOperationException(detail, error);
             }
         }
 
@@ -5587,7 +5613,7 @@
                 || !plan.RecipeId.Equals(selectedRecipe(), StringComparison.OrdinalIgnoreCase)
                 || interfaces.StageReviewSequences.IsActive)
                 return false;
-            var ids = new[] { "MOTOR_CAMERA_X_CUR_POS", "MOTOR_CAMERA_X_BUSY", CStageReviewSequences.MoveStart, CStageReviewSequences.MoveAck, CStageReviewSequences.MoveComplete };
+            var ids = new[] { "MOTOR_CAMERA_X_CUR_POS", "MOTOR_CAMERA_X_BUSY", CStageReviewSequences.MoveStart, CStageReviewSequences.MoveAck, CStageReviewSequences.MoveComplete, CStageReviewSequences.MoveStop };
             var values = interfaces.Melsec.GetCachedSnapshot(ids, out var map);
             var route = map.FirstOrDefault(row => row.Use && row.Id == "MOTOR_CAMERA_X_CUR_POS");
             if (route is null || !interfaces.GetInterfaceCommunicationList(EN_EQP_MODULE.Melsec)
