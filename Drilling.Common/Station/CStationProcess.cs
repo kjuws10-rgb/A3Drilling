@@ -3818,6 +3818,9 @@
                 StageRequests.Start(
                     async token =>
                 {
+                    // Preserve the preceding glass's frozen identity until its requested
+                    // diagnostic Review is handled. Do not replace ProcessModel first.
+                    EnsureZeroLineFollowUpCompleted();
                     var data = await request(token).ConfigureAwait(false);
                     var parameters = new Dictionary<string, string>(data.Parameters, StringComparer.OrdinalIgnoreCase);
                     PrepareProcess(data.ProcessId, data.RecipeId, data.GlassId, data.LotId, parameters, token, preserveSequenceActions: true);
@@ -4052,6 +4055,7 @@
         };
         private async Task CaptureZeroLineCycle(ST_STAGE_PROCESS_REQUEST request, CancellationToken token)
         {
+            EnsureZeroLineFollowUpCompleted();
             if (_zeroLineCycle is not null)
                 await _zeroLineCycle.Release().ConfigureAwait(false);
             _zeroLineCycle = null;
@@ -4078,6 +4082,15 @@
             _zeroLineCycle = new(plan, _interfaceManager, _zeroLineReview, _settingManager, _zeroLinePrewait.WaitForFirstX, message => AddProcessLog("INFO", "ZERO_LINE", message));
             AddProcessLog("INFO", "ZERO_LINE", $"Plan frozen: Glass={request.GlassId}, Group={plan.Group}/{plan.TotalGroups}, N={plan.Points.Count}, FollowUp={plan.FollowUp}");
             token.ThrowIfCancellationRequested();
+        }
+
+        public Task CompleteZeroLineFollowUp(Guid runId, CancellationToken token) =>
+            (_zeroLineCycle ?? throw new InvalidOperationException("0선 후속 검사 대상이 없습니다.")).CompleteFollowUp(runId, token);
+
+        private void EnsureZeroLineFollowUpCompleted()
+        {
+            if (_zeroLineCycle?.Status.FollowUpRequested == true)
+                throw new InvalidOperationException("0선 NG 후속 1줄 검사가 남아 있습니다. Stage Review 시퀀스를 완료한 뒤 다음 가공을 준비해 주세요.");
         }
 
 #endregion
@@ -5362,7 +5375,7 @@
             await WriteConfirmed(PrcReviewStart, 1, token).ConfigureAwait(false);
             Set("REVIEW_MEASURE", "FINE inspection running. Quality NG does not stop later targets.");
             await Action(CSequenceActionIds.ReviewMeasure, review.Measure, token, Timeout.InfiniteTimeSpan).ConfigureAwait(false);
-            Set("REVIEW_RESULTS", "Validating all results; save accumulated FINE offset for the next Glass only when all targets are OK.");
+            Set("REVIEW_RESULTS", "검사 결과 확인·저장. 0선 후속 1줄은 보정 미적용, 일반 AUTO Review만 전체 OK일 때 다음 Glass 보정 저장.");
             await Action(CSequenceActionIds.ReviewResults, review.Save, token).ConfigureAwait(false);
             await WriteConfirmed(PrcReviewComplete, 1, token).ConfigureAwait(false);
             Set("REVIEW_WAIT_COMPLETE", "All inspection results handled; waiting for Stage Review COMPLETE.");
@@ -5534,22 +5547,55 @@
             while (true)
             {
                 token.ThrowIfCancellationRequested();
+                // The Align observer may have completed before AUTO was restarted, or its
+                // completion ticket may already have been consumed. Process preparation is
+                // gated by the actual stopped first X and released SDC signals, not that ticket.
+                if (IsFirstXReady(plan))
+                {
+                    bool matchingTicket;
+                    lock (_sync)
+                    {
+                        matchingTicket = _completed is { } done && _generation > _consumed
+                            && done.RecipeId.Equals(plan.RecipeId, StringComparison.OrdinalIgnoreCase) && done.Group == plan.Group && done.FirstPoint == plan.Points[0];
+                        _consumed = _generation;
+                    }
+                    log?.Invoke($"첫 Review X 실제 위치·정지·SDC 복귀 확인: Recipe={plan.RecipeId}; Group={plan.Group}; X={plan.Points[0].ReviewX}; PrewaitTicket={matchingTicket}");
+                    return;
+                }
                 if (Status.State == "ERROR")
                     throw new InvalidOperationException(Status.Detail);
-                lock (_sync)
-                {
-                    var first = plan.Points[0];
-                    if (_completed is { } done && _generation > _consumed && done.RecipeId.Equals(plan.RecipeId, StringComparison.OrdinalIgnoreCase) && done.Group == plan.Group && done.FirstPoint == first && !interfaces.StageReviewSequences.IsActive)
-                    {
-                        _consumed = _generation;
-                        return;
-                    }
-                }
 
                 if (DateTimeOffset.UtcNow >= end)
                     throw new TimeoutException("첫 Review X 선대기 완료 대기: " + Status.Detail);
                 await Task.Delay(20, token).ConfigureAwait(false);
             }
+        }
+
+        private bool IsFirstXReady(ST_ZERO_LINE_CYCLE_PLAN plan)
+        {
+            var options = CRunOptionSettings.Read(settings);
+            if (!autoEnabled() || !options.ZeroDefence || options.CurrentGroup != plan.Group
+                || !plan.RecipeId.Equals(selectedRecipe(), StringComparison.OrdinalIgnoreCase)
+                || interfaces.StageReviewSequences.IsActive)
+                return false;
+            var ids = new[] { "MOTOR_CAMERA_X_CUR_POS", "MOTOR_CAMERA_X_BUSY", CStageReviewSequences.MoveStart, CStageReviewSequences.MoveAck, CStageReviewSequences.MoveComplete };
+            var values = interfaces.Melsec.GetCachedSnapshot(ids, out var map);
+            var route = map.FirstOrDefault(row => row.Use && row.Id == "MOTOR_CAMERA_X_CUR_POS");
+            if (route is null || !interfaces.GetInterfaceCommunicationList(EN_EQP_MODULE.Melsec)
+                .Any(device => device.Number == route.DeviceNo && (device.IsSimulation || device.ConnectionState == EN_COMM_STATE.Online)))
+                return false;
+            foreach (var id in ids)
+            {
+                var row = map.FirstOrDefault(item => item.Use && item.Id == id && item.DeviceNo == route.DeviceNo);
+                if (row is null || values.GetValueOrDefault(id) is not { IsValid: true, Value: not null } sample)
+                    return false;
+                var value = Convert.ToDouble(sample.Value, CultureInfo.InvariantCulture);
+                if (!double.IsFinite(value) || DateTimeOffset.UtcNow - sample.UpdatedAt > TimeSpan.FromSeconds(2))
+                    return false;
+                if (id == "MOTOR_CAMERA_X_CUR_POS" ? Math.Abs(value - plan.Points[0].ReviewX) > .0005 + 1e-9 : value != 0)
+                    return false;
+            }
+            return true;
         }
 
         private void Waiting(string detail)
@@ -5916,6 +5962,7 @@
             var ngCount = Status.Results!.Count(point => point.IsNg);
             var follow = CRunOptionSettings.Read(settings).FollowUp && ngCount > 0;
             await PublishFollowUp(interfaces, follow, token).ConfigureAwait(false);
+            Volatile.Write(ref _status, Status with { FollowUpRequested = follow });
             if (!_advanced)
             {
                 // A user INIT to another group wins over this old cycle's advancement.
@@ -5928,6 +5975,15 @@
             // Preserve the report and final follow-up flag before failing the results Action.
             if (!follow && ngCount > 0)
                 throw new InvalidDataException($"0선 NG {ngCount}개 / 후속검사 OFF · 가공 완료 후 알람 처리");
+        }
+
+        public async Task CompleteFollowUp(Guid runId, CancellationToken token)
+        {
+            if (runId != plan.RunId || !Status.FollowUpRequested)
+                throw new InvalidOperationException("0선 후속 검사 완료 대상이 현재 Glass와 일치하지 않습니다.");
+            await PublishFollowUp(interfaces, false, token).ConfigureAwait(false);
+            Volatile.Write(ref _status, Status with { FollowUpRequested = false, FollowUpCompleted = true });
+            log?.Invoke($"0선 NG 후속 1줄 IOF 결과 저장 완료 · 보정 미적용: Glass={plan.GlassId}; Run={runId}");
         }
 
         private async Task SaveFile(CancellationToken token)

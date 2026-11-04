@@ -251,6 +251,8 @@
     public sealed record ST_ZERO_LINE_CYCLE_STATUS(bool Enabled, string State, string Detail, int Group = 0, IReadOnlyList<ST_ZERO_LINE_POINT_RESULT>? Results = null, string ResultFile = "")
     {
         public ST_ZERO_LINE_CYCLE_PLAN? Plan { get; init; }
+        public bool FollowUpRequested { get; init; }
+        public bool FollowUpCompleted { get; init; }
         public string Judge => State != "DONE" ? "미완료" : Results?.Any(result => result.IsNg) == true ? "NG" : "OK";
     }
 

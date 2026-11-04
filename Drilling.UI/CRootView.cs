@@ -2761,17 +2761,42 @@
                async () => { if (run is not null) await run.DisposeAsync().ConfigureAwait(false); });
         }
 
+        private Guid? _autoReviewZeroLineRunId;
         private ST_STAGE_REVIEW_ACTIONS CreateAutoReviewActions()
         {
             _autoFineReview ??= new(_reviewManager, _manager.ReviewOffsetFile(), CreateStageReviewInput);
-            return new(_autoFineReview.Prepare, _autoFineReview.Measure, _autoFineReview.Save);
+            return new(_autoFineReview.Prepare, async token =>
+            {
+                try
+                {
+                    await _autoFineReview.Measure(token).ConfigureAwait(false);
+                }
+                catch (InvalidDataException) when (_autoReviewZeroLineRunId is not null && _autoFineReview.FollowUpInspectionCompleted)
+                {
+                    // A saved diagnostic NG is a completed inspection, not a request
+                    // to repeat or to correct. Preserve the quality alarm after clearing it.
+                    await _stationManager.CompleteZeroLineFollowUp(_autoReviewZeroLineRunId.Value, token).ConfigureAwait(false);
+                    _autoReviewZeroLineRunId = null;
+                    throw;
+                }
+            }, async token =>
+            {
+                await _autoFineReview.Save(token).ConfigureAwait(false);
+                if (_autoReviewZeroLineRunId is { } runId)
+                {
+                    await _stationManager.CompleteZeroLineFollowUp(runId, token).ConfigureAwait(false);
+                    _autoReviewZeroLineRunId = null;
+                }
+            });
         }
 
         private async Task<ST_AUTO_REVIEW_INPUT> CreateStageReviewInput(CancellationToken token)
         {
+            _autoReviewZeroLineRunId = null;
             // Called at Stage Review ABLE, before our ABLE. Later UI changes apply to the next request.
             var options = ((CMenuMain)_menus[EN_MENU.Main]).RunOptions.CaptureReviewOptions();
-            var current = _stationManager.GetStatus(token).ProcessModel;
+            var station = _stationManager.GetStatus(token);
+            var current = station.ProcessModel;
             var recipeId = current?.RecipeId ?? _selectedRecipeId;
             var recipe = (await _recipeManager.LoadRecipes(token).ConfigureAwait(false)).SingleOrDefault(item => item.Id.Equals(recipeId, StringComparison.OrdinalIgnoreCase)) ?? throw new InvalidOperationException($"Review Recipe를 찾을 수 없습니다: {recipeId}");
             if (current is not null)
@@ -2782,7 +2807,15 @@
             var glass = current?.GlassId;
             if (string.IsNullOrWhiteSpace(glass))
                 glass = (await CreateStageProcessRequest(token).ConfigureAwait(false)).GlassId;
-            return new(recipe, glass, options);
+            var followUp = station.ZeroLine is { FollowUpRequested: true, Plan: not null };
+            if (followUp)
+            {
+                var plan = station.ZeroLine!.Plan!;
+                if (!plan.RecipeId.Equals(recipe.Id, StringComparison.OrdinalIgnoreCase) || !plan.GlassId.Equals(glass, StringComparison.Ordinal))
+                    throw new InvalidOperationException("0선 후속 검사 대상의 Glass/Recipe가 현재 Review와 다릅니다.");
+                _autoReviewZeroLineRunId = plan.RunId;
+            }
+            return new(recipe, glass, options) { ZeroLineFollowUp = followUp };
         }
 
         // Invoked only at DoReady START. Does not update UI or call a device read.

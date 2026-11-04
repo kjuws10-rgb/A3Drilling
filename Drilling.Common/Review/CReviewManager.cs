@@ -2396,6 +2396,13 @@
             };
         }
 
+        /// <summary>Inspection-only follow-up, prepared at the owning Stage Review handshake.
+        /// Uses one topmost-Cell middle row IOF line; never applies or saves correction offsets.</summary>
+        public ST_AUTO_FINE_PLAN CreateZeroLineFollowUpPlan(ST_AUTO_REVIEW_INPUT input, CancellationToken token = default)
+        {
+            return CreateAutoFinePlan(input with { ZeroLineFollowUp = true }, token);
+        }
+
         /// <summary>PtoP and Flying use the shared Process Move / IOF transactions.
         /// MELSEC and Vision independently follow their owning device's simulation setting.</summary>
         public async Task<ST_FINE_REVIEW_SNAPSHOT> StartFineCorrection(

@@ -16,6 +16,7 @@
     {
         public void StartZeroLinePrewaitMonitoring(Func<string> selectedRecipe) => _processStation.StartZeroLinePrewaitMonitoring(selectedRecipe);
         public Task StopZeroLinePrewaitMonitoring() => _processStation.StopZeroLinePrewaitMonitoring();
+        public Task CompleteZeroLineFollowUp(Guid runId, CancellationToken token = default) => _processStation.CompleteZeroLineFollowUp(runId, token);
         public void StartProtectWindowCompletionMonitoring(Func<string> selectedRecipe) => _processStation.StartProtectWindowCompletionMonitoring(selectedRecipe);
         public Task StopProtectWindowCompletionMonitoring() => _processStation.StopProtectWindowCompletionMonitoring();
         public ST_MANUAL_MOF_STATUS ManualMofStatus => _processStation.ManualMofStatus;
