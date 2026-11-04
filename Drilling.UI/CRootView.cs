@@ -21,6 +21,8 @@
 
     public sealed partial class CRootView : CBindingBase
     {
+        public string SoftwareVersion => $"SW v{typeof(CRootView).Assembly.GetName().Version}";
+
 #region 공유 상태·초기값
         private readonly Dispatcher _alarmDispatcher = Dispatcher.CurrentDispatcher;
         private readonly CAlarmNavigationTracker _alarmNavigation = new();
