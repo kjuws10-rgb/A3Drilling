@@ -2669,7 +2669,7 @@
                 await Stop(async () =>
                 {
                     var until = DateTimeOffset.UtcNow.AddSeconds(15);
-                    while (_reviewManager.SequenceState is EN_REVIEW_SEQUENCE_STATE.Running or EN_REVIEW_SEQUENCE_STATE.Stopping || _interfaceManager.StageReviewSequences.IsActive)
+                    while (_reviewManager.SequenceState is EN_REVIEW_SEQUENCE_STATE.Running or EN_REVIEW_SEQUENCE_STATE.Stopping || _interfaceManager.StageReviewSequences.HasRunningSession)
                     {
                         if (DateTimeOffset.UtcNow >= until)
                             throw new TimeoutException("Review/Stage 공통 동작 정지 확인 시간 초과");
@@ -2678,7 +2678,18 @@
                 });
                 if (failures.Count > 0)
                     throw new AggregateException("동작 정지 확인 실패", failures);
+                await _interfaceManager.StageReviewSequences.RecoverIdleCleanup();
                 await CHandshakeOutputReset.Reset(_interfaceManager);
+                // Stage-request AUTO also sets Station=Process; it has no legacy _autoCycleCompletion.
+                // Synchronize the stopped station only after every worker and output cleanup succeeded.
+                _stationManager.Stop();
+                var stationStopDeadline = DateTimeOffset.UtcNow.AddSeconds(15);
+                while (!_stationManager.GetStationStatus().All(station => station.State == EN_STATION_STATE.Stopped && station.SequenceState == EN_STATION_SEQUENCE.Ready))
+                {
+                    if (DateTimeOffset.UtcNow >= stationStopDeadline)
+                        throw new TimeoutException("Station 정지 상태 복귀 확인 시간 초과");
+                    await Task.Delay(20);
+                }
                 _heavyRecoveryBlocked = false;
                 SetAlarmRecoveryStatus("HEAVY · 동작 정지 / Handshake OFF 확인 완료 · MANUAL");
             }

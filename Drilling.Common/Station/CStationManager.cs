@@ -24,6 +24,7 @@
         public Task RunManualMofAsync(ST_STAGE_PROCESS_REQUEST request, IReadOnlySet<int> heads, CancellationToken token = default) => _processStation.RunManualMofAsync(request, heads, token);
         public Task StopManualMofAsync() => _processStation.StopManualMofAsync();
         public CStageRequestSequence StageRequests => _processStation.StageRequests;
+        public bool CanReset => _processStation.CanReset;
 
         public void StartStageRequests(Func<CancellationToken, Task<ST_STAGE_PROCESS_REQUEST>> request, ST_STAGE_REVIEW_ACTIONS? review = null, ST_STAGE_TPM_ACTIONS? tpm = null) => _processStation.StartStageRequests(request, review, tpm);
         private readonly CStationProcess _processStation;
