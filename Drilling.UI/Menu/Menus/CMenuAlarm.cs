@@ -123,7 +123,8 @@
                 return;
             }
             stationManager.Reset();
-            var deadline = DateTimeOffset.UtcNow.AddSeconds(5);
+            // Allow the bounded 5-second W8218 readback and the station's final state publication.
+            var deadline = DateTimeOffset.UtcNow.AddSeconds(10);
             while ((!stationManager.CanReset || stationManager.GetStatus().ProcessStep != EN_PROCESS_STEP.Idle) && DateTimeOffset.UtcNow < deadline)
                 await Task.Delay(20);
             var station = stationManager.GetStatus();

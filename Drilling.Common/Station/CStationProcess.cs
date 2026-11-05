@@ -1276,6 +1276,27 @@
                 AddProcessLog("INFO", "RESET", "Alarm reset accepted. InterLock is clear.");
             }
 
+            // RESET explicitly abandons the stopped glass's outstanding diagnostic Review.
+            // Ordinary Stop/Release keeps it available for the normal Stage Review sequence.
+            if (_zeroLineCycle is { Status.FollowUpRequested: true } previousCycle)
+            {
+                using var resetFollowUp = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                resetFollowUp.CancelAfter(TimeSpan.FromSeconds(5));
+                try
+                {
+                    previousCycle.ResetAfterStop(resetFollowUp.Token).GetAwaiter().GetResult();
+                }
+                catch (Exception error)
+                {
+                    var message = $"0선 RESET 정리 실패 · 이전 Glass 후속 요청과 재시작 차단을 유지합니다: {error.Message}";
+                    AddProcessLog("ERROR", "ZERO_LINE", message);
+                    throw new InvalidOperationException(message, error);
+                }
+                _zeroLineCycle = null;
+                _zeroLinePrewait?.DiscardCompleted();
+                AddProcessLog("INFO", "ZERO_LINE", $"RESET_FOLLOWUP_CLEARED Glass={previousCycle.Plan.GlassId}; Run={previousCycle.Plan.RunId}; Group={previousCycle.Plan.Group}; W8218=0 confirmed; Previous result file preserved.");
+            }
+
             ClearProcessLogs();
             _lastInterLockItems = [];
             _scriptCreatedAt = null;
@@ -5132,6 +5153,7 @@
         private async Task WaitSignal(string id, int value, CancellationToken token, DateTimeOffset? after = null, TimeSpan? timeout = null)
         {
             var elapsed = Stopwatch.StartNew();
+            ST_STAGE_SIGNAL_SNAPSHOT? lastSample = null;
             using var limit = CancellationTokenSource.CreateLinkedTokenSource(token);
             limit.CancelAfter(timeout ?? TimeSpan.FromMinutes(2));
             LogEvent($"WAIT_BEGIN {SignalRoute(id)}; Expected={value}; TimeoutMs={(timeout ?? TimeSpan.FromMinutes(2)).TotalMilliseconds}; SampleAfter={after:O}");
@@ -5141,6 +5163,7 @@
                 {
                     limit.Token.ThrowIfCancellationRequested();
                     var sample = await ReadCurrentSignals(limit.Token, id).ConfigureAwait(false);
+                    lastSample = sample;
                     CheckActiveWork();
                     if (!TrySignal(sample, id, out var actual))
                     {
@@ -5168,6 +5191,12 @@
             {
                 if (error is OperationCanceledException && !token.IsCancellationRequested && limit.IsCancellationRequested)
                     error = new TimeoutException($"Handshake timeout: {id} = {value}.", error);
+                if (error is TimeoutException && id == StgProcessComplete && _scenario == "PROCESS")
+                {
+                    var evidence = lastSample is null ? "No completed Stage read."
+                        : string.Join(" | ", InputsFor("PROCESS").Select(signal => DescribeSample(lastSample, signal)));
+                    error = new TimeoutException($"Stage Process COMPLETE timeout. Expected={value}; ElapsedMs={elapsed.ElapsedMilliseconds}; LastRead=[{evidence}]", error);
+                }
                 LogEvent($"WAIT_{(error is OperationCanceledException ? "CANCELED" : "FAILED")} {SignalRoute(id)}; Expected={value}; ElapsedMs={elapsed.ElapsedMilliseconds}; {error}");
                 if (error is OperationCanceledException canceled) throw new CSequenceSignalCanceledException(_scenario, id, canceled);
                 throw CSequenceFailureException.Signal(_scenario, id, error is TimeoutException, error);
@@ -5351,9 +5380,17 @@
                 Set("PROCESS_ZERO_RESULTS", "가공 완료 후 0선 Vision 결과 일괄 수신·판정·저장 및 후속 요청 처리");
                 await Action(CSequenceActionIds.ProcessZeroResults, async ct =>
                 {
-                    if (zeroLine.ReadResults is not null)
-                        await zeroLine.ReadResults(ct).ConfigureAwait(false);
-                    await zeroLine.Save(ct).ConfigureAwait(false);
+                    try
+                    {
+                        if (zeroLine.ReadResults is not null)
+                            await zeroLine.ReadResults(ct).ConfigureAwait(false);
+                        await zeroLine.Save(ct).ConfigureAwait(false);
+                    }
+                    catch (Exception error)
+                    {
+                        LogEvent($"PROCESS_COMPLETE_BLOCKED Cause=ZeroLineResults; Process COMPLETE ON was not requested; {error.Message}");
+                        throw;
+                    }
                 }, token).ConfigureAwait(false);
             }
 
@@ -5987,6 +6024,7 @@
         private CStageReviewSequences.Session? _stage;
         private CReviewManager.ZeroLineVisionSession? _vision;
         private bool _saved, _advanced;
+        private Exception? _acquisitionError;
         private ST_ZERO_LINE_CYCLE_STATUS _status = new(true, "WAIT", "0선 준비 대기", plan.Group, Array.AsReadOnly(plan.VisionPlan.Points.Select(p => new ST_ZERO_LINE_POINT_RESULT(p, "WAIT")).ToArray()))
         {
             Plan = plan
@@ -6072,20 +6110,42 @@
             }
             catch (Exception error)
             {
+                _acquisitionError = error;
                 var results = Status.Results!.Select(result => result with
                 {
                     State = "ERROR",
                     Point = result.Point with { State = EN_REVIEW_POINT_STATE.Ng, Judge = "NG" },
                     Detail = error.Message
                 }).ToArray();
-                Set("DONE", "0선 일괄 결과 실패: " + error.Message, results);
+                Set("ERROR", "0선 Vision 결과 수신 실패 · 정상 검사 NG와 구분: " + error.Message, results);
             }
         }
 
         public async Task Save(CancellationToken token)
         {
-            if (Status.State != "DONE" || _vision is null)
+            if ((Status.State != "DONE" && _acquisitionError is null) || _vision is null)
                 throw new InvalidOperationException("0선 결과 처리가 완료되지 않았습니다.");
+            if (_acquisitionError is { } acquisitionError)
+            {
+                // A missing/malformed Vision response is not a measured NG eligible for follow-up.
+                // Preserve its evidence, clear this glass's request, and keep the group unchanged.
+                try
+                {
+                    await SaveFile(token).ConfigureAwait(false);
+                    await PublishFollowUp(interfaces, false, token).ConfigureAwait(false);
+                    Volatile.Write(ref _status, Status with { FollowUpRequested = false });
+                }
+                catch (OperationCanceledException) when (token.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (Exception error)
+                {
+                    throw new AggregateException("0선 Vision 결과 수신 실패 후 결과 저장 또는 후속 요청 OFF 확인 실패: "
+                        + acquisitionError.Message + " / " + error.Message, acquisitionError, error);
+                }
+                throw new InvalidDataException("0선 Vision 결과 수신 실패로 Process 완료 통보를 중단했습니다: " + acquisitionError.Message, acquisitionError);
+            }
             await SaveFile(token).ConfigureAwait(false);
             // Inspection geometry stays frozen; the editable follow-up option is re-evaluated
             // at the final flag boundary, including NG confirmed after machining ended.
@@ -6114,6 +6174,25 @@
             await PublishFollowUp(interfaces, false, token).ConfigureAwait(false);
             Volatile.Write(ref _status, Status with { FollowUpRequested = false, FollowUpCompleted = true });
             log?.Invoke($"0선 NG 후속 1줄 IOF 결과 저장 완료 · 보정 미적용: Glass={plan.GlassId}; Run={runId}");
+        }
+
+        public async Task ResetAfterStop(CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+            if (!Status.FollowUpRequested)
+                return;
+            if (_stage is not null || _vision is not null || interfaces.StageReviewSequences.IsActive)
+                throw new InvalidOperationException("0선 RESET 전에 Process/Review 세션과 출력 정리를 완료해 주세요.");
+            // Do not claim inspection completion. A failed OFF/readback leaves the old
+            // identity and pending flag intact so RESET can retry without losing evidence.
+            await PublishFollowUp(interfaces, false, token).ConfigureAwait(false);
+            Volatile.Write(ref _status, Status with
+            {
+                State = "RESET_CANCELLED",
+                Detail = "RESET으로 이전 Glass의 미완료 후속 검사를 취소했습니다. 기존 결과 파일은 보존됩니다.",
+                FollowUpRequested = false,
+                FollowUpCompleted = false
+            });
         }
 
         private async Task SaveFile(CancellationToken token)
