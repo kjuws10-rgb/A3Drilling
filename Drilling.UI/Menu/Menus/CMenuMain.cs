@@ -141,6 +141,8 @@
             SequenceStatus.RefreshZeroLine(snapshot.ZeroLinePrewait, snapshot.ZeroLine);
             if (_selectedParameterTabKey == ParameterTabProtectWindow)
                 ProtectWindow.RefreshSignals(values, map, connections);
+            // Zero-line completion advances the shared Setting cache while Main stays open.
+            RunOptions.ReloadFromSettings();
             RunOptions.UpdateReviewAble(ReadReviewAble(values.GetValueOrDefault("HANDSHAKE_PRC_REVIEW_ABLE")));
             SequenceStatus.OpenReviewMonitor = OpenReviewMonitor;
             SequenceStatus.OpenPowerMeasureMonitor = OpenPowerMeasureMonitor;
