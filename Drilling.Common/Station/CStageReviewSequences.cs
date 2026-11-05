@@ -866,21 +866,49 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
             if (direction is not (-1 or 1))
                 throw new InvalidDataException("0선 Stage Y 가공 방향은 -1 또는 +1이어야 합니다.");
             var clock = Stopwatch.StartNew();
-            while (true)
-            {
-                Check(token);
-                var values = _simulation ? null : _interfaces.Melsec.GetCachedSnapshot(["MOTOR_STAGE_Y_CUR_POS", "MOTOR_STAGE_Y_BUSY"], out _);
-                var y = ZeroLineFeedback("MOTOR_STAGE_Y_CUR_POS", values);
-                var busy = ZeroLineFeedback("MOTOR_STAGE_Y_BUSY", values);
-                var passedTarget = direction < 0 ? y < endY : y > endY;
-                if (passedTarget && busy == 0)
+            using var limit = CancellationTokenSource.CreateLinkedTokenSource(token);
+            limit.CancelAfter(_owner._signalTimeout);
+            var ids = new[] { "MOTOR_STAGE_Y_CUR_POS", "MOTOR_STAGE_Y_BUSY" };
+            string Evidence() => FormattableString.Invariant($"Direction={direction}; TargetY={endY}; ElapsedMs={clock.ElapsedMilliseconds}; ")
+                + string.Join(" | ", ids.Select(id =>
                 {
-                    Record("ZERO_LINE_STAGE_END_STOPPED", FormattableString.Invariant($"TargetY={endY}; ActualY={y}; Direction={direction}; PassedTarget=True; Busy={busy}"));
-                    return;
+                    try { return Describe(id); }
+                    catch (Exception error) { return $"{id}; DiagnosticUnavailable={error.Message}"; }
+                }));
+            Record("ZERO_LINE_STAGE_END_WAIT", FormattableString.Invariant($"TargetY={endY}; Direction={direction}; Required=PassedTarget AND Busy=0"));
+            try
+            {
+                while (true)
+                {
+                    Check(limit.Token);
+                    // This gate needs a new central-poller frame, just like motion arrival.
+                    // Do not turn a transient Pending/Stale cache into a results failure.
+                    // Both inputs share a block; requesting them together avoids separate I/O.
+                    if (!_simulation)
+                        await RefreshInputs(ids, limit.Token).ConfigureAwait(false);
+                    Check(limit.Token);
+                    var values = _simulation ? null : _interfaces.Melsec.GetCachedSnapshot(ids, out _);
+                    var y = ZeroLineFeedback(ids[0], values);
+                    var busy = ZeroLineFeedback(ids[1], values);
+                    var passedTarget = direction < 0 ? y < endY : y > endY;
+                    if (passedTarget && busy == 0)
+                    {
+                        Record("ZERO_LINE_STAGE_END_STOPPED", FormattableString.Invariant($"TargetY={endY}; ActualY={y}; Direction={direction}; PassedTarget=True; Busy={busy}; ElapsedMs={clock.ElapsedMilliseconds}"));
+                        return;
+                    }
+                    await Task.Delay(20, limit.Token).ConfigureAwait(false);
                 }
-                if (clock.Elapsed > _owner._signalTimeout)
-                    throw new TimeoutException(FormattableString.Invariant($"0선 Stage Y 목표 통과 후 정지 대기 시간 초과: Direction={direction}, TargetY={endY}, ActualY={y}, PassedTarget={passedTarget}, Busy={busy}."));
-                await Task.Delay(20, token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException error) when (!token.IsCancellationRequested && !_stopRequested() && limit.IsCancellationRequested)
+            {
+                var detail = "0선 Stage Y 목표 통과 후 정지 대기 시간 초과: " + Evidence();
+                Record("ZERO_LINE_STAGE_END_FAILED", detail);
+                throw new TimeoutException(detail, error);
+            }
+            catch (Exception error)
+            {
+                Record(error is OperationCanceledException ? "ZERO_LINE_STAGE_END_CANCELED" : "ZERO_LINE_STAGE_END_FAILED", Evidence() + "; " + error.Message);
+                throw;
             }
         }
 
@@ -893,7 +921,7 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
             if (row.Direction != EN_MELSEC_DIRECTION.In || row.Access is not (EN_MELSEC_ACCESS.Read or EN_MELSEC_ACCESS.ReadWrite)
                 || string.IsNullOrWhiteSpace(row.Address) || row.Address.Equals("UNASSIGNED", StringComparison.OrdinalIgnoreCase)
                 || sample is not { IsValid: true, Value: not null, UpdatedAt: not null } || DateTimeOffset.UtcNow - sample.UpdatedAt > TimeSpan.FromSeconds(2))
-                throw new InvalidOperationException("0선 위치/상태의 유효한 최신 MELSEC 입력 스냅샷이 필요합니다: " + id);
+                throw new InvalidOperationException("0선 위치/상태의 유효한 최신 MELSEC 입력 스냅샷이 필요합니다: " + Describe(id));
             var result = Convert.ToDouble(sample.Value, CultureInfo.InvariantCulture);
             if (!double.IsFinite(result))
                 throw new InvalidDataException("0선 위치/상태 값이 유효하지 않습니다: " + id);
