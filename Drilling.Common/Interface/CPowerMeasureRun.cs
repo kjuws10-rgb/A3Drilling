@@ -63,13 +63,22 @@ public sealed class CPowerMeasureRun(CManager manager, ST_RECIPE_DEFINITION reci
         try
         {
             if (!_prepared || _released || _measured) throw new InvalidOperationException("PowerMeasure 준비 상태를 확인해 주세요.");
+            await _session.CheckStageReady(token).ConfigureAwait(false);
             using var guard = CancellationTokenSource.CreateLinkedTokenSource(token);
             Exception? stageError = null;
             var watching = Task.Run(async () =>
             {
                 try { while (true) { await Task.Delay(100, guard.Token).ConfigureAwait(false); _session.EnsureStageReady(); } }
                 catch (OperationCanceledException) when (guard.IsCancellationRequested) { }
-                catch (Exception error) { stageError = error; guard.Cancel(); }
+                catch (Exception error) { Interlocked.CompareExchange(ref stageError, error, null); guard.Cancel(); }
+            });
+            // Keep the central Stage frame current without suspending the strict
+            // watchdog above while a requested read is waiting for transport.
+            var refreshing = Task.Run(async () =>
+            {
+                try { await _session.MaintainStageFeedback(guard.Token).ConfigureAwait(false); }
+                catch (OperationCanceledException) when (guard.IsCancellationRequested) { }
+                catch (Exception error) { Interlocked.CompareExchange(ref stageError, error, null); guard.Cancel(); }
             });
             var started = false;
             try
@@ -78,9 +87,13 @@ public sealed class CPowerMeasureRun(CManager manager, ST_RECIPE_DEFINITION reci
                 started = true;
                 await operation.ConfigureAwait(false);
             }
+            catch (OperationCanceledException) when (stageError is not null && !token.IsCancellationRequested)
+            {
+                throw stageError;
+            }
             finally
             {
-                guard.Cancel(); await watching.ConfigureAwait(false);
+                guard.Cancel(); await Task.WhenAll(watching, refreshing).ConfigureAwait(false);
                 if (started) { _result = manager.PowerMeasure.GetSnapshot(); Report(); }
             }
             if (stageError is not null) throw stageError;
@@ -149,6 +162,7 @@ internal sealed class CPowerMeasureDeviceSession(CManager manager, ST_RECIPE_DEF
     private int TimeoutMs => Math.Clamp(CPowerMeasureRun.Integer(manager.Setting(), "TPM_OPERATION_TIMEOUT_MS", 30000), 100, 120000);
     private CInterfaceManager Interfaces => manager.Interface();
     private CAutomationManager Automation => manager.Automation();
+    private static readonly string[] StageFeedbackIds = ["MOTOR_STAGE_Y_CUR_POS", "MOTOR_STAGE_Y_BUSY"];
     private bool Sim(EN_EQP_MODULE module, int no) => Interfaces.GetInterfaceCommunicationList(module).Any(d => d.Number == no && d.IsSimulation);
     public bool IsSimulation(int head) => Sim(EN_EQP_MODULE.PowerMeter, head - 1) || Sim(EN_EQP_MODULE.Attenuator, head - 1) || Automation.IsSimul(_routes[head].X.AutomationNo);
     private void Connected(EN_EQP_MODULE module, int no)
@@ -156,28 +170,82 @@ internal sealed class CPowerMeasureDeviceSession(CManager manager, ST_RECIPE_DEF
         var device = Interfaces.GetInterfaceCommunicationList(module).FirstOrDefault(d => d.Number == no);
         if (device is null || (!device.IsSimulation && device.ConnectionState != EN_COMM_STATE.Online)) throw new InvalidOperationException($"{module} {no}: 연결되어 있지 않습니다.");
     }
-    public void EnsureStageReady()
+    private (IReadOnlyDictionary<string, ST_MELSEC_CACHED_VALUE> Values, IReadOnlyList<ST_MELSEC_MAP_DATA> Map) StageSnapshot()
     {
         if (manager.Alarm().CurAlarm.Any(a => a.Severity == Drilling.Common.Alarm.EN_ALARM_LEVEL.Critical))
             throw new InvalidOperationException("HEAVY 알람을 RESET한 후 파워 측정을 시작해 주세요.");
-        var values = Interfaces.Melsec.GetCachedSnapshot(out var map);
-        foreach (var id in new[] { "MOTOR_STAGE_Y_CUR_POS", "MOTOR_STAGE_Y_BUSY" })
+        var values = Interfaces.Melsec.GetCachedSnapshot(StageFeedbackIds, out var map);
+        foreach (var id in StageFeedbackIds)
         {
-            var row = map.FirstOrDefault(r => r.Use && r.Id == id && r.Direction == EN_MELSEC_DIRECTION.In && r.Access != EN_MELSEC_ACCESS.Write && !string.IsNullOrWhiteSpace(r.Address));
+            var row = map.FirstOrDefault(r => r.Use && r.Id == id && r.Direction == EN_MELSEC_DIRECTION.In && r.Access != EN_MELSEC_ACCESS.Write
+                && !string.IsNullOrWhiteSpace(r.Address) && !r.Address.Equals("UNASSIGNED", StringComparison.OrdinalIgnoreCase));
             if (row is null) throw new InvalidOperationException($"Stage Y 입력 맵이 없습니다: {id}");
             Connected(EN_EQP_MODULE.Melsec, row.DeviceNo);
+            if (id.EndsWith("CUR_POS")) _stageDevice = row.DeviceNo;
+            else if (row.DeviceNo != _stageDevice) throw new InvalidOperationException("Stage Y 위치와 BUSY는 같은 MELSEC 장치의 입력이어야 합니다.");
+        }
+        return (values, map);
+    }
+    private string StageEvidence(IReadOnlyDictionary<string, ST_MELSEC_CACHED_VALUE>? values = null, IReadOnlyList<ST_MELSEC_MAP_DATA>? map = null)
+    {
+        try
+        {
+            if (values is null || map is null)
+                values = Interfaces.Melsec.GetCachedSnapshot(StageFeedbackIds, out map);
+            var now = DateTimeOffset.UtcNow;
+            return string.Join(" | ", StageFeedbackIds.Select(id =>
+            {
+                var row = map.FirstOrDefault(r => r.Id == id);
+                var sample = values.GetValueOrDefault(id);
+                return FormattableString.Invariant($"{id}; Address={row?.Address}; Value={sample?.Value}; State={sample?.State}; SampleAt={sample?.UpdatedAt:O}; AgeMs={(sample?.UpdatedAt is { } at ? (now - at).TotalMilliseconds : (double?)null):F0}; Cycle={sample?.ReadCycleNo}; Error={sample?.ErrorMessage}");
+            })) + $"; DriverReadCode={Interfaces.Melsec.LastReadReturnCode}; DriverReadFailures={Interfaces.Melsec.ConsecutiveReadFailureCount}";
+        }
+        catch (Exception error) { return "Stage diagnostic unavailable: " + error.Message; }
+    }
+    // Safety checks during emission remain synchronous and fail closed on stale input.
+    public void EnsureStageReady()
+    {
+        var (values, map) = StageSnapshot();
+        foreach (var id in StageFeedbackIds)
+        {
             if (!values.TryGetValue(id, out var sample) || !sample.IsValid || sample.Value is null || sample.UpdatedAt is null || DateTimeOffset.Now - sample.UpdatedAt > TimeSpan.FromSeconds(2))
-                throw new InvalidOperationException("Stage Y의 유효한 현재 위치/BUSY 스냅샷이 필요합니다.");
+                throw new InvalidOperationException("Stage Y의 유효한 현재 위치/BUSY 스냅샷이 필요합니다. " + StageEvidence(values, map));
             var number = Convert.ToDouble(sample.Value, CultureInfo.InvariantCulture);
             if (!double.IsFinite(number) || (id.EndsWith("BUSY") ? number != 0 : Math.Abs(number) > StageTolerance))
-                throw new InvalidOperationException($"Stage Y가 0 mm에서 정지한 상태여야 합니다. {id}={number:0.####}");
-            if (id.EndsWith("CUR_POS")) _stageDevice = row.DeviceNo;
+                throw new InvalidOperationException($"Stage Y가 0 mm에서 정지한 상태여야 합니다. {id}={number:0.####}; " + StageEvidence(values, map));
         }
     }
-    public Task CheckStageReady(CancellationToken token) { token.ThrowIfCancellationRequested(); EnsureStageReady(); return Task.CompletedTask; }
+    public async Task CheckStageReady(CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        var (values, map) = StageSnapshot();
+        foreach (var id in StageFeedbackIds)
+            if (values.GetValueOrDefault(id)?.State is EN_MELSEC_CACHE_STATE.Error or EN_MELSEC_CACHE_STATE.Offline)
+                throw new IOException("TPM Stage Y 입력 수신 오류: " + StageEvidence(values, map));
+        using var limit = CancellationTokenSource.CreateLinkedTokenSource(token);
+        limit.CancelAfter(TimeoutMs);
+        try
+        {
+            await Task.WhenAll(StageFeedbackIds.Select(id => Interfaces.Melsec.RefreshCachedValueAsync(id, limit.Token))).ConfigureAwait(false);
+            limit.Token.ThrowIfCancellationRequested();
+            EnsureStageReady();
+        }
+        catch (OperationCanceledException error) when (!token.IsCancellationRequested && limit.IsCancellationRequested)
+        { throw new TimeoutException("TPM Stage Y 최신 입력 확인 시간 초과: " + StageEvidence(), error); }
+        catch (IOException error)
+        { throw new IOException("TPM Stage Y 최신 입력 확인 실패: " + StageEvidence(), error); }
+    }
+    internal async Task MaintainStageFeedback(CancellationToken token)
+    {
+        while (true)
+        {
+            await CheckStageReady(token).ConfigureAwait(false);
+            await Task.Delay(100, token).ConfigureAwait(false);
+        }
+    }
     public async Task PrepareAll(CancellationToken token)
     {
-        EnsureStageReady();
+        await CheckStageReady(token).ConfigureAwait(false);
         if (manager.PowerMeasure.GetSnapshot().IsRunning) throw new InvalidOperationException("PowerMeasure가 이미 실행 중입니다.");
         if (targets.Count == 0 || targets.Select(t => t.HeadNo).Distinct().Count() != targets.Count || targets.Select(t => t.PowerMeterNo).Distinct().Count() != targets.Count)
             throw new InvalidOperationException("중복 없는 Head 및 전용 센서가 필요합니다.");
@@ -274,20 +342,23 @@ internal sealed class CPowerMeasureDeviceSession(CManager manager, ST_RECIPE_DEF
     }
     public async Task MoveAttenuator(ST_POWER_MEASURE_TARGET target, double angle, CancellationToken token)
     {
-        await EndMeasurement(target).ConfigureAwait(false); EnsureStageReady();
+        await EndMeasurement(target).ConfigureAwait(false);
+        await CheckStageReady(token).ConfigureAwait(false);
         using var limit = CancellationTokenSource.CreateLinkedTokenSource(token); limit.CancelAfter(TimeoutMs);
         try { await _attenuators[target.HeadNo].MoveAndWaitAsync([new(target.HeadNo, angle)], limit.Token).ConfigureAwait(false); }
         catch (OperationCanceledException) when (!token.IsCancellationRequested) { throw new TimeoutException($"HEAD {target.HeadNo:00}: ATT 이동 시간 초과"); }
     }
     public async Task BeginMeasurement(ST_POWER_MEASURE_TARGET target, CancellationToken token)
     {
-        EnsureStageReady(); Connected(EN_EQP_MODULE.PowerMeter, target.PowerMeterNo);
+        await CheckStageReady(token).ConfigureAwait(false); Connected(EN_EQP_MODULE.PowerMeter, target.PowerMeterNo);
         using var limit = CancellationTokenSource.CreateLinkedTokenSource(token); limit.CancelAfter(TimeoutMs);
         await WaitLaserReady(target.HeadNo, limit.Token).ConfigureAwait(false);
         var r = _routes[target.HeadNo];
         await _emissionGate.WaitAsync(limit.Token).ConfigureAwait(false);
         try
         {
+            // Laser/other-Head gate waits may outlive the fresh frame acquired above.
+            EnsureStageReady();
             // Reserve before ON so an ambiguous command failure still forces OFF during cleanup.
             _emitting.TryAdd(target.HeadNo, 0);
             await Automation.SetGalvoLaserOutput(r.X.AxisReference, true, r.Task, r.X.AutomationNo, limit.Token).ConfigureAwait(false);
