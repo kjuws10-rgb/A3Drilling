@@ -160,6 +160,7 @@
             }
 
             InvalidatePollingCache(EN_MELSEC_CACHE_STATE.Offline, "MELSEC communication is stopped.");
+            FlushMelsecLogs();
             CancelQueuedRequests("MELSEC control is stopping.");
             CancelQueuedWrites("MELSEC control is stopping.");
             CloseMelsecNetChannels();
@@ -194,29 +195,36 @@
 
         public override void Run()
         {
-            CMelsecWriteCommand? activeCommand = GetActiveWriteCommand();
-            if (activeCommand != null)
+            try
             {
-                ProcessWriteCommand(activeCommand);
+                CMelsecWriteCommand? activeCommand = GetActiveWriteCommand();
+                if (activeCommand != null)
+                {
+                    ProcessWriteCommand(activeCommand);
+                    PollNextCacheBlock();
+                    return;
+                }
+
+                CMelsecThreadRequest? request = GetThreadRequest();
+                if (request != null)
+                {
+                    ProcessThreadRequest(request);
+                    PollNextCacheBlock();
+                    return;
+                }
+
+                CMelsecWriteCommand? writeCommand = GetQueuedWriteCommand();
+                if (writeCommand != null)
+                {
+                    ActivateWriteCommand(writeCommand);
+                }
+
                 PollNextCacheBlock();
-                return;
             }
-
-            CMelsecThreadRequest? request = GetThreadRequest();
-            if (request != null)
+            finally
             {
-                ProcessThreadRequest(request);
-                PollNextCacheBlock();
-                return;
+                FlushMelsecLogs();
             }
-
-            CMelsecWriteCommand? writeCommand = GetQueuedWriteCommand();
-            if (writeCommand != null)
-            {
-                ActivateWriteCommand(writeCommand);
-            }
-
-            PollNextCacheBlock();
         }
 
         protected override void OnThreadError(Exception exception)
@@ -465,12 +473,12 @@
             base.Dispose();
         }
 
-        private bool ReadBitCore(string id, CancellationToken cancellationToken, bool suppressLog = false)
+        private bool ReadBitCore(string id, CancellationToken cancellationToken, bool suppressLog = false, string logSource = "DIRECT")
         {
             ST_MELSEC_MAP_DATA data = PrepareRead(id, EN_MELSEC_DATA_TYPE.Bit, cancellationToken);
             ST_MELSEC_ADDRESS address = ParseAddress(data.Address);
             int bitIndex = RequireWordBit(address, data);
-            ushort[] words = ReadWords(data, address, 1, cancellationToken, suppressLog);
+            ushort[] words = ReadWords(data, address, 1, cancellationToken, suppressLog, logSource);
             bool value = (words[0] & (1 << bitIndex)) != 0;
             SaveReadSnapshot(data.Id, value);
             return value;
@@ -495,11 +503,11 @@
             WriteWords(data, address, words, cancellationToken);
         }
 
-        private double ReadWordCore(string id, CancellationToken cancellationToken, bool suppressLog = false)
+        private double ReadWordCore(string id, CancellationToken cancellationToken, bool suppressLog = false, string logSource = "DIRECT")
         {
             ST_MELSEC_MAP_DATA data = PrepareRead(id, [EN_MELSEC_DATA_TYPE.Word, EN_MELSEC_DATA_TYPE.DWord], cancellationToken);
             int wordCount = data.DataType == EN_MELSEC_DATA_TYPE.DWord ? Math.Max(2, data.Length) : 1;
-            ushort[] words = ReadWords(data, ParseAddress(data.Address), wordCount, cancellationToken, suppressLog);
+            ushort[] words = ReadWords(data, ParseAddress(data.Address), wordCount, cancellationToken, suppressLog, logSource);
             int rawValue = data.DataType == EN_MELSEC_DATA_TYPE.DWord ? WordsToInt32(words) : words[0];
             double value = rawValue * data.ReadScale;
             SaveReadSnapshot(data.Id, value);
@@ -523,14 +531,14 @@
             return (int)rounded;
         }
 
-        private double ReadDoubleCore(string id, CancellationToken cancellationToken, bool suppressLog = false)
+        private double ReadDoubleCore(string id, CancellationToken cancellationToken, bool suppressLog = false, string logSource = "DIRECT")
         {
             ST_MELSEC_MAP_DATA data = PrepareRead(id, [EN_MELSEC_DATA_TYPE.Double, EN_MELSEC_DATA_TYPE.Float], cancellationToken);
             ValidateMapData(data);
             // Scalar APIs expose the first 32-bit value. LENGTH may describe the
             // full IOF array capacity; only ReadDoubleArray reads that entire area.
             int wordCount = 2;
-            ushort[] words = ReadWords(data, ParseAddress(data.Address), wordCount, cancellationToken, suppressLog);
+            ushort[] words = ReadWords(data, ParseAddress(data.Address), wordCount, cancellationToken, suppressLog, logSource);
             double value;
             if (data.DataType == EN_MELSEC_DATA_TYPE.Float)
             {
@@ -560,10 +568,10 @@
             WriteWords(data, ParseAddress(data.Address), words, cancellationToken);
         }
 
-        private string ReadStringCore(string id, CancellationToken cancellationToken, bool suppressLog = false)
+        private string ReadStringCore(string id, CancellationToken cancellationToken, bool suppressLog = false, string logSource = "DIRECT")
         {
             ST_MELSEC_MAP_DATA data = PrepareRead(id, EN_MELSEC_DATA_TYPE.String, cancellationToken);
-            ushort[] words = ReadWords(data, ParseAddress(data.Address), data.Length, cancellationToken, suppressLog);
+            ushort[] words = ReadWords(data, ParseAddress(data.Address), data.Length, cancellationToken, suppressLog, logSource);
             byte[] bytes = new byte[words.Length * 2];
             for (int index = 0; index < words.Length; index++)
             {
@@ -1453,13 +1461,13 @@
             switch (command.RequestedDataType)
             {
                 case EN_MELSEC_DATA_TYPE.Bit:
-                    return ReadBitCore(command.ReadbackId, CancellationToken.None);
+                    return ReadBitCore(command.ReadbackId, CancellationToken.None, logSource: "WRITE_CONFIRM");
                 case EN_MELSEC_DATA_TYPE.Word:
-                    return ReadWordCore(command.ReadbackId, CancellationToken.None);
+                    return ReadWordCore(command.ReadbackId, CancellationToken.None, logSource: "WRITE_CONFIRM");
                 case EN_MELSEC_DATA_TYPE.Double:
-                    return ReadDoubleCore(command.ReadbackId, CancellationToken.None);
+                    return ReadDoubleCore(command.ReadbackId, CancellationToken.None, logSource: "WRITE_CONFIRM");
                 case EN_MELSEC_DATA_TYPE.String:
-                    return ReadStringCore(command.ReadbackId, CancellationToken.None);
+                    return ReadStringCore(command.ReadbackId, CancellationToken.None, logSource: "WRITE_CONFIRM");
                 default:
                     throw new InvalidOperationException("MELSEC readback data type is not supported: " + command.RequestedDataType);
             }
@@ -1624,7 +1632,7 @@
             }
         }
 
-        private ushort[] ReadWords(ST_MELSEC_MAP_DATA data, ST_MELSEC_ADDRESS address, int wordCount, CancellationToken cancellationToken, bool suppressLog = false)
+        private ushort[] ReadWords(ST_MELSEC_MAP_DATA data, ST_MELSEC_ADDRESS address, int wordCount, CancellationToken cancellationToken, bool suppressLog = false, string logSource = "DIRECT")
         {
             if (wordCount <= 0 || wordCount > ushort.MaxValue)
             {
@@ -1632,14 +1640,15 @@
             }
 
             var interfaceData = GetInterfaceData(data);
-            var command = CreateCommand("READ_WORD", data, wordCount.ToString(CultureInfo.InvariantCulture));
+            var operation = logSource == "WRITE_CONFIRM" ? "READBACK" : "READ";
+            var command = BuildMelsecLogHeader(data, operation, address, wordCount);
             if (IsSimulation(interfaceData))
             {
                 UpdateStageMotionSimulationWords(data.DeviceNo, address, wordCount);
                 var simulationWords = ReadSimulationWords(data.DeviceNo, address, wordCount);
                 if (!suppressLog)
                 {
-                    WriteCommandLog(data, interfaceData, command, $"SIMULATION OK / {WordsToHexText(simulationWords)}");
+                    WriteTransferLog(data, address, simulationWords, operation, logSource, operation == "READBACK" ? "READBACK_RECEIVED" : "RECEIVED");
                 }
 
                 RegisterReadSuccess();
@@ -1717,7 +1726,7 @@
 
             if (!suppressLog)
             {
-                WriteCommandLog(data, interfaceData, command, "mdReceiveEx OK / " + actualSize.ToString(CultureInfo.InvariantCulture) + " bytes");
+                WriteTransferLog(data, address, words, operation, logSource, operation == "READBACK" ? "READBACK_RECEIVED" : "RECEIVED");
             }
 
             _interfaceManager.UpdateMelsecCommunicationState(interfaceData.Number, true, command, "mdReceiveEx OK", "");
@@ -1725,7 +1734,7 @@
             return words;
         }
 
-        private void WriteWords(ST_MELSEC_MAP_DATA data, ST_MELSEC_ADDRESS address, IReadOnlyList<ushort> words, CancellationToken cancellationToken)
+        private void WriteWords(ST_MELSEC_MAP_DATA data, ST_MELSEC_ADDRESS address, IReadOnlyList<ushort> words, CancellationToken cancellationToken, string logSource = "DIRECT")
         {
             if (words.Count <= 0 || words.Count > ushort.MaxValue)
             {
@@ -1733,14 +1742,14 @@
             }
 
             var interfaceData = GetInterfaceData(data);
-            var command = CreateCommand("WRITE_WORD", data, WordsToHexText(words));
+            var command = BuildMelsecLogHeader(data, "WRITE", address, words.Count);
             // A write acknowledgement is not feedback. Only the next central read may
             // publish a valid value, including aliases that share the written words.
             InvalidateWrittenCache(data.DeviceNo, address, words.Count);
             if (IsSimulation(interfaceData))
             {
                 WriteSimulationWords(data.DeviceNo, address, words);
-                WriteCommandLog(data, interfaceData, command, "SIMULATION OK");
+                WriteTransferLog(data, address, words, "WRITE", logSource, "WRITE_ACCEPTED");
                 RegisterCommunicationSuccess();
                 return;
             }
@@ -1786,7 +1795,7 @@
                 throw new IOException(message + " / " + FormatMap(data));
             }
 
-            WriteCommandLog(data, interfaceData, command, "mdSendEx OK / " + actualSize.ToString(CultureInfo.InvariantCulture) + " bytes");
+            WriteTransferLog(data, address, words, "WRITE", logSource, "WRITE_ACCEPTED");
             _interfaceManager.UpdateMelsecCommunicationState(interfaceData.Number, true, command, "mdSendEx OK", "");
             RegisterCommunicationSuccess();
         }
@@ -2190,41 +2199,9 @@
             return value.ToString() ?? "";
         }
 
-        private void WriteCommandLog(ST_MELSEC_MAP_DATA data, ST_INTERFACE_DATA interfaceData, string command, string response)
-        {
-            _logManager?.WriteInterfaceCommand(EN_EQP_MODULE.Melsec, interfaceData.NickName, command, response, FormatMap(data));
-        }
-
         private void WriteErrorLog(ST_MELSEC_MAP_DATA data, ST_INTERFACE_DATA interfaceData, string command, string detail)
         {
-            _logManager?.WriteInterfaceError(EN_EQP_MODULE.Melsec, interfaceData.NickName, command, $"{FormatMap(data)} / {detail}");
-        }
-
-        private static string CreateCommand(string operation, ST_MELSEC_MAP_DATA data, string value = "")
-        {
-            var fields = new[]
-            {
-                "MELSEC",
-                operation,
-                data.Id,
-                data.Address,
-                data.DataType.ToString().ToUpperInvariant(),
-                "READ_SCALE=" + data.ReadScale.ToString(CultureInfo.InvariantCulture),
-                "WRITE_SCALE=" + data.WriteScale.ToString(CultureInfo.InvariantCulture),
-                data.Length.ToString(CultureInfo.InvariantCulture),
-                value
-            };
-            return string.Join(":", fields);
-        }
-
-        private static string WordsToHexText(IReadOnlyList<ushort> words)
-        {
-            string SelectWord8(ushort word)
-            {
-                return word.ToString("X4", CultureInfo.InvariantCulture);
-            }
-
-            return string.Join(" ", words.Select(SelectWord8));
+            _logManager?.WriteInterfaceError(EN_EQP_MODULE.Melsec, interfaceData.NickName, command, $"{FormatMap(data)} / RAW=N/A | VALUE=N/A | RESULT=IO_ERROR / {detail}");
         }
 
         private static string FormatMap(ST_MELSEC_MAP_DATA data)
@@ -2470,7 +2447,7 @@
             {
                 token.ThrowIfCancellationRequested();
                 var count = Math.Min(chunkWords, words.Length - offset);
-                WriteWords(row, address with { Number = checked(address.Number + offset) }, words.AsSpan(offset, count).ToArray(), token);
+                WriteWords(row, address with { Number = checked(address.Number + offset) }, words.AsSpan(offset, count).ToArray(), token, logSource: "ARRAY");
             }
         }
 
@@ -2488,7 +2465,7 @@
             {
                 token.ThrowIfCancellationRequested();
                 var count = Math.Min(chunkWords, words.Length - offset);
-                var part = ReadWords(row, address with { Number = checked(address.Number + offset) }, count, token, suppressLog: true);
+                var part = ReadWords(row, address with { Number = checked(address.Number + offset) }, count, token, logSource: "ARRAY");
                 Array.Copy(part, 0, words, offset, count);
             }
             var result = Enumerable.Range(0, pointCount).Select(i => WordsToInt32([words[2 * i], words[2 * i + 1]]) * row.ReadScale).ToArray();
@@ -2703,6 +2680,8 @@
                 _pollDeviceBackoff.Clear();
                 _pollBlockById.Clear();
                 _cachedValues.Clear();
+                _pollLogSamples.Clear();
+                _pendingMelsecLogs.Clear();
                 foreach (var pair in entries)
                     _cachedValues[pair.Key] = pair.Value;
                 foreach (var block in blocks)
@@ -2765,6 +2744,7 @@
             foreach (var item in block.Items)
             {
                 var id = NormalizeId(item.Data.Id);
+                QueuePollQualityLog(item, state, message);
                 if (_cachedValues.TryGetValue(id, out var previous))
                     _cachedValues[id] = previous with
                     {
@@ -2871,6 +2851,9 @@
                     foreach (var pair in values)
                     {
                         var id = NormalizeId(pair.Item.Data.Id);
+                        var previousQuality = _cachedValues.TryGetValue(id, out var previous)
+                            ? WithCacheFreshness(id, previous, updatedAt).State : EN_MELSEC_CACHE_STATE.Pending;
+                        QueuePollReadLog(pair.Item, words, selected.Start, previousQuality, updatedAt);
                         _cachedValues[id] = new(id, pair.Value, EN_MELSEC_CACHE_STATE.Valid, updatedAt, cycle, "");
                         SaveReadSnapshot(id, pair.Value);
                     }
