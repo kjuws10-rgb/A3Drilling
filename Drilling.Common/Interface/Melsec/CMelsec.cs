@@ -54,6 +54,7 @@
         private readonly Queue<PollBlock> _requestedPollBlocks = new();
         private readonly HashSet<PollBlock> _requestedPollBlockSet = new();
         private bool _serveRequestedPoll = true;
+        private int _controlPollStreak;
         private int _pollGeneration;
         private int _nextPollBlock;
         public const string StageAlignBusyWordId = "STAGE_MCC_BUSY_FLAGS";
@@ -224,6 +225,7 @@
             finally
             {
                 FlushMelsecLogs();
+                PublishMelsecTimings();
             }
         }
 
@@ -281,6 +283,15 @@
             }
 
             Dictionary<string, ST_MELSEC_MAP_DATA> loadedMap = map.Where(FilterData4).ToDictionary(HandleMap5, StringComparer.OrdinalIgnoreCase);
+            // Missing Stage addresses get a distinct in-memory device space, never an invented PLC W address.
+            foreach (var signal in new[] { "ABLE", "COMPLETE" })
+            {
+                var id = "HANDSHAKE_STG_DISTORTION_" + signal;
+                var original = map.FirstOrDefault(row => row.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
+                if (original is not null && !original.Use && original.Address.Equals("UNASSIGNED", StringComparison.OrdinalIgnoreCase))
+                    loadedMap[id] = original with { Use = true, Address = "SIM_DISTORTION_" + signal, PollMs = 0,
+                        Description = original.Description + "; SIMULATION 전용 가상 입력; 실통신에서는 사용하지 않음" };
+            }
             RebuildPollingMap(loadedMap);
         }
 
@@ -610,6 +621,7 @@
                     throw new InvalidOperationException("MELSEC control is not accepting requests.");
                 }
 
+                request.QueuedTimestamp = Stopwatch.GetTimestamp();
                 _requestQueue.Enqueue(request);
             }
 
@@ -644,6 +656,7 @@
 
         private void ProcessThreadRequest(CMelsecThreadRequest request)
         {
+            RecordMelsecTiming("REQUEST_QUEUE", Stopwatch.GetElapsedTime(request.QueuedTimestamp).TotalMilliseconds, request.Id);
             try
             {
                 request.CancellationToken.ThrowIfCancellationRequested();
@@ -708,6 +721,9 @@
                 cancellationToken.ThrowIfCancellationRequested();
                 RegisterCommunicationSuccess();
                 RestartPollingDevice(deviceNo);
+                lock (_pollLock)
+                    foreach (var row in Map.Where(row => row.DeviceNo == deviceNo && IsSimulationOnlyRoute(row)))
+                        PublishSimulationInput(row); // Show the current in-memory OFF/ON state immediately on SIM open.
                 return;
             }
 
@@ -835,7 +851,7 @@
             for (int index = 0; index < map.Count; index++)
             {
                 ST_MELSEC_MAP_DATA data = map[index];
-                if (data.DeviceNo != deviceNo || data.Access == EN_MELSEC_ACCESS.Write)
+                if (data.DeviceNo != deviceNo || data.Access == EN_MELSEC_ACCESS.Write || IsSimulationOnlyRoute(data))
                 {
                     continue;
                 }
@@ -1586,9 +1602,9 @@
                 snapshot = new CMelsecReadSnapshot(_readCycleNo, DateTimeOffset.UtcNow, value);
                 _readSnapshots[key] = snapshot;
             }
-            // IOF coordinates are read on demand (actual Count only). Publish
-            // their last readback for Monitor without creating 500 poll targets.
-            if (IsIofPositionId(key))
+            // IOF coordinates and button-driven Wapage data publish their last
+            // explicit readback without adding background polling targets.
+            if (IsOnDemandValueId(key))
                 lock (_pollLock)
                     if (_cachedValues.ContainsKey(key) && !_pollBlockById.ContainsKey(key))
                         _cachedValues[key] = new(key, value, EN_MELSEC_CACHE_STATE.Valid, snapshot.ReadAt, snapshot.ReadCycleNo, "");
@@ -1640,6 +1656,8 @@
             }
 
             var interfaceData = GetInterfaceData(data);
+            if (IsSimulationOnlyRoute(data) && !IsSimulation(interfaceData))
+                throw new InvalidOperationException("Distortion Stage 수신 주소가 미정입니다. SIMULATION 전용 입력은 실통신에서 읽을 수 없습니다: " + data.Id);
             var operation = logSource == "WRITE_CONFIRM" ? "READBACK" : "READ";
             var command = BuildMelsecLogHeader(data, operation, address, wordCount);
             if (IsSimulation(interfaceData))
@@ -1669,7 +1687,15 @@
             try
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                returnCode = _melsecNetApi.ReceiveEx(path, option.NetworkNo, option.StationNo, address.DeviceType, address.Number, ref actualSize, receiveData);
+                var nativeStarted = Stopwatch.GetTimestamp();
+                try
+                {
+                    returnCode = _melsecNetApi.ReceiveEx(path, option.NetworkNo, option.StationNo, address.DeviceType, address.Number, ref actualSize, receiveData);
+                }
+                finally
+                {
+                    RecordMelsecTiming("mdReceiveEx", Stopwatch.GetElapsedTime(nativeStarted).TotalMilliseconds, data.Id + "@" + FormatMelsecLogAddress(address));
+                }
             }
             catch (Exception exception)when (IsMelsecNetRuntimeException(exception))
             {
@@ -1742,6 +1768,8 @@
             }
 
             var interfaceData = GetInterfaceData(data);
+            if (IsSimulationOnlyRoute(data) && !IsSimulation(interfaceData))
+                throw new InvalidOperationException("SIMULATION 전용 주소는 실제 MELSEC으로 쓸 수 없습니다: " + data.Id);
             var command = BuildMelsecLogHeader(data, "WRITE", address, words.Count);
             // A write acknowledgement is not feedback. Only the next central read may
             // publish a valid value, including aliases that share the written words.
@@ -1773,7 +1801,15 @@
             try
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                returnCode = _melsecNetApi.SendEx(path, option.NetworkNo, option.StationNo, address.DeviceType, address.Number, ref actualSize, sendData);
+                var nativeStarted = Stopwatch.GetTimestamp();
+                try
+                {
+                    returnCode = _melsecNetApi.SendEx(path, option.NetworkNo, option.StationNo, address.DeviceType, address.Number, ref actualSize, sendData);
+                }
+                finally
+                {
+                    RecordMelsecTiming("mdSendEx", Stopwatch.GetElapsedTime(nativeStarted).TotalMilliseconds, data.Id + "@" + FormatMelsecLogAddress(address));
+                }
             }
             catch (Exception exception)when (IsMelsecNetRuntimeException(exception))
             {
@@ -1944,6 +1980,8 @@
         private static ST_MELSEC_ADDRESS ParseAddress(string value)
         {
             var text = value.Trim().ToUpperInvariant();
+            if (text is "SIM_DISTORTION_ABLE" or "SIM_DISTORTION_COMPLETE")
+                return new ST_MELSEC_ADDRESS("SIM_DISTORTION", text.EndsWith("ABLE", StringComparison.Ordinal) ? 0 : 2, null, 0);
             var bitIndex = (int? )null;
             var bitSeparatorIndex = text.IndexOf('.', StringComparison.Ordinal);
             if (bitSeparatorIndex >= 0)
@@ -2242,6 +2280,7 @@
             }
 
             public EN_MELSEC_THREAD_COMMAND Command { get; }
+            public long QueuedTimestamp { get; set; }
             public string Id { get; }
             public object? Value { get; }
             public CancellationToken CancellationToken { get; }
@@ -2373,6 +2412,14 @@
 #region DoubleArray
         private static bool IsIofPositionId(string id) => id.StartsWith("IOF_POS_ARRAY_", StringComparison.OrdinalIgnoreCase)
             && int.TryParse(id[14..], NumberStyles.None, CultureInfo.InvariantCulture, out var index) && index is >= 1 and <= 500;
+
+        private static bool IsOnDemandValueId(string id) => IsIofPositionId(id)
+            || id is "HANDSHAKE_STG_DISTORTION_ABLE" or "HANDSHAKE_STG_DISTORTION_COMPLETE"
+            || id.StartsWith("PROCESS_WAPAGE_ALIGNBASE_", StringComparison.OrdinalIgnoreCase)
+            || id.StartsWith("PROCESS_DISTORTION_", StringComparison.OrdinalIgnoreCase)
+            || id.StartsWith("DISTORTION_POS", StringComparison.OrdinalIgnoreCase)
+            || id.StartsWith("SVID_FINEALN_CAM", StringComparison.OrdinalIgnoreCase)
+                && (id.EndsWith("_GLS_RESULT_X", StringComparison.OrdinalIgnoreCase) || id.EndsWith("_GLS_RESULT_Y", StringComparison.OrdinalIgnoreCase));
 
         /// <summary>Array capacity from map metadata only; does not perform device I/O.</summary>
         public int GetDoubleArrayCapacity(string id) => ResolveDoubleArrayData(GetMapData(id)).Length / 2;
@@ -2531,9 +2578,11 @@
         {
             cancellationToken.ThrowIfCancellationRequested();
             var key = NormalizeId(id);
-            if (IsIofPositionId(key) && GetMapData(key).PollMs == 0)
+            if (IsOnDemandValueId(key) && GetMapData(key).PollMs == 0)
             {
-                await Task.Run(() => ReadDouble(key, cancellationToken), cancellationToken).ConfigureAwait(false);
+                var data = GetMapData(key);
+                await Task.Run(() => data.DataType is EN_MELSEC_DATA_TYPE.Word or EN_MELSEC_DATA_TYPE.DWord
+                    ? ReadWordNoLog(key, cancellationToken) : ReadDouble(key, cancellationToken), cancellationToken).ConfigureAwait(false);
                 lock (_pollLock)
                     return _cachedValues[key];
             }
@@ -2550,12 +2599,7 @@
 
                 generation = _pollGeneration;
                 previousAttempt = block.AttemptNo;
-                if (!block.IsReading)
-                {
-                    block.NextReadAt = DateTimeOffset.MinValue;
-                    if (_requestedPollBlockSet.Add(block))
-                        _requestedPollBlocks.Enqueue(block);
-                }
+                RequestPollingBlock(block);
                 _pollDeviceBackoff.Remove(block.DeviceNo);
             }
 
@@ -2574,7 +2618,15 @@
                         sample = WithCacheFreshness(key, sample, DateTimeOffset.UtcNow);
                         if (sample.IsValid)
                             return sample;
-                        throw new IOException($"MELSEC feedback is unavailable: {id}. {sample.ErrorMessage}");
+                        if (sample.State is EN_MELSEC_CACHE_STATE.Pending or EN_MELSEC_CACHE_STATE.Stale)
+                        {
+                            // Another write can invalidate this address between a successful poll
+                            // and this continuation. Wait for its real readback within the SAME deadline.
+                            previousAttempt = block.AttemptNo;
+                            RequestPollingBlock(block);
+                        }
+                        else
+                            throw new IOException($"MELSEC feedback is unavailable: {id}. {sample.ErrorMessage}");
                     }
                 }
 
@@ -2586,7 +2638,7 @@
 
         private ST_MELSEC_CACHED_VALUE WithCacheFreshness(string id, ST_MELSEC_CACHED_VALUE sample, DateTimeOffset now)
         {
-            if (IsIofPositionId(id) && !_pollBlockById.ContainsKey(id))
+            if (IsOnDemandValueId(id) && !_pollBlockById.ContainsKey(id))
                 return sample; // Last explicit readback, not live motion/safety feedback.
             var interval = _pollBlockById.TryGetValue(id, out var block) ? block.IntervalMs : DefaultPollingIntervalMs;
             if (sample.IsValid && sample.UpdatedAt is { } updated && now - updated > TimeSpan.FromMilliseconds(Math.Max(1000L, (long)interval * 3)))
@@ -2611,9 +2663,9 @@
                 try
                 {
                     ValidateMapData(row);
-                    if (IsIofPositionId(id) && row.PollMs == 0)
+                    if (IsOnDemandValueId(id) && row.PollMs == 0)
                     {
-                        entries[id] = new(id, null, EN_MELSEC_CACHE_STATE.Pending, null, 0, "IOF coordinate: read on demand for actual Count.");
+                        entries[id] = new(id, null, EN_MELSEC_CACHE_STATE.Pending, null, 0, "Read on demand: waiting for an explicit read.");
                         continue;
                     }
                     var count = row.DataType switch
@@ -2658,6 +2710,7 @@
                     else
                     {
                         current!.Items.Add(item);
+                        current.IsControl |= IsControlPollItem(item);
                         current.End = Math.Max(current.End, end);
                         current.IntervalMs = Math.Min(current.IntervalMs, item.IntervalMs);
                     }
@@ -2676,6 +2729,7 @@
                 _requestedPollBlocks.Clear();
                 _requestedPollBlockSet.Clear();
                 _serveRequestedPoll = true;
+                _controlPollStreak = 0;
                 _nextPollBlock = 0;
                 _pollDeviceBackoff.Clear();
                 _pollBlockById.Clear();
@@ -2733,8 +2787,13 @@
             {
                 foreach (var block in _pollBlocks.Where(block => block.DeviceNo == deviceNo && block.Address.Device == address.Device && (long)block.Start < (long)address.Number + count && block.End >= address.Number))
                 {
-                    block.NextReadAt = DateTimeOffset.MinValue;
-                    SetBlockState(block, EN_MELSEC_CACHE_STATE.Pending, "Waiting for feedback after write.");
+                    // Read batching is not write ownership. Invalidate only actual overlapping
+                    // words (including aliases), not unrelated ABLE/START in the same read block.
+                    foreach (var item in block.Items)
+                        if ((long)item.Address.Number < (long)address.Number + count
+                            && (long)item.Address.Number + item.WordCount > address.Number)
+                            SetItemState(item, EN_MELSEC_CACHE_STATE.Pending, "Waiting for feedback after write.");
+                    RequestPollingBlock(block);
                 }
             }
         }
@@ -2742,17 +2801,25 @@
         private void SetBlockState(PollBlock block, EN_MELSEC_CACHE_STATE state, string message)
         {
             foreach (var item in block.Items)
-            {
-                var id = NormalizeId(item.Data.Id);
-                QueuePollQualityLog(item, state, message);
-                if (_cachedValues.TryGetValue(id, out var previous))
-                    _cachedValues[id] = previous with
-                    {
-                        Value = null,
-                        State = state,
-                        ErrorMessage = message
-                    };
-            }
+                SetItemState(item, state, message);
+        }
+
+        private void SetItemState(PollItem item, EN_MELSEC_CACHE_STATE state, string message)
+        {
+            var id = NormalizeId(item.Data.Id);
+            QueuePollQualityLog(item, state, message);
+            if (_cachedValues.TryGetValue(id, out var previous))
+                _cachedValues[id] = previous with { Value = null, State = state, ErrorMessage = message };
+        }
+
+        // Caller holds _pollLock. Explicit callers share one request per block.
+        private void RequestPollingBlock(PollBlock block)
+        {
+            if (block.IsReading)
+                return;
+            block.NextReadAt = DateTimeOffset.MinValue;
+            if (_requestedPollBlockSet.Add(block))
+                _requestedPollBlocks.Enqueue(block);
         }
 
         private void PollNextCacheBlock()
@@ -2779,6 +2846,10 @@
             }
         }
 
+        // Caller holds _pollLock. Device failure backoff is never bypassed by priority.
+        private bool PollDue(PollBlock block, DateTimeOffset now) => !block.IsReading && block.NextReadAt <= now
+            && (!_pollDeviceBackoff.TryGetValue(block.DeviceNo, out var retryAt) || retryAt <= now);
+
         private bool TryPollNextCacheBlock()
         {
             if (!_acceptRequests)
@@ -2789,8 +2860,9 @@
             lock (_pollLock)
             {
                 generation = _pollGeneration;
-                // A sequence readback must not wait behind a complete monitoring sweep.
-                // Alternate requested reads with round-robin polling so monitoring still advances.
+                // Explicit readback and periodic reads alternate. Within periodic reads, serve
+                // the oldest control deadline first, reserving every fourth turn for monitoring.
+                // This keeps position/BUSY/handshakes fresh without starving other enabled maps.
                 var requested = false;
                 if (_serveRequestedPoll)
                 {
@@ -2805,20 +2877,33 @@
                         break;
                     }
                 }
+                if (selected is null && _controlPollStreak < 3)
+                    foreach (var block in _pollBlocks)
+                        if (block.IsControl && PollDue(block, now)
+                            && (selected is null || block.NextReadAt < selected.NextReadAt))
+                            selected = block;
                 for (var scanned = 0; selected is null && scanned < _pollBlocks.Count; scanned++)
                 {
                     var index = _nextPollBlock++ % _pollBlocks.Count;
                     if (_nextPollBlock >= _pollBlocks.Count)
                         _nextPollBlock = 0;
                     var block = _pollBlocks[index];
-                    if (block.NextReadAt > now || (_pollDeviceBackoff.TryGetValue(block.DeviceNo, out var retryAt) && retryAt > now))
+                    if (!PollDue(block, now) || block.IsControl && _controlPollStreak >= 3)
                         continue;
                     selected = block;
                 }
+                if (selected is null)
+                    foreach (var block in _pollBlocks)
+                        if (PollDue(block, now) && (selected is null || block.NextReadAt < selected.NextReadAt))
+                            selected = block;
                 if (selected is not null)
                 {
                     selected.IsReading = true;
                     _serveRequestedPoll = !requested;
+                    if (!requested)
+                        _controlPollStreak = selected.IsControl ? Math.Min(3, _controlPollStreak + 1) : 0;
+                    if (selected.IsControl && selected.LastReadAt is { } lastRead)
+                        RecordMelsecTiming("CONTROL_POLL_GAP", (now - lastRead).TotalMilliseconds, selected.Items[0].Data.Id);
                 }
             }
 
@@ -2859,6 +2944,7 @@
                     }
 
                     selected.AttemptNo++;
+                    selected.LastReadAt = updatedAt;
                     selected.NextReadAt = updatedAt.AddMilliseconds(selected.IntervalMs);
                     _pollDeviceBackoff.Remove(selected.DeviceNo);
                 }
@@ -2921,6 +3007,11 @@
 
         private static object ScaleInteger(int rawValue, double readScale) => readScale == 1 ? (object)rawValue : rawValue * readScale;
         private sealed record PollItem(ST_MELSEC_MAP_DATA Data, ST_MELSEC_ADDRESS Address, int WordCount, int IntervalMs);
+        private static bool IsControlPollItem(PollItem item) => item.Data.Id.StartsWith("HANDSHAKE_", StringComparison.OrdinalIgnoreCase)
+            || item.Data.Id.StartsWith("MOTOR_STAGE_", StringComparison.OrdinalIgnoreCase)
+            || item.Data.Id.StartsWith("MOTOR_CAMERA_", StringComparison.OrdinalIgnoreCase)
+            || item.Data.Id.Equals(StageAlignBusyWordId, StringComparison.OrdinalIgnoreCase)
+            || item.Data.Id.Equals(StageProtectWindowCompleteId, StringComparison.OrdinalIgnoreCase);
         private sealed class PollBlock(PollItem first)
         {
             public List<PollItem> Items { get; } = [first];
@@ -2936,6 +3027,8 @@
             public DateTimeOffset NextReadAt { get; set; } = DateTimeOffset.MinValue;
             public long AttemptNo { get; set; }
             public bool IsReading { get; set; }
+            public DateTimeOffset? LastReadAt { get; set; }
+            public bool IsControl { get; set; } = IsControlPollItem(first);
         }
 #endregion
 
@@ -2959,6 +3052,42 @@
 #endregion
 
 #region StageSimulation
+        public static bool IsSimulationOnlyRoute(ST_MELSEC_MAP_DATA row) => row.Address.StartsWith("SIM_DISTORTION_", StringComparison.OrdinalIgnoreCase);
+        private static readonly HashSet<string> DistortionMeasurementIds = Enumerable.Range(1, 4)
+            .SelectMany(camera => new[] { $"DISTORTION_POS0_CAM{camera}X", $"DISTORTION_POS0_CAM{camera}Y" })
+            .Concat(Enumerable.Range(1, 3).SelectMany(position => new[] { $"DISTORTION_POS{position}_CAM2X", $"DISTORTION_POS{position}_CAM2Y", $"DISTORTION_POS{position}_CAM4X", $"DISTORTION_POS{position}_CAM4Y" })).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        public static bool IsDistortionMeasurementSimulationValue(ST_MELSEC_MAP_DATA row) => row.Use && DistortionMeasurementIds.Contains(row.Id)
+            && row.Direction == EN_MELSEC_DIRECTION.In && row.Access != EN_MELSEC_ACCESS.Write && row.DataType == EN_MELSEC_DATA_TYPE.Double && row.Length == 2;
+        public void SetDistortionMeasurementSimulationValue(string id, double mm) => SetDistortionMeasurementSimulationValues(new Dictionary<string, double> { [id] = mm });
+        public void SetDistortionMeasurementSimulationValues(IReadOnlyDictionary<string, double> values)
+        {
+            if (values.Count == 0) throw new ArgumentException("입력할 Distortion 측정값이 없습니다.");
+            lock (_pollLock)
+            {
+                var rows = values.Select(item => (Row: GetMapData(item.Key), item.Value)).ToArray();
+                // Check the entire set before changing any simulation memory. No native I/O is issued here.
+                foreach (var item in rows)
+                {
+                    if (!IsDistortionMeasurementSimulationValue(item.Row) || !IsSimulation(GetInterfaceData(item.Row)))
+                        throw new InvalidOperationException("MELSEC SIMULATION의 Distortion 측정값만 변경할 수 있습니다: " + item.Row.Id);
+                    if (!double.IsFinite(item.Value)) throw new ArgumentOutOfRangeException(nameof(values), "유효한 mm 숫자를 입력하세요.");
+                    _ = EncodeIntegerValue(item.Row, item.Value / item.Row.ReadScale);
+                }
+                foreach (var item in rows)
+                {
+                    WriteSimulationValue(item.Row, item.Value);
+                    PublishSimulationInput(item.Row);
+                }
+            }
+        }
+        private void PublishSimulationInput(ST_MELSEC_MAP_DATA row)
+        {
+            // Called with _pollLock held. This is injected input, not an actual driver read cycle.
+            var raw = WordsToInt32(ReadSimulationWords(row.DeviceNo, ParseAddress(row.Address), 2));
+            var key = NormalizeId(row.Id);
+            _cachedValues[key] = new(key, raw * row.ReadScale, EN_MELSEC_CACHE_STATE.Valid, DateTimeOffset.UtcNow, 0, "");
+        }
+
         public static bool IsStageFlowSimulationSignal(ST_MELSEC_MAP_DATA data) => data.Use && data.Direction == EN_MELSEC_DIRECTION.In && data.Access != EN_MELSEC_ACCESS.Write && data.DataType == EN_MELSEC_DATA_TYPE.DWord && data.Length == 2 && (IsStageSimulationSignal(data) || data.Id is "IPS_REVIEW_CONTROL_MODE_X" or "IPS_REVIEW_CONTROL_MODE_Y" or "IPS_IOF_READ_COMPLETE" or "IPS_IOF_BUFFER_RUN_COMPLETE");
         public void SetStageFlowSimulationValue(string id, int value)
         {
@@ -2970,6 +3099,7 @@
                 if (value is not (0 or 1))
                     throw new ArgumentOutOfRangeException(nameof(value));
                 WriteSimulationValue(data, value);
+                if (IsSimulationOnlyRoute(data)) PublishSimulationInput(data);
                 if (_pollBlockById.TryGetValue(NormalizeId(id), out var block))
                     block.NextReadAt = DateTimeOffset.MinValue;
             }
@@ -3029,6 +3159,7 @@
                 if (!IsSimulation(GetInterfaceData(data)))
                     throw new InvalidOperationException($"MELSEC_{data.DeviceNo}가 SIMULATION 상태일 때만 변경할 수 있습니다.");
                 WriteSimulationValue(data, on ? 1 : 0);
+                if (IsSimulationOnlyRoute(data)) PublishSimulationInput(data);
                 if (_pollBlockById.TryGetValue(NormalizeId(id), out var block))
                     block.NextReadAt = DateTimeOffset.MinValue;
             }

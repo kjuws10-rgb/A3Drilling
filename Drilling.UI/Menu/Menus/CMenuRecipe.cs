@@ -13,6 +13,7 @@
     using Drilling.Common.Station;
     using Drilling.Common.Recipe;
     using Drilling.Common.Review;
+    using Drilling.Common.Correction;
     using System.Windows.Media;
 
     public sealed class CMenuRecipe : CMenuBase
@@ -26,19 +27,7 @@
             "AK_MARGIN_X", 
             "AK_MARGIN_Y", 
             "ESC_EDGE_TO_GLASS_EDGE", 
-            "GLASS_CENTER_TO_SCANNER_CENTER", 
-            "DISTORTION_KEY1_X", 
-            "DISTORTION_KEY1_Y", 
-            "DISTORTION_KEY2_X", 
-            "DISTORTION_KEY2_Y", 
-            "DISTORTION_KEY3_X", 
-            "DISTORTION_KEY3_Y", 
-            "DISTORTION_KEY4_X", 
-            "DISTORTION_KEY4_Y", 
-            "DISTORTION_KEY5_X", 
-            "DISTORTION_KEY5_Y", 
-            "DISTORTION_KEY6_X", 
-            "DISTORTION_KEY6_Y"
+            "GLASS_CENTER_TO_SCANNER_CENTER"
         ];
         private const int RecipeFilesPageSize = 10;
         private const int MaximumMaskingHoleCount = 3;
@@ -576,7 +565,7 @@
         {
             var recipes = await _recipeManager.LoadRecipes(cancellationToken);
             var history = await _recipeManager.LoadHistory(cancellationToken);
-            var optionSettings = _settingManager.LoadSection(EN_SETTING_TAB.Option, cancellationToken);
+            var optionSettings = _settingManager.LoadSection(EN_SETTING_TAB.Option, cancellationToken).Concat(_settingManager.LoadSection(EN_SETTING_TAB.Motor, cancellationToken)).ToArray();
             var selectRecipe = GetSelectedRecipe(recipes, _selectRecipeIdProvider());
             var selectRecipeId = selectRecipe?.Id ?? NormalizeRecipeIdInput(_selectRecipeIdProvider());
             var viewRecipeId = NormalizeRecipeIdInput(_viewRecipeIdProvider());
@@ -657,7 +646,7 @@
                 BuildGroupTabs(groups, selectedGroup), 
                 BuildCellOverviewRows(cells, allManagedItems), 
                 isCellCategory, 
-                isCellCategory ? BuildLayoutPreview(allManagedItems, cells, _selectedCellNo) : null, 
+                isCellCategory ? BuildLayoutPreview(allManagedItems, cells, _selectedCellNo, optionSettings) : null, 
                 isHeadCategory, 
                 isHeadCategory ? BuildHeadPreview(allManagedItems, optionSettings, selectedGroup) : null, 
                 optionSettings, 
@@ -1362,7 +1351,7 @@
             AkMarginYItem = FindManagedItem(allManagedItems, "AK_MARGIN_Y");
             EscEdgeToGlassEdgeItem = FindManagedItem(allManagedItems, "ESC_EDGE_TO_GLASS_EDGE");
             GlassCenterToScannerCenterItem = FindManagedItem(allManagedItems, "GLASS_CENTER_TO_SCANNER_CENTER");
-            DistortionKeyItems = BuildDistortionKeyItems(allManagedItems);
+            DistortionKeyItems = BuildDistortionKeyItems(allManagedItems, headPreviewSettings);
             IsCellCategory = isCellCategory;
             IsHeadCategory = isHeadCategory;
             CellPreviewImage = layoutPreview?.CellImage;
@@ -1975,14 +1964,16 @@
             return managedItems.FirstOrDefault(MatchesItem);
         }
 
-        private static IReadOnlyList<ST_RECIPE_DISTORTION_KEY_ITEM> BuildDistortionKeyItems(IReadOnlyList<ST_RECIPE_PARAMETER_EDITOR_ITEM> managedItems)
+        private static IReadOnlyList<ST_RECIPE_DISTORTION_KEY_ITEM> BuildDistortionKeyItems(IReadOnlyList<ST_RECIPE_PARAMETER_EDITOR_ITEM> managedItems, IReadOnlyList<ST_SYSTEM_PARAMETER> settings)
         {
-            global::Drilling.UI.Menu.Menus.ST_RECIPE_DISTORTION_KEY_ITEM BuildRecipe(int keyNo)
+            var height = ReadManagedDouble(managedItems, "GLASS_SIZE_Y", 0);
+            var margin = ReadManagedDouble(managedItems, "AK_MARGIN_Y", 0);
+            return Enumerable.Range(0, 3).Select(index =>
             {
-                return new ST_RECIPE_DISTORTION_KEY_ITEM(keyNo, FindManagedItem(managedItems, $"DISTORTION_KEY{keyNo}_X"), FindManagedItem(managedItems, $"DISTORTION_KEY{keyNo}_Y"));
-            }
-
-            return Enumerable.Range(1, 6).Select(BuildRecipe).ToArray();
+                var text = settings.FirstOrDefault(p => p.Key.Equals(CAlignKeyGeometry.StagePositionKey(index), StringComparison.OrdinalIgnoreCase))?.Value;
+                var stage = double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) && double.IsFinite(value) ? value.ToString("0.000", CultureInfo.InvariantCulture) : "-";
+                return new ST_RECIPE_DISTORTION_KEY_ITEM(index, stage);
+            }).ToArray();
         }
 
         private static IReadOnlyList<ST_RECIPE_PARAMETER_EDITOR_ITEM> EnsureCellPlacementItems(IReadOnlyList<ST_RECIPE_PARAMETER_EDITOR_ITEM> managedItems, int cellCount)
@@ -2129,7 +2120,7 @@
             return _recipeCells.FirstOrDefault(MatchesItem);
         }
 
-        private static ST_RECIPE_LAYOUT_PREVIEW BuildLayoutPreview(IReadOnlyList<ST_RECIPE_PARAMETER_EDITOR_ITEM> managedItems, IReadOnlyList<ST_RECIPE_CELL_VIEW_MODEL> cells, int selectedCellNo)
+        private ST_RECIPE_LAYOUT_PREVIEW BuildLayoutPreview(IReadOnlyList<ST_RECIPE_PARAMETER_EDITOR_ITEM> managedItems, IReadOnlyList<ST_RECIPE_CELL_VIEW_MODEL> cells, int selectedCellNo, IReadOnlyList<ST_SYSTEM_PARAMETER>? settings = null)
         {
             const double canvasWidth = 860.0;
             const double canvasHeight = 430.0;
@@ -2144,7 +2135,8 @@
             var pixelSize = ReadManagedDouble(managedItems, "PIXEL_SIZE", 0.09);
             double? SelectValue(string key)
             {
-                return ReadManagedNullableDouble(managedItems, key);
+                var text = (settings ?? _headPreviewSettings).FirstOrDefault(p => p.Key.Equals(key, StringComparison.OrdinalIgnoreCase))?.Value;
+                return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) && double.IsFinite(value) ? value : null;
             }
 
             var distortionKeys = CCellPreviewDrawing.CreateDistortionKeyPreviews(glassWidth, glassHeight, akMarginX, akMarginY, SelectValue);
@@ -3479,21 +3471,13 @@
         }
     }
 
-    public sealed record ST_RECIPE_DISTORTION_KEY_ITEM(int KeyNo, ST_RECIPE_PARAMETER_EDITOR_ITEM? XItem, ST_RECIPE_PARAMETER_EDITOR_ITEM? YItem)
+    public sealed record ST_RECIPE_DISTORTION_KEY_ITEM(int PairIndex, string StageY)
     {
         public string DisplayText
         {
             get
             {
-                return $"DK{KeyNo}";
-            }
-        }
-
-        public string XLabel
-        {
-            get
-            {
-                return $"AK1 To DK{KeyNo} X";
+                return $"Group {PairIndex} · DK{PairIndex * 2 + 1}/{PairIndex * 2 + 2}";
             }
         }
 
@@ -3501,7 +3485,7 @@
         {
             get
             {
-                return $"AK1 To DK{KeyNo} Y";
+                return $"Setting > Motor > ALIGN > DK{PairIndex} Stage Y Position (mm); AK2/AK4 촬영 위치가 0 mm";
             }
         }
     }

@@ -3031,7 +3031,7 @@
 
             var previewPoints = Array.Empty<ST_REVIEW_PLAN_POINT>();
             var currentCellNo = _coordinateIsCellDetailVisible ? _coordinateSelectedCellNo : 0;
-            var glassPreview = CReviewGlassPreviewBuilder.Build(recipe, cellCount, currentCellNo, previewPoints, axisIndicators: CreateCoordinateAxisIndicators(_coordinateBasis, parameterMap), expandSmallCellBounds: false);
+            var glassPreview = CReviewGlassPreviewBuilder.Build(recipe, cellCount, currentCellNo, previewPoints, axisIndicators: CreateCoordinateAxisIndicators(_coordinateBasis, parameterMap), expandSmallCellBounds: false, settings: _settingManager.LoadSection(EN_SETTING_TAB.Motor));
             return new ST_MONITOR_COORDINATE_VIEWER_DATA(
                 CreateCoordinateBasisOptions(_coordinateBasis), 
                 valueRows, 

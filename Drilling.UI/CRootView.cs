@@ -18,6 +18,7 @@
     using Drilling.Common.InterLock;
     using Drilling.Common.Product;
     using Drilling.Common.Recipe;
+    using Drilling.Common.Correction;
 
     public sealed partial class CRootView : CBindingBase
     {
@@ -118,6 +119,7 @@
         private static readonly TimeSpan AutoCycleStopTimeout = TimeSpan.FromSeconds(10);
         private CProtectWindowRequestNotice? _protectWindowNotice;
         private CAutoFineReviewCoordinator? _autoFineReview;
+        private CAlignDistortionCycle? _autoDistortion;
         private CMelsecStageSimulationDialog? _stageSimulationDialog;
         public event EventHandler? MelsecSimulatorVisibilityChanged;
         private Visibility? _lastSimulatorVisibility;
@@ -608,7 +610,7 @@
                     await WaitForInitialProcessModelPreparation(CancellationToken.None);
                     if (!await CheckAutoModeInterlocks(warn))
                         return;
-                    _stationManager.StartStageRequests(CreateStageProcessRequest, CreateAutoReviewActions(), CreateAutoPowerActions());
+                    _stationManager.StartStageRequests(CreateStageProcessRequest, CreateAutoReviewActions(), CreateAutoPowerActions(), CreateAutoDistortionActions());
                 }
                 else if (!await _stationManager.StageRequests.StopAsync())
                 {
@@ -639,6 +641,11 @@
 
         private async Task<bool> CheckAutoModeInterlocks(Action<string, string> warn)
         {
+            if (_menus.TryGetValue(EN_MENU.Correction, out var correction) && correction is CMenuCorrection { DefaultBlocksAuto: true })
+            {
+                warn("AUTO 전환 불가", "Default 보정 동작을 종료하고 새 가공 검증을 완료하거나 이전값을 복원해 주세요.");
+                return false;
+            }
             if (!CheckHeavyAlarmForOperation("AUTO"))
                 return false;
             if (!CheckStageMotionOwnership(warn, "AUTO"))
@@ -2155,7 +2162,9 @@
                 SetCorrectionStatusMessage, 
                 RefreshCurrentScreen, 
                 interfaceManager, 
-                new Drilling.File.Correction.CAlignOffsetLogFile(_manager.ConfigRoot)
+                new Drilling.File.Correction.CAlignOffsetLogFile(_manager.ConfigRoot),
+                _manager,
+                new Drilling.File.Script.CAutomation1ScriptFile(Path.Combine(Directory.GetParent(Path.GetFullPath(_manager.ConfigRoot))!.FullName, "Data", "Script", "DefaultOffset"))
             );
             bool IsCorrectionMenuItem(CMenuItem menu)
             {
@@ -2823,7 +2832,7 @@
                 };
             var glass = current?.GlassId;
             if (string.IsNullOrWhiteSpace(glass))
-                glass = (await CreateStageProcessRequest(token).ConfigureAwait(false)).GlassId;
+                glass = (await CreateStageProcessRequestCore(token).ConfigureAwait(false)).GlassId;
             var followUp = station.ZeroLine is { FollowUpRequested: true, Plan: not null };
             if (followUp)
             {
@@ -2835,8 +2844,27 @@
             return new(recipe, glass, options) { ZeroLineFollowUp = followUp };
         }
 
-        // Invoked only at DoReady START. Does not update UI or call a device read.
+        private ST_STAGE_DISTORTION_ACTIONS CreateAutoDistortionActions()
+        {
+            _autoDistortion = new(_interfaceManager, _manager.Setting(), _recipeManager,
+                new Drilling.File.Correction.CAlignOffsetLogFile(_manager.ConfigRoot), CreateStageProcessRequestCore,
+                text => _manager.Log().WriteSequence("INFO", "DISTORTION", text,
+                    $"Cycle={_stationManager.StageRequests.LogCycleId}; Glass={_autoDistortion?.GlassId}; Recipe={_selectedRecipeId}"));
+            return new(_autoDistortion.Prepare, _autoDistortion.LoadResults, _autoDistortion.Calculate, _autoDistortion.Save)
+            { GlassId = () => _autoDistortion.GlassId, Snapshot = () => _autoDistortion.Snapshot };
+        }
+
+        // Consume only for DoReady/Process preparation, never for a previous Glass's Review.
         private async Task<ST_STAGE_PROCESS_REQUEST> CreateStageProcessRequest(CancellationToken token)
+        {
+            var prepared = _autoDistortion?.TakePreparedRequest(_selectedRecipeId);
+            if (prepared is null) return await CreateStageProcessRequestCore(token).ConfigureAwait(false);
+            var recipe = (await _recipeManager.LoadRecipes(token).ConfigureAwait(false)).Single(item => item.Id.Equals(prepared.RecipeId, StringComparison.OrdinalIgnoreCase));
+            return prepared with { Parameters = CreateProcessParameters(recipe, prepared.GlassId, prepared.LotId, 0, 0) };
+        }
+
+        // Capture identity/conditions only. No UI operation or direct device read.
+        private async Task<ST_STAGE_PROCESS_REQUEST> CreateStageProcessRequestCore(CancellationToken token)
         {
             var recipeId = _selectedRecipeId;
             var recipes = await _recipeManager.LoadRecipes(token).ConfigureAwait(false);
@@ -2879,7 +2907,7 @@
                 return;
             }
 
-            var dialog = new CMelsecStageSimulationDialog(_interfaceManager)
+            var dialog = new CMelsecStageSimulationDialog(_interfaceManager, token => _recipeManager.RefreshRecipe(_selectedRecipeId, token))
             {
                 Owner = Application.Current?.MainWindow
             };
@@ -2912,3 +2940,4 @@
     );
     internal sealed record ST_SYSTEM_STATUS_SNAPSHOT(ST_SYSTEM_STATUS Status, IReadOnlyList<ST_INTERFACE_COMM_STATUS> InterfaceCommunicationStatuses);
 }
+

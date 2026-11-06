@@ -3,6 +3,7 @@ namespace Drilling.Common.Interface
     using System.Globalization;
     using System.Text;
     using System.Text.RegularExpressions;
+    using System.Diagnostics;
 
     public sealed partial class CMelsec
     {
@@ -10,6 +11,29 @@ namespace Drilling.Common.Interface
         // Both collections are protected by _pollLock; the logger runs outside it.
         private readonly Dictionary<string, MelsecLogSample> _pollLogSamples = new(StringComparer.OrdinalIgnoreCase);
         private readonly Queue<MelsecLogEntry> _pendingMelsecLogs = new();
+        // Updated only on the single MELSEC worker. Summaries distinguish SDK I/O
+        // time, command queue waiting and control-feedback sampling gaps.
+        private readonly Dictionary<string, (double Milliseconds, string Id)> _melsecTimingPeaks = new();
+        private long _melsecTimingReportedAt = Stopwatch.GetTimestamp();
+
+        private void RecordMelsecTiming(string kind, double milliseconds, string id)
+        {
+            if (_logManager is null || milliseconds < (kind == "CONTROL_POLL_GAP" ? 500 : kind == "REQUEST_QUEUE" ? 100 : 50))
+                return;
+            if (!_melsecTimingPeaks.TryGetValue(kind, out var old) || milliseconds > old.Milliseconds)
+                _melsecTimingPeaks[kind] = (milliseconds, id);
+        }
+
+        private void PublishMelsecTimings()
+        {
+            if (_logManager is null || Stopwatch.GetElapsedTime(_melsecTimingReportedAt).TotalSeconds < 5)
+                return;
+            _melsecTimingReportedAt = Stopwatch.GetTimestamp();
+            foreach (var pair in _melsecTimingPeaks)
+                _logManager.WriteInterfaceCommand(EN_EQP_MODULE.Melsec, "MELSEC_CONTROL", "[MELSEC][지연 진단] " + pair.Key,
+                    FormattableString.Invariant($"최근 5초 최대={pair.Value.Milliseconds:0.0} ms | ID={pair.Value.Id}"));
+            _melsecTimingPeaks.Clear();
+        }
 
         private sealed record MelsecLogSample(ushort[]? Words, EN_MELSEC_CACHE_STATE Quality, string Error);
         private sealed record MelsecLogEntry(ST_MELSEC_MAP_DATA Data, ST_MELSEC_ADDRESS Address,

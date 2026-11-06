@@ -38,7 +38,7 @@
             <Viewbox x:Name="PreviewArea" Grid.Row="1" Stretch="Uniform">
                 <Canvas Width="940" Height="{Binding PreviewHeight}">
                     <Image Source="{Binding PreviewImage}" Width="940" Height="{Binding PreviewHeight}" IsHitTestVisible="False" />
-                    <ItemsControl ItemsSource="{Binding Keys}" Width="940" Height="{Binding PreviewHeight}">
+                    <ItemsControl ItemsSource="{Binding AlignKeys}" Width="940" Height="{Binding PreviewHeight}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate><Canvas /></ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
@@ -76,6 +76,52 @@
                                 </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <ItemsControl ItemsSource="{Binding DistortionPairs}" Width="940" Height="{Binding PreviewHeight}">
+                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemContainerStyle>
+                            <Style TargetType="ContentPresenter">
+                                <Setter Property="Canvas.Left" Value="{Binding EditorLeft}" />
+                                <Setter Property="Canvas.Top" Value="{Binding EditorTop}" />
+                            </Style>
+                        </ItemsControl.ItemContainerStyle>
+                        <ItemsControl.ItemTemplate><DataTemplate>
+                            <Border Width="440" Height="120" Padding="8,4" CornerRadius="4" BorderThickness="1"
+                                    BorderBrush="{Binding KeyBrush}" Background="{DynamicResource PanelBackgroundBrush}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="86" /><ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="10" /><ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="24" /><RowDefinition Height="22" />
+                                        <RowDefinition Height="28" />
+                                        <RowDefinition Height="28" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="Bold" Foreground="{Binding KeyBrush}" />
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Left.Name, StringFormat='좌 · {0}'}"
+                                               TextAlignment="Center" FontSize="13" FontWeight="SemiBold" Foreground="{Binding KeyBrush}" />
+                                    <TextBlock Grid.Row="1" Grid.Column="3" Text="{Binding Right.Name, StringFormat='우 · {0}'}"
+                                               TextAlignment="Center" FontSize="13" FontWeight="SemiBold" Foreground="{Binding KeyBrush}" />
+                                    <TextBlock Grid.Row="2" Text="BaseX" VerticalAlignment="Center" FontSize="13"
+                                               Foreground="{DynamicResource TextPrimaryBrush}" />
+                                    <TextBox Grid.Row="2" Grid.Column="1" DataContext="{Binding Left}"
+                                             Style="{StaticResource BaseEditValue}" Text="{Binding BaseX, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             Tag="X" PreviewMouseLeftButtonDown="OpenCoordinateInput" />
+                                    <TextBox Grid.Row="2" Grid.Column="3" DataContext="{Binding Right}"
+                                             Style="{StaticResource BaseEditValue}" Text="{Binding BaseX, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             Tag="X" PreviewMouseLeftButtonDown="OpenCoordinateInput" />
+                                    <TextBlock Grid.Row="3" Text="BaseY" VerticalAlignment="Center" FontSize="13"
+                                               Foreground="{DynamicResource TextPrimaryBrush}" />
+                                    <TextBox Grid.Row="3" Grid.Column="1" DataContext="{Binding Left}"
+                                             Style="{StaticResource BaseEditValue}" Text="{Binding BaseY, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             Tag="Y" PreviewMouseLeftButtonDown="OpenCoordinateInput" />
+                                    <TextBox Grid.Row="3" Grid.Column="3" DataContext="{Binding Right}"
+                                             Style="{StaticResource BaseEditValue}" Text="{Binding BaseY, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             Tag="Y" PreviewMouseLeftButtonDown="OpenCoordinateInput" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate></ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </Canvas>
             </Viewbox>

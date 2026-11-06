@@ -1,4 +1,4 @@
-<UserControl x:Class="Drilling.UI.Views.CAlignDistortionView"
+﻿<UserControl x:Class="Drilling.UI.Views.CAlignDistortionView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <UserControl.Resources>
@@ -21,9 +21,9 @@
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="3*" />
-            <ColumnDefinition Width="2*" />
+            <ColumnDefinition x:Name="ActionColumn" Width="2*" />
         </Grid.ColumnDefinitions>
-        <Grid Grid.Column="1">
+        <Grid x:Name="ActionRegion" Grid.Column="1">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
@@ -63,7 +63,8 @@
                         </UniformGrid>
                     </Grid>
                 </Border>
-                <Border x:Name="ActionPanel" Grid.Row="2" Style="{StaticResource PanelBorder}" Padding="16">
+                <Border x:Name="ActionPanel" Grid.Row="2" Style="{StaticResource PanelBorder}" Padding="12">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <StackPanel>
                         <TextBlock Text="Action" Style="{StaticResource PanelTitle}" FontSize="18" />
                         <TextBlock Text="DK Select" FontSize="16" FontWeight="SemiBold" Margin="0,6,0,6"
@@ -87,7 +88,7 @@
                                                 </Style.Triggers>
                                             </Style>
                                         </Border.Style>
-                                        <CheckBox Content="{Binding Name}" Height="28" FontSize="16" FontWeight="SemiBold"
+                                        <CheckBox Content="{Binding Name}" Height="26" FontSize="14" FontWeight="SemiBold"
                                                   Cursor="Hand" VerticalContentAlignment="Center"
                                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                                   IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
@@ -96,11 +97,11 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                         <Border x:Name="LoadDataPanel" BorderBrush="{DynamicResource PanelBorderBrush}"
-                                BorderThickness="0,1,0,0" Margin="0,10,0,0" Padding="0,10,0,0">
+                                BorderThickness="0,1,0,0" Margin="0,6,0,0" Padding="0,6,0,0">
                             <StackPanel>
                             <TextBlock Text="Load Data" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,6"
                                        Foreground="{DynamicResource TextPrimaryBrush}" />
-                            <Grid Height="36">
+                            <Grid Height="32">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="110" />
                                     <ColumnDefinition Width="*" />
@@ -114,17 +115,17 @@
                             </Grid>
                             </StackPanel>
                         </Border>
-                        <TextBlock Text="{Binding AlgorithmPreviewHint}" FontSize="12" Margin="0,8,0,0" TextWrapping="Wrap"
+                        <TextBlock Text="{Binding AlgorithmPreviewHint}" FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap"
                                    Foreground="{DynamicResource TextSecondaryBrush}" />
                         <Border x:Name="OffsetPanel" BorderBrush="{DynamicResource PanelBorderBrush}"
-                                BorderThickness="0,1,0,0" Margin="0,14,0,0" Padding="0,10,0,0">
+                                BorderThickness="0,1,0,0" Margin="0,8,0,0" Padding="0,6,0,0">
                           <StackPanel>
                             <TextBlock Text="Offset" FontSize="16" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextPrimaryBrush}" />
                             <TextBlock x:Name="SettingToleranceText" Text="{Binding SettingToleranceText}"
-                                       FontSize="14" FontWeight="SemiBold" Margin="0,6,0,8"
+                                       FontSize="14" FontWeight="SemiBold" Margin="0,4,0,6"
                                        Foreground="{DynamicResource TextPrimaryBrush}" />
-                        <UniformGrid Columns="3" Height="40">
+                        <UniformGrid Columns="3" Height="36">
                             <Button Content="Offset Apply" Command="{Binding BaseActionCommand}" CommandParameter="OFFSET_APPLY"
                                     Style="{StaticResource SecondaryButton}" FontSize="14" MinWidth="0" Padding="4,0" Margin="0,0,6,0" />
                             <Button Content="Offset Init" Command="{Binding BaseActionCommand}" CommandParameter="OFFSET_INIT"
@@ -136,7 +137,48 @@
                         </UniformGrid>
                           </StackPanel>
                         </Border>
+                        <Border x:Name="WapagePanel" DataContext="{Binding Wapage}" BorderBrush="{DynamicResource PanelBorderBrush}"
+                                BorderThickness="0,1,0,0" Margin="0,8,0,0" Padding="0,6,0,0">
+                            <StackPanel>
+                                <DockPanel Margin="0,0,0,6">
+                                    <TextBlock DockPanel.Dock="Left" Text="Wapage" FontSize="16" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextPrimaryBrush}" />
+                                    <TextBlock DockPanel.Dock="Right" Text="{Binding LastLoadTime, StringFormat='Last Load : {0}'}"
+                                               HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="11"
+                                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                                </DockPanel>
+                                <Grid Height="32" Margin="0,0,0,6">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="0.7*" /><ColumnDefinition Width="1.7*" /><ColumnDefinition Width="1*" /></Grid.ColumnDefinitions>
+                                    <Button Content="Load" Command="{Binding DataContext.BaseActionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="WAPAGE_LOAD"
+                                            Style="{StaticResource SecondaryButton}" FontSize="12" MinWidth="0" Padding="4,0" Margin="0,0,6,0" />
+                                    <Button Grid.Column="1" Content="Vision → Wapage Set" Command="{Binding DataContext.BaseActionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="WAPAGE_SET_BASE"
+                                            Style="{StaticResource SecondaryButton}" FontSize="12" MinWidth="0" Padding="4,0" Margin="0,0,6,0" />
+                                    <Button Grid.Column="2" Content="Range Set" Command="{Binding DataContext.BaseActionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="WAPAGE_SET_RANGE"
+                                            Style="{StaticResource SecondaryButton}" FontSize="12" MinWidth="0" Padding="4,0" Margin="0" />
+                                </Grid>
+                                <TextBlock Text="{Binding CalculationText}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,4"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" />
+                                <DataGrid ItemsSource="{Binding Rows}" Style="{StaticResource PlainDataGrid}" AutoGenerateColumns="False" IsReadOnly="True" MinColumnWidth="0"
+                                          CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False" CanUserSortColumns="False"
+                                          RowHeight="20" ColumnHeaderHeight="30" FontSize="11" HeadersVisibility="Column"
+                                          HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Disabled">
+                                    <DataGrid.RowStyle><Style TargetType="DataGridRow"><Setter Property="ToolTip" Value="{Binding Detail}" /></Style></DataGrid.RowStyle>
+                                    <DataGrid.CellStyle><Style TargetType="DataGridCell" BasedOn="{StaticResource PlainDataGridCell}"><Setter Property="Padding" Value="2,0" /><Setter Property="VerticalContentAlignment" Value="Center" /><Setter Property="HorizontalContentAlignment" Value="Center" /></Style></DataGrid.CellStyle>
+                                    <DataGrid.ColumnHeaderStyle><Style TargetType="DataGridColumnHeader"><Setter Property="Padding" Value="2,0" /><Setter Property="FontSize" Value="10" /><Setter Property="Background" Value="{DynamicResource GridHeaderBackgroundBrush}" /><Setter Property="Foreground" Value="{DynamicResource TextInvertedBrush}" /><Setter Property="HorizontalContentAlignment" Value="Center" /></Style></DataGrid.ColumnHeaderStyle>
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Vision → Base" Binding="{Binding Name}" Width="1.3*" />
+                                        <DataGridTextColumn Header="Vision (pixel)" Binding="{Binding VisionText}" Width="*" />
+                                        <DataGridTextColumn Header="Base (pixel)" Binding="{Binding BaseText}" Width="*" />
+                                        <DataGridTextColumn Header="Range 현재&#10;(pixel)" Binding="{Binding RangeText}" Width="*" />
+                                        <DataGridTextColumn Header="Range Setting&#10;(pixel)" Binding="{Binding CalculatedText}" Width="*" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                                <TextBlock Text="{Binding Status}" FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" />
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
+                    </ScrollViewer>
                 </Border>
             </Grid>
         </Grid>
@@ -158,7 +200,7 @@
             <Viewbox Grid.Row="1" Stretch="Uniform" HorizontalAlignment="Center" Margin="0,10">
                 <Canvas Width="940" Height="{Binding PreviewHeight}">
                     <Image Source="{Binding PreviewImage}" Width="940" Height="{Binding PreviewHeight}" IsHitTestVisible="False" />
-                    <ItemsControl ItemsSource="{Binding Keys}" Width="940" Height="{Binding PreviewHeight}">
+                    <ItemsControl ItemsSource="{Binding AlignKeys}" Width="940" Height="{Binding PreviewHeight}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate><Canvas /></ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
@@ -217,6 +259,78 @@
                                 </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <ItemsControl ItemsSource="{Binding DistortionPairs}" Width="940" Height="{Binding PreviewHeight}">
+                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemContainerStyle>
+                            <Style TargetType="ContentPresenter">
+                                <Setter Property="Canvas.Left" Value="{Binding EditorLeft}" />
+                                <Setter Property="Canvas.Top" Value="{Binding EditorTop}" />
+                            </Style>
+                        </ItemsControl.ItemContainerStyle>
+                        <ItemsControl.ItemTemplate><DataTemplate>
+                            <Border Width="440" Height="190" Padding="8,4" CornerRadius="4" BorderThickness="1"
+                                    BorderBrush="{Binding KeyBrush}" Background="{DynamicResource PanelBackgroundBrush}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="86" /><ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="10" /><ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="22" /><RowDefinition Height="22" />
+                                        <RowDefinition Height="22" />
+                                        <RowDefinition Height="22" />
+                                        <RowDefinition Height="22" />
+                                        <RowDefinition Height="22" />
+                                        <RowDefinition Height="22" />
+                                        <RowDefinition Height="22" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="Bold" Foreground="{Binding KeyBrush}" />
+                                    <TextBlock Grid.Column="1" Grid.ColumnSpan="3" Text="{Binding StageYText}" FontSize="12"
+                                               HorizontalAlignment="Right" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Left.Name, StringFormat='좌 · {0}'}"
+                                               TextAlignment="Center" FontSize="13" FontWeight="SemiBold" Foreground="{Binding KeyBrush}" />
+                                    <TextBlock Grid.Row="1" Grid.Column="3" Text="{Binding Right.Name, StringFormat='우 · {0}'}"
+                                               TextAlignment="Center" FontSize="13" FontWeight="SemiBold" Foreground="{Binding KeyBrush}" />
+                                    <TextBlock Grid.Row="2" Text="BaseX" VerticalAlignment="Center" FontSize="13"
+                                               Foreground="{DynamicResource TextPrimaryBrush}" />
+                                    <TextBox Grid.Row="2" Grid.Column="1" Style="{StaticResource BaseCoordinateValue}"
+                                             Text="{Binding Left.BaseX, Mode=OneWay}" />
+                                    <TextBox Grid.Row="2" Grid.Column="3" Style="{StaticResource BaseCoordinateValue}"
+                                             Text="{Binding Right.BaseX, Mode=OneWay}" />
+                                    <TextBlock Grid.Row="3" Text="BaseY" VerticalAlignment="Center" FontSize="13"
+                                               Foreground="{DynamicResource TextPrimaryBrush}" />
+                                    <TextBox Grid.Row="3" Grid.Column="1" Style="{StaticResource BaseCoordinateValue}"
+                                             Text="{Binding Left.BaseY, Mode=OneWay}" />
+                                    <TextBox Grid.Row="3" Grid.Column="3" Style="{StaticResource BaseCoordinateValue}"
+                                             Text="{Binding Right.BaseY, Mode=OneWay}" />
+                                    <TextBlock Grid.Row="4" Text="LastLoadX" VerticalAlignment="Center" FontSize="13"
+                                               Foreground="{DynamicResource TextPrimaryBrush}" />
+                                    <TextBox Grid.Row="4" Grid.Column="1" Style="{StaticResource BaseCoordinateValue}"
+                                             Text="{Binding Left.LastLoadX, Mode=OneWay}" />
+                                    <TextBox Grid.Row="4" Grid.Column="3" Style="{StaticResource BaseCoordinateValue}"
+                                             Text="{Binding Right.LastLoadX, Mode=OneWay}" />
+                                    <TextBlock Grid.Row="5" Text="LastLoadY" VerticalAlignment="Center" FontSize="13"
+                                               Foreground="{DynamicResource TextPrimaryBrush}" />
+                                    <TextBox Grid.Row="5" Grid.Column="1" Style="{StaticResource BaseCoordinateValue}"
+                                             Text="{Binding Left.LastLoadY, Mode=OneWay}" />
+                                    <TextBox Grid.Row="5" Grid.Column="3" Style="{StaticResource BaseCoordinateValue}"
+                                             Text="{Binding Right.LastLoadY, Mode=OneWay}" />
+                                    <TextBlock Grid.Row="6" Text="Base-Load X" VerticalAlignment="Center" FontSize="13" FontWeight="Bold"
+                                               Foreground="{DynamicResource TextPrimaryBrush}" />
+                                    <TextBox Grid.Row="6" Grid.Column="1" Style="{StaticResource BaseCoordinateValue}" FontWeight="Bold"
+                                             Text="{Binding Left.BaseMinusLoadX, Mode=OneWay}" />
+                                    <TextBox Grid.Row="6" Grid.Column="3" Style="{StaticResource BaseCoordinateValue}" FontWeight="Bold"
+                                             Text="{Binding Right.BaseMinusLoadX, Mode=OneWay}" />
+                                    <TextBlock Grid.Row="7" Text="Base-Load Y" VerticalAlignment="Center" FontSize="13" FontWeight="Bold"
+                                               Foreground="{DynamicResource TextPrimaryBrush}" />
+                                    <TextBox Grid.Row="7" Grid.Column="1" Style="{StaticResource BaseCoordinateValue}" FontWeight="Bold"
+                                             Text="{Binding Left.BaseMinusLoadY, Mode=OneWay}" />
+                                    <TextBox Grid.Row="7" Grid.Column="3" Style="{StaticResource BaseCoordinateValue}" FontWeight="Bold"
+                                             Text="{Binding Right.BaseMinusLoadY, Mode=OneWay}" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate></ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </Canvas>
             </Viewbox>

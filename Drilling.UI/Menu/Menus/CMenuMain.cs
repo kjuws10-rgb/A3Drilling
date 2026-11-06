@@ -4,6 +4,7 @@
     using System.ComponentModel;
     using System.Windows;
     using Drilling.Common.Review;
+    using Drilling.Common.Correction;
     using System.Windows.Media;
     using Drilling.Common.InterLock;
     using InterlockItem = Drilling.Common.InterLock.ST_INTERLOCK_ITEM;
@@ -111,6 +112,7 @@
 
         private CAutoReviewMonitorDialog? _reviewMonitorWindow;
         private Window? _powerMeasureWindow;
+        private Window? _distortionResultsWindow;
         private CZeroLineResultsDialog? _zeroLineResultsWindow;
 #endregion
 #region 기본 처리
@@ -141,12 +143,11 @@
             SequenceStatus.RefreshZeroLine(snapshot.ZeroLinePrewait, snapshot.ZeroLine);
             if (_selectedParameterTabKey == ParameterTabProtectWindow)
                 ProtectWindow.RefreshSignals(values, map, connections);
-            // Zero-line completion advances the shared Setting cache while Main stays open.
-            RunOptions.ReloadFromSettings();
             RunOptions.UpdateReviewAble(ReadReviewAble(values.GetValueOrDefault("HANDSHAKE_PRC_REVIEW_ABLE")));
             SequenceStatus.OpenReviewMonitor = OpenReviewMonitor;
             SequenceStatus.OpenPowerMeasureMonitor = OpenPowerMeasureMonitor;
             SequenceStatus.OpenZeroLineResults = OpenZeroLineResults;
+            SequenceStatus.OpenDistortionResults = OpenDistortionResults;
             SequenceStatus.RefreshReviewMonitor(reviewManager?.FineMonitor.GetSnapshot());
         }
 
@@ -2263,6 +2264,38 @@
 
 #endregion
 #region ReviewMonitor
+        private void OpenDistortionResults()
+        {
+            if (_distortionResultsWindow is { } open)
+            {
+                if (open.WindowState == WindowState.Minimized) open.WindowState = WindowState.Normal;
+                open.Activate(); return;
+            }
+            var panel = new CMainDistortionResultsPanel();
+            void Refresh() => panel.Apply(stationManager?.StageRequests.DistortionSnapshot);
+            Refresh();
+            var layout = new System.Windows.Controls.DockPanel { Margin = new Thickness(12) };
+            var banner = new System.Windows.Controls.StackPanel { Margin = new Thickness(4, 0, 4, 10) };
+            var identity = new System.Windows.Controls.TextBlock { FontSize = 18, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap };
+            identity.SetBinding(System.Windows.Controls.TextBlock.TextProperty, new System.Windows.Data.Binding(nameof(panel.Header)) { Source = panel });
+            var detail = new System.Windows.Controls.TextBlock { FontSize = 14, Margin = new Thickness(0, 5, 0, 0), TextWrapping = TextWrapping.Wrap };
+            detail.SetBinding(System.Windows.Controls.TextBlock.TextProperty, new System.Windows.Data.Binding(nameof(panel.Status)) { Source = panel });
+            banner.Children.Add(identity); banner.Children.Add(detail);
+            System.Windows.Controls.DockPanel.SetDock(banner, System.Windows.Controls.Dock.Top); layout.Children.Add(banner);
+            layout.Children.Add(new Drilling.UI.Views.CAlignDistortionView(previewOnly: true) { DataContext = panel.Preview });
+            var window = new Window { Title = "AUTO Distortion · 측정 결과", Content = layout, DataContext = panel,
+                Width = Math.Max(920, Math.Min(1250, SystemParameters.WorkArea.Width - 40)),
+                Height = Math.Max(680, Math.Min(940, SystemParameters.WorkArea.Height - 40)),
+                MinWidth = 920, MinHeight = 680, WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Background = Brushes.WhiteSmoke };
+            if (Application.Current?.MainWindow is { } owner && !ReferenceEquals(owner, window)) window.Owner = owner;
+            // Compare a shared immutable frame only while the window is open. No device or file reads.
+            var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+            timer.Tick += (_, _) => Refresh();
+            window.Closed += (_, _) => { timer.Stop(); _distortionResultsWindow = null; };
+            _distortionResultsWindow = window; window.Show(); timer.Start();
+        }
+
         private void OpenPowerMeasureMonitor()
         {
             if (_powerMeasureWindow is { } open) { open.Activate(); return; }
@@ -2324,6 +2357,38 @@
             window.Show();
         }
 #endregion
+    }
+
+    public sealed class CMainDistortionResultsPanel : INotifyPropertyChanged
+    {
+        private ST_DISTORTION_MEASUREMENT_SNAPSHOT? _shown;
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public CAlignDistortionPanel Preview { get; } = new();
+        public string Header { get; private set; } = "AUTO Distortion · 측정 결과";
+        public string Status { get; private set; } = "측정 결과 대기";
+        public void Apply(ST_DISTORTION_MEASUREMENT_SNAPSHOT? frame)
+        {
+            if (ReferenceEquals(frame, _shown)) return;
+            if (frame is null || frame.RunId != _shown?.RunId)
+                Preview.Update(null); // A new Glass cannot inherit a previous Glass's LastLoad.
+            _shown = frame;
+            if (frame is null)
+            {
+                Header = "AUTO Distortion · 측정 결과";
+                Status = "측정 결과 대기";
+            }
+            else
+            {
+                Preview.Update(frame.Recipe, frame.StageYPositions);
+                for (var index = 0; index < Preview.DkSelections.Count; index++)
+                    Preview.DkSelections[index].IsSelected = frame.Groups.Contains(index);
+                if (frame.LoadedAt is { } at)
+                    Preview.ApplyLastLoad(frame.Recipe.Id, frame.LastLoads, at, Preview.LoadParameterKeys);
+                Header = $"Recipe : {frame.Recipe.Name}    |    Glass ID : {frame.GlassId}";
+                Status = $"Group : {(frame.Groups.Count == 0 ? "AK Only" : string.Join(", ", frame.Groups))}    |    Last Load : {frame.LoadedAt?.ToString("yyMMdd-HH:mm:ss", CultureInfo.InvariantCulture) ?? "측정값 취득 대기"}    |    오차 : Base−Load (mm)";
+            }
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(null));
+        }
     }
 
     /// <summary>UI projection only. Its owner samples the latest shared frame; closing it cannot stop the sequence.</summary>
@@ -2701,6 +2766,15 @@
         public event PropertyChangedEventHandler? PropertyChanged;
         public bool ZeroLineEnabled { get; private set; }
         public bool FollowUpEnabled { get; private set; }
+        private int _distortionGroupMask;
+        private string[] _distortionPositions = ["-", "-", "-"];
+        public IReadOnlyList<CMainDistortionGroupChoice> DistortionGroupChoices => Enumerable.Range(0, 3)
+            .Select(index => new CMainDistortionGroupChoice(index, (_distortionGroupMask & (1 << index)) != 0, _distortionPositions[index])).ToArray();
+        public IReadOnlyList<int> CaptureDistortionGroups()
+        {
+            var mask = _settings is null ? Volatile.Read(ref _distortionGroupMask) : CRunOptionSettings.Read(_settings).DistortionGroupMask;
+            return Enumerable.Range(0, 3).Where(index => (mask & (1 << index)) != 0).ToArray();
+        }
         public int ReviewLineCount { get; private set; } = 1;
         public string ReviewMethod { get; private set; } = "IOF";
         public int ReviewCountRetries { get; private set; } = 1;
@@ -2730,6 +2804,7 @@
         public IReadOnlyList<CMainRunOptionChoice> ReviewMethodChoices => [new(0, "PtoP", ReviewMethod == "PtoP", Brushes.SteelBlue), new(1, "IOF", ReviewMethod == "IOF", Brushes.SteelBlue)];
         public CButtonCommand SelectZeroLineCommand { get; }
         public CButtonCommand SelectFollowUpCommand { get; }
+        public CButtonCommand ToggleDistortionGroupCommand { get; }
         public CButtonCommand SelectReviewLineCommand { get; }
         public CButtonCommand SelectReviewMethodCommand { get; }
         public CButtonCommand SelectReviewRetryCommand { get; }
@@ -2753,6 +2828,15 @@
                 if (!TryNumber(value, out var selected) || selected is not (0 or 1))
                     return;
                 Commit(CRunOptionSettings.FollowUp, selected, () => FollowUpEnabled = selected == 1);
+            });
+            ToggleDistortionGroupCommand = new(value =>
+            {
+                if (!TryNumber(value, out var index) || index is < 0 or > 2)
+                    return;
+                ReloadFromSettings();
+                var mask = _distortionGroupMask ^ (1 << index);
+                var key = index switch { 0 => CRunOptionSettings.DistortionGroup0, 1 => CRunOptionSettings.DistortionGroup1, _ => CRunOptionSettings.DistortionGroup2 };
+                Commit(key, (mask >> index) & 1, () => _distortionGroupMask = mask);
             });
             SelectReviewLineCommand = new(value =>
             {
@@ -2788,7 +2872,15 @@
             if (_settings is null)
                 return;
             var value = CRunOptionSettings.Read(_settings);
-            if ((ZeroLineEnabled, CurrentGroup, FollowUpEnabled, ReviewMethod, ReviewLineCount, ReviewImmediateRetry, ReviewCountRetries) == (value.ZeroDefence, value.CurrentGroup, value.FollowUp, value.ReviewMethod == 0 ? "PtoP" : "IOF", value.ReviewLineCount, value.ImmediateRetry, value.RetryCount))
+            var motor = _settings.LoadSection(EN_SETTING_TAB.Motor);
+            var positions = Enumerable.Range(0, 3).Select(index =>
+            {
+                var raw = motor.FirstOrDefault(item => item.Key.Equals($"DK{index}_STAGE_Y_POSITION", StringComparison.OrdinalIgnoreCase))?.Value;
+                return double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var position) && double.IsFinite(position)
+                    ? position.ToString("0.####", CultureInfo.InvariantCulture) + " mm" : "-";
+            }).ToArray();
+            if ((ZeroLineEnabled, CurrentGroup, FollowUpEnabled, ReviewMethod, ReviewLineCount, ReviewImmediateRetry, ReviewCountRetries) == (value.ZeroDefence, value.CurrentGroup, value.FollowUp, value.ReviewMethod == 0 ? "PtoP" : "IOF", value.ReviewLineCount, value.ImmediateRetry, value.RetryCount)
+                && _distortionGroupMask == value.DistortionGroupMask && _distortionPositions.SequenceEqual(positions))
                 return;
             ZeroLineEnabled = value.ZeroDefence;
             CurrentGroup = value.CurrentGroup;
@@ -2797,6 +2889,8 @@
             ReviewLineCount = value.ReviewLineCount;
             ReviewImmediateRetry = value.ImmediateRetry;
             ReviewCountRetries = value.RetryCount;
+            _distortionGroupMask = value.DistortionGroupMask;
+            _distortionPositions = positions;
             Refresh();
         }
 
@@ -2874,6 +2968,14 @@
         }
     }
 
+    public sealed record CMainDistortionGroupChoice(int Index, bool IsSelected, string Position)
+    {
+        public string Label => $"Group {Index}";
+        public string PositionText => $"Stage Y : {Position}";
+        public Brush Background => IsSelected ? Brushes.SteelBlue : Brushes.AliceBlue;
+        public Brush Foreground => IsSelected ? Brushes.White : Brushes.Black;
+    }
+
     public sealed record CMainRunOptionChoice(int Value, string Label, bool IsSelected, Brush SelectedBrush)
     {
         public Brush Background => IsSelected ? SelectedBrush : Brushes.AliceBlue;
@@ -2905,6 +3007,7 @@
         public Action? OpenReviewMonitor { get; set; }
         public Action? OpenPowerMeasureMonitor { get; set; }
         public Action? OpenZeroLineResults { get; set; }
+        public Action? OpenDistortionResults { get; set; }
         public ST_ZERO_LINE_CYCLE_STATUS? ZeroLineSnapshot => _zeroCycle;
 
         private string _reviewProgress = "클릭: Review Monitor";
@@ -2972,6 +3075,7 @@
             }
             var key = status.Scenario switch
             {
+                "DISTORTION" => "DISTORTION",
                 "DOREADY" => "DO_READY",
                 "PROCESS" => "PROCESS",
                 "REVIEW" => "REVIEW",
@@ -3094,6 +3198,7 @@
         private static Step A(string id, string title) => new(id, title, "PROCESS ACTION", false);
         private static string ScenarioName(string scenario) => scenario switch
         {
+            "DISTORTION" => "Distortion",
             "DOREADY" => "DoReady",
             "PROCESS" => "Process",
             "REVIEW" => "Review",
@@ -3102,6 +3207,17 @@
         };
         // Cards display the scenario; selecting/viewing them never writes a signal or starts an action.
         private static readonly Scenario[] Scenarios = [
+            new("DISTORTION", "Distortion", [
+            S("STG", "DISTORTION", "ABLE"),
+            A(CSequenceActionIds.DistortionPrepare, "측정 조건 준비 및 전송"),
+            S("PRC", "DISTORTION", "ABLE"),
+            S("STG", "DISTORTION", "COMPLETE"),
+            A(CSequenceActionIds.DistortionLoad, "AK / DK 측정 결과 취득"),
+            A(CSequenceActionIds.DistortionCalculate, "라그랑주 보정 계산 및 허용오차 확인"),
+            A(CSequenceActionIds.DistortionSave, "이번 Glass 보정값 저장"),
+            S("PRC", "DISTORTION", "COMPLETE"),
+            A(CSequenceActionIds.DistortionSignalsClear, "Distortion 신호 초기화")
+        ]),
             new("DO_READY", "DoReady", [
             S("STG", "DOREADY", "ABLE"), 
             S("PRC", "DOREADY", "ABLE"), 
@@ -3244,7 +3360,7 @@
         public string Caption => Owner + " · " + Title;
         public string Owner { get; } = owner;
         public bool IsCompact { get; } = compact;
-        public bool OpensMonitor => Id is "REVIEW_MEASURE" or "TPM_MEASURE" or CSequenceActionIds.ProcessZeroResults;
+        public bool OpensMonitor => Id is "REVIEW_MEASURE" or "TPM_MEASURE" or CSequenceActionIds.ProcessZeroResults or CSequenceActionIds.DistortionLoad;
         public bool IsSignal { get; } = isSignal;
         public bool IsStage => IsSignal && Owner == "STAGE → PROCESS";
         public string Order { get; } = order.ToString("00", CultureInfo.InvariantCulture);

@@ -149,11 +149,25 @@ public sealed class CSettingFile(string configRoot) : CSettingFileBase
         CCsvParser.ValidateRequiredHeaders(GetFormPath(), "JHMI_SETTING", FormHeaders.Select(SelectItem));
         global::Drilling.File.JHMI.CSettingFile.ST_SETTING_FORM_ITEM BuildSetting(global::System.Collections.Generic.IReadOnlyDictionary<string, string> row, int index)
         {
+            var tab = NormalizeTab(CCsvParser.Get(row, "TAB"));
+            var group = NormalizeSettingText(CCsvParser.Get(row, "GROUP"), "COMMON");
+            var name = CCsvParser.Get(row, "NAME");
+            var displayName = GetOrDefault(CCsvParser.Get(row, "DISPLAY NAME"), name);
+            if (tab == "OPTION" && name.Equals("ALIGN_OFFSET_TOLERANCE", StringComparison.OrdinalIgnoreCase))
+                group = "ALIGN";
+            // Retain existing field configuration when an older schema/value file is deployed.
+            if (tab == "OPTION" && group.Equals("VISION", StringComparison.OrdinalIgnoreCase))
+                group = "REVIEW";
+            if (tab == "OPTION" && name.Equals("CameraResolution", StringComparison.OrdinalIgnoreCase))
+            {
+                name = CSettingManager.ReviewCameraResolutionKey;
+                displayName = name;
+            }
             return new ST_SETTING_FORM_ITEM(
-                NormalizeTab(CCsvParser.Get(row, "TAB")), 
-                NormalizeSettingText(CCsvParser.Get(row, "GROUP"), "COMMON"), 
-                CCsvParser.Get(row, "NAME"), 
-                GetOrDefault(CCsvParser.Get(row, "DISPLAY NAME"), CCsvParser.Get(row, "NAME")), 
+                tab,
+                group,
+                name,
+                displayName,
                 ReadDataType(CCsvParser.Get(row, "DATA TYPE")), 
                 CCsvParser.Get(row, "UNIT"), 
                 ReadBool(CCsvParser.Get(row, "SHOW"), true), 
@@ -186,12 +200,12 @@ public sealed class CSettingFile(string configRoot) : CSettingFileBase
         var existingKeys = formItems.Select(SelectItem).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var merged = new List<ST_SETTING_FORM_ITEM>(formItems);
         foreach (var item in CreateScannerFormItems().Append(new ST_SETTING_FORM_ITEM(
-            "OPTION", "VISION", CVisionProtocol.MaxHoleCountPerLineSettingKey, "MaxHoleCountPerLine", EN_RECIPE_DATA_TYPE.Int, "count", true, true,
+            "OPTION", "REVIEW", CVisionProtocol.MaxHoleCountPerLineSettingKey, "MaxHoleCountPerLine", EN_RECIPE_DATA_TYPE.Int, "count", true, true,
             CVisionProtocol.DefaultMaxHoleCountPerLine.ToString(CultureInfo.InvariantCulture), 1, CVisionProtocol.MaximumMarkCount,
             "1001 송신·1003 수신 배열의 고정 칸 수; Count는 실제 유효 개수; 송신 잔여 칸은 모든 필드 -1; 수신 Count 초과 시 HEAVY 알람 및 검사 중단", 38)).Append(new ST_SETTING_FORM_ITEM(
-            "OPTION", "VISION", CSettingManager.VisionCameraResolutionKey, "Camera Resolution", EN_RECIPE_DATA_TYPE.Double, "mm/pixel", true, true,
+            "OPTION", "REVIEW", CSettingManager.VisionCameraResolutionKey, CSettingManager.ReviewCameraResolutionKey, EN_RECIPE_DATA_TYPE.Double, "mm/pixel", true, true,
             CSettingManager.DefaultVisionCameraResolution.ToString("R", CultureInfo.InvariantCulture), 0, 0,
-            "카메라 1 pixel당 길이(mm); 기본 0.0025 mm/pixel=2.5 um/pixel; 오차(mm)=이 값 x 수신 nResolution x (Target-Hole); Vision Flip 적용 후 Tolerance 판정; 양의 유한값만 저장", 39)))
+            "리뷰 카메라 1 pixel당 길이(mm); 오차(mm)=이 값 x 수신 nResolution x (Target-Hole); Vision Flip 적용 후 Tolerance 판정; 양의 유한값만 저장", 39)).Concat(CreateAlignFormItems()).Concat(CreateDistortionRunOptionFormItems()))
         {
             if (existingKeys.Add(CreateKey(item.Tab, item.Name)))
             {
@@ -200,6 +214,30 @@ public sealed class CSettingFile(string configRoot) : CSettingFileBase
         }
 
         return merged;
+    }
+
+    private static IEnumerable<ST_SETTING_FORM_ITEM> CreateDistortionRunOptionFormItems()
+    {
+        var keys = new[] { CRunOptionSettings.DistortionGroup0, CRunOptionSettings.DistortionGroup1, CRunOptionSettings.DistortionGroup2 };
+        for (var index = 0; index < keys.Length; index++)
+            yield return new("OPTION", "RUNOPTION", keys[index], $"Distortion Key Group {index}", EN_RECIPE_DATA_TYPE.Bool, "", true, true,
+                "0", 0, 1, $"0=미선택; 1=선택; Group {index}는 독립 선택; Main Run Option 변경 시 즉시 저장; Stage Y 측정 위치는 Motor-ALIGN의 DK{index}_STAGE_Y_POSITION", 45 + index);
+    }
+
+    private static IEnumerable<ST_SETTING_FORM_ITEM> CreateAlignFormItems()
+    {
+        yield return new("OPTION", "ALIGN", CSettingManager.AlignCameraResolutionKey, CSettingManager.AlignCameraResolutionKey,
+            EN_RECIPE_DATA_TYPE.Double, "mm/pixel", true, true,
+            CSettingManager.DefaultAlignCameraResolution.ToString("R", CultureInfo.InvariantCulture), 0, 0,
+            "얼라인 카메라 1 pixel당 길이(mm); 기본 0.00345 mm/pixel; 허용범위(pixel)=Wapage_AlignBase_Tolerance(mm) / 이 값; 양의 유한값만 저장", 40);
+        yield return new("OPTION", "ALIGN", CSettingManager.WapageAlignBaseToleranceKey, CSettingManager.WapageAlignBaseToleranceKey,
+            EN_RECIPE_DATA_TYPE.Double, "mm", true, true,
+            CSettingManager.DefaultWapageAlignBaseTolerance.ToString("R", CultureInfo.InvariantCulture), 0, 0,
+            "Wapage Align Base 허용범위(mm); 0 이상; MELSEC 기록 시 Align_Camera_Resolution(mm/pixel)으로 나누어 pixel로 환산; 실제 신호 연결은 추후 작업", 41);
+        for (var index = 0; index < 3; index++)
+            yield return new("MOTOR", "ALIGN", $"DK{index}_STAGE_Y_POSITION", $"DK{index} Stage Y Position",
+                EN_RECIPE_DATA_TYPE.Double, "mm", true, true, (2000 - index * 500).ToString(CultureInfo.InvariantCulture), -10000, 10000,
+                $"Distortion Group {index}(DK{index * 2 + 1}/DK{index * 2 + 2})의 실제 Stage Y 측정 위치; AK2/AK4 촬영 Stage Y=0; +방향으로 Group2→1→0→AK1/AK3; 보간 설계 Y=Glass Height-AK Margin Y-본 값", 42 + index);
     }
 
     private static IEnumerable<ST_SETTING_FORM_ITEM> CreateScannerFormItems()
@@ -388,6 +426,11 @@ public sealed class CSettingFile(string configRoot) : CSettingFileBase
             return $"Setting save blocked. {formItem.DisplayName} must be -1 or +1.";
         }
 
+        if (formItem.Tab == "OPTION" && (formItem.Name.Equals(CSettingManager.ReviewCameraResolutionKey, StringComparison.OrdinalIgnoreCase) || formItem.Name.Equals(CSettingManager.AlignCameraResolutionKey, StringComparison.OrdinalIgnoreCase)) && parsed <= 0)
+            return $"Setting save blocked. {formItem.DisplayName} must be greater than 0 mm/pixel.";
+        if (formItem.Tab == "OPTION" && formItem.Name.Equals(CSettingManager.WapageAlignBaseToleranceKey, StringComparison.OrdinalIgnoreCase) && parsed < 0)
+            return $"Setting save blocked. {formItem.DisplayName} must be 0 or greater mm.";
+
         return ValidateNumericRange(formItem, parsed);
     }
 
@@ -419,7 +462,13 @@ public sealed class CSettingFile(string configRoot) : CSettingFileBase
 
     private static string GetValue(IReadOnlyDictionary<string, string> values, string tab, string name, string defaultValue)
     {
-        return values.TryGetValue(CreateKey(tab, name), out var value) ? value : defaultValue;
+        if (values.TryGetValue(CreateKey(tab, name), out var value))
+            return value;
+        // A renamed Review parameter continues to use the previously taught resolution.
+        if (tab.Equals("OPTION", StringComparison.OrdinalIgnoreCase) && name.Equals(CSettingManager.ReviewCameraResolutionKey, StringComparison.OrdinalIgnoreCase)
+            && values.TryGetValue(CreateKey(tab, "CameraResolution"), out var legacy))
+            return legacy;
+        return defaultValue;
     }
 
     private static string CreateKey(string tab, string name)

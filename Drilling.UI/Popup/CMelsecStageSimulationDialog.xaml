@@ -1,4 +1,4 @@
-<Window x:Class="Drilling.UI.Popup.CMelsecStageSimulationDialog"
+﻿<Window x:Class="Drilling.UI.Popup.CMelsecStageSimulationDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Melsec Simulator" Width="1020" Height="840" MinWidth="900" MinHeight="460"
@@ -28,6 +28,10 @@
                              Width="48" Height="26" Margin="9,0,5,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" />
                     <Button Content="SET" Command="{Binding SetZeroSegmentsCommand}" Width="58" Height="26" />
                     <TextBlock Text="{Binding ZeroSegmentState}" VerticalAlignment="Center" Margin="10,0,0,0" FontSize="12" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                    <Button Content="BASE → 측정값" Command="{Binding SeedMeasurementsCommand}" Width="150" Height="30" />
+                    <TextBlock Text="{Binding MeasurementStatus}" Margin="10,0,0,0" VerticalAlignment="Center" FontSize="12" TextWrapping="Wrap" Width="700" />
                 </StackPanel>
             </StackPanel>
             <DataGrid x:Name="SignalGrid" Grid.Row="2" ItemsSource="{Binding Rows}"
@@ -59,7 +63,7 @@
                 </DataGrid.Resources>
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Scenario" Binding="{Binding Scenario}" Width="125" ElementStyle="{StaticResource SignalText}" />
-                    <DataGridTextColumn Header="Stage Signal" Binding="{Binding Name}" Width="*" ElementStyle="{StaticResource SignalText}" />
+                    <DataGridTextColumn Header="Signal / Value" Binding="{Binding Name}" Width="*" ElementStyle="{StaticResource SignalText}" />
                     <DataGridTextColumn Header="Address" Binding="{Binding Address}" Width="170" ElementStyle="{StaticResource SignalText}" />
                     <DataGridTemplateColumn Header="Current" Width="155">
                         <DataGridTemplateColumn.CellTemplate>
@@ -69,7 +73,7 @@
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
-                    <DataGridTemplateColumn Header="Input (Raw)" Width="210" CellStyle="{StaticResource SignalActionCell}">
+                    <DataGridTemplateColumn Header="Input" Width="210" CellStyle="{StaticResource SignalActionCell}">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <Grid>
@@ -82,7 +86,7 @@
                                         <TextBox Text="{Binding InputValue, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanSet}"
                                                  Margin="4,3" Padding="5,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
                                                  Background="{DynamicResource GridBackgroundBrush}" Foreground="{DynamicResource TextPrimaryBrush}"
-                                                 BorderBrush="{DynamicResource ButtonSecondaryBorderBrush}" ToolTip="원시 정수: 0~65535" />
+                                                 BorderBrush="{DynamicResource ButtonSecondaryBorderBrush}" ToolTip="{Binding InputHint}" />
                                         <Button Grid.Column="1" Content="SET" Background="{DynamicResource ButtonPrimaryBrush}"
                                                 Style="{StaticResource SignalButton}" Command="{Binding SetValueCommand}" />
                                     </Grid>

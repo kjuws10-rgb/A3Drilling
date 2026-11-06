@@ -75,7 +75,8 @@ internal static class CReviewGlassPreviewBuilder
 
         IReadOnlySet<int>? currentCellNos = null,
 
-        IReadOnlySet<int>? filledCellNos = null
+        IReadOnlySet<int>? filledCellNos = null,
+        IReadOnlyList<ST_SYSTEM_PARAMETER>? settings = null
     )
     {
         var glassWidth = ReadDouble(recipe, 500.0, "GLASS_SIZE_X");
@@ -131,7 +132,11 @@ internal static class CReviewGlassPreviewBuilder
             glassHeight,
             akMarginX,
             akMarginY,
-            key => ReadNullableDouble(recipe, key));
+            key =>
+            {
+                var text = settings?.FirstOrDefault(p => p.Key.Equals(key, StringComparison.OrdinalIgnoreCase))?.Value;
+                return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) && double.IsFinite(value) ? value : null;
+            });
         var pixelSize = ReadDouble(recipe, 0.0, "PIXEL_SIZE");
         var splitBeamCount = ReadInt(recipe, 0, "SPLITED_BEAM_COUNT");
         var parameterMap = CreateParameterMap(recipe);

@@ -15,12 +15,12 @@
         </Style>
     </UserControl.Resources>
     <Grid VerticalAlignment="Top">
-        <Grid.ColumnDefinitions><ColumnDefinition Width="3*"/><ColumnDefinition Width="2*"/></Grid.ColumnDefinitions>
+        <Grid.ColumnDefinitions><ColumnDefinition Width="3*"/><ColumnDefinition Width="1.6*"/><ColumnDefinition Width="3*"/></Grid.ColumnDefinitions>
         <Border x:Name="ZeroLineOptionsBorder" Margin="0,0,10,0" Padding="12" MinHeight="218"
                 BorderThickness="1" BorderBrush="{DynamicResource PanelBorderBrush}" Background="{DynamicResource PanelBackgroundBrush}" CornerRadius="4">
             <Grid>
                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="48"/><RowDefinition Height="48"/><RowDefinition Height="48"/></Grid.RowDefinitions>
-                <Grid.ColumnDefinitions><ColumnDefinition Width="140"/><ColumnDefinition Width="*"/><ColumnDefinition Width="76"/></Grid.ColumnDefinitions>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="130"/><ColumnDefinition Width="*"/><ColumnDefinition Width="68"/></Grid.ColumnDefinitions>
                 <TextBlock Grid.ColumnSpan="3" Text="0선방어" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10" Foreground="{DynamicResource TextPrimaryBrush}"/>
                 <TextBlock Grid.Row="1" Text="0선방어" FontSize="15" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}"/>
                 <ItemsControl x:Name="ZeroLineChoices" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" ItemsSource="{Binding ZeroLineChoices}">
@@ -40,7 +40,26 @@
                 </ItemsControl>
             </Grid>
         </Border>
-        <Border x:Name="ReviewOptionsBorder" Grid.Column="1" Padding="12" MinHeight="218" BorderThickness="1" IsEnabled="{Binding CanEditReview}"
+        <Border x:Name="DistortionOptionsBorder" Grid.Column="1" Margin="0,0,10,0" Padding="10" MinHeight="218"
+                BorderThickness="1" BorderBrush="{DynamicResource PanelBorderBrush}" Background="{DynamicResource PanelBackgroundBrush}" CornerRadius="4">
+            <StackPanel>
+                <TextBlock Text="Distortion Key" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                <ItemsControl x:Name="DistortionGroupChoices" ItemsSource="{Binding DistortionGroupChoices}">
+                    <ItemsControl.ItemTemplate><DataTemplate>
+                        <StackPanel Margin="0,0,0,4">
+                            <Button Style="{StaticResource RunChoiceButton}" Height="30" Background="{Binding Background}" Foreground="{Binding Foreground}"
+                                    CommandParameter="{Binding Index}" menu:CButtonCommandBehavior.Command="{Binding DataContext.ToggleDistortionGroupCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                                <TextBlock Text="{Binding Label}" Foreground="{Binding Foreground}"
+                                           FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            </Button>
+                            <TextBlock Text="{Binding PositionText}" FontSize="11" HorizontalAlignment="Center"
+                                       ToolTip="Setting → Motor → ALIGN" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        </StackPanel>
+                    </DataTemplate></ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Border>
+        <Border x:Name="ReviewOptionsBorder" Grid.Column="2" Padding="12" MinHeight="218" BorderThickness="1" IsEnabled="{Binding CanEditReview}"
                 BorderBrush="{DynamicResource PanelBorderBrush}" Background="{DynamicResource PanelBackgroundBrush}" CornerRadius="4">
             <Border.Style><Style TargetType="Border"><Style.Triggers>
                 <DataTrigger Binding="{Binding CanEditReview}" Value="False"><Setter Property="Opacity" Value="0.55"/></DataTrigger>

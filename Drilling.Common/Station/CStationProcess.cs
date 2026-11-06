@@ -15,6 +15,7 @@
     using Drilling.Common.Product;
     using Drilling.Common.Automation;
     using Drilling.Common.Review;
+    using Drilling.Common.Correction;
     using Drilling.Common.Station;
     using Drilling.Common.Threading;
 
@@ -1278,7 +1279,7 @@
 
             // RESET explicitly abandons the stopped glass's outstanding diagnostic Review.
             // Ordinary Stop/Release keeps it available for the normal Stage Review sequence.
-            if (_zeroLineCycle is { Status.FollowUpRequested: true } previousCycle)
+            if (_zeroLineCycle is { NeedsFollowUpCleanup: true } previousCycle)
             {
                 using var resetFollowUp = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                 resetFollowUp.CancelAfter(TimeSpan.FromSeconds(5));
@@ -2309,7 +2310,8 @@
             var model = _processModel;
             if (StageRequests?.IsRunning == true && (cycle.Length == 0 || cycle != _stageModelLogCycle))
                 model = null;
-            _logManager?.WriteSequence(level, source, message, $"Cycle={cycle}; Process={model?.ProcessId}; Recipe={model?.RecipeId}; Glass={model?.GlassId}; Lot={model?.LotId}");
+            var glass = StageRequests?.Status.Scenario == "DISTORTION" ? StageRequests.DistortionGlassId : model?.GlassId;
+            _logManager?.WriteSequence(level, source, message, $"Cycle={cycle}; Process={model?.ProcessId}; Recipe={model?.RecipeId}; Glass={glass}; Lot={model?.LotId}");
             lock (_processLogLock)
             {
                 _processLogs.Add(new ST_PROCESS_LOG_ITEM(DateTimeOffset.Now, level, source, message));
@@ -3771,7 +3773,7 @@
             var cache = melsec.GetCachedSnapshot(melsec.Map.Where(row => row.Id.StartsWith("HANDSHAKE_", StringComparison.OrdinalIgnoreCase)).Select(row => row.Id), out var map);
             var devices = _interfaceManager.GetInterfaceCommunicationList(EN_EQP_MODULE.Melsec);
             var connectedIds = map.Where(row => row.Use && row.Id.StartsWith("HANDSHAKE_", StringComparison.OrdinalIgnoreCase)
-                && devices.Any(device => device.Number == row.DeviceNo && (device.IsSimulation || device.ConnectionState == EN_COMM_STATE.Online)))
+                && devices.Any(device => device.Number == row.DeviceNo && (!CMelsec.IsSimulationOnlyRoute(row) || device.IsSimulation) && (device.IsSimulation || device.ConnectionState == EN_COMM_STATE.Online)))
                 .Select(row => row.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
             return new(connectedIds.Count > 0, cache) { ConnectedSignalIds = connectedIds };
         }, 
@@ -3829,7 +3831,7 @@
             }
         }
 
-        public void StartStageRequests(Func<CancellationToken, Task<ST_STAGE_PROCESS_REQUEST>> request, ST_STAGE_REVIEW_ACTIONS? review = null, ST_STAGE_TPM_ACTIONS? tpm = null)
+        public void StartStageRequests(Func<CancellationToken, Task<ST_STAGE_PROCESS_REQUEST>> request, ST_STAGE_REVIEW_ACTIONS? review = null, ST_STAGE_TPM_ACTIONS? tpm = null, ST_STAGE_DISTORTION_ACTIONS? distortion = null)
         {
             lock (_sequenceLock)
             {
@@ -3880,7 +3882,8 @@
                         _scriptCreatedAt = _lastScript.CreatedAt;
                         AddProcessLog("INFO", "SCRIPT", $"Process 단독 실행 · 마지막 {mode} 스크립트: {_lastScript.FilePath} / {_lastScript.HeadScripts.Count} Head / {_lastScript.TotalShots} Shot");
                         UploadAutomationScript(model, token);
-                    }, token)
+                    }, token),
+                    distortion
                 );
             }
         }
@@ -4115,8 +4118,10 @@
 
         private void EnsureZeroLineFollowUpCompleted()
         {
-            if (_zeroLineCycle?.Status.FollowUpRequested == true)
-                throw new InvalidOperationException("0선 NG 후속 1줄 검사가 남아 있습니다. Stage Review 시퀀스를 완료한 뒤 다음 가공을 준비해 주세요.");
+            if (_zeroLineCycle is { NeedsFollowUpCleanup: true } cycle)
+                throw new InvalidOperationException(cycle.Status.FollowUpRequested
+                    ? "0선 NG 후속 1줄 검사가 남아 있습니다. Stage Review 시퀀스를 완료한 뒤 다음 가공을 준비해 주세요."
+                    : "0선 후속 요청의 출력 확인이 완료되지 않았습니다. RESET으로 W8218 OFF를 확인한 뒤 다음 가공을 준비해 주세요.");
         }
 
 #endregion
@@ -4148,6 +4153,7 @@
                 "PROCESS" => "HANDSHAKE_PRC_PROCESS_",
                 "REVIEW" => "HANDSHAKE_PRC_REVIEW_",
                 "TPM" => "HANDSHAKE_PRC_TOP_POWERMETER_",
+                "DISTORTION" => "HANDSHAKE_PRC_DISTORTION_",
                 _ => null
             };
             var targets = interfaces.Melsec.Map.Where(row => IsTarget(row)
@@ -4751,6 +4757,12 @@
         public const string PrcStart = "HANDSHAKE_PRC_DOREADY_START";
         public const string PrcComplete = "HANDSHAKE_PRC_DOREADY_COMPLETE";
         public const string StgProcessAble = "HANDSHAKE_STG_PROCESS_ABLE";
+        public const string StgDistortionAble = "HANDSHAKE_STG_DISTORTION_ABLE";
+        public const string StgDistortionComplete = "HANDSHAKE_STG_DISTORTION_COMPLETE";
+        public const string PrcDistortionAble = "HANDSHAKE_PRC_DISTORTION_ABLE";
+        public const string PrcDistortionComplete = "HANDSHAKE_PRC_DISTORTION_COMPLETE";
+        private static readonly string[] DistortionOutputs = [PrcDistortionComplete, PrcDistortionAble];
+        private static readonly string[] DistortionActionIds = [CSequenceActionIds.DistortionPrepare, CSequenceActionIds.DistortionLoad, CSequenceActionIds.DistortionCalculate, CSequenceActionIds.DistortionSave, CSequenceActionIds.DistortionSignalsClear];
         private readonly object _sync = new();
         private CancellationTokenSource? _stop;
         private Task? _worker;
@@ -4759,6 +4771,10 @@
         private bool _cleanupOutputs;
         private bool _tasksIssued;
         private Func<CancellationToken, Task>? _loadLatestScripts;
+        private ST_STAGE_DISTORTION_ACTIONS? _distortionActions;
+        private bool _distortionOutputsOwned, _distortionNeedsDoReady;
+        public ST_DISTORTION_MEASUREMENT_SNAPSHOT? DistortionSnapshot => _distortionActions?.Snapshot?.Invoke();
+        public string DistortionGlassId => _distortionActions?.GlassId?.Invoke() ?? "";
         public bool NeedsCleanup => Volatile.Read(ref _cleanupFailed);
         public event Action<CSequenceFailureException>? Failed;
         private string _scenario = "AUTO";
@@ -4782,7 +4798,8 @@
             Func<CancellationToken, Task> zero, 
             Func<CancellationToken, Task> runTasks, 
             ST_STAGE_REVIEW_ACTIONS? review = null, ST_STAGE_TPM_ACTIONS? tpm = null,
-            Func<CancellationToken, Task>? loadLatestScripts = null
+            Func<CancellationToken, Task>? loadLatestScripts = null,
+            ST_STAGE_DISTORTION_ACTIONS? distortion = null
         )
         {
             lock (_sync)
@@ -4807,6 +4824,9 @@
                 _tpmActions = tpm;
                 _loadLatestScripts = loadLatestScripts;
                 _tpmOutputsOwned = false;
+                _distortionActions = distortion;
+                _distortionOutputsOwned = false;
+                _distortionNeedsDoReady = false;
                 _worker = Task.Run(() => Run(prepare, buildUpload, zero, runTasks, _stop.Token));
             }
         }
@@ -4861,8 +4881,9 @@
                         var sample = ReadSignals();
                         // Synchronize only a requested group (or our retained high output).
                         // Inactive groups never gate another request or acquire output ownership.
-                        var candidates = new[] { "TPM", "REVIEW", "DOREADY", "PROCESS" }.Where(scenario =>
+                        var candidates = new[] { "TPM", "REVIEW", "DISTORTION", "DOREADY", "PROCESS" }.Where(scenario =>
                             (scenario != "TPM" || _tpmActions is not null)
+                            && (scenario != "DISTORTION" || _distortionActions is not null)
                             && (scenario != "REVIEW" || _reviewActions is not null)
                             && (scenario != "PROCESS" || processMachining is not null)).ToArray();
                         var requestedScenario = candidates.FirstOrDefault(scenario => InputsFor(scenario).Select((id, index) =>
@@ -4901,9 +4922,16 @@
                             continue;
                         }
 
+                        if (_distortionActions is not null && TrySignal(sample, StgDistortionAble, out var distortionAble) && distortionAble == 1)
+                        {
+                            await RunDistortion(token).ConfigureAwait(false);
+                            _scenario = "AUTO";
+                            Set("WAIT_REQUEST", "Distortion offset saved; waiting for DoReady to build scripts for this Glass.");
+                            continue;
+                        }
                         if (TrySignal(sample, StgAble, out var able) && TrySignal(sample, StgStart, out var start) && TrySignal(sample, StgComplete, out var complete) && able == 1 && start == 0 && complete == 0)
                             break;
-                        if (processMachining is not null && TrySignal(sample, StgProcessAble, out var processAble) && processAble == 1
+                        if (!_distortionNeedsDoReady && processMachining is not null && TrySignal(sample, StgProcessAble, out var processAble) && processAble == 1
                             && TrySignal(sample, StgProcessStart, out var processStart) && processStart == 0
                             && TrySignal(sample, StgProcessComplete, out var processComplete) && processComplete == 0)
                         {
@@ -4947,6 +4975,7 @@
                     await Action(CSequenceActionIds.PrepareData, prepare, token).ConfigureAwait(false);
                     Set("BUILD_UPLOAD", "Building and uploading scripts only; MOF initialization and Task RUN belong to Process preparation.");
                     await Action(CSequenceActionIds.BuildUploadScript, buildUpload, token).ConfigureAwait(false);
+                    _distortionNeedsDoReady = false;
                     await WriteConfirmed(PrcComplete, 1, token).ConfigureAwait(false);
                     Set("WAIT_COMPLETE", "Scripts uploaded; waiting for Stage DoReady COMPLETE.");
                     await WaitSignal(StgComplete, 1, token).ConfigureAwait(false);
@@ -5071,7 +5100,7 @@
             if (outputsOwned)
             {
                 foreach (var id in (_doReadyOutputsOwned ? OutputsFor("DOREADY") : [])
-                    .Concat(_processOutputsOwned ? ProcessOutputs : []).Concat(_reviewOutputsOwned ? ReviewOutputs : []).Concat(_tpmOutputsOwned ? TpmOutputs : []))
+                    .Concat(_processOutputsOwned ? ProcessOutputs : []).Concat(_reviewOutputsOwned ? ReviewOutputs : []).Concat(_tpmOutputsOwned ? TpmOutputs : []).Concat(_distortionOutputsOwned ? DistortionOutputs : []))
                 {
                     try
                     {
@@ -5214,6 +5243,7 @@
         private bool _doReadyOutputsOwned;
         private static string[] InputsFor(string scenario) => scenario switch
         {
+            "DISTORTION" => [StgDistortionAble, StgDistortionComplete],
             "REVIEW" => [StgReviewAble, StgReviewStart, StgReviewComplete],
             "TPM" => [StgTpmAble, StgTpmComplete],
             "PROCESS" => [StgProcessAble, StgProcessStart, StgProcessComplete],
@@ -5223,6 +5253,7 @@
         private string[] CurrentInputs() => InputsFor(_scenario);
         private static string[] OutputsFor(string scenario) => scenario switch
         {
+            "DISTORTION" => DistortionOutputs,
             "REVIEW" => ReviewOutputs,
             "TPM" => TpmOutputs,
             "PROCESS" => ProcessOutputs,
@@ -5233,6 +5264,7 @@
         {
             switch (scenario)
             {
+                case "DISTORTION": _distortionOutputsOwned = owned; break;
                 case "REVIEW": _reviewOutputsOwned = owned; break;
                 case "TPM": _tpmOutputsOwned = owned; break;
                 case "PROCESS": _processOutputsOwned = owned; break;
@@ -5445,6 +5477,44 @@
         public const string PrcTpmAble = "HANDSHAKE_PRC_TOP_POWERMETER_ABLE";
         public const string PrcTpmComplete = "HANDSHAKE_PRC_TOP_POWERMETER_COMPLETE";
         private static readonly string[] TpmOutputs = [PrcTpmComplete, PrcTpmAble];
+        private async Task RunDistortion(CancellationToken token)
+        {
+            _scenario = "DISTORTION";
+            var work = _distortionActions ?? throw new InvalidOperationException("Distortion actions are not configured.");
+            BeginLogCycle("DISTORTION");
+            actions.ResetToWaiting(DistortionActionIds);
+            _distortionOutputsOwned = true;
+            foreach (var id in DistortionOutputs) await WriteConfirmed(id, 0, token).ConfigureAwait(false);
+            await WaitSignal(StgDistortionComplete, 0, token).ConfigureAwait(false);
+            Set("DISTORTION_PREPARE", "Stage Distortion ABLE received; freezing recipe, Run Option groups and measurement conditions.");
+            await Action(CSequenceActionIds.DistortionPrepare, work.Prepare, token).ConfigureAwait(false);
+            await WaitSignal(StgDistortionComplete, 0, token).ConfigureAwait(false);
+            var readyAt = DateTimeOffset.UtcNow;
+            await WriteConfirmed(PrcDistortionAble, 1, token).ConfigureAwait(false);
+            Set("DISTORTION_WAIT_COMPLETE", "Measurement conditions published; waiting for Stage Distortion COMPLETE.");
+            await WaitSignal(StgDistortionComplete, 1, token, readyAt).ConfigureAwait(false);
+            Set("DISTORTION_LOAD", "Reading AK and selected DK pair results in millimetres.");
+            await Action(CSequenceActionIds.DistortionLoad, work.Load, token).ConfigureAwait(false);
+            Set("DISTORTION_CALCULATE", "Calculating design-coordinate Base-LastLoad Lagrange offsets and tolerance checks.");
+            await Action(CSequenceActionIds.DistortionCalculate, work.Calculate, token).ConfigureAwait(false);
+            Set("DISTORTION_SAVE", "Replacing this Glass's Align Offsets and saving the audit record.");
+            await Action(CSequenceActionIds.DistortionSave, work.Save, token).ConfigureAwait(false);
+            _distortionNeedsDoReady = true;
+            await WriteConfirmed(PrcDistortionComplete, 1, token).ConfigureAwait(false);
+            Set("DISTORTION_SIGNALS_CLEAR", "Correction saved; completing the Distortion signal reset handshake.");
+            await Action(CSequenceActionIds.DistortionSignalsClear, async ct =>
+            {
+                // Stage releases both inputs after observing our COMPLETE; only then release our outputs.
+                await WaitSignal(StgDistortionComplete, 0, ct).ConfigureAwait(false);
+                await WaitSignal(StgDistortionAble, 0, ct).ConfigureAwait(false);
+                foreach (var id in DistortionOutputs) await WriteConfirmed(id, 0, ct).ConfigureAwait(false);
+                actions.ResetToWaiting(DistortionActionIds.Where(id => id != CSequenceActionIds.DistortionSignalsClear));
+            }, token, resetToWaitingOnSuccess: true).ConfigureAwait(false);
+            _distortionOutputsOwned = false;
+            LogEvent("CYCLE_COMPLETE Kind=DISTORTION; next request must rebuild scripts in DoReady.");
+            Volatile.Write(ref _logCycleId, "");
+        }
+
         private ST_STAGE_TPM_ACTIONS? _tpmActions;
         private bool _tpmOutputsOwned;
         private bool IsTpmReady(ST_STAGE_SIGNAL_SNAPSHOT sample) => _tpmActions is not null && TrySignal(sample, StgTpmAble, out var able) && able == 1 && TrySignal(sample, StgTpmComplete, out var complete) && complete == 0;
@@ -5565,7 +5635,7 @@
         private void BeginLogCycle(string kind)
         {
             Volatile.Write(ref _logCycleId, Guid.NewGuid().ToString("N"));
-            LogEvent($"CYCLE_ACCEPTED Kind={kind}; Stage ABLE=1 START=0 COMPLETE=0.");
+            LogEvent(kind == "DISTORTION" ? "CYCLE_ACCEPTED Kind=DISTORTION; Stage ABLE=1; waiting for COMPLETE=0 before preparation." : $"CYCLE_ACCEPTED Kind={kind}; Stage ABLE=1 START=0 COMPLETE=0.");
         }
 
         private void LogEvent(string detail)
@@ -5608,7 +5678,7 @@
                 Changed("MELSEC_CONNECTED", snapshot.Connected.ToString(), "");
                 var observed = _scenario == "AUTO"
                     ? InputsFor("DOREADY").Concat(processMachining is not null ? InputsFor("PROCESS") : [])
-                        .Concat(_reviewActions is not null ? InputsFor("REVIEW") : []).Concat(_tpmActions is not null ? InputsFor("TPM") : [])
+                        .Concat(_reviewActions is not null ? InputsFor("REVIEW") : []).Concat(_tpmActions is not null ? InputsFor("TPM") : []).Concat(_distortionActions is not null ? InputsFor("DISTORTION") : [])
                     : CurrentInputs().Concat(OutputsFor(_scenario));
                 foreach (var id in observed)
                 {
@@ -5631,6 +5701,11 @@
         }
     }
 
+    public sealed record ST_STAGE_DISTORTION_ACTIONS(Func<CancellationToken, Task> Prepare, Func<CancellationToken, Task> Load, Func<CancellationToken, Task> Calculate, Func<CancellationToken, Task> Save)
+    {
+        public Func<string>? GlassId { get; init; }
+        public Func<ST_DISTORTION_MEASUREMENT_SNAPSHOT?>? Snapshot { get; init; }
+    }
     public sealed record ST_STAGE_TPM_ACTIONS(Func<CancellationToken, Task> Prepare, Func<CancellationToken, Task> Measure, Func<CancellationToken, Task> Save, Func<Task> Release);
     public sealed record ST_STAGE_REVIEW_ACTIONS(Func<CancellationToken, Task> Prepare, Func<CancellationToken, Task> Measure, Func<CancellationToken, Task> Save);
     public sealed record ST_STAGE_ZERO_LINE_ACTIONS(Func<bool> Enabled, Func<CancellationToken, Task> Prepare, Func<CancellationToken, Task> Measure, Func<CancellationToken, Task> Save, Func<Task> Release)
@@ -5972,7 +6047,9 @@
                             {
                                 issued = true;
                                 var motion = ST_REVIEW_MOTION_PARAMETERS.Read(parameters);
-                                await session.Move(new(first.ReviewX, session.CurrentY, motion.Speed, Math.Max(1, plan.Profile.StageSpeed), motion.Acceleration, EN_STAGE_MOVE_MODE.ReviewX), token).ConfigureAwait(false);
+                                // ReviewX mode ignores Y. Do not read Main Y while Align owns it;
+                                // an unused Y cache may legitimately be Pending/Stale here.
+                                await session.Move(new(first.ReviewX, 0, motion.Speed, Math.Max(1, plan.Profile.StageSpeed), motion.Acceleration, EN_STAGE_MOVE_MODE.ReviewX), token).ConfigureAwait(false);
                             }
                         }
                         token.ThrowIfCancellationRequested();
@@ -6024,6 +6101,7 @@
         private CStageReviewSequences.Session? _stage;
         private CReviewManager.ZeroLineVisionSession? _vision;
         private bool _saved, _advanced;
+        private int _followUpCleanupRequired;
         private Exception? _acquisitionError;
         private ST_ZERO_LINE_CYCLE_STATUS _status = new(true, "WAIT", "0선 준비 대기", plan.Group, Array.AsReadOnly(plan.VisionPlan.Points.Select(p => new ST_ZERO_LINE_POINT_RESULT(p, "WAIT")).ToArray()))
         {
@@ -6031,6 +6109,9 @@
         };
         public ST_ZERO_LINE_CYCLE_PLAN Plan => plan;
         public ST_ZERO_LINE_CYCLE_STATUS Status => Volatile.Read(ref _status);
+        // An ON may reach the PLC even if its write/readback later fails. Keep
+        // cleanup ownership separate from the confirmed request shown to the UI.
+        public bool NeedsFollowUpCleanup => Volatile.Read(ref _followUpCleanupRequired) != 0 || Status.FollowUpRequested;
 
         private void Set(string state, string detail, IReadOnlyList<ST_ZERO_LINE_POINT_RESULT>? results = null)
         {
@@ -6132,7 +6213,7 @@
                 try
                 {
                     await SaveFile(token).ConfigureAwait(false);
-                    await PublishFollowUp(interfaces, false, token).ConfigureAwait(false);
+                    await PublishCycleFollowUp(false, token).ConfigureAwait(false);
                     Volatile.Write(ref _status, Status with { FollowUpRequested = false });
                 }
                 catch (OperationCanceledException) when (token.IsCancellationRequested)
@@ -6151,7 +6232,7 @@
             // at the final flag boundary, including NG confirmed after machining ended.
             var ngCount = Status.Results!.Count(point => point.IsNg);
             var follow = CRunOptionSettings.Read(settings).FollowUp && ngCount > 0;
-            await PublishFollowUp(interfaces, follow, token).ConfigureAwait(false);
+            await PublishCycleFollowUp(follow, token).ConfigureAwait(false);
             Volatile.Write(ref _status, Status with { FollowUpRequested = follow });
             if (!_advanced)
             {
@@ -6171,7 +6252,7 @@
         {
             if (runId != plan.RunId || !Status.FollowUpRequested)
                 throw new InvalidOperationException("0선 후속 검사 완료 대상이 현재 Glass와 일치하지 않습니다.");
-            await PublishFollowUp(interfaces, false, token).ConfigureAwait(false);
+            await PublishCycleFollowUp(false, token).ConfigureAwait(false);
             Volatile.Write(ref _status, Status with { FollowUpRequested = false, FollowUpCompleted = true });
             log?.Invoke($"0선 NG 후속 1줄 IOF 결과 저장 완료 · 보정 미적용: Glass={plan.GlassId}; Run={runId}");
         }
@@ -6179,13 +6260,13 @@
         public async Task ResetAfterStop(CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
-            if (!Status.FollowUpRequested)
+            if (!NeedsFollowUpCleanup)
                 return;
             if (_stage is not null || _vision is not null || interfaces.StageReviewSequences.IsActive)
                 throw new InvalidOperationException("0선 RESET 전에 Process/Review 세션과 출력 정리를 완료해 주세요.");
             // Do not claim inspection completion. A failed OFF/readback leaves the old
             // identity and pending flag intact so RESET can retry without losing evidence.
-            await PublishFollowUp(interfaces, false, token).ConfigureAwait(false);
+            await PublishCycleFollowUp(false, token).ConfigureAwait(false);
             Volatile.Write(ref _status, Status with
             {
                 State = "RESET_CANCELLED",
@@ -6204,15 +6285,31 @@
             _saved = true;
         }
 
+        private async Task PublishCycleFollowUp(bool requested, CancellationToken token)
+        {
+            // Claim cleanup before issuing ON, including an ambiguous write failure.
+            // Release it only after an OFF readback succeeds; Release/Stop must retain it.
+            if (requested) Interlocked.Exchange(ref _followUpCleanupRequired, 1);
+            await PublishFollowUp(interfaces, requested, token).ConfigureAwait(false);
+            if (!requested) Interlocked.Exchange(ref _followUpCleanupRequired, 0);
+        }
+
         internal static async Task PublishFollowUp(CInterfaceManager interfaces, bool requested, CancellationToken token)
         {
             var value = requested ? 1 : 0;
             using var limit = CancellationTokenSource.CreateLinkedTokenSource(token);
             limit.CancelAfter(TimeSpan.FromSeconds(5));
-            await Task.Run(() => interfaces.Melsec.WriteWord("SDC_REVIEW_RETRY_REQUEST", value, limit.Token), limit.Token).ConfigureAwait(false);
-            var sample = await interfaces.Melsec.RefreshCachedValueAsync("SDC_REVIEW_RETRY_REQUEST", limit.Token).ConfigureAwait(false);
-            if (!sample.IsValid || Convert.ToDouble(sample.Value) != value)
-                throw new IOException("0선 후속 요청 W8218 읽기 확인 실패");
+            try
+            {
+                await Task.Run(() => interfaces.Melsec.WriteWord("SDC_REVIEW_RETRY_REQUEST", value, limit.Token), limit.Token).ConfigureAwait(false);
+                var sample = await interfaces.Melsec.RefreshCachedValueAsync("SDC_REVIEW_RETRY_REQUEST", limit.Token).ConfigureAwait(false);
+                if (!sample.IsValid || sample.Value is null || Convert.ToDouble(sample.Value, CultureInfo.InvariantCulture) != value)
+                    throw new IOException($"0선 후속 요청 W8218 {(requested ? "ON" : "OFF")} 읽기 확인 실패");
+            }
+            catch (OperationCanceledException error) when (!token.IsCancellationRequested && limit.IsCancellationRequested)
+            {
+                throw new TimeoutException($"0선 후속 요청 W8218 {(requested ? "ON" : "OFF")} 쓰기/읽기 확인 시간 5초 초과", error);
+            }
         }
 
         public async Task Release()

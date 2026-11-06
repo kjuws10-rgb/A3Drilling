@@ -3,6 +3,8 @@ using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace Drilling.UI.Popup;
+public enum EN_DEFAULT_RESTART_CHOICE { Cancel, AllFromStart, InspectionFromStart }
+
 public partial class CRecipeConfirmDialog : Window
 {
     private bool _alternateSelected;
@@ -87,6 +89,25 @@ public partial class CRecipeConfirmDialog : Window
         var dialog = CreateFineRetryChoice(message);
         var result = dialog.ShowDialog();
         return result == true ? EN_REVIEW_RESUME_CHOICE.Resume : dialog._alternateSelected ? EN_REVIEW_RESUME_CHOICE.Restart : EN_REVIEW_RESUME_CHOICE.Cancel;
+    }
+
+    public static EN_DEFAULT_RESTART_CHOICE ShowDefaultRestartChoice(string message)
+    {
+        var dialog = CreateDefaultRestartChoice(message);
+        var result = dialog.ShowDialog();
+        return result == true ? EN_DEFAULT_RESTART_CHOICE.InspectionFromStart : dialog._alternateSelected ? EN_DEFAULT_RESTART_CHOICE.AllFromStart : EN_DEFAULT_RESTART_CHOICE.Cancel;
+    }
+
+    internal static CRecipeConfirmDialog CreateDefaultRestartChoice(string message)
+    {
+        var owner = Application.Current?.MainWindow;
+        var dialog = new CRecipeConfirmDialog("Default 전체 실행 재시작", message, "검사부터 다시", useDangerStyle: false);
+        if (owner is not null) dialog.Owner = owner;
+        dialog.CancelButton.Content = "처음부터";
+        dialog.AbortGap.Width = new GridLength(12);
+        dialog.AbortColumn.Width = new GridLength(1, GridUnitType.Star);
+        dialog.AbortButton.Visibility = Visibility.Visible;
+        return dialog;
     }
 
     internal static CRecipeConfirmDialog CreateFineRetryChoice(string message)

@@ -1,4 +1,4 @@
-<UserControl x:Class="Drilling.UI.Views.CCorrectionView"
+﻿<UserControl x:Class="Drilling.UI.Views.CCorrectionView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:menu="clr-namespace:Drilling.UI.Menu"
@@ -213,6 +213,11 @@
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
+
+        <Grid x:Name="DefaultWorkspace" Grid.Row="2" Grid.RowSpan="3" Margin="0,8,0,0"
+              Visibility="{Binding CurrentScreen.Correction.IsDefaultTab, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <views:CDefaultOffsetView DataContext="{Binding CurrentScreen.Correction.DefaultOffset}" />
+        </Grid>
 
         <Grid Grid.Row="2" Grid.RowSpan="3"
               Visibility="{Binding CurrentScreen.Correction.IsAlignDistortionTab, Converter={StaticResource BooleanToVisibilityConverter}}">
