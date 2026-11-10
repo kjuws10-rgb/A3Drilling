@@ -1,4 +1,4 @@
-﻿namespace Drilling.Common.Review
+namespace Drilling.Common.Review
 {
     using Drilling.Common.Recipe;
     using System.Text;
@@ -2077,7 +2077,7 @@
         public static ST_REVIEW_COORDINATE_OFFSET VisionPixelsToMillimeters(ST_VISION_MARK_FIND mark, int resolution, double cameraResolution)
         {
             if (resolution <= 0 || !double.IsFinite(cameraResolution) || cameraResolution <= 0)
-                throw new InvalidDataException("Vision nResolution 및 Camera Resolution(mm/pixel)은 0보다 커야 합니다.");
+                throw new InvalidDataException("Vision nResolution 및 Review_Camera_Resolution(mm/pixel)은 0보다 커야 합니다.");
             var factor = cameraResolution * resolution;
             var x = factor * (mark.TargetMarkX - mark.HoleX);
             var y = factor * (mark.TargetMarkY - mark.HoleY);
@@ -2245,7 +2245,7 @@
             {
                 var count = CreateIofLines(plan.ReviewPoints.ToArray()).Select(line => line.Count).DefaultIfEmpty().Max();
                 if (count > settingManager.GetVisionMaxHoleCountPerLine())
-                    throw new InvalidOperationException($"Vision IOF 라인 Shot 수({count})가 Setting-Vision MaxHoleCountPerLine을 초과합니다.");
+                    throw new InvalidOperationException($"Vision IOF 라인 Shot 수({count})가 Setting-Review MaxHoleCountPerLine을 초과합니다.");
                 interfaceManager.StageReviewSequences.ValidateIofReadiness(GetReviewStageDeviceNo(), count);
             }
         }
@@ -2291,6 +2291,7 @@
             }
 
             public double ReviewXPosition => _session.CurrentX;
+            public (double X, double Y) Position => (_session.CurrentX, _session.CurrentY);
             public Task<double> ReadReviewXPosition(CancellationToken token) => _session.ReadStationaryPosition(EN_MANUAL_STAGE_AXIS.ReviewX, token);
 
             public Task MoveAndWait(ST_REVIEW_PLAN_POINT point, CancellationToken token, bool reviewXOnly = false) => _session.Move(new(point.ReviewTargetX, point.ReviewTargetY, _motion.Speed, _stageSpeed, _motion.Acceleration, reviewXOnly ? EN_STAGE_MOVE_MODE.ReviewX : EN_STAGE_MOVE_MODE.XY), token);
@@ -2786,6 +2787,7 @@
                     var data = new ST_FINE_REVIEW_RESULT_DATA(request, snapshot, DateTimeOffset.Now, attempted, visionSimulation)
                     {
                         IsStageSimulation = stageSimulation,
+                        GlassId = request.Context?.GlassId ?? productManager?.Current?.GlassId ?? "",
                         CaptureAttempts = new System.Collections.ObjectModel.ReadOnlyDictionary<string, int>(captureAttempts)
                     };
                     var path = await Task.Run(() => reviewResultFile.SaveFineCorrection(data, CancellationToken.None));
@@ -2842,6 +2844,84 @@
 
 #endregion
 #region OneShot
+        // Default CENTER has its own test identity and nominal beam slots, rather than
+        // pretending that a production Cell/Shot was processed. It shares the Review
+        // execution lock and Process Move owner. Shot CENTER uses Mark Find Single;
+        // cross CENTER uses Mark Find Setting Single exactly once.
+        public async Task<DefaultInspectionSession> OpenDefaultInspection(CancellationToken token)
+        {
+            if (IsReviewSimulation()) throw new InvalidOperationException("Default 측정은 수신한 Vision 결과만 사용합니다. Vision Simulation을 OFF하고 비전 또는 외부 테스트 클라이언트를 연결해 주세요.");
+            if (!await _sequenceLock.WaitAsync(0, token)) throw new InvalidOperationException("다른 Review 검사가 진행 중입니다.");
+            try
+            {
+                var device = GetReviewStageDeviceNo();
+                interfaceManager.StageReviewSequences.ValidateMoveReadiness(device);
+                if (!interfaceManager.IsConnect(EN_EQP_MODULE.Vision, 0)) throw new InvalidOperationException("Vision이 연결되어 있지 않습니다.");
+                Interlocked.Exchange(ref _stopRequested, 0);
+                return new(this, IsReviewDeviceSimulation(EN_EQP_MODULE.Melsec, device), IsReviewSimulation());
+            }
+            catch { _sequenceLock.Release(); throw; }
+        }
+
+        private async Task<ST_REVIEW_MEASURE_RESULT> ReceiveDefaultMark(ST_REVIEW_PLAN_POINT point, EN_ONE_SHOT_METHOD method, CancellationToken token)
+        {
+            // Deliberately do not call MeasureVision: that generic Review method has
+            // a legacy random Simulation branch. Default accepts received replies only.
+            if (IsReviewSimulation() || !interfaceManager.IsConnect(EN_EQP_MODULE.Vision, 0)) throw new InvalidOperationException("Default 측정에는 Vision의 실제 통신 응답이 필요합니다.");
+            if (!Enum.IsDefined(method)) throw new ArgumentOutOfRangeException(nameof(method));
+            var command = method == EN_ONE_SHOT_METHOD.MarkFindSettingSingle ? "MARK_FIND_SETTING_SINGLE" : CreateMarkFindSingleCommand(point);
+            var response = await interfaceManager.ExecuteFunction(EN_EQP_MODULE.Vision, 0, command, token).ConfigureAwait(false);
+            if (IsReviewSimulation() || string.IsNullOrWhiteSpace(response)) throw new InvalidDataException("유효한 Default Vision 수신 응답이 없습니다.");
+            // Use the field Review decoder: Target/Hole are pixels, nResult=0 is OK.
+            // CameraResolution * nResolution is applied exactly once, before Vision Flip.
+            var measurement = ParseVisionResponse(response, point);
+            var mark = measurement.MarkFind ?? throw new InvalidDataException("Vision 응답에 Target/Hole이 없습니다.");
+            WriteReviewLog("DEFAULT_RECEIVED", $"Method={method}, Head={point.HeadNo}, Beam={point.BeamNo}, TargetPixel=({mark.TargetMarkX:R},{mark.TargetMarkY:R}), HolePixel=({mark.HoleX:R},{mark.HoleY:R}), Resolution={measurement.Resolution}, CameraResolution={measurement.CameraResolution:R}, Result={mark.Result}");
+            return measurement;
+        }
+
+        public sealed class DefaultInspectionSession : IDisposable
+        {
+            private readonly CReviewManager _owner;
+            private readonly CReviewStageMotion _motion;
+            private bool _disposed;
+            public bool StageSimulation { get; }
+            public bool VisionSimulation { get; }
+            public (double X, double Y) Position => _motion.Position;
+            internal DefaultInspectionSession(CReviewManager owner, bool stage, bool vision)
+            { _owner = owner; _motion = owner.OpenReviewStageMotion(stageSpeed: 80); StageSimulation = stage; VisionSimulation = vision; }
+            public Task Move(double x, double y, CancellationToken token) => _motion.MoveAndWait(Point(1, 1, x, y), token);
+            public async Task<Drilling.Common.Correction.ST_DEFAULT_OFFSET_MARK> Capture(int head, int beam, double slotX, double slotY, double targetX, double targetY, EN_VISION_FLIP_TYPE flip, CancellationToken token, int referenceCell = 1, EN_ONE_SHOT_METHOD method = EN_ONE_SHOT_METHOD.MarkFindSingle)
+            {
+                if (_disposed) throw new ObjectDisposedException(nameof(DefaultInspectionSession));
+                if (!Enum.IsDefined(method)) throw new ArgumentOutOfRangeException(nameof(method));
+                if (_owner.IsReviewSimulation()) throw new InvalidOperationException("Default 측정 중 Vision Simulation 상태로 변경되었습니다.");
+                token.ThrowIfCancellationRequested();
+                await Move(targetX, targetY, token).ConfigureAwait(false);
+                await Task.Delay(50, token).ConfigureAwait(false);
+                var before = _motion.Position;
+                var started = DateTimeOffset.Now;
+                var measurement = await _owner.ReceiveDefaultMark(Point(head, beam, targetX, targetY) with { CellNo = referenceCell }, method, token).ConfigureAwait(false);
+                var mark = measurement.MarkFind ?? throw new InvalidDataException("Default Vision 응답에 Target/Hole이 없습니다.");
+                token.ThrowIfCancellationRequested();
+                if (_owner.IsReviewSimulation()) throw new InvalidOperationException("Default 측정 중 Vision Simulation 상태로 변경되어 결과를 사용하지 않습니다.");
+                var after = _motion.Position;
+                if (Math.Abs(before.X - after.X) > .001 || Math.Abs(before.Y - after.Y) > .001) throw new InvalidOperationException("촬영 중 Stage/Review 위치가 변했습니다.");
+                var millimeters = measurement.ErrorMillimeters ?? throw new InvalidDataException("Default Vision 응답의 mm 환산값이 없습니다.");
+                var rawX = millimeters.X; var rawY = millimeters.Y;
+                if (new[] { mark.TargetMarkX, mark.TargetMarkY, mark.HoleX, mark.HoleY, rawX, rawY }.Any(v => !double.IsFinite(v))) throw new InvalidDataException("Default Vision Target/Hole에 유효하지 않은 숫자가 있습니다.");
+                var converted = VisionErrorToStageOffset(rawX, rawY, flip);
+                return new(beam, slotX - converted.X, slotY - converted.Y, rawX, rawY, converted.X, converted.Y, after.X, after.Y, started, mark.Result == 0 ? "OK" : "NG");
+            }
+            public void Dispose()
+            {
+                if (_disposed) return;
+                _disposed = true;
+                try { _motion.Dispose(); } finally { _owner._sequenceLock.Release(); }
+            }
+            private static ST_REVIEW_PLAN_POINT Point(int head, int beam, double x, double y) => new(1, $"DEFAULT_CENTER_H{head:00}_B{beam:00}", head, 1, 1, 1, 1, true, 0, 0, x, y, 0, 0, EN_REVIEW_POINT_STATE.Ready, "WAIT") { BeamNo = beam };
+        }
+
         public async Task<ST_ONE_SHOT_RESULT> ExecuteOneShot(
             ST_REVIEW_PLAN plan, 
             ST_REVIEW_PLAN_POINT point, 
@@ -2906,7 +2986,31 @@
 
                 CheckStop();
                 SequenceState = EN_REVIEW_SEQUENCE_STATE.Completed;
-                return new(result, mark, stageSimulation, visionSimulation) { Resolution = receivedResolution, CameraResolution = cameraResolution };
+                var oneShotResult = new ST_ONE_SHOT_RESULT(result, mark, stageSimulation, visionSimulation)
+                {
+                    Resolution = receivedResolution,
+                    CameraResolution = cameraResolution
+                };
+                if (action != EN_ONE_SHOT_ACTION.Move)
+                {
+                    var savedAt = DateTimeOffset.Now;
+                    var glassId = productManager?.Current?.GlassId ?? "";
+                    try
+                    {
+                        var data = new ST_ONE_SHOT_RESULT_DATA(plan, oneShotResult, savedAt, glassId, action, method);
+                        var path = await Task.Run(() => reviewResultFile.SaveOneShot(data, CancellationToken.None));
+                        oneShotResult = oneShotResult with { ResultFilePath = path };
+                        LastSavedResultPath = path;
+                        WriteReviewLog("ONE_SHOT_RESULT_SAVED", path);
+                    }
+                    catch (Exception error)
+                    {
+                        oneShotResult = oneShotResult with { ResultSaveError = error.Message };
+                        WriteReviewLog("ONE_SHOT_RESULT_SAVE_ERROR", error.ToString());
+                    }
+                }
+
+                return oneShotResult;
             }
             catch (OperationCanceledException)
             {
@@ -3064,7 +3168,10 @@
                     return snapshot;
                 try
                 {
-                    var result = new ST_ROUGH_REVIEW_RESULT_DATA(plan, snapshot, DateTimeOffset.Now, retryNg, attempted, stageSimulation, visionSimulation);
+                    var result = new ST_ROUGH_REVIEW_RESULT_DATA(plan, snapshot, DateTimeOffset.Now, retryNg, attempted, stageSimulation, visionSimulation)
+                    {
+                        GlassId = productManager?.Current?.GlassId ?? ""
+                    };
                     // A user Stop cancels motion/measurement, but must not cancel the final result save.
                     var path = await Task.Run(() => reviewResultFile.SaveRoughCorrection(result, CancellationToken.None));
                     LastSavedResultPath = path;
@@ -3183,7 +3290,7 @@
                 }).ToArray();
             }
 
-            public Task<string> Save(ST_ZERO_LINE_CYCLE_STATUS status, CancellationToken token) => _owner.SaveZeroLineResult(new(_plan, status, _stageSimulation, IsSimulation, DateTimeOffset.Now), token);
+            public Task<string> Save(ST_ZERO_LINE_CYCLE_STATUS status, DateTimeOffset savedAt, CancellationToken token) => _owner.SaveZeroLineResult(new(_plan, status, _stageSimulation, IsSimulation, savedAt), token);
             public void Dispose()
             {
                 if (_disposed)
@@ -3785,7 +3892,15 @@
         public string? TargetFilePath { get; init; }
     }
 
-    public sealed record ST_REVIEW_RESULT_FILE_ROW(DateTimeOffset SavedAt, string RecipeId, string ShotKey, string ShotName, int HeadNo, int CellNo, double ErrorX, double ErrorY, string Judge);
+    public sealed record ST_REVIEW_RESULT_FILE_ROW(DateTimeOffset SavedAt, string RecipeId, string ShotKey, string ShotName, int HeadNo, int CellNo, double ErrorX, double ErrorY, string Judge)
+    {
+        public int BeamNo { get; init; }
+        public int GroupColumn { get; init; } = -1;
+        public int GroupRow { get; init; } = -1;
+        public double? DesignX { get; init; }
+        public double? DesignY { get; init; }
+        public string ResultSource { get; init; } = "";
+    }
     public sealed record ST_REVIEW_RESULT_FILE_DATA(string FilePath, string FileName, string RecipeId, DateTimeOffset SavedAt, IReadOnlyList<ST_REVIEW_RESULT_FILE_ROW> Rows)
     {
         public string GlassId { get; init; } = "";
@@ -3797,6 +3912,8 @@
         public string ReferenceShot { get; init; } = "";
         public string RoughReference { get; init; } = "";
         public int FineLineCount { get; init; }
+        public string Origin { get; init; } = "";
+        public int LineCount { get; init; }
         public string ResultStatus { get; init; } = "COMPLETED";
         public int TotalCount { get; init; }
     }
@@ -3809,6 +3926,20 @@
         Task Save(ST_REVIEW_RESULT_DATA result, CancellationToken cancellationToken = default);
     }
 
+    public sealed record ST_REVIEW_RESULT_CATALOG_ITEM(
+        string FilePath,
+        string FileName,
+        string Source,
+        string ResultType,
+        string RecipeId,
+        DateTimeOffset SavedAt,
+        string ResultStatus,
+        string GlassId,
+        string RunType,
+        string Method,
+        int? TotalCount,
+        string ResultMessage);
+
     // The surrounding application still exposes Review files through these base
     // classes.  Keeping the compatibility layer here lets the new Review engine
     // run without changing the existing manager/configuration wiring.
@@ -3817,11 +3948,14 @@
         public virtual Task<string> SaveZeroLine(ST_ZERO_LINE_RESULT_DATA result, CancellationToken cancellationToken = default) => throw new NotSupportedException("0선방어 결과 저장이 구현되지 않았습니다.");
         public virtual Task<string> SaveFineCorrection(ST_FINE_REVIEW_RESULT_DATA result, CancellationToken cancellationToken = default) => throw new NotSupportedException("FINE 검사 결과 저장이 구현되지 않았습니다.");
         public virtual Task<string> SaveRoughCorrection(ST_ROUGH_REVIEW_RESULT_DATA result, CancellationToken cancellationToken = default) => throw new NotSupportedException("ROUGH 검사 결과 저장이 구현되지 않았습니다.");
+        public virtual Task<string> SaveOneShot(ST_ONE_SHOT_RESULT_DATA result, CancellationToken cancellationToken = default) => throw new NotSupportedException("ONE SHOT 결과 저장이 구현되지 않았습니다.");
         public virtual Task<ST_BEAM_INSPECTION_RESULT_FILE_DATA?> LoadLastBeamInspection(CancellationToken cancellationToken = default) => throw new NotSupportedException("Beam Inspection 결과 불러오기가 구현되지 않았습니다.");
         public virtual Task<string> SaveBeamInspection(ST_BEAM_INSPECTION_SNAPSHOT result, string glassId, DateTimeOffset savedAt, CancellationToken cancellationToken = default) => throw new NotSupportedException("Beam Inspection 결과 저장이 구현되지 않았습니다.");
         public abstract string RootPath { get; }
         public virtual IReadOnlyList<string> SearchRootPaths => [RootPath];
         public virtual string? LastSavedPath => null;
+        public virtual Task<IReadOnlyList<ST_REVIEW_RESULT_CATALOG_ITEM>> ListCorrectionResults(CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<ST_REVIEW_RESULT_CATALOG_ITEM>>([]);
 
         public abstract Task<ST_REVIEW_RESULT_FILE_DATA> Load(string path, CancellationToken cancellationToken = default);
         public abstract Task Save(ST_REVIEW_RESULT_DATA result, CancellationToken cancellationToken = default);
@@ -3841,12 +3975,23 @@
         }
     }
 
+    public sealed record ST_REVIEW_OFFSET_ROLLBACK_RESULT(
+        string RecipeId,
+        string RemovedFileName,
+        DateTimeOffset RemovedSavedAt,
+        string ArchivedFilePath,
+        ST_REVIEW_OFFSET_FILE_DATA Current);
+
     public abstract class CReviewOffsetFileBase
     {
         public abstract string RootPath { get; }
 
         public abstract Task<ST_REVIEW_OFFSET_FILE_DATA> LoadLatest(string recipeId, CancellationToken cancellationToken = default);
         public abstract Task<ST_REVIEW_OFFSET_FILE_DATA> SaveNew(string recipeId, IReadOnlyList<ST_REVIEW_OFFSET_ROW> rows, CancellationToken cancellationToken = default);
+        public abstract Task<ST_REVIEW_OFFSET_ROLLBACK_RESULT> RollbackLatest(
+            string recipeId,
+            string expectedLatestFilePath,
+            CancellationToken cancellationToken = default);
     }
 
     public interface IReviewManager
@@ -3903,6 +4048,7 @@
     public sealed record ST_FINE_REVIEW_RESULT_DATA(ST_FINE_REVIEW_REQUEST Request, ST_FINE_REVIEW_SNAPSHOT Snapshot, DateTimeOffset SavedAt, IReadOnlySet<string> AttemptedShotKeys, bool IsVisionSimulation)
     {
         public bool IsStageSimulation { get; init; } = true;
+        public string GlassId { get; init; } = "";
         public IReadOnlyDictionary<string, int> CaptureAttempts { get; init; } = new Dictionary<string, int>();
     }
 
@@ -3923,7 +4069,10 @@
     {
         public int Resolution { get; init; }
         public double CameraResolution { get; init; } = CSettingManager.DefaultVisionCameraResolution;
+        public string ResultFilePath { get; init; } = "";
+        public string ResultSaveError { get; init; } = "";
     }
+    public sealed record ST_ONE_SHOT_RESULT_DATA(ST_REVIEW_PLAN Plan, ST_ONE_SHOT_RESULT Result, DateTimeOffset SavedAt, string GlassId, EN_ONE_SHOT_ACTION Action, EN_ONE_SHOT_METHOD Method);
     public sealed record ST_ROUGH_REVIEW_SNAPSHOT(string RecipeId, IReadOnlyList<ST_REVIEW_PLAN_POINT> Points, EN_REVIEW_SEQUENCE_STATE State, string Message)
     {
         public string ResultFilePath { get; init; } = "";
@@ -3938,7 +4087,10 @@
         IReadOnlySet<string> AttemptedShotKeys, 
         bool IsStageSimulation, 
         bool IsVisionSimulation
-    );
+    )
+    {
+        public string GlassId { get; init; } = "";
+    }
     /// <summary>Raw camera pixel coordinates. Resolution is the received integer ATF multiplier.</summary>
     public sealed record ST_ROUGH_REVIEW_MEASUREMENT(double TargetX, double TargetY, double HoleX, double HoleY, string Judge)
     {

@@ -14,11 +14,14 @@
     using Drilling.UI.Menu;
     using Microsoft.Win32;
     using Drilling.Common.Interface.Vision;
+    using Drilling.Common.Automation;
+    using Drilling.Common.Station;
+    using Drilling.Common.Alarm;
 
     public sealed partial class CMenuCorrection : CMenuBase
     {
 #region 공유 상태·초기값
-        private static readonly string[] CorrectionTabs = ["ALIGN/DISTORTION", "REVIEW", "APC / ICR", "VIEWER / HISTORY"];
+        private static readonly string[] CorrectionTabs = ["DEFAULT", "ALIGN/DISTORTION", "REVIEW", "APC / ICR", "VIEWER"];
         private readonly CReviewResultFileBase _reviewResultFile;
         private readonly CReviewOffsetFileBase _reviewOffsetFile;
         private readonly CReviewManager _reviewManager;
@@ -28,6 +31,7 @@
         private readonly Action<string> _statusReporter;
         private readonly Func<Task> _refreshCurrentScreen;
         private readonly CAlignLastLoadService _alignLastLoad;
+        private readonly CAlignWapageService _wapage;
         private readonly CAlignOffsetLogFileBase? _alignOffsetLogFile;
         private readonly List<ST_CORRECTION_HISTORY_ROW> _reviewDataHistory = [];
         private ST_REVIEW_RESULT_FILE_DATA? _loadedReviewResult;
@@ -42,6 +46,17 @@
         private string _currentReviewOffsetRecipeName = "Recipe: -";
         private bool _outputViewerIsCellDetailVisible;
         private int _outputViewerSelectedCellNo;
+        private int _outputViewerRefreshVersion;
+        private IReadOnlyDictionary<string, string>? _outputViewerPreviewParameters;
+        private int _outputViewerPreviewCellCount;
+        private int _outputViewerPreviewSelectedCellNo;
+        private ST_CORRECTION_OFFSET_VIEWER_PREVIEW? _outputViewerPreviewCache;
+        private IReadOnlyDictionary<string, string>? _outputViewerShotParameters;
+        private int _outputViewerShotCellNo;
+        private IReadOnlyList<ST_HEAD_SHOT_POINT> _outputViewerShotCache = [];
+        private IReadOnlyList<ST_HEAD_SHOT_POINT> _outputViewerSelectedCellShots = [];
+        private IReadOnlyDictionary<string, ST_RECIPE_SHOT_MASKING_RESULT> _outputViewerSelectedShotStates = new Dictionary<string, ST_RECIPE_SHOT_MASKING_RESULT>(StringComparer.OrdinalIgnoreCase);
+        private string _outputViewerSelectedShotKey = "";
         private string _selectedTab = "ALIGN/DISTORTION";
         private string _simpleOffsetRecipeId = "";
         private Task<ST_REVIEW_OFFSET_FILE_DATA>? _simpleOffsetLoad;
@@ -58,8 +73,15 @@
         public IReadOnlyList<ST_CORRECTION_REVIEW_OFFSET_ROW> CurrentOffsetRows { get; private set; } = [];
         public IReadOnlyList<ST_CORRECTION_REVIEW_OFFSET_ROW> ApplyPreviewRows { get; private set; } = [];
         public IReadOnlyList<ST_CELL_PREVIEW_LABEL> OutputViewerCellPreviewLabels { get; private set; } = [];
+        public IReadOnlyList<ST_CORRECTION_OUTPUT_VIEWER_HEAD_CARD> OutputViewerHeadCards { get; private set; } = CreateOutputViewerHeadCards([]);
         public COutputOffsetViewerPanel OutputOffsets { get; } = new();
+        public CDefaultOffsetPanel DefaultOffset { get; } = new();
+        public CReviewDataPanel ReviewData { get; }
         public string OutputViewerSummary { get; private set; } = "0 Cells / 0 Shots";
+        public ImageSource? OutputViewerCellShotMapImage { get; private set; }
+        public event EventHandler? OutputViewerCellShotMapImageChanged;
+        public event EventHandler? OutputViewerSelectedShotNameChanged;
+        public event EventHandler? OutputViewerSelectedShotDetailChanged;
         public ST_CORRECTION_AXIS_FLIP_ROW CurrentVisionFlipRow { get; private set; } = new("VISION", false, false, false);
         public IReadOnlyList<ST_CORRECTION_AXIS_FLIP_ROW> CurrentScannerFlipRows { get; private set; } = [];
 
@@ -69,7 +91,18 @@
 
         private CancellationTokenSource? _roughCancellation;
         internal bool BlocksMenuNavigation => _fineCancellation is { IsCancellationRequested: false }
-            || _roughCancellation is { IsCancellationRequested: false };
+            || _roughCancellation is { IsCancellationRequested: false }
+            || _defaultCancellation is { IsCancellationRequested: false };
+        private readonly CManager? _defaultManager;
+        private readonly CAutomationScriptFileBase? _defaultScriptFile;
+        private CDefaultSetupRun? _defaultRun;
+        private CancellationTokenSource? _defaultCancellation;
+        private bool _defaultOwnSave;
+        private TaskCompletionSource? _defaultStopped;
+        public bool DefaultBlocksAuto => DefaultOffset.IsBusy || _defaultRun is { Applied: true, Verified: false };
+        public Func<string, string, bool> DefaultConfirmation { get; set; } = (title, message) => CRecipeConfirmDialog.ShowConfirmation(title, message);
+        public Func<string, EN_DEFAULT_RESTART_CHOICE> DefaultRestartChoice { get; set; } = CRecipeConfirmDialog.ShowDefaultRestartChoice;
+        public Action<string, string> DefaultWarning { get; set; } = (title, message) => CRecipeConfirmDialog.ShowWarning(title, message);
 #endregion
 #region 생성·초기화
         public CMenuCorrection(
@@ -82,7 +115,9 @@
             Action<string> statusReporter, 
             Func<Task> refreshCurrentScreen, 
             CInterfaceManager? interfaceManager = null, 
-            CAlignOffsetLogFileBase? alignOffsetLogFile = null
+            CAlignOffsetLogFileBase? alignOffsetLogFile = null,
+            CManager? defaultManager = null,
+            CAutomationScriptFileBase? defaultScriptFile = null
         )
         {
             _reviewResultFile = reviewResultFile;
@@ -94,7 +129,22 @@
             _statusReporter = statusReporter;
             _refreshCurrentScreen = refreshCurrentScreen;
             _alignLastLoad = new CAlignLastLoadService(interfaceManager);
+            _wapage = new CAlignWapageService(interfaceManager);
             _alignOffsetLogFile = alignOffsetLogFile;
+            _defaultManager = defaultManager;
+            _defaultScriptFile = defaultScriptFile;
+            ReviewData = new CReviewDataPanel(
+                _reviewResultFile,
+                _reviewOffsetFile,
+                _reviewManager,
+                _recipeManager,
+                _settingManager,
+                _selectedRecipeIdProvider,
+                _statusReporter,
+                () => ExecuteReviewOffsetRollback());
+            if (defaultManager is not null && defaultScriptFile is not null)
+                DefaultOffset.ExecuteAction = ExecuteDefaultAction;
+            DefaultOffset.SourceInvalidated += () => { if (_defaultOwnSave) return; _defaultCancellation?.Cancel(); if (_defaultCancellation is null) _defaultRun = null; };
             AlignDistortion = new CAlignDistortionPanel(ExecuteAlignBaseAction);
             Simple = new CSimpleCorrectionPanel(action => ExecuteSimpleOffsetAction(action));
             Rough = new CSimpleCorrectionPanel(action => ExecuteRoughAction(action), isRough: true);
@@ -112,6 +162,7 @@
             }
 
             SelectOutputViewerCellCommand = new CButtonCommand(SelectOutputViewerCellCallback);
+            SelectOutputViewerShotCommand = new CButtonCommand(SelectOutputViewerShot);
             async void BackToOutputViewerGlassCallback(object? parameter)
             {
                 await BackToOutputViewerGlass(parameter);
@@ -158,23 +209,24 @@
         {
             get
             {
-                return !IsOutputHistoryTab && !IsAlignDistortionTab && !IsReviewCorrectionTab;
+                return !IsDefaultTab && !IsOutputHistoryTab && !IsAlignDistortionTab && !IsReviewCorrectionTab;
             }
         }
 
+        public bool IsDefaultTab => _selectedTab == "DEFAULT";
         public bool IsAlignDistortionTab => _selectedTab == "ALIGN/DISTORTION";
         public bool IsReviewCorrectionTab => _selectedTab == "REVIEW";
         public CSimpleCorrectionPanel Simple { get; }
         public CSimpleCorrectionPanel Rough { get; }
         public CFineCorrectionPanel Fine { get; }
-        public bool IsCorrectionCommandsVisible => !IsAlignDistortionTab && !IsReviewCorrectionTab;
+        public bool IsCorrectionCommandsVisible => !IsDefaultTab && !IsAlignDistortionTab && !IsReviewCorrectionTab;
         public CAlignDistortionPanel AlignDistortion { get; }
 
         public bool IsOutputHistoryTab
         {
             get
             {
-                return _selectedTab.Equals("VIEWER / HISTORY", StringComparison.OrdinalIgnoreCase);
+                return _selectedTab.Equals("VIEWER", StringComparison.OrdinalIgnoreCase);
             }
         }
 
@@ -182,14 +234,19 @@
         {
             get
             {
-                return !IsOutputHistoryTab;
+                return !IsDefaultTab && !IsOutputHistoryTab;
             }
         }
 
         public ImageSource? OutputViewerGlassPreviewImage { get; private set; }
-        public string OutputViewerSelectedCellName => _outputViewerIsCellDetailVisible && _outputViewerSelectedCellNo > 0 ? $"CELL{_outputViewerSelectedCellNo:00}" : "GLASS";
-        public bool OutputViewerIsGlassPreviewVisible => IsOutputHistoryTab && !_outputViewerIsCellDetailVisible;
+        public string OutputViewerSelectedCellName => _outputViewerIsCellDetailVisible && _outputViewerSelectedCellNo > 0 ? $"CELL{_outputViewerSelectedCellNo:00}" : "NO CELL SELECTED";
+        public string OutputViewerSelectedShotName => GetOutputViewerSelectedShot() is { } shot ? $"{CReviewShotNameFormatter.ToMatrixName(shot.CellShotNo, shot.GroupCountX)} · H{shot.HeadNo:00}" : "NO SHOT SELECTED";
+        public string OutputViewerSelectedShotDetail => GetOutputViewerSelectedShot() is { } shot ? $"CELL{shot.CellNo:00} · ROW {shot.GroupRow + 1:N0} · COL {shot.GroupColumn + 1:N0}" : "-";
+        public double OutputViewerCellShotMapSurfaceWidth => GetOutputViewerShotMapSize().Width;
+        public double OutputViewerCellShotMapSurfaceHeight => GetOutputViewerShotMapSize().Height;
+        public bool OutputViewerIsGlassPreviewVisible => IsOutputHistoryTab;
         public bool OutputViewerIsCellDetailVisible => IsOutputHistoryTab && _outputViewerIsCellDetailVisible;
+        public bool OutputViewerHasNoCellSelection => IsOutputHistoryTab && !_outputViewerIsCellDetailVisible;
 
         public string LoadedReviewFileName
         {
@@ -270,18 +327,32 @@
         public CButtonCommand SelectTabCommand { get; }
         public CButtonCommand ExecuteCommand { get; }
         public CButtonCommand SelectOutputViewerCellCommand { get; }
+        public CButtonCommand SelectOutputViewerShotCommand { get; }
         public CButtonCommand BackToOutputViewerGlassCommand { get; }
 
         public override async Task<CScreenViewModel> Build(CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ApplyTabData(_selectedTab);
+            if (IsDefaultTab)
+            {
+                try
+                {
+                    var recipe = await LoadSelectedOutputViewerRecipe(cancellationToken, fallbackToFirst: false);
+                    var settings = _settingManager.LoadSection(EN_SETTING_TAB.Option, cancellationToken)
+                        .Concat(_settingManager.LoadSection(EN_SETTING_TAB.Motor, cancellationToken)).ToArray();
+                    DefaultOffset.Update(recipe, settings);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+                catch (Exception exception) { DefaultOffset.Clear(exception.Message); }
+            }
             if (IsAlignDistortionTab)
             {
                 try
                 {
-                    AlignDistortion.Update(await LoadSelectedOutputViewerRecipe(cancellationToken, fallbackToFirst: false));
+                    UpdateAlignPreview(await LoadSelectedOutputViewerRecipe(cancellationToken, fallbackToFirst: false));
                     RefreshAlignOffsetTolerance();
+                    AlignDistortion.Wapage.UpdateSettings(_settingManager.LoadSection(EN_SETTING_TAB.Option, cancellationToken));
                 }
                 catch (OperationCanceledException)when (cancellationToken.IsCancellationRequested)
                 {
@@ -392,20 +463,78 @@
 
             _outputViewerSelectedCellNo = Math.Max(1, cellNo);
             _outputViewerIsCellDetailVisible = true;
+            _outputViewerSelectedShotKey = "";
             _statusReporter($"Offset Viewer cell selected: CELL{_outputViewerSelectedCellNo:00}.");
             await _refreshCurrentScreen();
+        }
+
+        private void SelectOutputViewerShot(object? parameter)
+        {
+            var shotKey = parameter?.ToString()?.Trim();
+            if (string.IsNullOrWhiteSpace(shotKey) || !_outputViewerSelectedCellShots.Any(shot => shot.ShotKey.Equals(shotKey, StringComparison.OrdinalIgnoreCase)))
+            {
+                return;
+            }
+
+            ApplyOutputViewerShotSelection(shotKey);
+        }
+
+        public void SelectOutputViewerShotByKey(string shotKey)
+        {
+            SelectOutputViewerShot(shotKey);
+        }
+
+        public void SelectOutputViewerShotAt(double designX, double designY)
+        {
+            if (!_outputViewerIsCellDetailVisible || _outputViewerSelectedCellShots.Count == 0)
+            {
+                return;
+            }
+
+            var firstShot = _outputViewerSelectedCellShots[0];
+            var mapRect = GetOutputViewerShotMapRect(firstShot.GroupCountX, firstShot.GroupCountY);
+            if (!mapRect.Contains(new Point(designX, designY)))
+            {
+                return;
+            }
+
+            var column = Math.Clamp((int)((designX - mapRect.Left) / mapRect.Width * firstShot.GroupCountX), 0, firstShot.GroupCountX - 1);
+            var row = Math.Clamp((int)((designY - mapRect.Top) / mapRect.Height * firstShot.GroupCountY), 0, firstShot.GroupCountY - 1);
+            var shot = _outputViewerSelectedCellShots.FirstOrDefault(item => item.GroupColumn == column && item.GroupRow == row);
+            if (shot is not null)
+            {
+                ApplyOutputViewerShotSelection(shot.ShotKey);
+            }
+        }
+
+        private void ApplyOutputViewerShotSelection(string shotKey)
+        {
+            if (_outputViewerSelectedShotKey.Equals(shotKey, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            _outputViewerSelectedShotKey = shotKey;
+            OutputViewerCellShotMapImage = BuildOutputViewerCellShotMap(_outputViewerSelectedCellShots, _outputViewerSelectedShotStates, _outputViewerSelectedShotKey);
+            OutputOffsets.SelectShot(_outputViewerSelectedShotKey);
+            OutputViewerCellShotMapImageChanged?.Invoke(this, EventArgs.Empty);
+            OutputViewerSelectedShotNameChanged?.Invoke(this, EventArgs.Empty);
+            OutputViewerSelectedShotDetailChanged?.Invoke(this, EventArgs.Empty);
+            _statusReporter($"Offset Viewer shot selected: {OutputViewerSelectedShotName}.");
         }
 
         private async Task BackToOutputViewerGlass(object? parameter)
         {
             _outputViewerIsCellDetailVisible = false;
             _outputViewerSelectedCellNo = 0;
+            _outputViewerSelectedShotKey = "";
             _statusReporter("Offset Viewer glass preview opened.");
             await _refreshCurrentScreen();
         }
 
         private async Task RefreshOutputViewerData(CancellationToken cancellationToken)
         {
+            var refreshVersion = System.Threading.Interlocked.Increment(ref _outputViewerRefreshVersion);
             try
             {
                 var recipe = await LoadSelectedOutputViewerRecipe(cancellationToken);
@@ -413,6 +542,7 @@
                 {
                     OutputViewerGlassPreviewImage = null;
                     OutputViewerCellPreviewLabels = [];
+                    ClearOutputViewerCellSelectionData();
                     OutputOffsets.Clear();
                     OutputViewerSummary = "Recipe not loaded";
                     return;
@@ -436,24 +566,104 @@
                 }
 
                 var selectedCellNo = _outputViewerIsCellDetailVisible ? _outputViewerSelectedCellNo : 0;
-                var preview = BuildOutputViewerGlassPreview(parameters, cellCount, selectedCellNo);
+                var preview = _outputViewerPreviewCache;
+                if (preview is null || _outputViewerPreviewCellCount != cellCount || _outputViewerPreviewSelectedCellNo != selectedCellNo || !OutputViewerParametersMatch(_outputViewerPreviewParameters, parameters))
+                {
+                    preview = await Task.Run(() => BuildOutputViewerGlassPreview(parameters, cellCount, selectedCellNo), cancellationToken);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (refreshVersion != System.Threading.Volatile.Read(ref _outputViewerRefreshVersion))
+                    {
+                        return;
+                    }
+
+                    _outputViewerPreviewParameters = CopyOutputViewerParameters(parameters);
+                    _outputViewerPreviewCellCount = cellCount;
+                    _outputViewerPreviewSelectedCellNo = selectedCellNo;
+                    _outputViewerPreviewCache = preview;
+                }
+
+                if (refreshVersion != System.Threading.Volatile.Read(ref _outputViewerRefreshVersion))
+                {
+                    return;
+                }
+
                 OutputViewerGlassPreviewImage = preview.Image;
                 OutputViewerCellPreviewLabels = preview.CellLabels;
                 OutputViewerSummary = preview.Summary;
                 if (_outputViewerIsCellDetailVisible)
                 {
                     var coordinateParameters = BuildOutputViewerCoordinateParameterMap(parameters);
-                    var plan = CShotCoordinatePlanBuilder.Build(coordinateParameters);
-                    OutputOffsets.Update(coordinateParameters, plan.Shots.Where(shot => shot.CellNo == _outputViewerSelectedCellNo).ToArray());
+                    IReadOnlyList<ST_HEAD_SHOT_POINT> selectedShots;
+                    if (_outputViewerShotCellNo == selectedCellNo && OutputViewerParametersMatch(_outputViewerShotParameters, coordinateParameters))
+                    {
+                        selectedShots = _outputViewerShotCache;
+                    }
+                    else
+                    {
+                        selectedShots = await Task.Run<IReadOnlyList<ST_HEAD_SHOT_POINT>>(() =>
+                        {
+                            var plan = CShotCoordinatePlanBuilder.Build(coordinateParameters);
+                            return plan.Shots.Where(shot => shot.CellNo == selectedCellNo).ToArray();
+                        }, cancellationToken);
+                        cancellationToken.ThrowIfCancellationRequested();
+                        if (refreshVersion != System.Threading.Volatile.Read(ref _outputViewerRefreshVersion))
+                        {
+                            return;
+                        }
+
+                        _outputViewerShotParameters = CopyOutputViewerParameters(coordinateParameters);
+                        _outputViewerShotCellNo = selectedCellNo;
+                        _outputViewerShotCache = selectedShots;
+                    }
+
+                    if (!_outputViewerSelectedShotKey.Equals("", StringComparison.Ordinal) && !selectedShots.Any(shot => shot.ShotKey.Equals(_outputViewerSelectedShotKey, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        _outputViewerSelectedShotKey = "";
+                    }
+
+                    var selectedShotKey = _outputViewerSelectedShotKey;
+                    var shotPreview = await Task.Run(() =>
+                    {
+                        var maskingPlan = CRecipeShotMaskingPlan.Build(coordinateParameters);
+                        IReadOnlyDictionary<string, ST_RECIPE_SHOT_MASKING_RESULT> states = selectedShots.ToDictionary(
+                            shot => shot.ShotKey,
+                            shot => maskingPlan.EvaluateShot(shot),
+                            StringComparer.OrdinalIgnoreCase);
+                        return (States: states, Image: BuildOutputViewerCellShotMap(selectedShots, states, selectedShotKey));
+                    }, cancellationToken);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (refreshVersion != System.Threading.Volatile.Read(ref _outputViewerRefreshVersion))
+                    {
+                        return;
+                    }
+
+                    _outputViewerSelectedCellShots = selectedShots;
+                    _outputViewerSelectedShotStates = shotPreview.States;
+                    OutputViewerCellShotMapImage = shotPreview.Image;
+                    OutputViewerHeadCards = CreateOutputViewerHeadCards(selectedShots);
+                    OutputOffsets.Update(coordinateParameters, selectedShots, selectedShotKey);
                 }
                 else
+                {
+                    ClearOutputViewerCellSelectionData();
                     OutputOffsets.Clear();
+                }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception exception)
             {
+                if (refreshVersion != System.Threading.Volatile.Read(ref _outputViewerRefreshVersion))
+                {
+                    return;
+                }
+
                 ReportInvalidReviewOffset(exception);
                 OutputViewerGlassPreviewImage = null;
                 OutputViewerCellPreviewLabels = [];
+                ClearOutputViewerCellSelectionData();
                 OutputOffsets.Clear();
                 OutputViewerSummary = $"Offset Viewer unavailable: {exception.Message}";
             }
@@ -501,6 +711,224 @@
             {
                 parameters[key.Trim()] = value;
             }
+        }
+
+        private static IReadOnlyDictionary<string, string> CopyOutputViewerParameters(IReadOnlyDictionary<string, string> parameters)
+        {
+            return new Dictionary<string, string>(parameters, StringComparer.OrdinalIgnoreCase);
+        }
+
+        private static bool OutputViewerParametersMatch(IReadOnlyDictionary<string, string>? cached, IReadOnlyDictionary<string, string> current)
+        {
+            if (cached is null || cached.Count != current.Count)
+            {
+                return false;
+            }
+
+            foreach (var parameter in current)
+            {
+                if (!cached.TryGetValue(parameter.Key, out var value) || !value.Equals(parameter.Value, StringComparison.Ordinal))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private void ClearOutputViewerCellSelectionData()
+        {
+            _outputViewerSelectedCellShots = [];
+            _outputViewerSelectedShotStates = new Dictionary<string, ST_RECIPE_SHOT_MASKING_RESULT>(StringComparer.OrdinalIgnoreCase);
+            _outputViewerSelectedShotKey = "";
+            OutputViewerCellShotMapImage = null;
+            OutputViewerHeadCards = CreateOutputViewerHeadCards([]);
+        }
+
+        private ST_HEAD_SHOT_POINT? GetOutputViewerSelectedShot()
+        {
+            if (string.IsNullOrWhiteSpace(_outputViewerSelectedShotKey))
+            {
+                return null;
+            }
+
+            return _outputViewerSelectedCellShots.FirstOrDefault(shot => shot.ShotKey.Equals(_outputViewerSelectedShotKey, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private Size GetOutputViewerShotMapSize()
+        {
+            if (_outputViewerSelectedCellShots.FirstOrDefault() is not { } firstShot)
+            {
+                return new Size(680.0, 420.0);
+            }
+
+            return firstShot.GroupCountX > firstShot.GroupCountY ? new Size(680.0, 420.0) : new Size(420.0, 680.0);
+        }
+
+        private static Rect GetOutputViewerShotMapRect(int groupCountX, int groupCountY)
+        {
+            var size = groupCountX > groupCountY ? new Size(680.0, 420.0) : new Size(420.0, 680.0);
+            return new Rect(28.0, 28.0, size.Width - 56.0, size.Height - 56.0);
+        }
+
+        private static IReadOnlyList<ST_CORRECTION_OUTPUT_VIEWER_HEAD_CARD> CreateOutputViewerHeadCards(IReadOnlyList<ST_HEAD_SHOT_POINT> shots)
+        {
+            var assignedHeads = shots.Select(shot => shot.HeadNo).ToHashSet();
+            var inactiveBackground = new SolidColorBrush(Color.FromRgb(76, 91, 105));
+            var inactiveBorder = new SolidColorBrush(Color.FromRgb(139, 157, 174));
+            var inactiveText = new SolidColorBrush(Color.FromRgb(248, 250, 252));
+            inactiveBackground.Freeze();
+            inactiveBorder.Freeze();
+            inactiveText.Freeze();
+            return Enumerable.Range(1, 8).Select(headNo =>
+            {
+                var isAssigned = assignedHeads.Contains(headNo);
+                return new ST_CORRECTION_OUTPUT_VIEWER_HEAD_CARD(
+                    headNo,
+                    isAssigned,
+                    isAssigned ? CMenuMain.CreateHeadBrush(headNo) : inactiveBackground,
+                    isAssigned ? Brushes.White : inactiveBorder,
+                    isAssigned ? Brushes.White : inactiveText);
+            }).ToArray();
+        }
+
+        private static ImageSource? BuildOutputViewerCellShotMap(
+            IReadOnlyList<ST_HEAD_SHOT_POINT> shots,
+            IReadOnlyDictionary<string, ST_RECIPE_SHOT_MASKING_RESULT> shotStates,
+            string selectedShotKey)
+        {
+            if (shots.Count == 0 || shots[0].GroupCountX <= 0 || shots[0].GroupCountY <= 0)
+            {
+                return null;
+            }
+
+            var firstShot = shots[0];
+            var mapSize = firstShot.GroupCountX > firstShot.GroupCountY ? new Size(680.0, 420.0) : new Size(420.0, 680.0);
+            var mapRect = GetOutputViewerShotMapRect(firstShot.GroupCountX, firstShot.GroupCountY);
+            var cellWidth = mapRect.Width / firstShot.GroupCountX;
+            var cellHeight = mapRect.Height / firstShot.GroupCountY;
+            var pointRadius = Math.Clamp(Math.Min(cellWidth, cellHeight) * 0.30, 1.2, 3.8);
+            var drawing = new DrawingGroup();
+            using (var context = drawing.Open())
+            {
+                context.DrawRectangle(new SolidColorBrush(Color.FromArgb(1, 0, 0, 0)), null, new Rect(0.0, 0.0, mapSize.Width, mapSize.Height));
+                context.DrawRectangle(new SolidColorBrush(Color.FromRgb(17, 24, 32)), null, mapRect);
+
+                var gridPen = new Pen(new SolidColorBrush(Color.FromArgb(72, 102, 136, 164)), 0.8);
+                gridPen.Freeze();
+                var columnStep = Math.Max(1, firstShot.GroupCountX / 6);
+                var rowStep = Math.Max(1, firstShot.GroupCountY / 8);
+                for (var column = columnStep; column < firstShot.GroupCountX; column += columnStep)
+                {
+                    var x = mapRect.Left + (mapRect.Width * column / firstShot.GroupCountX);
+                    context.DrawLine(gridPen, new Point(x, mapRect.Top), new Point(x, mapRect.Bottom));
+                }
+
+                for (var row = rowStep; row < firstShot.GroupCountY; row += rowStep)
+                {
+                    var y = mapRect.Top + (mapRect.Height * row / firstShot.GroupCountY);
+                    context.DrawLine(gridPen, new Point(mapRect.Left, y), new Point(mapRect.Right, y));
+                }
+
+                const int maximumPreviewPoints = 10_000;
+                var sampleStep = Math.Max(1, (int)Math.Ceiling(shots.Count / (double)maximumPreviewPoints));
+                var shotGeometry = new StreamGeometry();
+                var maskingGeometry = new StreamGeometry();
+                var chessGeometry = new StreamGeometry();
+                using (var shotContext = shotGeometry.Open())
+                using (var maskingContext = maskingGeometry.Open())
+                using (var chessContext = chessGeometry.Open())
+                {
+                    for (var index = 0; index < shots.Count; index += sampleStep)
+                    {
+                        var shot = shots[index];
+                        var x = mapRect.Left + ((shot.GroupColumn + 0.5) * cellWidth);
+                        var y = mapRect.Top + ((shot.GroupRow + 0.5) * cellHeight);
+                        var state = shotStates.TryGetValue(shot.ShotKey, out var value) ? value : ST_RECIPE_SHOT_MASKING_RESULT.Empty;
+                        if (!state.IsMasked && !state.IsChessSkipped)
+                        {
+                            AddOutputViewerShotCircle(shotContext, x, y, pointRadius);
+                        }
+
+                        if (state.IsMasked)
+                        {
+                            AddOutputViewerMaskCross(maskingContext, x, y, Math.Max(2.2, pointRadius * 1.8));
+                        }
+
+                        if (state.IsChessSkipped)
+                        {
+                            AddOutputViewerChessDiamond(chessContext, x, y, Math.Max(2.2, pointRadius * 1.8));
+                        }
+                    }
+                }
+
+                shotGeometry.Freeze();
+                maskingGeometry.Freeze();
+                chessGeometry.Freeze();
+                var shotBrush = new SolidColorBrush(Color.FromRgb(45, 212, 191));
+                shotBrush.Freeze();
+                context.DrawGeometry(shotBrush, null, shotGeometry);
+                var maskingBrush = new SolidColorBrush(Color.FromRgb(248, 113, 113));
+                var chessBrush = new SolidColorBrush(Color.FromRgb(192, 132, 252));
+                maskingBrush.Freeze();
+                chessBrush.Freeze();
+                var maskingPen = new Pen(maskingBrush, 1.8);
+                var chessPen = new Pen(chessBrush, 1.5);
+                maskingPen.Freeze();
+                chessPen.Freeze();
+                context.DrawGeometry(null, maskingPen, maskingGeometry);
+                context.DrawGeometry(new SolidColorBrush(Color.FromArgb(76, 192, 132, 252)), chessPen, chessGeometry);
+
+                var selectedShot = string.IsNullOrWhiteSpace(selectedShotKey) ? null : shots.FirstOrDefault(shot => shot.ShotKey.Equals(selectedShotKey, StringComparison.OrdinalIgnoreCase));
+                if (selectedShot is not null)
+                {
+                    var selectedX = mapRect.Left + ((selectedShot.GroupColumn + 0.5) * cellWidth);
+                    var selectedY = mapRect.Top + ((selectedShot.GroupRow + 0.5) * cellHeight);
+                    var selectedBrush = new SolidColorBrush(Color.FromRgb(251, 191, 36));
+                    selectedBrush.Freeze();
+                    var selectedPen = new Pen(selectedBrush, 2.0);
+                    selectedPen.Freeze();
+                    context.DrawEllipse(new SolidColorBrush(Color.FromArgb(165, 17, 24, 32)), selectedPen, new Point(selectedX, selectedY), 8.0, 8.0);
+                    context.DrawLine(selectedPen, new Point(selectedX - 12.0, selectedY), new Point(selectedX + 12.0, selectedY));
+                    context.DrawLine(selectedPen, new Point(selectedX, selectedY - 12.0), new Point(selectedX, selectedY + 12.0));
+                }
+
+                var framePen = new Pen(new SolidColorBrush(Color.FromRgb(102, 136, 164)), 1.4);
+                framePen.Freeze();
+                context.DrawRectangle(null, framePen, mapRect);
+            }
+
+            drawing.Freeze();
+            var image = new DrawingImage(drawing);
+            image.Freeze();
+            return image;
+        }
+
+        private static void AddOutputViewerShotCircle(StreamGeometryContext context, double centerX, double centerY, double radius)
+        {
+            const double bezierCircle = 0.5522847498307936;
+            var control = radius * bezierCircle;
+            context.BeginFigure(new Point(centerX + radius, centerY), true, true);
+            context.BezierTo(new Point(centerX + radius, centerY + control), new Point(centerX + control, centerY + radius), new Point(centerX, centerY + radius), true, false);
+            context.BezierTo(new Point(centerX - control, centerY + radius), new Point(centerX - radius, centerY + control), new Point(centerX - radius, centerY), true, false);
+            context.BezierTo(new Point(centerX - radius, centerY - control), new Point(centerX - control, centerY - radius), new Point(centerX, centerY - radius), true, false);
+            context.BezierTo(new Point(centerX + control, centerY - radius), new Point(centerX + radius, centerY - control), new Point(centerX + radius, centerY), true, false);
+        }
+
+        private static void AddOutputViewerMaskCross(StreamGeometryContext context, double centerX, double centerY, double radius)
+        {
+            context.BeginFigure(new Point(centerX - radius, centerY - radius), false, false);
+            context.LineTo(new Point(centerX + radius, centerY + radius), true, false);
+            context.BeginFigure(new Point(centerX - radius, centerY + radius), false, false);
+            context.LineTo(new Point(centerX + radius, centerY - radius), true, false);
+        }
+
+        private static void AddOutputViewerChessDiamond(StreamGeometryContext context, double centerX, double centerY, double radius)
+        {
+            context.BeginFigure(new Point(centerX, centerY - radius), true, true);
+            context.LineTo(new Point(centerX + radius, centerY), true, false);
+            context.LineTo(new Point(centerX, centerY + radius), true, false);
+            context.LineTo(new Point(centerX - radius, centerY), true, false);
         }
 
         internal static void ApplyReviewOffsetsToOutputViewerParameters(IDictionary<string, string> parameters, ST_REVIEW_OFFSET_FILE_DATA reviewOffsetFile)
@@ -557,13 +985,13 @@
                     var rotation = ReadOutputViewerDouble(parameters, 0.0, $"CELL{cellNo}_ROTATION");
                     var modelType = CRecipeModelPixelCountReader.ReadCellModelType(parameters, cellNo, modelTypeCount);
                     var modelPattern = CRecipeModelPixelCountReader.ReadPatternForModel(parameters, modelType);
-                    var layout = CCellPatternCalculator.Calculate(new ST_CELL_PATTERN_DEFINITION(cellNo, firstPixelX, firstPixelY, rotation, pixelSize, modelPattern.PixelCountX, modelPattern.PixelCountY, modelPattern.ProcessPitch, splitBeamCount, akMarginX, akMarginY));
+                    var layout = CCellPatternCalculator.Calculate(new ST_CELL_PATTERN_DEFINITION(cellNo, firstPixelX, firstPixelY, rotation, pixelSize, modelPattern.PixelCountX, modelPattern.PixelCountY, modelPattern.ProcessPitch, splitBeamCount, akMarginX, akMarginY), includeShotCenters: false);
                     if (!layout.IsValid)
                     {
                         invalidCellCount++;
                     }
 
-                    totalShotGroupCount += layout.ShotCenters.Count;
+                    totalShotGroupCount += (long)layout.GroupCountX * layout.GroupCountY;
                     var boundary = BuildOutputViewerCellBoundaryGeometry(frameLeft, frameTop, scale, pixelSize, modelPattern.PixelCountX, modelPattern.PixelCountY, akMarginX + firstPixelX, akMarginY + firstPixelY, rotation);
                     if (boundary is null)
                     {
@@ -571,9 +999,17 @@
                     }
 
                     var isSelectedCell = selectedCellNo > 0 && cellNo == selectedCellNo;
-                    var cellBrush = CMenuMain.CreateHeadBrush(((cellNo - 1) % 8) + 1, (byte)(selectedCellNo <= 0 || isSelectedCell ? 230 : 105));
-                    var boundaryBrush = CMenuMain.CreateHeadBrush(((cellNo - 1) % 8) + 1, (byte)(isSelectedCell ? 255 : 150));
-                    var boundaryPen = new Pen(boundaryBrush, isSelectedCell ? 2.4 : 1.2);
+                    var cellAlpha = selectedCellNo <= 0 ? (byte)180 : isSelectedCell ? (byte)170 : (byte)80;
+                    var cellBrush = CMenuMain.CreateHeadBrush(((cellNo - 1) % 8) + 1, cellAlpha);
+                    var boundaryBrush = isSelectedCell
+                        ? new SolidColorBrush(Color.FromRgb(246, 196, 83))
+                        : CMenuMain.CreateHeadBrush(((cellNo - 1) % 8) + 1, 150);
+                    if (boundaryBrush.CanFreeze)
+                    {
+                        boundaryBrush.Freeze();
+                    }
+
+                    var boundaryPen = new Pen(boundaryBrush, isSelectedCell ? 3.0 : 1.2);
                     boundaryPen.Freeze();
                     context.DrawGeometry(cellBrush, null, boundary);
                     drawnCellBoundaries.Add((boundary, boundaryPen));
@@ -599,7 +1035,14 @@
             var paddingY = Math.Max(22.0, frameHeight * 0.03);
             var cellRect = new Rect(0, 0, frameWidth + (paddingX * 2.0), frameHeight + (paddingY * 2.0));
             var glassRect = new Rect(paddingX, paddingY, frameWidth, frameHeight);
-            var translatedCellLabels = cellLabels.Select(label => label with { CanvasCenterX = label.CanvasCenterX - frameLeft + paddingX, CanvasCenterY = label.CanvasCenterY - frameTop + paddingY, DesignWidth = cellRect.Width, DesignHeight = cellRect.Height }).ToArray();
+            var translatedCellLabels = cellLabels.Select(label => label with
+            {
+                CanvasCenterX = label.CanvasCenterX - frameLeft + paddingX,
+                CanvasCenterY = label.CanvasCenterY - frameTop + paddingY,
+                Width = Math.Max(18.0, label.CellNo.ToString(CultureInfo.InvariantCulture).Length * 6.2 + 8.0),
+                DesignWidth = cellRect.Width,
+                DesignHeight = cellRect.Height
+            }).ToArray();
             var cellDrawing = new DrawingGroup();
             using (var cellContext = cellDrawing.Open())
             {
@@ -811,16 +1254,18 @@
             Tabs = CorrectionTabs.Select(BuildCORRECTION_TAB).ToArray();
             (SummaryItems, SourceRows, CandidateRows, ApplyRows, DetailItems, HistoryRows) = selectedTab switch
             {
-                "ALIGN/DISTORTION" or "REVIEW" => ([], [], [], [], [], []),
+                "DEFAULT" or "ALIGN/DISTORTION" or "REVIEW" => ([], [], [], [], [], []),
                 "APC / ICR" => CreateApcIcrData(),
-                "VIEWER / HISTORY" => CreateOutputHistoryData(),
+                "VIEWER" => CreateOutputHistoryData(),
                 _ => ([], [], [], [], [], [])};
             OnPropertyChanged(nameof(Tabs));
+            OnPropertyChanged(nameof(IsDefaultTab));
             OnPropertyChanged(nameof(IsAlignDistortionTab));
             OnPropertyChanged(nameof(IsReviewCorrectionTab));
             OnPropertyChanged(nameof(IsCorrectionCommandsVisible));
             OnPropertyChanged(nameof(IsOtherCorrectionTab));
             OnPropertyChanged(nameof(IsOutputHistoryTab));
+            OnPropertyChanged(nameof(IsCorrectionHistoryVisible));
             OnPropertyChanged(nameof(SelectedTab));
             OnPropertyChanged(nameof(Title));
             OnPropertyChanged(nameof(Subtitle));
@@ -1941,11 +2386,12 @@
         {
             return selectedTab switch
             {
+                "DEFAULT" => "",
                 "REVIEW DATA" => "Review result load, measurement error review and compensation point selection",
                 "ALIGN/DISTORTION" => "Align Key / Distortion Key base coordinates",
                 "REVIEW" => "User-entered correction / Glass, Cell and Shot preview",
                 "APC / ICR" => "External APC / ICR precision correction file apply",
-                "VIEWER / HISTORY" => "Final correction offset viewer and apply history",
+                "VIEWER" => "Final correction offset viewer",
                 _ => "Correction operation"
             };
         }
@@ -1954,10 +2400,11 @@
         {
             return selectedTab switch
             {
+                "DEFAULT" => "Recipe",
                 "APC / ICR" => "External",
                 "ALIGN/DISTORTION" => "Vision",
                 "REVIEW" => "Recipe",
-                "VIEWER / HISTORY" => "Mixed",
+                "VIEWER" => "Mixed",
                 _ => "Review"
             };
         }
@@ -1969,13 +2416,14 @@
 
 #endregion
 #region Alarm
-        public override Task StopForHeavyAlarm()
+        public override async Task StopForHeavyAlarm()
         {
             _roughCancellation?.Cancel();
             _fineCancellation?.Cancel();
+            _defaultCancellation?.Cancel();
             if (_isReviewOperationRunning)
                 _reviewManager.Stop();
-            return Task.CompletedTask;
+            if (_defaultStopped is { } stopped) await stopped.Task.WaitAsync(TimeSpan.FromSeconds(15));
         }
 
 #endregion
@@ -1984,6 +2432,11 @@
         {
             try
             {
+                if (action.StartsWith("WAPAGE_", StringComparison.Ordinal))
+                {
+                    await ExecuteWapageAction(action);
+                    return;
+                }
                 if (action is "OFFSET_APPLY" or "OFFSET_INIT" or "OFFSET_VIEW")
                 {
                     await ExecuteAlignOffsetAction(action);
@@ -2010,13 +2463,13 @@
                         throw new InvalidOperationException("현재 레시피 파일을 찾을 수 없습니다.");
                     }
 
-                    AlignDistortion.Update(refreshed);
+                    UpdateAlignPreview(refreshed);
                     _statusReporter($"{refreshed.Name} 레시피에서 Base 값을 다시 읽었습니다.");
                     return;
                 }
 
                 var recipe = await LoadSelectedOutputViewerRecipe(CancellationToken.None, fallbackToFirst: false) ?? throw new InvalidOperationException("현재 선택된 레시피가 없습니다.");
-                AlignDistortion.Update(recipe);
+                UpdateAlignPreview(recipe);
                 switch (action)
                 {
                     case "INIT":
@@ -2057,10 +2510,52 @@
                     "OFFSET_APPLY" => "Offset Apply 확인",
                     "OFFSET_INIT" => "Offset Init 확인",
                     "OFFSET_VIEW" => "Current Offset View 확인",
+                    _ when action.StartsWith("WAPAGE_", StringComparison.Ordinal) => "Wapage 확인",
                     _ => "Base 작업 확인"
                 };
+                if (action.StartsWith("WAPAGE_", StringComparison.Ordinal))
+                    AlignDistortion.Wapage.SetStatus(exception.Message);
                 _statusReporter($"{title}: {exception.Message}");
                 CRecipeConfirmDialog.ShowWarning(title, exception.Message);
+            }
+        }
+
+        private async Task ExecuteWapageAction(string action)
+        {
+            var panel = AlignDistortion.Wapage;
+            panel.UpdateSettings(_settingManager.LoadSection(EN_SETTING_TAB.Option));
+            if (action == "WAPAGE_LOAD")
+            {
+                panel.SetStatus("MELSEC 값을 읽는 중...");
+                using var loadTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                var values = await _wapage.Load(loadTimeout.Token);
+                panel.ApplyLoad(values, DateTimeOffset.Now);
+                _statusReporter("Wapage: Vision 원본 / AlignBase / Range 24개 값을 한 번 읽었습니다.");
+                AlignDistortion.BaseActionCommand.NotifyCanExecuteChanged();
+                return;
+            }
+            if (action == "WAPAGE_SET_BASE")
+            {
+                var vision = panel.LoadedVisionValues;
+                if (vision is null)
+                    throw new InvalidOperationException("Vision 값을 먼저 Load해 주세요.");
+                if (!CRecipeConfirmDialog.ShowConfirmation("Vision → Wapage Set", $"마지막 Load: {panel.LastLoadTime}\n화면의 Vision X/Y 8개 값을 Wapage AlignBase에 그대로 기록하시겠습니까?\n\n" + string.Join("\n", CAlignWapageService.Points.Select(point => $"{point.Label}: {vision[point.VisionId]:0.####} pixel → {point.BaseId}")), "Set"))
+                    return;
+                panel.SetStatus("Vision → Wapage 값을 기록하고 확인하는 중...");
+                using var baseTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                panel.ApplyBase(await _wapage.SetBase(vision, baseTimeout.Token));
+                _statusReporter("Wapage AlignBase 8개 값 기록 및 읽기 확인 완료.");
+                return;
+            }
+            if (action == "WAPAGE_SET_RANGE")
+            {
+                var pixels = panel.CalculatedPixels ?? throw new InvalidOperationException("Align Camera Resolution과 Wapage AlignBase Tolerance 설정을 확인하세요.");
+                if (!CRecipeConfirmDialog.ShowConfirmation("Wapage Range Set", $"{panel.CalculationText}\n\n계산된 {pixels:0.####} pixel을 Wapage AlignBase Range X1~X4 / Y1~Y4에 기록하시겠습니까?", "Set"))
+                    return;
+                panel.SetStatus("Wapage Range를 기록하고 확인하는 중...");
+                using var rangeTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                panel.ApplyRange(await _wapage.SetRange(pixels, rangeTimeout.Token));
+                _statusReporter("Wapage AlignBase Range 8개 값 기록 및 읽기 확인 완료.");
             }
         }
 
@@ -2069,7 +2564,7 @@
             confirm ??= (title, message) => CRecipeConfirmDialog.ShowConfirmation(title, message, "Load");
             warn ??= (title, message) => CRecipeConfirmDialog.ShowWarning(title, message);
             var recipe = await LoadSelectedOutputViewerRecipe(CancellationToken.None, fallbackToFirst: false) ?? throw new InvalidOperationException("현재 선택된 레시피가 없습니다.");
-            AlignDistortion.Update(recipe);
+            UpdateAlignPreview(recipe);
             var targets = AlignDistortion.LoadParameterKeys.ToArray();
             var selectionSignature = AlignDistortion.LoadSelectionSignature;
             var mode = _alignLastLoad.GetMode(targets);
@@ -2092,7 +2587,7 @@
             var current = await LoadSelectedOutputViewerRecipe(CancellationToken.None, fallbackToFirst: false);
             if (current is null || !current.Id.Equals(recipe.Id, StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException("현재 레시피가 변경되었습니다. Load를 다시 실행하세요.");
-            AlignDistortion.Update(current);
+            UpdateAlignPreview(current);
             if (selectionSignature != AlignDistortion.LoadSelectionSignature)
                 throw new InvalidOperationException("Load 중 선택한 DK 또는 키 위치가 변경되었습니다. 다시 Load해 주세요.");
             AlignDistortion.ApplyLastLoad(recipe.Id, values, DateTimeOffset.Now, targets, simulation);
@@ -2108,7 +2603,7 @@
             var updated = CAlignBaseData.Apply(current, values);
             await _recipeManager.SaveRecipe(updated);
             var saved = (await _recipeManager.LoadRecipes()).Single(recipe => recipe.Id.Equals(recipeId, StringComparison.OrdinalIgnoreCase));
-            AlignDistortion.Update(saved);
+            UpdateAlignPreview(saved);
             _statusReporter($"{saved.Name} 레시피의 Base 값을 저장했습니다.");
         }
 
@@ -2129,7 +2624,7 @@
                 Owner = Application.Current?.MainWindow
             }.ShowDialog() == true;
             var recipe = await LoadSelectedOutputViewerRecipe(CancellationToken.None, fallbackToFirst: false) ?? throw new InvalidOperationException("현재 선택된 레시피가 없습니다.");
-            AlignDistortion.Update(recipe);
+            UpdateAlignPreview(recipe);
             var tolerance = RefreshAlignOffsetTolerance();
             if (action == "OFFSET_VIEW")
             {
@@ -2148,7 +2643,7 @@
             }
 
             if (action == "OFFSET_APPLY" && tolerance is null)
-                throw new InvalidOperationException("Setting > Option > Interlock의 Align Offset Tolerance를 확인해 주세요.");
+                throw new InvalidOperationException("Setting > COMMON > ALIGN의 Align Offset Tolerance를 확인해 주세요.");
             var inputSignature = AlignDistortion.OffsetInputSignature;
             var model = action == "OFFSET_APPLY" ? AlignDistortion.CreateLoadedInterpolationModel() : null;
             var calculatedOffsets = await Task.Run(() => action == "OFFSET_APPLY" ? CAlignShotOffsetData.Calculate(recipe, model!) : CAlignShotOffsetData.ZeroValues(recipe));
@@ -2210,7 +2705,7 @@
             }
 
             var current = await LoadSelectedOutputViewerRecipe(CancellationToken.None, fallbackToFirst: false);
-            AlignDistortion.Update(current);
+            UpdateAlignPreview(current);
             await _refreshCurrentScreen();
             if (logError is not null)
                 throw new InvalidOperationException($"레시피의 Align Offset {(action == "OFFSET_APPLY" ? "저장" : "초기화")}은 완료됐지만 CSV 로그를 저장하지 못했습니다.\n{logError.Message}", logError);
@@ -2218,6 +2713,9 @@
             _statusReporter(resultMessage);
             completed($"{title} 완료", resultMessage);
         }
+
+        private void UpdateAlignPreview(ST_RECIPE_DEFINITION? recipe) => AlignDistortion.Update(recipe,
+            CAlignKeyGeometry.ReadStagePositions(_settingManager.LoadSection(EN_SETTING_TAB.Motor)));
 
         private double? RefreshAlignOffsetTolerance()
         {
@@ -2254,6 +2752,12 @@
             Func<IReadOnlyList<ST_REVIEW_PLAN_POINT>, CancellationToken, Task<IReadOnlyList<ST_VISION_MARK_FIND>>>? simulationMeasurement = null
         )
         {
+            if (action == "OFFSET_ROLLBACK")
+            {
+                await ExecuteReviewOffsetRollback(confirm, warn: warn);
+                return;
+            }
+
             if (action is "OFFSET_APPLY" or "OFFSET_INIT" or "OFFSET_VIEW")
             {
                 await ExecuteFineOffsetAction(action, confirm, warn: warn);
@@ -2460,6 +2964,705 @@
 
 #endregion
 #region Rough
+        // DEFAULT CENTER: field service entry points are kept together for on-site debugging.
+        private async Task ExecuteDefaultAction(string action)
+        {
+            if (action == "STOP") { _defaultCancellation?.Cancel(); return; }
+            if (_isReviewOperationRunning || _defaultManager is null || _defaultScriptFile is null) return;
+            _isReviewOperationRunning = true;
+            _defaultCancellation = new CancellationTokenSource();
+            _defaultStopped = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            var token = _defaultCancellation.Token;
+            DefaultOffset.SetBusy(true);
+            try
+            {
+                var recipe = await LoadSelectedOutputViewerRecipe(token, false) ?? throw new InvalidOperationException("현재 레시피가 없습니다.");
+                var settings = LoadSimpleOffsetSettings();
+                var values = CDefaultOffsetCalibration.Parameters(recipe, settings);
+                GuardDefaultOperation();
+                if (action == "CONDITIONS")
+                {
+                    var defaults = CreateDefaultOptions(values, DefaultOffset.Options?.TestStageY);
+                    if (DefaultOffset.Options is { } previous)
+                        defaults = defaults with { MachiningMode = previous.MachiningMode, CrossSize = previous.CrossSize };
+                    var geometry = Enumerable.Range(1, 8).ToDictionary(head => head, head => CDefaultOffsetCalibration.HeadGeometry(values, head));
+                    var edited = Drilling.UI.Views.CDefaultOffsetView.EditConditions(defaults, DefaultOffset.ModelNumbers, DefaultOffset.SelectedModelNumber, geometry);
+                    if (edited is not { } condition) return;
+                    var options = condition.Options;
+                    ValidateDefaultOptions(options);
+                    var pitch = options.MachiningMode == EN_DEFAULT_MACHINING_MODE.Cross
+                        ? 0
+                        : CDefaultOffsetCalibration.Pitch(values, condition.Model);
+                    var prepared = new CDefaultSetupRun(recipe, settings, values, options, condition.Model, pitch);
+                    DefaultOffset.ApplyConditions(options, condition.Model);
+                    _defaultRun = prepared;
+                    return;
+                }
+                var run = _defaultRun ?? throw new InvalidOperationException("먼저 측정 조건을 적용해 주세요.");
+                await EnsureDefaultSource(run, token);
+                if (action == "RECOMMEND")
+                {
+                    run.Candidate = CDefaultOffsetCalibration.Recommend(run.Values, run.Results.Values.ToArray());
+                    // A Head Default is shared by every Shot assigned to that Head.
+                    // Recipe Shot/MOF trajectory coordinates are not a limit check
+                    // for storing this calibration. Check actual CENTER commands
+                    // separately when a test is about to move/fire.
+                    DefaultOffset.ShowResults(run.Results, run.Candidate, "추천 계산 완료 · 아직 레시피에 적용하지 않았습니다.");
+                    return;
+                }
+                if (action == "APPLY")
+                {
+                    if (run.Applied || run.Candidate is null) throw new InvalidOperationException("새로운 추천 계산을 먼저 실행해 주세요.");
+                    if (!DefaultConfirmation("Default 일괄 적용", $"{recipe.Name}\nUSE인 {CDefaultOffsetCalibration.ActiveHeads(run.Values).Length}개 Head의 Default를 추천값으로 한 번에 변경하시겠습니까?\n검사 모드: {DefaultSourceMode(run)}\n적용 후에는 새 가공 검증이 필요합니다.")) return;
+                    await ApplyDefaultValues(run, run.Candidate, "APPLY", token);
+                    DefaultOffset.SetMessage("USE Head 일괄 적용 완료 · 새 가공 검증을 실행해 주세요.", 5, true);
+                    return;
+                }
+                if (action == "ROLLBACK")
+                {
+                    if (!run.Applied) throw new InvalidOperationException("이번 측정에서 적용한 Default가 없습니다.");
+                    if (!DefaultConfirmation("이전 Default 복원", $"{recipe.Name}의 8개 Head Default를 이번 측정 조건 적용 시점의 값으로 복원하시겠습니까?")) return;
+                    await RestoreDefault(run);
+                    return;
+                }
+                if (action == "VERIFY" && !run.Applied) throw new InvalidOperationException("추천값을 적용한 뒤 새 가공 검증을 실행해 주세요.");
+                if (action == "ALL" && DefaultOffset.IsPairMode)
+                {
+                    await RunDefaultPairs(run, token);
+                    return;
+                }
+                var verify = action == "VERIFY";
+                var used = CDefaultOffsetCalibration.ActiveHeads(run.Values).ToHashSet();
+                var heads = action is "ALL" or "VERIFY" ? new[] { 4, 5, 3, 6, 2, 7, 1, 8 }.Where(used.Contains).ToArray() : new[] { DefaultOffset.SelectedHead.HeadNo };
+                if (heads.Length == 0) throw new InvalidOperationException("USE인 가공 대상 Head가 없습니다.");
+                if (verify && run.AppliedDefaults.Count != heads.Length * 2) throw new InvalidOperationException("USE Head 전체의 Default 적용을 완료한 뒤 새 가공 검증을 실행해 주세요.");
+                var inspectionOnly = false;
+                if (action == "ALL" && run.AllInterrupted)
+                {
+                    var choice = DefaultRestartChoice($"{recipe.Name}\n\n처음부터: 전체 Head를 다시 가공한 뒤 전체 검사합니다.\n검사부터 다시: 재가공 없이 전체 Head의 {run.Options.InspectionDescription}를 처음부터 다시 진행합니다.\n가공 중 중단되어 시험 위치 기록이 없는 Head가 있으면 검사 재시작은 진행하지 않습니다.");
+                    if (choice == EN_DEFAULT_RESTART_CHOICE.Cancel) return;
+                    inspectionOnly = choice == EN_DEFAULT_RESTART_CHOICE.InspectionFromStart;
+                }
+                else if (!DefaultConfirmation(verify ? "새 가공 검증" : "Default CENTER", $"{recipe.Name} / HEAD {string.Join(", ", heads)}\n{(action == "MEASURE" ? $"이번 CENTER 시험의 {run.Options.InspectionDescription}" : "지정한 Stage Y 위치에서 CENTER 시험 가공" + (action is "ALL" or "VERIFY" ? $"을 모두 마친 후 {run.Options.InspectionDescription}" : ""))}하시겠습니까?\n{run.Options.MachiningDescription}\nVision: {run.Options.VisionDescription}\nHead별 Recipe Power(W)·Frequency를 사용합니다.")) return;
+                DefaultOffset.SetMessage("시작 전 대상 Head 전체 확인 중 · 아직 가공하지 않았습니다.");
+                var firingHeads = action == "MEASURE" || inspectionOnly ? [] : heads;
+                await PreflightDefault(run, heads, firingHeads, action != "FIRE", token);
+                await EnsureDefaultSource(run, token);
+                if (verify) { run.Verified = false; run.VerifiedResults.Clear(); DefaultOffset.SetVerificationCount(0); }
+                if (action == "ALL")
+                {
+                    if (!inspectionOnly) run.Tests.Clear();
+                    run.Results.Clear(); run.Candidate = null;
+                    DefaultOffset.ApplyConditions(run.Options, run.Model);
+                    if (inspectionOnly)
+                        foreach (var head in heads) DefaultOffset.MarkFired(head, run.Tests[head].Q);
+                    // Only selects the restart dialog after an interrupted batch;
+                    // machining completion still uses the existing Task snapshot below.
+                    run.AllInterrupted = true;
+                }
+                var verified = new Dictionary<int, ST_DEFAULT_OFFSET_HEAD_RESULT>();
+                var completedMachining = 0;
+                try
+                {
+                    // Finish every requested machining operation before moving to inspection.
+                    if (action != "MEASURE" && !inspectionOnly) foreach (var head in heads)
+                    {
+                        token.ThrowIfCancellationRequested();
+                        DefaultOffset.SelectHeadForRun(head);
+                        await EnsureDefaultSource(run, token);
+                        await FireDefaultCenter(run, head, token);
+                        completedMachining++;
+                        if (heads.Length > 1) DefaultOffset.SetMessage($"전체 가공 {completedMachining}/{heads.Length} Head 완료", 2, completedMachining == heads.Length);
+                    }
+                    if (action is "ALL" or "VERIFY") DefaultOffset.SetMessage("전체 Head 가공 완료 · 전체 검사를 진행합니다.", 2, true);
+                    if (action != "FIRE") foreach (var head in heads)
+                    {
+                        token.ThrowIfCancellationRequested();
+                        DefaultOffset.SelectHeadForRun(head);
+                        await EnsureDefaultSource(run, token);
+                        var result = await MeasureDefaultCenter(run, head, token);
+                        if (verify)
+                        {
+                            verified[head] = result;
+                            await SaveDefaultLog(run, "VERIFY_HEAD", null, token, verified);
+                            if (Math.Abs(result.CenterErrorX) > run.Options.Tolerance || Math.Abs(result.CenterErrorY) > run.Options.Tolerance) throw new InvalidOperationException($"HEAD {head:00} 글래스 기준 목표 대비 새 가공 중심 오차가 허용값을 초과했습니다.");
+                        }
+                        else
+                        {
+                            run.Results[head] = result;
+                            try { await SaveDefaultLog(run, "MEASURE_HEAD", null, token); }
+                            catch { run.Results.Remove(head); throw; }
+                        }
+                        run.Candidate = null;
+                        DefaultOffset.ShowResults(verify ? verified : run.Results, null, verify ? "새 가공 검증 중" : "측정 완료 · 전체 Head 측정 후 추천 계산을 실행하세요.", verify ? verified.Keys.ToHashSet() : null);
+                        if (verify) DefaultOffset.SetVerificationCount(verified.Count);
+                        if (heads.Length > 1)
+                        {
+                            var completed = verify ? verified.Count : run.Results.Count;
+                            DefaultOffset.SetMessage($"전체 검사 {completed}/{heads.Length} Head 완료", 3, completed == heads.Length);
+                        }
+                    }
+                    if (action == "ALL")
+                    {
+                        run.AllInterrupted = false;
+                        DefaultOffset.SetMessage("전체 Head 가공·검사 완료 · 추천 계산을 실행하세요.", 3, true);
+                    }
+                    if (verify)
+                    {
+                        await EnsureDefaultSource(run, token);
+                        run.Verified = true;
+                        foreach (var result in verified) run.VerifiedResults[result.Key] = result.Value;
+                        DefaultOffset.ShowResults(verified, null, $"USE {heads.Length}개 Head 새 가공 검증 완료", verified.Keys.ToHashSet());
+                        DefaultOffset.SetVerificationCount(verified.Count);
+                        DefaultOffset.SetMessage($"USE {heads.Length}개 Head 새 가공 검증 완료", 6, true);
+                        await SaveDefaultLog(run, "VERIFIED", null, token, verified);
+                    }
+                }
+                catch when (verify && run.Applied)
+                {
+                    await RestoreDefault(run);
+                    throw;
+                }
+            }
+            catch (OperationCanceledException)
+            { DefaultOffset.SetMessage("중지됨 · 진행 중이던 Head는 완료로 처리하지 않습니다."); }
+            catch (Exception error)
+            {
+                DefaultOffset.SetMessage("실패: " + error.Message);
+                _statusReporter(error.Message);
+                DefaultWarning("Default CENTER 확인", error.Message);
+            }
+            finally
+            {
+                _defaultCancellation.Dispose(); _defaultCancellation = null;
+                _isReviewOperationRunning = false;
+                DefaultOffset.SetBusy(false);
+                _defaultStopped.TrySetResult(); _defaultStopped = null;
+                ExecuteCommand.NotifyCanExecuteChanged();
+            }
+        }
+
+        private static ST_DEFAULT_OFFSET_OPTIONS CreateDefaultOptions(IReadOnlyDictionary<string, string> p, double? stageY = null) => CDefaultOffsetCalibration.Conditions(p, stageY);
+
+        private async Task RunDefaultPairs(CDefaultSetupRun run, CancellationToken token)
+        {
+            var used = CDefaultOffsetCalibration.ActiveHeads(run.Values).ToHashSet();
+            var groups = new[] { new[] { 4, 5 }, new[] { 3, 6 }, new[] { 2, 7 }, new[] { 1, 8 } }
+                .Select(pair => pair.Where(used.Contains).ToArray()).Where(pair => pair.Length > 0).ToArray();
+            var heads = groups.SelectMany(pair => pair).ToArray();
+            if (heads.Length == 0) throw new InvalidOperationException("USE인 가공 대상 Head가 없습니다.");
+            var order = string.Join(" → ", groups.Select(pair => "H" + string.Join("/H", pair.Select(h => h.ToString("00")))));
+            var restart = run.Applied ? "\n부분 적용된 값은 이번 측정 시작 전 값으로 복원한 뒤 처음 그룹부터 다시 실행합니다." : "";
+            if (!DefaultConfirmation("두 Head씩 가공·검사·적용", $"{run.Recipe.Name}\n{order}\n{run.Options.MachiningDescription}\nVision: {run.Options.VisionDescription}\n\n각 그룹의 가공 → 검사 → 추천값 적용 → 재가공·재검증을 자동으로 진행합니다.\n두 Head 모두 기존 허용오차 이내임을 확인한 뒤 다음 그룹으로 넘어갑니다.\n검증 실패·중단 시 해당 그룹은 적용 전 값으로 복원하고, 앞서 검증한 그룹은 유지합니다.\n한쪽 Head가 UNUSE이면 USE인 Head만 처리합니다.{restart}\n진행하시겠습니까?")) return;
+            if (run.Applied) await RestoreDefault(run);
+            DefaultOffset.SetMessage("짝별 실행 전 USE Head 전체 확인 중");
+            await PreflightDefault(run, heads, heads, inspect: true, token);
+            await EnsureDefaultSource(run, token);
+            run.Tests.Clear(); run.Results.Clear(); run.VerifiedResults.Clear(); run.Candidate = null;
+            run.AllInterrupted = true;
+            DefaultOffset.ApplyConditions(run.Options, run.Model);
+            foreach (var pair in groups)
+            {
+                token.ThrowIfCancellationRequested();
+                DefaultOffset.Steps[5].Set("WAIT");
+                var label = "H" + string.Join("/H", pair.Select(h => h.ToString("00")));
+                foreach (var head in pair)
+                {
+                    DefaultOffset.SelectHeadForRun(head);
+                    await FireDefaultCenter(run, head, token);
+                }
+                DefaultOffset.SetMessage($"{label} 가공 완료 · 해당 그룹 검사 시작", 2, true);
+                foreach (var head in pair)
+                {
+                    token.ThrowIfCancellationRequested();
+                    DefaultOffset.SelectHeadForRun(head);
+                    var result = await MeasureDefaultCenter(run, head, token);
+                    run.Results[head] = result;
+                    try { await SaveDefaultLog(run, "MEASURE_HEAD", null, token); }
+                    catch { run.Results.Remove(head); throw; }
+                    DefaultOffset.ShowResults(run.Results, run.Candidate, $"{label} 측정 중 · USE {run.Results.Count}/{heads.Length} Head 측정 완료", run.VerifiedResults.Keys.ToHashSet());
+                }
+                var changes = CDefaultOffsetCalibration.Recommend(run.Values, pair.Select(head => run.Results[head]).ToArray(), pair);
+                var before = changes.Keys.ToDictionary(key => key, key => run.Values[key], StringComparer.OrdinalIgnoreCase);
+                var action = "PAIR_" + string.Join("_", pair.Select(h => h.ToString("00")));
+                try
+                {
+                    DefaultOffset.SetMessage($"{label} 추천값 적용 중", 5);
+                    await ApplyDefaultValues(run, changes, action, token);
+                    DefaultOffset.SetMessage($"{label} 적용 후 새 CENTER 재가공 시작", 6);
+                    foreach (var head in pair)
+                    {
+                        token.ThrowIfCancellationRequested();
+                        DefaultOffset.SelectHeadForRun(head);
+                        await FireDefaultCenter(run, head, token);
+                    }
+                    var verified = new Dictionary<int, ST_DEFAULT_OFFSET_HEAD_RESULT>();
+                    foreach (var head in pair)
+                    {
+                        token.ThrowIfCancellationRequested();
+                        DefaultOffset.SelectHeadForRun(head);
+                        var result = await MeasureDefaultCenter(run, head, token);
+                        run.Results[head] = result;
+                        await SaveDefaultLog(run, action + "_VERIFY_HEAD", run.Values, token);
+                        DefaultOffset.ShowResults(run.Results, run.AppliedDefaults, $"{label} 적용 후 재검증 중 · HEAD {head:00}", run.VerifiedResults.Keys.ToHashSet());
+                        if (Math.Abs(result.CenterErrorX) > run.Options.Tolerance || Math.Abs(result.CenterErrorY) > run.Options.Tolerance)
+                        {
+                            DefaultOffset.Heads.Single(h => h.HeadNo == head).SetResult(result, run.AppliedDefaults, "검증 NG");
+                            throw new InvalidOperationException(FormattableString.Invariant($"HEAD {head:00} 재검증 오차 X {result.CenterErrorX:0.00000} / Y {result.CenterErrorY:0.00000} mm가 허용오차 ±{run.Options.Tolerance:0.00000} mm를 초과했습니다."));
+                        }
+                        verified[head] = result;
+                    }
+                    await EnsureDefaultSource(run, token);
+                    await SaveDefaultLog(run, action + "_VERIFIED", run.Values, token);
+                    foreach (var result in verified) run.VerifiedResults[result.Key] = result.Value;
+                    run.Candidate = new Dictionary<string, string>(run.AppliedDefaults, StringComparer.OrdinalIgnoreCase);
+                    DefaultOffset.ShowResults(run.Results, run.Candidate, $"{label} 재검증 통과 · {run.VerifiedResults.Count}/{heads.Length} USE Head 검증 완료", run.VerifiedResults.Keys.ToHashSet());
+                    DefaultOffset.SetVerificationCount(run.VerifiedResults.Count);
+                    DefaultOffset.SetMessage($"{label} 재검증 통과 · 다음 그룹 진행", 6, true);
+                }
+                catch (Exception failure)
+                {
+                    if (before.Keys.Any(run.AppliedDefaults.ContainsKey))
+                    {
+                        // Restore only this unverified group. Previously verified
+                        // groups keep their committed Default values and evidence.
+                        using var cleanup = new CancellationTokenSource(TimeSpan.FromSeconds(7));
+                        try { await RestoreDefaultValues(run, before, action + "_ROLLED_BACK", cleanup.Token); }
+                        catch (Exception restoreError) { throw new AggregateException($"{label} 검증 실패/중단 후 적용 전 값 복원을 확인하지 못했습니다.", failure, restoreError); }
+                        foreach (var head in pair)
+                            if (run.Results.TryGetValue(head, out var result) &&
+                                (Math.Abs(result.CenterErrorX) > run.Options.Tolerance || Math.Abs(result.CenterErrorY) > run.Options.Tolerance))
+                                DefaultOffset.Heads.Single(h => h.HeadNo == head).SetResult(result, run.Candidate, "검증 NG");
+                        try { await SaveDefaultLog(run, action + "_VERIFY_FAILED", run.Values, CancellationToken.None); }
+                        catch (Exception logError) { System.Diagnostics.Trace.TraceError("Default group verification failure log: " + logError); }
+                    }
+                    throw;
+                }
+            }
+            run.AllInterrupted = false;
+            run.Verified = run.VerifiedResults.Count == heads.Length;
+            DefaultOffset.SetMessage($"USE {heads.Length}개 Head 짝별 가공·검사·적용·재검증 완료", 6, true);
+        }
+
+        private async Task ApplyDefaultValues(CDefaultSetupRun run, IReadOnlyDictionary<string, string> changes, string action, CancellationToken token)
+        {
+            await EnsureDefaultSource(run, token);
+            var before = run.Values;
+            var after = new Dictionary<string, string>(before, StringComparer.OrdinalIgnoreCase);
+            foreach (var p in changes) after[p.Key] = p.Value;
+            await SaveDefaultLog(run, action + "_REQUEST", after, token, before: before);
+            var saved = await _recipeManager.SaveParametersIfUnchanged(run.Recipe, changes, token);
+            run.Recipe = saved;
+            run.Values = CDefaultOffsetCalibration.Parameters(saved, run.Settings);
+            run.Applied = true; run.Verified = false;
+            foreach (var p in changes)
+            {
+                run.AppliedDefaults[p.Key] = p.Value;
+                run.VerifiedResults.Remove(int.Parse(p.Key.Substring(1, 2), CultureInfo.InvariantCulture));
+            }
+            run.Candidate = new Dictionary<string, string>(run.AppliedDefaults, StringComparer.OrdinalIgnoreCase);
+            foreach (var p in changes) if (saved.Parameters.Single(v => v.Key == p.Key).Value != p.Value) throw new IOException("Default 저장값의 읽기 검증이 일치하지 않습니다.");
+            _defaultOwnSave = true;
+            try { DefaultOffset.Update(saved, run.Settings); } finally { _defaultOwnSave = false; }
+            foreach (var test in run.Tests) DefaultOffset.MarkFired(test.Key, test.Value.Q);
+            DefaultOffset.ShowResults(run.Results, run.Candidate, "USE Head Default 저장 완료", run.VerifiedResults.Keys.ToHashSet());
+            DefaultOffset.SetRunState(true, true, run.AppliedDefaults.Count / 2);
+            DefaultOffset.SetVerificationCount(run.VerifiedResults.Count);
+            try { await SaveDefaultLog(run, action + "_APPLIED", run.Values, CancellationToken.None, before: before); }
+            catch (Exception error) { throw new IOException("Default 저장·읽기검증은 완료됐지만 적용 이력 저장에 실패했습니다. 새 가공 검증 또는 이전값 복원이 필요합니다.\n" + error.Message, error); }
+        }
+        private static void ValidateDefaultOptions(ST_DEFAULT_OFFSET_OPTIONS o)
+        {
+            CDefaultOffsetCalibration.ValidateOptions(o);
+        }
+
+        private static bool CanRunDefaultTask(string? state, bool simulation) =>
+            (state is "Idle" or "ProgramComplete") || simulation && (state is "Stopped" or "QueueComplete");
+
+        // Start checks only read configuration and the existing shared snapshots.
+        // No ATT/Stage move or laser command is issued until every target passes.
+        private async Task PreflightDefault(CDefaultSetupRun run, IReadOnlyList<int> heads, IReadOnlyList<int> firingHeads, bool inspect, CancellationToken token)
+        {
+            var manager = _defaultManager!;
+            var errors = new List<string>();
+            var table = new Drilling.File.PowerTable.CPowerTableFile(manager.ConfigRoot);
+            foreach (var head in heads)
+            {
+                token.ThrowIfCancellationRequested();
+                try
+                {
+                    DefaultRoute(run, head);
+                    if (!firingHeads.Contains(head))
+                    {
+                        if (!run.Tests.TryGetValue(head, out var test)) throw new InvalidOperationException("이번 조건으로 가공이 완료된 기록이 없습니다.");
+                        if (test.Defaults.Any(p => run.Values.GetValueOrDefault(p.Key) != p.Value)) throw new InvalidOperationException("가공 시점과 현재 Default가 다릅니다. 해당 Head를 다시 가공해 주세요.");
+                        continue;
+                    }
+                    double N(string suffix) => CDefaultOffsetCalibration.Number(run.Values, $"H{head:00}_{suffix}");
+                    var frequency = N("LASER_FREQUENCY"); var count = N("SHOT_COUNT"); var power = N("LASER_POWER");
+                    if (frequency <= 0 || count < 1 || count != Math.Truncate(count) || count > 30 || power < 0) throw new InvalidOperationException("Recipe Frequency·Shot Count(1~30)·Power를 확인해 주세요.");
+                    if (N("SCANNER_JUMP_SPEED") <= 0 || N("LASER_ON_DELAY") < 0 || N("LASER_OFF_DELAY") < 0) throw new InvalidOperationException("Recipe Jump Speed·Laser On/Off Delay를 확인해 주세요.");
+                    CDefaultOffsetCalibration.CenterScannerTargets(run.Values, head, run.Options);
+                    var angle = await Task.Run(() => table.ResolveAttenuatorAngle(head, power, token), token);
+                    var interfaces = manager.Interface();
+                    if (interfaces.GetInterfaceData(EN_EQP_MODULE.Attenuator, head - 1) is null || !interfaces.IsSimul(EN_EQP_MODULE.Attenuator, head - 1) && !interfaces.IsConnect(EN_EQP_MODULE.Attenuator, head - 1)) throw new InvalidOperationException("ATT가 연결되어 있지 않습니다.");
+                    var limit = interfaces.ValidateAttenuatorAbsoluteMoveTarget(head - 1, angle);
+                    if (!limit.IsSuccess) throw new InvalidOperationException(limit.Message);
+                }
+                catch (Exception error) when (error is not OperationCanceledException) { errors.Add($"HEAD {head:00} · {error.Message}"); }
+            }
+            if (errors.Count > 0) throw new InvalidOperationException("가공 시작 전 확인에 실패했습니다.\n" + DefaultReadinessDetails(errors));
+            manager.Interface().StageReviewSequences.ValidateMoveReadiness(DefaultStageDevice);
+            using (var stage = manager.Interface().StageReviewSequences.Open(DefaultStageDevice)) { /* Claim/release only; validates shared motion ownership without moving. */ }
+            if (!manager.Interface().IsSimul(EN_EQP_MODULE.Melsec, DefaultStageDevice))
+            {
+                var snapshot = manager.Interface().Melsec.GetCachedSnapshot();
+                foreach (var id in new[] { "MOTOR_STAGE_Y_BUSY", "MOTOR_CAMERA_X_BUSY" })
+                    if (snapshot.GetValueOrDefault(id) is not { IsValid: true, Value: not null } sample || Convert.ToDouble(sample.Value, CultureInfo.InvariantCulture) != 0)
+                        throw new InvalidOperationException("가공 시작 전 Stage Y / Review X의 정지 상태를 확인해 주세요.");
+            }
+            if (inspect)
+            {
+                DefaultReferenceCell(run);
+                using var ready = await _reviewManager.OpenDefaultInspection(token);
+            }
+            await WaitDefaultReadiness(run, heads, firingHeads, token);
+        }
+
+        private async Task WaitDefaultReadiness(CDefaultSetupRun run, IReadOnlyList<int> heads, IReadOnlyList<int> firingHeads, CancellationToken token)
+        {
+            var manager = _defaultManager!;
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token);
+            deadline.CancelAfter(TimeSpan.FromSeconds(10));
+            var pending = new List<string>(); var errors = new List<string>();
+            try
+            {
+                while (true)
+                {
+                    deadline.Token.ThrowIfCancellationRequested(); GuardDefaultOperation();
+                    pending.Clear(); errors.Clear();
+                    foreach (var item in manager.Station().GetLiveInterlockItems(run.Values, deadline.Token).Where(i => i.BlocksAutoRun && (i.HeadNo.GetValueOrDefault() <= 0 || firingHeads.Contains(i.HeadNo.GetValueOrDefault())) && !i.Signal.EndsWith(" ATT Position", StringComparison.Ordinal)))
+                    {
+                        var message = $"{(item.HeadNo > 0 ? $"HEAD {item.HeadNo:00}" : "공통")} · {item.Signal}: {item.State} / {item.Detail}";
+                        (item.State is "LOADING" or "STALE" ? pending : errors).Add(message);
+                    }
+                    foreach (var head in heads)
+                    {
+                        var route = DefaultRoute(run, head);
+                        if (!manager.automation.IsSimul(route.Controller) && !manager.automation.IsConnect(route.Controller)) { errors.Add($"HEAD {head:00} · Automation이 연결되어 있지 않습니다."); continue; }
+                        var task = manager.automation.StatusSnapshots.GetTask(route.Task, route.Controller);
+                        if (task.State is "LOADING" or "STALE" || task.State == "OK" && !task.IsFresh(TimeSpan.FromSeconds(2))) { pending.Add($"HEAD {head:00} · Task {route.Task} 상태 수집 대기"); continue; }
+                        var fields = task.Value?.Split(':');
+                        if (task.State != "OK" || fields is not { Length: >= 4 } || fields[0] != "OK" || !int.TryParse(fields[2], out var taskNo) || taskNo != route.Task || !CanRunDefaultTask(fields[3], manager.automation.IsSimul(route.Controller)))
+                            errors.Add($"HEAD {head:00} · Task {route.Task}: {fields?.ElementAtOrDefault(3) ?? task.State} / {task.Detail}");
+                    }
+                    foreach (var head in firingHeads)
+                    {
+                        var interfaces = manager.Interface();
+                        if (!interfaces.IsSimul(EN_EQP_MODULE.Attenuator, head - 1) && !interfaces.IsConnect(EN_EQP_MODULE.Attenuator, head - 1)) { errors.Add($"HEAD {head:00} · ATT가 연결되어 있지 않습니다."); continue; }
+                        var att = interfaces.AttenuatorSnapshots.GetSnapshot(head - 1);
+                        if (att.State is "LOADING" or "STALE" || att.State == "OK" && !att.IsFresh(TimeSpan.FromSeconds(2))) pending.Add($"HEAD {head:00} · ATT 상태 수집 대기");
+                        else if (!att.IsValid || !att.IsFresh(TimeSpan.FromSeconds(2)) || !att.IsInPosition || att.Value?.CommandState != "READY") errors.Add($"HEAD {head:00} · ATT READY/INPOSITION 확인 필요: {att.State}/{att.Value?.CommandState}");
+                    }
+                    if (pending.Count == 0)
+                    {
+                        if (errors.Count > 0) throw new InvalidOperationException("시작 전 Interlock/Task 확인에 실패했습니다.\n" + DefaultReadinessDetails(errors));
+                        return;
+                    }
+                    var progressMessage = $"시작 전 확인 중 · 공통 스냅샷 {pending.Count}개 수집 대기 (최대 10초)";
+                    if (DefaultOffset.StatusText != progressMessage) DefaultOffset.SetMessage(progressMessage);
+                    await Task.Delay(100, deadline.Token);
+                }
+            }
+            catch (OperationCanceledException) when (!token.IsCancellationRequested)
+            { throw new TimeoutException("10초 동안 시작 전 상태를 확인하지 못했습니다.\n" + DefaultReadinessDetails(errors.Concat(pending))); }
+        }
+
+        private static string DefaultReadinessDetails(IEnumerable<string> issues)
+        {
+            var lines = issues.Distinct().ToArray();
+            return string.Join("\n", lines.Take(16)) + (lines.Length > 16 ? $"\n외 {lines.Length - 16}개 항목" : "");
+        }
+
+        private static int DefaultReferenceCell(CDefaultSetupRun run)
+        {
+            var cell = Enumerable.Range(1, (int)CDefaultOffsetCalibration.Number(run.Values, "MAX_CELL_NUMBER"))
+                .FirstOrDefault(c => run.Values.GetValueOrDefault($"CELL{c}_MODEL_TYPE", "1") == run.Model.ToString(CultureInfo.InvariantCulture));
+            return cell > 0 ? cell : throw new InvalidOperationException("선택한 MODEL을 사용하는 Cell이 없습니다. Vision의 모델 참조 Cell을 확인해 주세요.");
+        }
+        private void GuardDefaultOperation()
+        {
+            var manager = _defaultManager!;
+            if (manager.Station().StageRequests.IsRunning || manager.Station().StageRequests.NeedsCleanup || manager.Station().ManualMofStatus is { IsRunning: true } or { RequiresStop: true }) throw new InvalidOperationException("AUTO 또는 Manual MOF 동작 중이거나 정지 확인이 필요하여 Default 측정을 실행할 수 없습니다.");
+            if (manager.Alarm().CurAlarm.Any(a => a.Severity == EN_ALARM_LEVEL.Critical)) throw new InvalidOperationException("현재 알람을 확인하고 RESET한 뒤 다시 실행해 주세요.");
+        }
+        private async Task EnsureDefaultSource(CDefaultSetupRun run, CancellationToken token)
+        {
+            GuardDefaultOperation();
+            token.ThrowIfCancellationRequested();
+            var current = await LoadSelectedOutputViewerRecipe(token, false);
+            var sameRecipe = ReferenceEquals(current, run.Recipe);
+            if (!sameRecipe && current?.Id == run.Recipe.Id)
+            {
+                // Recipe snapshots are immutable. Compare the large Shot parameter
+                // collection only when the shared manager publishes a different one.
+                var expected = run.Recipe.Parameters.Where(p => p.Key != "CURRENT_PROCESS_COUNT").ToDictionary(p => p.Key, p => p.Value);
+                sameRecipe = current.Parameters.Count(p => p.Key != "CURRENT_PROCESS_COUNT") == expected.Count && current.Parameters.Where(p => p.Key != "CURRENT_PROCESS_COUNT").All(p => expected.TryGetValue(p.Key, out var value) && p.Value == value);
+            }
+            if (!sameRecipe || !run.Settings.Select(p => (p.Key, p.Value)).SequenceEqual(LoadSimpleOffsetSettings().Select(p => (p.Key, p.Value))))
+                throw new InvalidOperationException("레시피 또는 장비 설정이 변경되었습니다. 기존 측정·추천은 재사용할 수 없습니다. 측정 조건을 다시 적용해 주세요.");
+        }
+        private (int Controller, int Task, string X, string Y) DefaultRoute(CDefaultSetupRun run, int head)
+        {
+            double Read(string key) => CDefaultOffsetCalibration.Number(run.Values, key);
+            if (run.Values.GetValueOrDefault($"H{head:00}_USE", "OFF").Trim().ToUpperInvariant() is not ("ON" or "TRUE" or "1")) throw new InvalidOperationException($"HEAD {head:00}가 USE 상태가 아닙니다.");
+            var axes = CScannerAxisConfiguration.BuildAxisDefinitions(run.Settings, head);
+            var x = axes.Single(a => a.AxisName == "X" && a.IsUsed); var y = axes.Single(a => a.AxisName == "Y" && a.IsUsed);
+            var taskValue = Read($"H{head:00}_AUTOMATION_TASK_NO");
+            if (taskValue != Math.Truncate(taskValue) || taskValue < 1 || x.AutomationNo != y.AutomationNo || !string.IsNullOrEmpty(x.ConfigurationError + y.ConfigurationError)) throw new InvalidOperationException("Head의 Automation/Task/축 설정을 확인해 주세요.");
+            return (x.AutomationNo, (int)taskValue, x.AxisReference, y.AxisReference);
+        }
+        private int DefaultStageDevice => _defaultManager!.Interface().Melsec.Map.Single(p => p.Use && p.Id == "MOTOR_STAGE_Y_CUR_POS").DeviceNo;
+        private async Task FireDefaultCenter(CDefaultSetupRun run, int head, CancellationToken token)
+        {
+            var manager = _defaultManager!; var route = DefaultRoute(run, head);
+            CDefaultOffsetCalibration.HeadGeometry(run.Values, head);
+            DefaultOffset.SetMessage($"HEAD {head:00} CENTER 시험 가공 준비", 2);
+            await EnsureDefaultSource(run, token);
+            // ATT is moved to the PowerTable W target and verified below. Its old
+            // recipe-angle mismatch is not a precondition for that positioning action.
+            await WaitDefaultReadiness(run, [head], [head], token);
+            run.Results.Remove(head); run.Tests.Remove(head); run.Candidate = null;
+            double N(string suffix) => CDefaultOffsetCalibration.Number(run.Values, $"H{head:00}_{suffix}");
+            var frequency = N("LASER_FREQUENCY"); var count = N("SHOT_COUNT"); var power = N("LASER_POWER");
+            if (frequency <= 0 || count < 1 || count != Math.Truncate(count) || count > 30 || power < 0) throw new InvalidOperationException("Recipe의 Frequency·Shot Count·Power를 확인해 주세요.");
+            CDefaultOffsetCalibration.CenterScannerTargets(run.Values, head, run.Options);
+            var table = new Drilling.File.PowerTable.CPowerTableFile(manager.ConfigRoot);
+            var angle = await Task.Run(() => table.ResolveAttenuatorAngle(head, power, token), token);
+            var att = new CAttenuatorPositioningService(manager.Interface());
+            try { await att.MoveAndWaitAsync(new[] { new ST_ATTENUATOR_MOVE_TARGET(head, angle) }, token); }
+            catch
+            {
+                using var stopAtt = new CancellationTokenSource(TimeSpan.FromSeconds(7));
+                await att.StopPendingAsync(stopAtt.Token);
+                throw;
+            }
+            using var stage = manager.Interface().StageReviewSequences.Open(DefaultStageDevice);
+            var q = run.Options.TestStageY;
+            var motion = ST_REVIEW_MOTION_PARAMETERS.Read(run.Settings);
+            await stage.Move(new(stage.CurrentX, q, motion.Speed, 80, motion.Acceleration, EN_STAGE_MOVE_MODE.StageY), token);
+            await EnsureDefaultSource(run, token);
+            var testId = Guid.NewGuid();
+            var scriptName = $"H{head:00}_DEFAULTOFFSET_{DateTime.Now.ToString("yyyyMMdd_HHmmss_fff", CultureInfo.InvariantCulture)}.ascript";
+            var script = _defaultScriptFile!.Create(scriptName);
+            script.SetDeviceNo(head - 1); script.SetAxis(route.X, route.Y); script.Start("Default SETUP_CENTER · no Cell/Align/Review/Shift offsets");
+            script.AddLine($"// Session={run.Id:N}, TestId={testId:N}");
+            script.AddLine(FormattableString.Invariant($"// Machining={run.Options.MachiningMode}, CrossFullSize={run.Options.CrossSize:R} mm, Vision={run.Options.VisionMethod}"));
+            script.LaserOff(); script.DefaultFigureScanSetting(moveToCenter: false); script.SetFrequency(frequency); script.SetLaserPower(100);
+            script.SetJumpSpeed(N("SCANNER_JUMP_SPEED") / 1000);
+            AppendDefaultCenterPattern(script, run.Values, head, run.Options, route.X, route.Y);
+            script.End();
+            var built = await Task.Run(() => script.Save(token), token);
+            var started = false;
+            try
+            {
+                var upload = await manager.automation.UploadScript(built.FilePath, Path.GetFileName(built.FileName), route.Controller, token);
+                var simulatedUpload = manager.automation.IsSimul(route.Controller) && upload.StartsWith("SIM:", StringComparison.OrdinalIgnoreCase) && upload.EndsWith(":OK", StringComparison.OrdinalIgnoreCase);
+                if (!upload.StartsWith("OK", StringComparison.OrdinalIgnoreCase) && !simulatedUpload) throw new IOException("CENTER 스크립트 업로드 실패: " + upload);
+                await EnsureDefaultSource(run, token);
+                started = true;
+                var startedAt = DateTimeOffset.Now;
+                string response;
+                if (manager.automation.IsSimul(route.Controller))
+                {
+                    await manager.automation.RunStagePreparedScript(Path.GetFileName(built.FileName), route.Task, route.Controller, token);
+                    manager.automation.StartStageMachiningSimulation(new[] { new ST_STAGE_TASK_SIMULATION_TARGET(head, route.Controller, route.Task) }, token);
+                    response = "OK";
+                }
+                else response = await manager.automation.RunScriptIfIdle(Path.GetFileName(built.FileName), route.Task, route.Controller, token);
+                if (!response.StartsWith("OK", StringComparison.OrdinalIgnoreCase)) throw new IOException(response);
+                manager.automation.StatusSnapshots.InvalidateTask(route.Task, route.Controller);
+                using var limit = CancellationTokenSource.CreateLinkedTokenSource(token); limit.CancelAfter(TimeSpan.FromSeconds(30));
+                var observedRun = false;
+                try
+                {
+                    while (true)
+                    {
+                        GuardDefaultOperation(); limit.Token.ThrowIfCancellationRequested();
+                        var status = manager.automation.StatusSnapshots.GetTask(route.Task, route.Controller);
+                        var fields = status.Value?.Split(':');
+                        if (status.IsFresh(TimeSpan.FromSeconds(2)) && status.UpdatedAt >= startedAt)
+                        {
+                            var taskState = fields?.ElementAtOrDefault(3);
+                            var source = fields?.ElementAtOrDefault(4) ?? "";
+                            if (taskState is "ProgramRunning" or "QueueRunning") observedRun = true;
+                            if (taskState == "ProgramComplete" && (Path.GetFileName(source).Equals(Path.GetFileName(built.FileName), StringComparison.OrdinalIgnoreCase) || source.Length == 0 && observedRun)) break;
+                        }
+                        if (status.State is "ERROR" or "OFFLINE" || fields?.ElementAtOrDefault(3) is "Error" or "ProgramError" or "Stopped") throw new InvalidOperationException("CENTER 시험 Task 실행 실패: " + status.Detail + status.Value);
+                        await Task.Delay(50, limit.Token);
+                    }
+                }
+                catch (OperationCanceledException) when (!token.IsCancellationRequested) { throw new TimeoutException("CENTER 시험 Task 완료 확인 30초 초과"); }
+                run.Tests[head] = new(testId, stage.CurrentY, manager.automation.IsSimul(route.Controller), run.Values.Where(p => p.Key.StartsWith($"H{head:00}_DEFAULT_OFFSET_")).ToDictionary(p => p.Key, p => p.Value));
+            }
+            finally
+            {
+                if (started)
+                {
+                    using var cleanup = new CancellationTokenSource(TimeSpan.FromSeconds(7));
+                    var errors = new List<Exception>();
+                    try { await manager.automation.SetGalvoLaserOutput(route.X, false, route.Task, route.Controller, cleanup.Token); } catch (Exception e) { errors.Add(e); }
+                    if (!run.Tests.ContainsKey(head))
+                    {
+                        try { await manager.automation.StopStagePreparedTask(route.Task, route.Controller, cleanup.Token); } catch (Exception e) { errors.Add(e); }
+                    }
+                    if (errors.Count > 0) { run.Tests.Remove(head); throw new AggregateException("CENTER 시험 정지/LASER OFF 확인 실패", errors); }
+                }
+            }
+            DefaultOffset.MarkFired(head, run.Tests[head].Q);
+            DefaultOffset.SetMessage($"HEAD {head:00} 시험 가공 완료 · {run.Options.InspectionDescription} 가능", 2, true);
+        }
+        private static void AppendDefaultCenterPattern(CAutomation1ScriptBase script, IReadOnlyDictionary<string, string> values, int head, ST_DEFAULT_OFFSET_OPTIONS options, string xAxis, string yAxis)
+        {
+            var targets = CDefaultOffsetCalibration.CenterScannerTargets(values, head, options);
+            double N(string suffix) => CDefaultOffsetCalibration.Number(values, $"H{head:00}_{suffix}");
+            void Delay(double value) => script.AddLine(FormattableString.Invariant($"MoveDelay([{xAxis},{yAxis}], {value:R})"));
+            if (options.MachiningMode == EN_DEFAULT_MACHINING_MODE.Cross)
+            {
+                // Same mm/sec value as this Head's Jump Speed; script API takes m/sec.
+                script.SetMarkSpeed(N("SCANNER_JUMP_SPEED") / 1000);
+                for (var index = 0; index < targets.Count; index += 2)
+                {
+                    script.LaserOff();
+                    script.Jump(targets[index].X, targets[index].Y); script.WaitMoveDone();
+                    Delay(N("LASER_ON_DELAY"));
+                    script.LaserOn();
+                    script.Mark(targets[index + 1].X, targets[index + 1].Y); script.WaitMoveDone();
+                    script.LaserOff(); Delay(N("LASER_OFF_DELAY"));
+                }
+            }
+            else
+            {
+                script.Jump(targets[0].X, targets[0].Y); script.WaitMoveDone();
+                Delay(N("LASER_ON_DELAY"));
+                // Preserve the existing pulse-window rule for Shot machining.
+                script.LaserOn(); Delay((N("SHOT_COUNT") + 1) / N("LASER_FREQUENCY")); script.LaserOff();
+                Delay(N("LASER_OFF_DELAY"));
+            }
+        }
+        private async Task<ST_DEFAULT_OFFSET_HEAD_RESULT> MeasureDefaultCenter(CDefaultSetupRun run, int head, CancellationToken token)
+        {
+            if (!run.Tests.TryGetValue(head, out var test)) throw new InvalidOperationException("해당 Head를 이번 기준으로 먼저 시험 가공해 주세요.");
+            run.Results.Remove(head); run.Candidate = null;
+            DefaultOffset.MarkFired(head, test.Q);
+            var route = DefaultRoute(run, head);
+            var requestedAt = DateTimeOffset.Now;
+            await _defaultManager!.automation.SetGalvoLaserOutput(route.X, false, route.Task, route.Controller, token);
+            _defaultManager.automation.StatusSnapshots.InvalidateAxis(route.X, route.Controller, extended: true);
+            using (var offLimit = CancellationTokenSource.CreateLinkedTokenSource(token))
+            {
+                offLimit.CancelAfter(TimeSpan.FromSeconds(5));
+                try
+                {
+                    while (true)
+                    {
+                        offLimit.Token.ThrowIfCancellationRequested();
+                        var snapshot = _defaultManager.automation.StatusSnapshots.GetAxis(route.X, route.Controller, 0, true);
+                        if (snapshot.IsFresh(TimeSpan.FromSeconds(2)) && snapshot.UpdatedAt >= requestedAt && snapshot.Value?.GalvoLaserOutputRaw == 0) break;
+                        if (snapshot.State is "ERROR" or "OFFLINE") throw new InvalidOperationException("LASER OFF 상태를 읽을 수 없습니다.");
+                        await Task.Delay(50, offLimit.Token);
+                    }
+                }
+                catch (OperationCanceledException) when (!token.IsCancellationRequested) { throw new TimeoutException("측정 전 LASER OFF 확인 5초 초과"); }
+            }
+            var gap = run.Values.ContainsKey($"H{head:00}_AK_POSITION_Y") ? CDefaultOffsetCalibration.Number(run.Values, $"H{head:00}_AK_POSITION_Y") : CDefaultOffsetCalibration.Number(run.Values, "REVIEW_TO_HEAD1_GAP_Y") + (head % 2 == 0 ? CDefaultOffsetCalibration.Number(run.Values, "HeadGapY") : 0);
+            var direction = CScannerAxisTransform.ReadStageDirection(run.Values);
+            // The taught position locates the marks for the camera; it does not
+            // define the desired glass-centered Head reference. Follow the current
+            // Default here so a verification run finds the newly shifted marks.
+            var centerX = CDefaultOffsetCalibration.Number(run.Values, "REVIEW_CAMERA_ALIGN_KEY_POS_X") + CDefaultOffsetCalibration.Number(run.Values, "H01_AK_POSITION_X") + (head - 1) * CDefaultOffsetCalibration.Number(run.Values, "HeadGapX") + CDefaultOffsetCalibration.Number(run.Values, $"H{head:00}_DEFAULT_OFFSET_X");
+            var centerY = test.Q - direction * gap + direction * CDefaultOffsetCalibration.Number(run.Values, $"H{head:00}_DEFAULT_OFFSET_Y");
+            var referenceCell = DefaultReferenceCell(run);
+            var flip = CReviewManager.ParseVisionFlipType(run.Values.GetValueOrDefault("VisionXFlip"), run.Values.GetValueOrDefault("VisionYFlip"), run.Values.GetValueOrDefault("VisionXyFlip"));
+            using var inspection = await _reviewManager.OpenDefaultInspection(token);
+            var geometry = CDefaultOffsetCalibration.HeadGeometry(run.Values, head);
+            var marks = new List<ST_DEFAULT_OFFSET_MARK>();
+            ST_DEFAULT_OFFSET_FIT fit;
+            if (run.Options.MachiningMode == EN_DEFAULT_MACHINING_MODE.Cross)
+            {
+                await EnsureDefaultSource(run, token);
+                DefaultOffset.SetMessage($"HEAD {head:00} · 십자 중심 이동·측정 중", 3);
+                var mark = await inspection.Capture(head, 0, 0, 0, centerX, centerY, flip, token, referenceCell, run.Options.VisionMethod);
+                marks.Add(mark); DefaultOffset.ShowMarks(head, marks);
+                fit = CDefaultOffsetCalibration.FitCross(mark);
+            }
+            else
+            {
+                for (var beam = 1; beam <= 16; beam++)
+                {
+                    await EnsureDefaultSource(run, token);
+                    var slot = CDefaultOffsetCalibration.Slot(beam, run.Pitch, geometry.DoeAngle);
+                    DefaultOffset.SetMessage($"HEAD {head:00} · Beam {beam}/16 이동·측정 중", 3);
+                    var mark = await inspection.Capture(head, beam, slot.X, slot.Y, centerX + slot.X, centerY + direction * slot.Y, flip, token, referenceCell, run.Options.VisionMethod);
+                    marks.Add(mark); DefaultOffset.ShowMarks(head, marks);
+                }
+                fit = CDefaultOffsetCalibration.Fit(marks, run.Pitch, geometry.DoeAngle, run.Options.Tolerance);
+            }
+            var result = CDefaultOffsetCalibration.WithHeadReference(run.Values,
+                new(head, test.Id, test.Q, 0, test.Simulation, inspection.StageSimulation, inspection.VisionSimulation, marks.ToArray(), fit)
+                { Model = run.Model, ReferenceCell = referenceCell, Geometry = geometry });
+            await inspection.Move(result.CenterReviewX, result.CenterStageY, token);
+            return result with { R = inspection.Position.Y };
+        }
+        private async Task RestoreDefault(CDefaultSetupRun run)
+        {
+            var before = run.Original.Where(p => run.AppliedDefaults.ContainsKey(p.Key)).ToDictionary(p => p.Key, p => p.Value);
+            await RestoreDefaultValues(run, before, "ROLLED_BACK", CancellationToken.None);
+        }
+        private async Task RestoreDefaultValues(CDefaultSetupRun run, IReadOnlyDictionary<string, string> before, string action, CancellationToken token)
+        {
+            var prior = run.Values;
+            var restored = await _recipeManager.SaveParametersIfUnchanged(run.Recipe, before, token);
+            run.Recipe = restored; run.Values = CDefaultOffsetCalibration.Parameters(restored, run.Settings);
+            foreach (var key in before.Keys)
+            {
+                run.AppliedDefaults.Remove(key);
+                run.VerifiedResults.Remove(int.Parse(key.Substring(1, 2), CultureInfo.InvariantCulture));
+            }
+            run.Applied = run.AppliedDefaults.Count > 0;
+            run.Verified = run.Applied && run.VerifiedResults.Count == CDefaultOffsetCalibration.ActiveHeads(run.Values).Length;
+            run.Candidate = run.Applied ? new Dictionary<string, string>(run.AppliedDefaults, StringComparer.OrdinalIgnoreCase) : null;
+            _defaultOwnSave = true;
+            try { DefaultOffset.Update(restored, run.Settings); } finally { _defaultOwnSave = false; }
+            DefaultOffset.SetRunState(run.Candidate is not null, run.Applied, run.AppliedDefaults.Count / 2);
+            DefaultOffset.ShowResults(run.Results, run.Candidate, run.Applied ? "실패한 그룹은 적용 전 값으로 복원했습니다. 앞서 검증한 그룹은 유지합니다." : "측정 조건 적용 시점의 Default로 복원했습니다. 다시 측정해 주세요.", run.VerifiedResults.Keys.ToHashSet());
+            DefaultOffset.SetVerificationCount(run.VerifiedResults.Count);
+            await SaveDefaultLog(run, action, run.Values, CancellationToken.None, before: prior);
+        }
+        private Task<string> SaveDefaultLog(CDefaultSetupRun run, string action, IReadOnlyDictionary<string, string>? after, CancellationToken token, IReadOnlyDictionary<int, ST_DEFAULT_OFFSET_HEAD_RESULT>? results = null, IReadOnlyDictionary<string, string>? before = null) =>
+            new Drilling.File.Correction.CDefaultOffsetLogFile(_defaultManager!.ConfigRoot).Save(new(run.Id, run.Recipe.Name, action, DateTimeOffset.Now, run.Options, (results ?? run.Results).Values.ToArray(), before ?? run.Original, after ?? run.Values), token);
+        private static string DefaultSourceMode(CDefaultSetupRun run) => run.Results.Values.Any(r => r.VisionSimulation || r.StageSimulation || r.AutomationSimulation) ? "SIMULATION 포함" : "실장비";
+        private sealed record CDefaultTest(Guid Id, double Q, bool Simulation, IReadOnlyDictionary<string, string> Defaults);
+        private sealed class CDefaultSetupRun(ST_RECIPE_DEFINITION recipe, ST_SYSTEM_PARAMETER[] settings, IReadOnlyDictionary<string, string> values, ST_DEFAULT_OFFSET_OPTIONS options, int model, double pitch)
+        {
+            public Guid Id { get; } = Guid.NewGuid();
+            public ST_RECIPE_DEFINITION Recipe = recipe;
+            public ST_SYSTEM_PARAMETER[] Settings = settings;
+            public IReadOnlyDictionary<string, string> Values = values;
+            public IReadOnlyDictionary<string, string> Original { get; } = values;
+            public ST_DEFAULT_OFFSET_OPTIONS Options { get; } = options;
+            public int Model { get; } = model;
+            public double Pitch { get; } = pitch;
+            public Dictionary<int, CDefaultTest> Tests { get; } = [];
+            public Dictionary<int, ST_DEFAULT_OFFSET_HEAD_RESULT> Results { get; } = [];
+            public Dictionary<int, ST_DEFAULT_OFFSET_HEAD_RESULT> VerifiedResults { get; } = [];
+            // Actual committed recipe values, not a substitute for Task completion.
+            public Dictionary<string, string> AppliedDefaults { get; } = new(StringComparer.OrdinalIgnoreCase);
+            public IReadOnlyDictionary<string, string>? Candidate;
+            public bool Applied, Verified;
+            public bool AllInterrupted;
+        }
+
         private void InitializeRough(CInterfaceManager? interfaces)
         {
             var inspection = Rough.Inspection!;
@@ -2473,6 +3676,7 @@
                 return (values.FirstOrDefault(row => row.Name == "Stage Y")?.Position ?? "-", values.FirstOrDefault(row => row.Name == "Review X")?.Position ?? "-", mode == EN_COMM_STATE.Simulation ? "SIMULATION" : mode == EN_COMM_STATE.Online ? "ONLINE" : "OFFLINE");
             };
             Fine.ReadFeedback = inspection.ReadFeedback;
+            DefaultOffset.ReadFeedback = inspection.ReadFeedback;
         }
 
         private async Task ExecuteRoughAction(
@@ -2488,6 +3692,12 @@
             if (action == "REVIEW_STOP")
             {
                 _roughCancellation?.Cancel();
+                return;
+            }
+
+            if (action == "OFFSET_ROLLBACK")
+            {
+                await ExecuteReviewOffsetRollback(confirm, completed, warn);
                 return;
             }
 
@@ -2610,6 +3820,92 @@
 
 #endregion
 #region SimpleOffset
+        private async Task ExecuteReviewOffsetRollback(
+            Func<string, string, bool>? confirm = null,
+            Action<string, string>? completed = null,
+            Action<string, string>? warn = null)
+        {
+            if (_isReviewOperationRunning)
+                return;
+
+            const string title = "Offset Rollback";
+            confirm ??= (caption, message) => CRecipeConfirmDialog.ShowConfirmation(
+                caption,
+                message,
+                "되돌리기",
+                useDangerStyle: true);
+            completed ??= (caption, message) => CRecipeConfirmDialog.ShowCompletion(caption, message);
+            warn ??= (caption, message) => CRecipeConfirmDialog.ShowWarning(caption, message);
+
+            _isReviewOperationRunning = true;
+            Simple.SetOffsetOperationRunning(true);
+            Rough.SetOffsetOperationRunning(true);
+            Fine.SetOperationRunning(true);
+            ReviewData.SetSharedOffsetOperationRunning(true);
+            ExecuteCommand.NotifyCanExecuteChanged();
+            try
+            {
+                var recipe = await LoadSelectedOutputViewerRecipe(CancellationToken.None, fallbackToFirst: false)
+                    ?? throw new InvalidOperationException("현재 선택된 레시피가 없습니다.");
+                var latest = await _reviewOffsetFile.LoadLatest(recipe.Id);
+                if (string.IsNullOrWhiteSpace(latest.FilePath))
+                    throw new InvalidOperationException($"{recipe.Name} 레시피에 되돌릴 Review Offset 파일이 없습니다.");
+
+                var savedAt = latest.SavedAt.ToLocalTime();
+                var message = $"현재 레시피: {recipe.Name}\n\n"
+                    + $"{savedAt:yyyy년 MM월 dd일 HH시 mm분 ss초}에 저장한 가장 최근 Review Offset을 되돌립니다.\n"
+                    + $"대상 파일: {latest.FileName}\n\n"
+                    + "파일은 Rollback 보관 폴더로 이동되며 이전 파일이 즉시 활성화됩니다.\n"
+                    + "이전 파일이 없으면 Review Offset이 없는 상태(0.000)로 돌아갑니다.\n"
+                    + "롤백 후 기존 가공 준비 데이터는 무효화되므로 DoReady를 다시 실행해야 합니다.";
+                if (!confirm(title, message))
+                    return;
+
+                recipe = await LoadSelectedOutputViewerRecipe(CancellationToken.None, fallbackToFirst: false)
+                    ?? throw new InvalidOperationException("현재 선택된 레시피가 없습니다.");
+                if (!NormalizeRecipeId(recipe.Id).Equals(NormalizeRecipeId(latest.RecipeId), StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException("확인 중 선택 레시피가 변경되었습니다. 현재 값을 다시 확인해 주세요.");
+
+                _defaultManager?.Station().InvalidatePreparedReviewOffset();
+                var rollback = await _reviewOffsetFile.RollbackLatest(recipe.Id, latest.FilePath);
+                var active = await _reviewOffsetFile.LoadLatest(recipe.Id);
+                if (!active.FilePath.Equals(rollback.Current.FilePath, StringComparison.OrdinalIgnoreCase)
+                    || active.SavedAt != rollback.Current.SavedAt)
+                {
+                    throw new IOException("롤백 후 실제 가공에서 읽을 Review Offset 파일 검증에 실패했습니다.");
+                }
+
+                _simpleOffsetRecipeId = active.RecipeId;
+                _simpleOffsetLoad = Task.FromResult(active);
+                var settings = LoadSimpleOffsetSettings();
+                Simple.Update(recipe, settings, active);
+                Rough.Update(recipe, settings, active);
+                Fine.AcceptOffsetRollback(active.FileName);
+                ReviewData.AcceptOffsetRollback();
+
+                var activeText = string.IsNullOrWhiteSpace(active.FileName)
+                    ? "활성 Review Offset 없음 (0.000)"
+                    : $"현재 활성 파일: {active.FileName}";
+                var resultMessage = $"{rollback.RemovedFileName}을 롤백했습니다.\n{activeText}\n가공 전 DoReady를 다시 실행해 주세요.";
+                _statusReporter(resultMessage.Replace(Environment.NewLine, " "));
+                completed("Offset Rollback 완료", resultMessage);
+            }
+            catch (Exception exception)
+            {
+                _statusReporter($"{title}: {exception.Message}");
+                warn($"{title} 확인", exception.Message);
+            }
+            finally
+            {
+                _isReviewOperationRunning = false;
+                Simple.SetOffsetOperationRunning(false);
+                Rough.SetOffsetOperationRunning(false);
+                Fine.SetOperationRunning(false);
+                ReviewData.SetSharedOffsetOperationRunning(false);
+                ExecuteCommand.NotifyCanExecuteChanged();
+            }
+        }
+
         private async Task ExecuteSimpleOffsetAction(
             string action, 
             Func<string, string, bool>? confirm = null, 
@@ -2618,6 +3914,12 @@
             Action<CAlignOffsetViewerPanel>? showViewer = null
         )
         {
+            if (action == "OFFSET_ROLLBACK")
+            {
+                await ExecuteReviewOffsetRollback(confirm, completed, warn);
+                return;
+            }
+
             if (_isReviewOperationRunning || action is not ("OFFSET_APPLY" or "OFFSET_INIT" or "OFFSET_VIEW"))
                 return;
             var title = action switch
@@ -2793,6 +4095,9 @@
         public ImageSource? PreviewImage { get; }
         public double PreviewHeight { get; }
         public IReadOnlyList<CAlignBaseEditKey> Keys { get; }
+        public IReadOnlyList<CAlignBaseEditKey> AlignKeys => Keys.Where(key => key.Name.StartsWith("AK", StringComparison.Ordinal)).ToArray();
+        public IReadOnlyList<CAlignBaseEditPair> DistortionPairs => Enumerable.Range(0, 3)
+            .Select(index => new CAlignBaseEditPair(index, Keys.Single(key => key.Name == $"DK{index * 2 + 1}"), Keys.Single(key => key.Name == $"DK{index * 2 + 2}"))).ToArray();
 
         public IReadOnlyDictionary<string, string> BuildValues()
         {
@@ -2800,6 +4105,478 @@
             CAlignBaseData.Apply(_recipe, values);
             return values;
         }
+    }
+
+    /// <summary>DEFAULT presentation uses immutable measurement records and existing device snapshots.
+    /// Equipment operations belong to CMenuCorrection's DEFAULT CENTER entry points above.</summary>
+    public sealed class CDefaultOffsetPanel : INotifyPropertyChanged
+    {
+        private IReadOnlyDictionary<string, string> _parameters = new Dictionary<string, string>();
+        private CDefaultOffsetHead _selectedHead;
+        private int _selectedModelNumber = 1;
+        private string _signature = "";
+        private readonly Dictionary<int, double> _fired = [];
+        private string _recipeId = "";
+        private readonly Dictionary<int, IReadOnlyList<ST_DEFAULT_OFFSET_MARK>> _marks = [];
+        private readonly Dictionary<int, ST_DEFAULT_OFFSET_HEAD_RESULT> _results = [];
+        public Func<string, Task>? ExecuteAction { get; set; }
+        public event Action? SourceInvalidated;
+        public ST_DEFAULT_OFFSET_OPTIONS? Options { get; private set; }
+        public bool IsBusy { get; private set; }
+        public bool HasSetup { get; private set; }
+        public bool HasCandidate { get; private set; }
+        public bool IsApplied { get; private set; }
+        public int AppliedHeadCount { get; private set; }
+        public int VerifiedHeadCount { get; private set; }
+        public int ActiveHeadCount => RecipeName == "-" ? 0 : Heads.Count(h => h.IsUsed);
+        public bool CanSelect => !IsBusy && !IsApplied;
+        public IReadOnlyList<string> ExecutionModes { get; } = ["전체 일괄", "두 Head씩 적용"];
+        private string _executionMode = "전체 일괄";
+        public string ExecutionMode
+        {
+            get => _executionMode;
+            set
+            {
+                if (!CanSelect || !ExecutionModes.Contains(value) || _executionMode == value) return;
+                _executionMode = value;
+                Changed(nameof(ExecutionMode), nameof(IsPairMode));
+                ActionCommand.NotifyCanExecuteChanged();
+            }
+        }
+        public bool IsPairMode => _executionMode == "두 Head씩 적용";
+        public CButtonCommand ActionCommand { get; }
+        public CDefaultOffsetPanel()
+        {
+            Heads = Enumerable.Range(1, 8).Select(number => new CDefaultOffsetHead(number, "-", "-", true)).ToArray();
+            _selectedHead = Heads[0];
+            _selectedHead.SetSelected(true);
+            SelectHeadCommand = new(value =>
+            {
+                if (int.TryParse(value?.ToString(), out var number) && Heads.FirstOrDefault(row => row.HeadNo == number) is { } head)
+                    SelectedHead = head;
+            }, _ => !IsBusy);
+            ActionCommand = new(value => { if (value is string action && ExecuteAction is not null && CanExecute(action)) _ = ExecuteAction(action); }, value => value is string action && CanExecute(action));
+            RefreshPreview();
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public CButtonCommand SelectHeadCommand { get; }
+        public IReadOnlyList<CDefaultOffsetHead> Heads { get; private set; }
+        public IReadOnlyList<int> ModelNumbers { get; private set; } = [1];
+        public CReviewCameraPreview Camera { get; } = new();
+        public Func<(string StageY, string ReviewX, string Mode)>? ReadFeedback { get; set; }
+        public string RecipeName { get; private set; } = "-";
+        public string StageY { get; private set; } = "-";
+        public string ReviewX { get; private set; } = "-";
+        public string Mode { get; private set; } = "OFFLINE";
+        public Brush ModeBrush => Mode == "SIMULATION" ? CStatusBrush.Frozen(0xB8, 0x80, 0) : Mode == "ONLINE" ? CStatusBrush.CommandGreen : CStatusBrush.CommandRed;
+        public string BoardReference => Read("REVIEW_CAMERA_ALIGN_KEY_POS_X") is { } camera && Read("GLASS_SIZE_X") is { } width && Read("AK_MARGIN_X") is { } margin
+                ? (camera + width / 2 - margin).ToString("0.000", CultureInfo.InvariantCulture) : "미설정";
+        public string State => IsBusy ? "진행 중" : IsApplied ? VerifiedHeadCount == ActiveHeadCount ? "검증 완료" : AppliedHeadCount < ActiveHeadCount ? $"부분 적용 {AppliedHeadCount}/{ActiveHeadCount}" : "적용됨" : _results.Count > 0 ? "측정됨" : "미측정";
+        public string MeasuredCenter => _results.TryGetValue(SelectedHead.HeadNo, out var r) ? $"X {r.CenterReviewX:0.000} / Y {r.CenterStageY:0.000}" : "X -  /  Y -";
+        public string CenterError => _results.TryGetValue(SelectedHead.HeadNo, out var r) ? $"X {r.CenterErrorX:0.000} / Y {r.CenterErrorY:0.000}" : "X -  /  Y -";
+        public string HeadMeasurementSummary => $"{_results.Count} / {ActiveHeadCount} USE Heads 측정" + (IsApplied ? $" · {AppliedHeadCount} 적용 / {VerifiedHeadCount} 검증" : "");
+        public string SelectedHeadTitle => $"HEAD {SelectedHead.HeadNo:00}";
+        public string SelectedDefault => $"X {SelectedHead.CurrentX}  /  Y {SelectedHead.CurrentY} mm";
+        public string BeamSummary { get; private set; } = "측정 0";
+        public string GeometryText { get; private set; } = "레시피 설계값 대기";
+        public string PatternCaption => Options?.MachiningMode == EN_DEFAULT_MACHINING_MODE.Cross
+            ? "십자 가공 형상"
+            : "DOE 빔 배열";
+        public string StatusText { get; private set; } = "Head를 선택해 현재 Default와 예상 빔 배열을 확인하세요.";
+        public ImageSource? GlassImage { get; private set; }
+        public ImageSource? BeamImage { get; private set; }
+        public IReadOnlyList<ST_DEFAULT_PREVIEW_POINT> MachiningPoints { get; private set; } = [];
+        private string? _machiningPositionError;
+        private ST_DEFAULT_PREVIEW_POINT? SelectedMachiningPoint => MachiningPoints.FirstOrDefault(p => p.Head == SelectedHead.HeadNo);
+        public string MachiningPositionText => SelectedMachiningPoint is { } p ? $"예상 X {p.X:0.000} / Y {p.Y:0.000} mm{(p.IsOnGlass ? "" : " · Glass 밖")}" : _machiningPositionError is null ? "측정 조건 설정 후 가공점 표시" : "예상 위치 계산 불가";
+        public Brush MachiningPositionBrush => _machiningPositionError is not null || SelectedMachiningPoint is { IsOnGlass: false } ? CStatusBrush.CommandRed : CStatusBrush.CommandBlue;
+        public string MachiningPositionDetail => _machiningPositionError ?? (SelectedMachiningPoint is { } p
+            ? $"Glass 좌상단 기준 예상 가공 중심 · 현재 Recipe Default 반영\nStage Y {p.StageY:0.000} mm / Start {Read("STAGE_START_POS_Y"):0.000} mm\nStage 이동량 {p.StageY - Read("STAGE_START_POS_Y"):0.000} mm\n카메라 AK 티칭·헤드 간격·가공 방향 기준 계산"
+            : "측정 조건의 Stage Y 위치를 적용하면 예상 가공 중심을 표시합니다.");
+        public IReadOnlyList<CDefaultOffsetStep> Steps { get; } = [
+            new(1, "측정 조건"), new(2, "테스트 가공"), new(3, "Vision 측정"),
+            new(4, "추천 계산"), new(5, "적용"), new(6, "새 가공 검증")];
+
+        public CDefaultOffsetHead SelectedHead
+        {
+            get => _selectedHead;
+            set
+            {
+                if (IsBusy || value is null || ReferenceEquals(value, _selectedHead) || !Heads.Contains(value)) return;
+                _selectedHead.SetSelected(false);
+                _selectedHead = value;
+                _selectedHead.SetSelected(true);
+                Changed(nameof(SelectedHead), nameof(SelectedHeadTitle), nameof(SelectedDefault), nameof(MeasuredCenter), nameof(CenterError));
+                ActionCommand.NotifyCanExecuteChanged();
+                RefreshPreview();
+            }
+        }
+        public int SelectedModelNumber
+        {
+            get => _selectedModelNumber;
+            set
+            {
+                if (!CanSelect || _selectedModelNumber == value || !ModelNumbers.Contains(value)) return;
+                SourceInvalidated?.Invoke();
+                Invalidate();
+                _selectedModelNumber = value;
+                Changed(nameof(SelectedModelNumber));
+                RefreshPreview();
+            }
+        }
+
+        public void Update(ST_RECIPE_DEFINITION? recipe, IReadOnlyList<ST_SYSTEM_PARAMETER> settings)
+        {
+            if (recipe is null) { Clear("현재 선택한 레시피가 없습니다."); return; }
+            var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var item in settings) values[item.Key] = item.Value;
+            foreach (var item in recipe.Parameters) values[item.Key] = item.Value;
+            var signature = recipe.Id + "|" + recipe.Name + "|" + string.Join("|", values.OrderBy(item => item.Key).Select(item => item.Key + "=" + item.Value));
+            if (_signature == signature) { RefreshFeedback(); return; }
+            SourceInvalidated?.Invoke();
+            Invalidate();
+            _signature = signature;
+            if (_recipeId != recipe.Id) { Options = null; _recipeId = recipe.Id; Changed(nameof(BoardReference)); }
+            _parameters = values;
+            RecipeName = recipe.Name;
+            var selected = _selectedHead.HeadNo;
+            Heads = Enumerable.Range(1, 8).Select(number => new CDefaultOffsetHead(number,
+                ReadText($"H{number:00}_DEFAULT_OFFSET_X"), ReadText($"H{number:00}_DEFAULT_OFFSET_Y"),
+                !values.TryGetValue($"H{number:00}_USE", out var use) || use.Trim().ToUpperInvariant() is not ("OFF" or "0" or "FALSE" or "UNUSE"))).ToArray();
+            _selectedHead = Heads.Single(row => row.HeadNo == selected);
+            _selectedHead.SetSelected(true);
+            ModelNumbers = Enumerable.Range(1, CRecipeModelPixelCountReader.ReadModelTypeCount(values)).ToArray();
+            if (!ModelNumbers.Contains(_selectedModelNumber)) _selectedModelNumber = ModelNumbers[0];
+            StatusText = "측정 조건 적용 → 시험 가공·Vision 측정 → 추천 → 적용 → 새 가공 검증";
+            Changed(nameof(RecipeName), nameof(Heads), nameof(SelectedHead), nameof(SelectedHeadTitle), nameof(SelectedDefault), nameof(ModelNumbers), nameof(SelectedModelNumber), nameof(StatusText), nameof(BoardReference));
+            RefreshPreview();
+            RefreshFeedback();
+            // Invalidate notified while RecipeName still held the previous value.
+            // Publish command availability again after the loaded recipe is installed.
+            NotifyRun();
+        }
+
+        public void Clear(string message)
+        {
+            SourceInvalidated?.Invoke();
+            Invalidate();
+            _signature = "";
+            _parameters = new Dictionary<string, string>();
+            RecipeName = "-";
+            Heads = Enumerable.Range(1, 8).Select(number => new CDefaultOffsetHead(number, "-", "-", true)).ToArray();
+            _selectedHead = Heads[0];
+            _selectedHead.SetSelected(true);
+            ModelNumbers = [1]; _selectedModelNumber = 1;
+            StatusText = message;
+            Changed(nameof(RecipeName), nameof(Heads), nameof(SelectedHead), nameof(SelectedHeadTitle), nameof(SelectedDefault), nameof(ModelNumbers), nameof(SelectedModelNumber), nameof(StatusText), nameof(BoardReference));
+            RefreshPreview();
+            ActionCommand.NotifyCanExecuteChanged();
+        }
+
+        public bool CanExecute(string action) => ExecuteAction is not null && (action == "STOP" ? IsBusy : !IsBusy && action switch
+        {
+            "CONDITIONS" => !IsApplied && RecipeName != "-" && ActiveHeadCount > 0,
+            "FIRE" => HasSetup && !IsApplied && SelectedHead.IsUsed,
+            "ALL" => HasSetup && ActiveHeadCount > 0 && (!IsApplied || IsPairMode && AppliedHeadCount < ActiveHeadCount),
+            "MEASURE" => HasSetup && !IsApplied && SelectedHead.IsUsed && _fired.ContainsKey(SelectedHead.HeadNo),
+            "RECOMMEND" => HasSetup && !IsApplied && ActiveHeadCount > 0 && _results.Count == ActiveHeadCount,
+            "APPLY" => HasCandidate && !IsApplied,
+            "VERIFY" => IsApplied && AppliedHeadCount == ActiveHeadCount,
+            "ROLLBACK" => IsApplied,
+            _ => false
+        });
+        private void Invalidate()
+        {
+            HasSetup = false; HasCandidate = false; IsApplied = false; AppliedHeadCount = 0; VerifiedHeadCount = 0;
+            _fired.Clear(); _marks.Clear(); _results.Clear();
+            foreach (var head in Heads) head.SetResult(null, null);
+            foreach (var step in Steps) step.Set("WAIT");
+            NotifyRun();
+        }
+        public void ApplyConditions(ST_DEFAULT_OFFSET_OPTIONS options, int? model = null)
+        {
+            if (model is { } number && !ModelNumbers.Contains(number)) throw new ArgumentOutOfRangeException(nameof(model));
+            Invalidate();
+            if (model is { } selected) _selectedModelNumber = selected;
+            Options = options;
+            HasSetup = true;
+            Steps[0].Set("DONE");
+            SetMessage($"측정 조건 적용 완료 · {options.MachiningDescription} · {options.VisionDescription}");
+            Changed(nameof(BoardReference), nameof(SelectedModelNumber));
+            NotifyRun();
+            RefreshPreview();
+        }
+        public void SetBusy(bool busy)
+        {
+            IsBusy = busy;
+            if (!busy) foreach (var step in Steps.Where(s => s.State == "RUNNING")) step.Set(StatusText.StartsWith("실패") ? "ERROR" : StatusText.StartsWith("중지") ? "STOPPED" : "DONE");
+            Changed(nameof(IsBusy), nameof(CanSelect), nameof(State)); SelectHeadCommand.NotifyCanExecuteChanged(); ActionCommand.NotifyCanExecuteChanged();
+        }
+        public void SetMessage(string text, int step = 0, bool done = false)
+        {
+            StatusText = text;
+            if (step > 0) { foreach (var s in Steps.Where(s => s.State == "RUNNING")) s.Set("WAIT"); Steps[step - 1].Set(done ? "DONE" : "RUNNING"); }
+            Changed(nameof(StatusText), nameof(State));
+        }
+        public void SetRunState(bool candidate, bool applied, int? appliedHeadCount = null)
+        {
+            HasSetup = true; HasCandidate = candidate; IsApplied = applied; AppliedHeadCount = applied ? appliedHeadCount ?? ActiveHeadCount : 0;
+            if (applied) foreach (var step in Steps.Take(5)) step.Set("DONE");
+            NotifyRun();
+        }
+        public void SetVerificationCount(int count)
+        {
+            VerifiedHeadCount = count;
+            NotifyRun();
+        }
+        public void MarkFired(int head, double q) { _fired[head] = q; HasCandidate = false; _results.Remove(head); _marks.Remove(head); Heads.Single(h => h.HeadNo == head).SetResult(null, null, "가공 완료"); NotifyRun(); RefreshPreview(); }
+        public void SelectHeadForRun(int head)
+        {
+            _selectedHead.SetSelected(false); _selectedHead = Heads.Single(h => h.HeadNo == head); _selectedHead.SetSelected(true);
+            Changed(nameof(SelectedHead), nameof(SelectedHeadTitle), nameof(SelectedDefault), nameof(MeasuredCenter), nameof(CenterError)); RefreshPreview();
+        }
+        public void ShowMarks(int head, IReadOnlyList<ST_DEFAULT_OFFSET_MARK> marks)
+        { _marks[head] = marks.ToArray(); RefreshPreview(); }
+        public void ShowResults(IReadOnlyDictionary<int, ST_DEFAULT_OFFSET_HEAD_RESULT> results, IReadOnlyDictionary<string, string>? candidate, string message, IReadOnlySet<int>? verifiedHeads = null)
+        {
+            _results.Clear(); foreach (var pair in results) { _results[pair.Key] = pair.Value; _marks[pair.Key] = pair.Value.Marks; }
+            foreach (var head in Heads) head.SetResult(_results.GetValueOrDefault(head.HeadNo), candidate, verifiedHeads?.Contains(head.HeadNo) == true ? "검증 OK" : null);
+            HasCandidate = candidate is not null;
+            if (results.Count > 0) Steps[2].Set("DONE");
+            if (candidate is not null) Steps[3].Set("DONE");
+            SetMessage(message); NotifyRun(); RefreshPreview();
+        }
+        private void NotifyRun()
+        { Changed(nameof(HeadMeasurementSummary), nameof(MeasuredCenter), nameof(CenterError), nameof(State), nameof(CanSelect), nameof(ActiveHeadCount), nameof(AppliedHeadCount), nameof(VerifiedHeadCount)); ActionCommand?.NotifyCanExecuteChanged(); }
+
+        public void RefreshFeedback()
+        {
+            if (ReadFeedback is null) return;
+            var feedback = ReadFeedback(); // Shared cache only; no device read or motion command.
+            Camera.UpdateFeedback(feedback.StageY, feedback.ReviewX, feedback.Mode);
+            if ((StageY, ReviewX, Mode) == feedback) return;
+            StageY = feedback.StageY; ReviewX = feedback.ReviewX; Mode = feedback.Mode;
+            Changed(nameof(StageY), nameof(ReviewX), nameof(Mode), nameof(ModeBrush));
+        }
+
+        private void RefreshPreview()
+        {
+            MachiningPoints = [];
+            _machiningPositionError = null;
+            var glass = new DrawingGroup();
+            using (var drawing = glass.Open())
+            {
+                drawing.DrawRectangle(Brushes.WhiteSmoke, null, new Rect(0, 0, 240, 400));
+                var width = Read("GLASS_SIZE_X"); var height = Read("GLASS_SIZE_Y");
+                var bounds = Rect.Empty;
+                if (width is > 0 && height is > 0)
+                {
+                    // Reserve space above the glass for the camera marker's CAM label.
+                    var scale = Math.Min(208 / width.Value, 320 / height.Value);
+                    bounds = new Rect((240 - width.Value * scale) / 2, (392 - height.Value * scale) / 2, width.Value * scale, height.Value * scale);
+                    drawing.DrawRectangle(CStatusBrush.Frozen(0xEC, 0xF5, 0xFC), new Pen(CStatusBrush.CommandBlue, 2), bounds);
+                    if (Options is not null)
+                    {
+                        try
+                        {
+                            MachiningPoints = Enumerable.Range(1, 8).Select(head => CDefaultOffsetCalibration.PredictCenter(_parameters, head,
+                                _fired.GetValueOrDefault(head, _results.GetValueOrDefault(head)?.Q ?? Options.TestStageY))).ToArray();
+                            foreach (var p in MachiningPoints.Where(p => p.IsOnGlass).OrderBy(p => p.Head == SelectedHead.HeadNo))
+                            {
+                                var selected = p.Head == SelectedHead.HeadNo;
+                                var point = new Point(bounds.Left + p.X * scale, bounds.Top + p.Y * scale);
+                                var radius = selected ? 5.0 : 3.0;
+                                drawing.DrawEllipse(selected ? CStatusBrush.CommandBlue : CStatusBrush.Frozen(0x7F, 0xAA, 0xC9), new Pen(Brushes.White, 1), point, radius, radius);
+                                Label(drawing, $"H{p.Head:00}", Math.Clamp(point.X, bounds.Left + 12, bounds.Right - 12), Math.Clamp(point.Y + radius + 2, bounds.Top, bounds.Bottom - 12), selected ? 10 : 9);
+                            }
+                        }
+                        catch (Exception error) when (error is InvalidOperationException or ArgumentException) { _machiningPositionError = error.Message; }
+                    }
+                    Label(drawing, $"{width:0.###} × {height:0.###} mm", 120, 380, 12);
+                }
+                else Label(drawing, "레시피 선택 대기", 120, 186, 15);
+                Camera.Configure(_parameters, bounds);
+            }
+            GlassImage = Freeze(glass);
+            var beams = new DrawingGroup();
+            using (var drawing = beams.Open())
+            {
+                drawing.DrawRectangle(Brushes.WhiteSmoke, null, new Rect(0, 0, 500, 330));
+                try
+                {
+                    var marks = _marks.GetValueOrDefault(SelectedHead.HeadNo) ?? [];
+                    if (Options?.MachiningMode == EN_DEFAULT_MACHINING_MODE.Cross)
+                    {
+                        if (!double.IsFinite(Options.CrossSize) || Options.CrossSize <= 0)
+                            throw new InvalidOperationException("십자 전체 길이를 확인해 주세요.");
+                        const double crossHalfLength = 115;
+                        var crossPen = new Pen(CStatusBrush.CommandBlue, 7);
+                        var targetCenter = new Point(250, 160);
+                        drawing.DrawLine(crossPen, new Point(targetCenter.X - crossHalfLength, targetCenter.Y), new Point(targetCenter.X + crossHalfLength, targetCenter.Y));
+                        drawing.DrawLine(crossPen, new Point(targetCenter.X, targetCenter.Y - crossHalfLength), new Point(targetCenter.X, targetCenter.Y + crossHalfLength));
+                        drawing.DrawEllipse(Brushes.White, new Pen(CStatusBrush.CommandBlue, 3), targetCenter, 11, 11);
+                        var displayScale = 230 / Options.CrossSize;
+                        foreach (var mark in marks)
+                        {
+                            var actual = new Point(
+                                targetCenter.X + mark.X * displayScale,
+                                targetCenter.Y + mark.Y * displayScale);
+                            if ((actual - targetCenter).Length > 1.5)
+                                drawing.DrawLine(new Pen(CStatusBrush.Frozen(0x80, 0x92, 0xA3), 1) { DashStyle = DashStyles.Dash }, targetCenter, actual);
+                            var measuredBrush = mark.Judge == "OK" ? CStatusBrush.CommandGreen : CStatusBrush.CommandRed;
+                            var measuredPen = new Pen(measuredBrush, 3);
+                            drawing.DrawLine(measuredPen, new Point(actual.X - crossHalfLength, actual.Y), new Point(actual.X + crossHalfLength, actual.Y));
+                            drawing.DrawLine(measuredPen, new Point(actual.X, actual.Y - crossHalfLength), new Point(actual.X, actual.Y + crossHalfLength));
+                            drawing.DrawEllipse(measuredBrush, new Pen(Brushes.White, 1), actual, 5, 5);
+                        }
+                        Label(drawing, "목표 중심  X 0.00000 / Y 0.00000 mm", 250, 282, 12);
+                        if (marks.LastOrDefault() is { } measured)
+                        {
+                            var deltaX = measured.X.ToString("+0.00000;-0.00000;0.00000", CultureInfo.InvariantCulture);
+                            var deltaY = measured.Y.ToString("+0.00000;-0.00000;0.00000", CultureInfo.InvariantCulture);
+                            Label(drawing, $"실측 중심  ΔX {deltaX} / ΔY {deltaY} mm  [{measured.Judge}]", 250, 302, 12);
+                        }
+                        else Label(drawing, "실측 중심 대기", 250, 302, 12);
+                        BeamSummary = $"측정 {marks.Count} / 1";
+                        GeometryText = $"십자 {Options.CrossSize:0.###} mm · Mark Find Setting Single";
+                    }
+                    else
+                    {
+                        var pixel = Read("PIXEL_SIZE") ?? throw new InvalidOperationException("Pixel Size 미설정");
+                        var branch = Read("SPLITED_BEAM_COUNT") ?? throw new InvalidOperationException("DOE Beam Count 미설정");
+                        if (branch != Math.Truncate(branch) || branch is < 1 or > 8) throw new InvalidOperationException("DOE 분기 수 확인 필요");
+                        var pattern = CRecipeModelPixelCountReader.ReadPatternForModel(_parameters, _selectedModelNumber);
+                        var layout = CCellPatternCalculator.Calculate(new ST_CELL_PATTERN_DEFINITION(1, 0, 0, 0, pixel,
+                            pattern.PixelCountX, pattern.PixelCountY, pattern.ProcessPitch, (int)branch), includeShotCenters: false);
+                        if (!layout.IsValid) throw new InvalidOperationException(layout.ValidationMessage);
+                        var n = (int)branch;
+                        var count = n * n;
+                        var spacing = n > 1 ? Math.Min(310.0 / (n - 1), 180.0 / (n - 1)) : 0;
+                        var angleDegrees = Read($"H{SelectedHead.HeadNo:00}_DOE_ROTATION_ANGLE") ?? 0;
+                        var angle = angleDegrees * Math.PI / 180;
+                        var pen = new Pen(CStatusBrush.Frozen(0xAC, 0xB8, 0xC4), 1) { DashStyle = DashStyles.Dash };
+                        drawing.DrawLine(pen, new Point(45, 160), new Point(455, 160));
+                        drawing.DrawLine(pen, new Point(250, 32), new Point(250, 275));
+                        for (var row = 0; row < n; row++)
+                        for (var col = 0; col < n; col++)
+                        {
+                            var u = (col - (n - 1) / 2.0) * spacing; var v = (row - (n - 1) / 2.0) * spacing;
+                            var point = new Point(250 + u * Math.Cos(angle) - v * Math.Sin(angle), 160 + u * Math.Sin(angle) + v * Math.Cos(angle));
+                            drawing.DrawRectangle(Brushes.White, new Pen(CStatusBrush.Frozen(0x80, 0x92, 0xA3), 2), new Rect(point.X - 17, point.Y - 17, 34, 34));
+                            Label(drawing, (row * n + col + 1).ToString(CultureInfo.InvariantCulture), point.X, point.Y - 11, 17);
+                        }
+                        foreach (var mark in marks)
+                        {
+                            var actual = new Point(250 + mark.X * spacing / layout.BeamPitchMillimeters, 160 + mark.Y * spacing / layout.BeamPitchMillimeters);
+                            drawing.DrawEllipse(mark.Judge == "OK" ? CStatusBrush.CommandGreen : CStatusBrush.CommandRed, null, actual, 5, 5);
+                        }
+
+                        (double X, double Y)? measuredCenter = null;
+                        if (_results.GetValueOrDefault(SelectedHead.HeadNo)?.Fit is { } completedFit)
+                            measuredCenter = (completedFit.X, completedFit.Y);
+                        else if (n == 4 && marks.Count > 0 && marks.All(mark => mark.Beam is >= 1 and <= 16))
+                        {
+                            var centerOffsets = marks.Select(mark =>
+                            {
+                                var slot = CDefaultOffsetCalibration.Slot(mark.Beam, layout.BeamPitchMillimeters, angleDegrees);
+                                return (X: mark.X - slot.X, Y: mark.Y - slot.Y);
+                            }).ToArray();
+                            measuredCenter = (centerOffsets.Average(value => value.X), centerOffsets.Average(value => value.Y));
+                        }
+
+                        var targetCenter = new Point(250, 160);
+                        drawing.DrawEllipse(Brushes.White, new Pen(CStatusBrush.CommandBlue, 3), targetCenter, 10, 10);
+                        if (measuredCenter is { } measured)
+                        {
+                            var displayScale = spacing / layout.BeamPitchMillimeters;
+                            var actualCenter = new Point(
+                                Math.Clamp(250 + measured.X * displayScale, 24, 476),
+                                Math.Clamp(160 + measured.Y * displayScale, 24, 270));
+                            if ((actualCenter - targetCenter).Length > 1.5)
+                                drawing.DrawLine(new Pen(CStatusBrush.Frozen(0x80, 0x92, 0xA3), 1) { DashStyle = DashStyles.Dash }, targetCenter, actualCenter);
+                            var centerBrush = marks.All(mark => mark.Judge == "OK") ? CStatusBrush.CommandGreen : CStatusBrush.CommandRed;
+                            drawing.DrawEllipse(centerBrush, new Pen(Brushes.White, 1), actualCenter, 5, 5);
+                        }
+                        BeamSummary = $"측정 {marks.Count} / {count}";
+                        GeometryText = $"MODEL {_selectedModelNumber} · {n}×{n} · 빔 간격 {layout.BeamPitchMillimeters:0.###} mm · Mark Find Single";
+                    }
+                }
+                catch (Exception error) when (error is InvalidOperationException or ArgumentException or OverflowException)
+                {
+                    Label(drawing, "예상 배열을 표시할 수 없습니다.", 250, 135, 16);
+                    Label(drawing, "레시피 설계값을 확인해 주세요.", 250, 164, 14);
+                    BeamSummary = "미측정";
+                    GeometryText = error.Message;
+                }
+            }
+            BeamImage = Freeze(beams);
+            Changed(nameof(GlassImage), nameof(BeamImage), nameof(BeamSummary), nameof(GeometryText), nameof(PatternCaption), nameof(MachiningPoints), nameof(MachiningPositionText), nameof(MachiningPositionBrush), nameof(MachiningPositionDetail));
+        }
+        private double? Read(string key) => _parameters.TryGetValue(key, out var value) &&
+            double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var number) && double.IsFinite(number) ? number : null;
+        private string ReadText(string key) => Read(key)?.ToString("0.000", CultureInfo.InvariantCulture) ?? "-";
+        private static ImageSource Freeze(DrawingGroup group) { var image = new DrawingImage(group); image.Freeze(); return image; }
+        private static void Label(DrawingContext drawing, string text, double centerX, double top, double size)
+        {
+            var formatted = new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+                new Typeface("Malgun Gothic"), size, CStatusBrush.Frozen(0x24, 0x38, 0x4B), 1);
+            drawing.DrawText(formatted, new Point(centerX - formatted.Width / 2, top));
+        }
+        private void Changed(params string[] names) { foreach (var name in names) PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name)); }
+    }
+
+    public sealed class CDefaultOffsetHead(int headNo, string currentX, string currentY, bool enabled) : INotifyPropertyChanged
+    {
+        private bool _isSelected;
+        private ST_DEFAULT_OFFSET_HEAD_RESULT? _result;
+        private IReadOnlyDictionary<string, string>? _candidate;
+        private string? _state;
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public int HeadNo { get; } = headNo;
+        public bool IsUsed => enabled;
+        public string Name => $"H{HeadNo:00}";
+        public string CurrentX { get; } = currentX;
+        public string CurrentY { get; } = currentY;
+        public string Current => $"X {CurrentX}\nY {CurrentY}";
+        public string CompactCurrent => $"{CurrentX} / {CurrentY}";
+        public string EmptyXY => "X -\nY -";
+        public string Measured => _result is null ? EmptyXY : $"X {_result.CenterReviewX:0.000}\nY {_result.CenterStageY:0.000}";
+        public string Target => _result is null ? EmptyXY : $"X {_result.TargetReviewX:0.000}\nY {_result.TargetStageY:0.000}";
+        public string Recommended => _candidate is null || !_candidate.TryGetValue($"H{HeadNo:00}_DEFAULT_OFFSET_X", out var x) || !_candidate.TryGetValue($"H{HeadNo:00}_DEFAULT_OFFSET_Y", out var y) ? EmptyXY : $"X {x}\nY {y}";
+        public string Delta => _result is null ? EmptyXY : $"X {-_result.CenterErrorX:0.000}\nY {-_result.CenterErrorY:0.000}";
+        public string CompactMeasured => Measured.Replace("X ", "").Replace("\nY ", " / ");
+        public string CompactTarget => Target.Replace("X ", "").Replace("\nY ", " / ");
+        public string CompactRecommended => Recommended.Replace("X ", "").Replace("\nY ", " / ");
+        public string CompactDelta => Delta.Replace("X ", "").Replace("\nY ", " / ");
+        public string State => !enabled ? "미사용" : _state ?? (_result is null ? "미측정" : _result.VisionSimulation || _result.AutomationSimulation || _result.StageSimulation ? "측정(SIM)" : "측정 완료");
+        public string Detail => $"HEAD {HeadNo:00}\n현재 Default: X {CurrentX} / Y {CurrentY} mm\n" + (_result is null ? "미측정" : $"목표 중심(Review X/Stage Y): {_result.TargetReviewX:0.000}/{_result.TargetStageY:0.000} mm\n실측 중심: {_result.CenterReviewX:0.000}/{_result.CenterStageY:0.000} mm\n목표 대비 오차(설계 X/Y): {_result.CenterErrorX:0.000}/{_result.CenterErrorY:0.000} mm\nQ {_result.Q:0.000} / R {_result.R:0.000}\n격자 잔차 {_result.Fit.Residual:0.000000} mm\n" + string.Join("\n", _result.Marks.Select(m => $"Beam {m.Beam}: Target-Hole {m.RawX:0.000000}/{m.RawY:0.000000} → Flip {m.CorrectionX:0.000000}/{m.CorrectionY:0.000000} · {m.Judge}")));
+        public Brush Background => _isSelected ? CStatusBrush.CommandBlue : CStatusBrush.Frozen(0xE6, 0xEE, 0xF5);
+        public Brush Foreground => _isSelected ? Brushes.White : CStatusBrush.Frozen(0x24, 0x38, 0x4B);
+        public Brush StateBrush => _isSelected ? Brushes.White : !enabled ? Brushes.DimGray : _state == "검증 NG" ? CStatusBrush.CommandRed : _result is not null ? CStatusBrush.CommandGreen : CStatusBrush.Frozen(0x98, 0x6A, 0);
+        public void SetResult(ST_DEFAULT_OFFSET_HEAD_RESULT? result, IReadOnlyDictionary<string, string>? candidate, string? state = null)
+        {
+            _result = result; _candidate = candidate; _state = state;
+            foreach (var name in new[] { nameof(Measured), nameof(Target), nameof(Recommended), nameof(Delta), nameof(CompactMeasured), nameof(CompactTarget), nameof(CompactRecommended), nameof(CompactDelta), nameof(State), nameof(Detail), nameof(StateBrush) }) PropertyChanged?.Invoke(this, new(name));
+        }
+        public void SetSelected(bool selected)
+        {
+            if (_isSelected == selected) return;
+            _isSelected = selected;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Background)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Foreground)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(StateBrush)));
+        }
+    }
+
+    public sealed record CDefaultOffsetStep(int Number, string Name) : INotifyPropertyChanged
+    {
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public string Order => Number.ToString("00", CultureInfo.InvariantCulture);
+        public string State { get; private set; } = "WAIT";
+        public Brush Background => State == "DONE" ? CStatusBrush.CommandGreen : State == "RUNNING" ? CStatusBrush.CommandBlue : State == "ERROR" ? CStatusBrush.CommandRed : CStatusBrush.Frozen(0xFF, 0xD9, 0x66);
+        public Brush Foreground => State is "DONE" or "RUNNING" or "ERROR" ? Brushes.White : Brushes.Black;
+        public void Set(string state) { State = state; foreach (var name in new[] { nameof(State), nameof(Background), nameof(Foreground) }) PropertyChanged?.Invoke(this, new(name)); }
     }
 
     public sealed class CAlignBaseEditKey : INotifyPropertyChanged
@@ -2811,7 +4588,7 @@
             Name = key.Name;
             KeyBrush = key.KeyBrush;
             EditorLeft = key.EditorLeft;
-            EditorTop = key.EditorTop + (ST_ALIGN_DISTORTION_KEY.EditorHeight - 96) / 2;
+            EditorTop = key.EditorTop + (key.Name.StartsWith("DK", StringComparison.Ordinal) ? (ST_ALIGN_DISTORTION_PAIR.EditorHeight - 120) / 2 : (ST_ALIGN_DISTORTION_KEY.EditorHeight - 96) / 2);
             ParameterX = parameterX;
             ParameterY = parameterY;
             _baseX = parameterX.Value;
@@ -2858,18 +4635,23 @@
         public double? OffsetTolerance { get; private set; } = CAlignOffsetTolerance.DefaultValue;
 
         public const double CanvasWidth = 940;
-        public const double CanvasHeight = 700;
+        public const double CanvasHeight = 800;
         private static readonly SolidColorBrush SelectedDkBrush = MakeBrush(32, 161, 88);
         private static readonly SolidColorBrush UnselectedDkBrush = MakeBrush(128, 138, 148);
         private string _signature = "";
+        private IReadOnlyList<double> _stageYPositions = [];
         private Rect _glassFrame;
         private IReadOnlyDictionary<string, (double X, double Y)> _lastLoadedPositions = new Dictionary<string, (double, double)>();
         private bool _baseActionRunning;
         private readonly Func<string, Task>? _executeBaseAction;
         public IReadOnlyList<CAlignDistortionDkSelection> DkSelections { get; private set; } = [];
+        public CAlignWapagePanel Wapage { get; } = new();
 
         public event PropertyChangedEventHandler? PropertyChanged;
         public IReadOnlyList<ST_ALIGN_DISTORTION_KEY> Keys { get; private set; } = [];
+        public IReadOnlyList<ST_ALIGN_DISTORTION_KEY> AlignKeys => Keys.Where(key => key.Name.StartsWith("AK", StringComparison.Ordinal)).ToArray();
+        public IReadOnlyList<ST_ALIGN_DISTORTION_PAIR> DistortionPairs => Keys.Count != 10 ? [] : Enumerable.Range(0, 3)
+            .Select(index => new ST_ALIGN_DISTORTION_PAIR(index, Keys.Single(key => key.Name == $"DK{index * 2 + 1}"), Keys.Single(key => key.Name == $"DK{index * 2 + 2}"), Keys.Single(key => key.Name == "AK2").GlassY - Keys.Single(key => key.Name == $"DK{index * 2 + 1}").GlassY)).ToArray();
         public string Summary { get; private set; } = "Recipe not loaded";
         public string RecipeName { get; private set; } = "-";
         public string RecipeId { get; private set; } = "";
@@ -2880,7 +4662,9 @@
         public CAlignDistortionPanel(Func<string, Task>? executeBaseAction = null)
         {
             _executeBaseAction = executeBaseAction;
-            BaseActionCommand = new CButtonCommand(RunBaseAction, action => executeBaseAction is not null && !_baseActionRunning && (action?.ToString()is "REFRESH" or "LOAD" || (Keys.Count == 10 && !string.IsNullOrEmpty(RecipeId))));
+            BaseActionCommand = new CButtonCommand(RunBaseAction, action => executeBaseAction is not null && !_baseActionRunning &&
+                (action?.ToString() is "REFRESH" or "LOAD" or "WAPAGE_LOAD" or "WAPAGE_SET_RANGE" ||
+                 (action?.ToString() == "WAPAGE_SET_BASE" ? Wapage.LoadedVisionValues is not null : Keys.Count == 10 && !string.IsNullOrEmpty(RecipeId))));
             LoadCommand = new CButtonCommand(_ => RunBaseAction("LOAD"));
         }
 
@@ -2934,8 +4718,9 @@
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(null));
         }
 
-        public void Update(ST_RECIPE_DEFINITION? recipe)
+        public void Update(ST_RECIPE_DEFINITION? recipe, IReadOnlyList<double>? stageYPositions = null)
         {
+            if (stageYPositions is not null) _stageYPositions = stageYPositions.ToArray();
             if (recipe is null)
             {
                 Clear("Recipe not loaded");
@@ -2952,9 +4737,9 @@
                 "GLASS_SIZE_Y",
                 "AK_MARGIN_X",
                 "AK_MARGIN_Y"
-            }.Concat(Enumerable.Range(1, 6).SelectMany(n => new[] { $"DISTORTION_KEY{n}_X", $"DISTORTION_KEY{n}_Y" }));
+            };
             var baseKeys = Enumerable.Range(1, 4).Select(n => $"AK{n}").Concat(Enumerable.Range(1, 6).Select(n => $"DK{n}")).SelectMany(key => new[] { $"ALIGNBASE_{key}_X", $"ALIGNBASE_{key}_Y" });
-            var signature = recipe.Id + "|" + recipe.Name + "|" + string.Join("|", layoutKeys.Concat(baseKeys).Select(key => parameters.GetValueOrDefault(key, "")));
+            var signature = recipe.Id + "|" + recipe.Name + "|" + string.Join("|", layoutKeys.Concat(baseKeys).Select(key => parameters.GetValueOrDefault(key, ""))) + "|StageY=" + string.Join(",", _stageYPositions.Select(v => v.ToString("R", CultureInfo.InvariantCulture)));
             if (_signature == signature)
                 return;
             var previousLoads = RecipeId.Equals(recipe.Id, StringComparison.OrdinalIgnoreCase) ? Keys.ToDictionary(key => key.Name, key => (key.LastLoadX, key.LastLoadY, key.LastLoadRawX, key.LastLoadRawY), StringComparer.OrdinalIgnoreCase) : new Dictionary<string, (string LastLoadX, string LastLoadY, double? LastLoadRawX, double? LastLoadRawY)>(StringComparer.OrdinalIgnoreCase);
@@ -2976,21 +4761,16 @@
 
             var marginX = Math.Clamp(Read("AK_MARGIN_X") ?? 0, 0, width / 2);
             var marginY = Math.Clamp(Read("AK_MARGIN_Y") ?? 0, 0, height / 2);
+            ST_ALIGN_INTERPOLATION_KEY[] geometry;
+            try { geometry = CAlignKeyGeometry.Create(parameters, _stageYPositions); }
+            catch (InvalidOperationException error) { Clear(error.Message, recipe); return; }
+            UpdateDkSelections();
             var gold = MakeBrush(230, 164, 0);
-            var keys = new List<ST_ALIGN_DISTORTION_KEY>
-            {
-                new("AK1", marginX, marginY, gold),
-                new("AK2", marginX, height - marginY, gold),
-                new("AK3", width - marginX, marginY, gold),
-                new("AK4", width - marginX, height - marginY, gold)
-            };
-            var distortionKeys = CCellPreviewDrawing.CreateDistortionKeyPreviews(width, height, marginX, marginY, Read);
-            UpdateDkSelections(distortionKeys.Select(key => (key.DisplayText, key.GlassY)));
-            keys.AddRange(distortionKeys.Select(key => new ST_ALIGN_DISTORTION_KEY(key.DisplayText, key.GlassX, key.GlassY, GetDkBrush(key.DisplayText))));
-            var largestSide = Math.Max(keys.Count(key => key.GlassX <= width / 2), keys.Count(key => key.GlassX > width / 2));
-            PreviewHeight = Math.Max(CanvasHeight, 16 + largestSide * ST_ALIGN_DISTORTION_KEY.EditorHeight + (largestSide - 1) * 8);
-            var scale = Math.Min(360 / width, 500 / height);
-            var frame = new Rect((CanvasWidth - width * scale) / 2, (PreviewHeight - height * scale) / 2, width * scale, height * scale);
+            var keys = geometry.Select(key => new ST_ALIGN_DISTORTION_KEY(key.Name, key.X, key.Y,
+                key.Name.StartsWith("AK", StringComparison.Ordinal) ? gold : GetDkBrush(key.Name))).ToList();
+            PreviewHeight = CanvasHeight;
+            var scale = Math.Min(424 / width, 480 / height);
+            var frame = new Rect(238 - width * scale / 2, (PreviewHeight - height * scale) / 2, width * scale, height * scale);
             foreach (var key in keys)
             {
                 key.MarkerX = frame.Left + Math.Clamp(key.GlassX, 0, width) * scale;
@@ -3011,26 +4791,26 @@
                 }
             }
 
-            foreach (var left in new[]
+            foreach (var key in keys)
             {
-                true,
-                false
-            }
-
-            )
-            {
-                var side = keys.Where(key => (key.GlassX <= width / 2) == left).OrderBy(key => key.GlassY).ThenBy(key => key.GlassX).ThenBy(key => key.Name).ToArray();
-                for (var i = 0; i < side.Length; i++)
+                if (key.Name.StartsWith("AK", StringComparison.Ordinal))
                 {
-                    side[i].EditorLeft = left ? 6 : CanvasWidth - ST_ALIGN_DISTORTION_KEY.EditorWidth - 6;
-                    side[i].EditorTop = side.Length == 1 ? (PreviewHeight - ST_ALIGN_DISTORTION_KEY.EditorHeight) / 2 : 8 + i * ((PreviewHeight - ST_ALIGN_DISTORTION_KEY.EditorHeight - 16) / (side.Length - 1));
+                    var number = int.Parse(key.Name.AsSpan(2), CultureInfo.InvariantCulture);
+                    key.EditorLeft = number <= 2 ? 6 : 244;
+                    key.EditorTop = number is 1 or 3 ? 8 : PreviewHeight - ST_ALIGN_DISTORTION_KEY.EditorHeight - 8;
+                }
+                else
+                {
+                    var pairIndex = (int.Parse(key.Name.AsSpan(2), CultureInfo.InvariantCulture) - 1) / 2;
+                    key.EditorLeft = 494;
+                    key.EditorTop = 80 + pairIndex * 225;
                 }
             }
 
             _glassFrame = frame;
             Keys = keys.ToArray();
             RefreshPreviewImage();
-            Summary = $"Glass {width:0.###} × {height:0.###} mm";
+            Summary = $"Glass {width:0.###} × {height:0.###} mm · Stage Y 기준: AK2/AK4 = 0 mm · DK 위치: Setting > Motor > ALIGN";
             RecipeName = recipe.Name;
             RecipeId = recipe.Id;
             _signature = signature;
@@ -3038,14 +4818,13 @@
             BaseActionCommand.NotifyCanExecuteChanged();
         }
 
-        private void UpdateDkSelections(IEnumerable<(string Name, double Y)> keys)
+        private void UpdateDkSelections()
         {
-            // Use recipe Y coordinates, not fixed DK number pairs, to form horizontal groups.
-            var groups = keys.OrderBy(key => key.Y).GroupBy(key => key.Y).Select(group => group.Select(key => key.Name).OrderBy(name => name, StringComparer.Ordinal).ToArray()).ToArray();
-            if (DkSelections.Select(group => group.Name).SequenceEqual(groups.Select(names => string.Join(" + ", names))))
+            // Pair identity is fixed, even when recipe Y values or their order change.
+            if (DkSelections.Count == 3)
                 return;
-            var selectedKeys = DkSelections.Where(group => group.IsSelected).SelectMany(group => group.KeyNames).ToHashSet(StringComparer.Ordinal);
-            DkSelections = groups.Select(names => new CAlignDistortionDkSelection(names, RefreshDkSelection, names.All(selectedKeys.Contains))).ToArray();
+            DkSelections = Enumerable.Range(0, 3).Select(index => new CAlignDistortionDkSelection(
+                new[] { $"DK{index * 2 + 1}", $"DK{index * 2 + 2}" }, RefreshDkSelection)).ToArray();
         }
 
         private bool IsDkSelected(string name) => DkSelections.Any(group => group.IsSelected && group.KeyNames.Contains(name));
@@ -3058,6 +4837,7 @@
             Keys = Keys.Select(key => key.Name.StartsWith("DK", StringComparison.Ordinal) ? key with { KeyBrush = GetDkBrush(key.Name), LastLoadX = IsDkSelected(key.Name) ? key.LastLoadX : "-", LastLoadY = IsDkSelected(key.Name) ? key.LastLoadY : "-", LastLoadRawX = IsDkSelected(key.Name) ? key.LastLoadRawX : null, LastLoadRawY = IsDkSelected(key.Name) ? key.LastLoadRawY : null } : key).ToArray();
             RefreshPreviewImage();
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Keys)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DistortionPairs)));
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(PreviewImage)));
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AlgorithmPreviewHint)));
         }
@@ -3071,17 +4851,30 @@
                 drawing.DrawRectangle(Brushes.Transparent, null, new Rect(0, 0, CanvasWidth, PreviewHeight));
                 drawing.DrawRectangle(null, new Pen(MakeBrush(102, 136, 164), 2), frame);
                 DrawAlgorithmPreview(drawing);
+                DrawKeyDistances(drawing);
                 foreach (var key in Keys)
                 {
-                    var left = key.EditorLeft < frame.Left;
-                    var start = new Point(left ? key.EditorLeft + ST_ALIGN_DISTORTION_KEY.EditorWidth : key.EditorLeft, key.EditorTop + ST_ALIGN_DISTORTION_KEY.EditorHeight / 2);
-                    var edge = left ? frame.Left - 14 : frame.Right + 14;
+                    var isAk = key.Name.StartsWith("AK", StringComparison.Ordinal);
+                    var top = key.EditorTop < frame.Top;
+                    var start = isAk
+                        ? new Point(key.EditorLeft + ST_ALIGN_DISTORTION_KEY.EditorWidth / 2, top ? key.EditorTop + ST_ALIGN_DISTORTION_KEY.EditorHeight : key.EditorTop)
+                        : new Point(key.EditorLeft, key.EditorTop + ST_ALIGN_DISTORTION_PAIR.EditorHeight / 2);
                     var geometry = new StreamGeometry();
                     using (var line = geometry.Open())
                     {
                         line.BeginFigure(start, false, false);
-                        line.LineTo(new Point(edge, start.Y), true, false);
-                        line.LineTo(new Point(edge, key.MarkerY), true, false);
+                        if (isAk)
+                        {
+                            var edgeY = top ? frame.Top - 10 : frame.Bottom + 10;
+                            line.LineTo(new Point(start.X, edgeY), true, false);
+                            line.LineTo(new Point(key.MarkerX, edgeY), true, false);
+                        }
+                        else
+                        {
+                            var edgeX = frame.Right + 14;
+                            line.LineTo(new Point(edgeX, start.Y), true, false);
+                            line.LineTo(new Point(edgeX, key.MarkerY), true, false);
+                        }
                         line.LineTo(new Point(key.MarkerX, key.MarkerY), true, false);
                     }
 
@@ -3100,6 +4893,9 @@
                         drawing.DrawLine(pen, new Point(key.MarkerX - 6, key.MarkerY), new Point(key.MarkerX + 6, key.MarkerY));
                         drawing.DrawLine(pen, new Point(key.MarkerX, key.MarkerY - 6), new Point(key.MarkerX, key.MarkerY + 6));
                     }
+                    var label = new FormattedText(key.Name, CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+                        new Typeface("Segoe UI"), 13, key.KeyBrush, 1);
+                    drawing.DrawText(label, new Point(key.MarkerX + (key.MarkerX <= frame.Left + frame.Width / 2 ? 9 : -label.Width - 9), key.MarkerY - 18));
                 }
             }
 
@@ -3107,6 +4903,41 @@
             var image = new DrawingImage(group);
             image.Freeze();
             PreviewImage = image;
+        }
+
+        public double? AkDistanceX => Keys.Count == 10 ? Keys.Single(k => k.Name == "AK3").GlassX - Keys.Single(k => k.Name == "AK1").GlassX : null;
+        public IReadOnlyList<double> KeyDistancesY => Keys.Count != 10 ? [] : new[] { "AK1", "DK1", "DK3", "DK5", "AK2" }
+            .Select(name => Keys.Single(k => k.Name == name).GlassY).Zip(new[] { "DK1", "DK3", "DK5", "AK2" }.Select(name => Keys.Single(k => k.Name == name).GlassY), (a, b) => b - a).ToArray();
+        private void DrawKeyDistances(DrawingContext drawing)
+        {
+            if (Keys.Count != 10) return;
+            var rows = new[] { "AK1", "DK1", "DK3", "DK5", "AK2" }.Select(name => Keys.Single(k => k.Name == name)).ToArray();
+            var left = rows[0]; var right = Keys.Single(k => k.Name == "AK3");
+            var brush = MakeBrush(45, 90, 130);
+            var dashed = new Pen(brush, 1) { DashStyle = DashStyles.Dash };
+            var centreX = (left.MarkerX + right.MarkerX) / 2;
+            void Label(string text, double x, double y, bool valid = true)
+            {
+                var value = new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, new Typeface("Segoe UI"), 13, valid ? brush : Brushes.IndianRed, 1);
+                var rect = new Rect(x - value.Width / 2 - 4, y - value.Height / 2 - 2, value.Width + 8, value.Height + 4);
+                drawing.DrawRoundedRectangle(MakeBrush(255, 255, 255, 235), null, rect, 3, 3);
+                drawing.DrawText(value, new Point(rect.Left + 4, rect.Top + 2));
+            }
+            var xY = left.MarkerY + 30;
+            drawing.DrawLine(dashed, new Point(left.MarkerX, xY), new Point(right.MarkerX, xY));
+            foreach (var x in new[] { left.MarkerX, right.MarkerX })
+                drawing.DrawLine(dashed, new Point(x, left.MarkerY), new Point(x, xY + 5));
+            Label($"AK X {AkDistanceX:0.000} mm", centreX, xY);
+            for (var index = 0; index < rows.Length - 1; index++)
+            {
+                var first = rows[index]; var second = rows[index + 1];
+                var distance = second.GlassY - first.GlassY;
+                drawing.DrawLine(dashed, new Point(centreX, first.MarkerY), new Point(centreX, second.MarkerY));
+                drawing.DrawLine(dashed, new Point(centreX - 8, first.MarkerY), new Point(centreX + 8, first.MarkerY));
+                drawing.DrawLine(dashed, new Point(centreX - 8, second.MarkerY), new Point(centreX + 8, second.MarkerY));
+                var names = new[] { "AK–G0", "G0–G1", "G1–G2", "G2–AK" };
+                Label($"{names[index]}  {distance:0.000} mm", centreX, (first.MarkerY + second.MarkerY) / 2, distance > 0);
+            }
         }
 
         public void Clear(string message, ST_RECIPE_DEFINITION? recipe = null)
@@ -3156,7 +4987,7 @@
                 throw new InvalidOperationException("현재 레시피의 AK / DK 위치를 확인하세요.");
             var selected = LoadKeyNames;
             if (Keys.Any(key => selected.Contains(key.Name) && !key.IsInsideGlass))
-                throw new InvalidOperationException("선택한 키가 Glass 영역 밖에 있습니다. 레시피의 키 위치를 확인하세요.");
+                throw new InvalidOperationException("선택한 키가 Glass 영역 밖에 있습니다. Setting > Motor > ALIGN의 Stage Y Position과 Glass Size/AK Margin을 확인하세요.");
             return new CAlignInterpolation(InterpolationKeys(), selected.Where(name => name.StartsWith("DK", StringComparison.Ordinal)).ToArray());
         }
 
@@ -3209,7 +5040,7 @@
             var top = rows[0];
             var bottom = rows[^1];
             var center = new Point((Position(top.Left).X + Position(top.Right).X + Position(bottom.Left).X + Position(bottom.Right).X) / 4, (Position(top.Left).Y + Position(bottom.Left).Y) / 2);
-            DrawRegionLabel(drawing, $"LAGRANGE\n{rows.Count * 2} KEYS", center, purple);
+            // The centre is reserved for actual key-distance dimensions.
             AlgorithmPreviewHint = $"라그랑쥬: {rows.Count * 2}개 키를 함께 사용하는 전체 범위입니다. 보정량 분포는 표시하지 않습니다.";
         }
 
@@ -3243,7 +5074,7 @@
     {
         private bool _isSelected = isSelected;
         public IReadOnlyList<string> KeyNames { get; } = keyNames;
-        public string Name => string.Join(" + ", KeyNames);
+        public string Name => $"Group {(int.Parse(KeyNames[0].AsSpan(2), CultureInfo.InvariantCulture) - 1) / 2} · {KeyNames[0]}/{KeyNames[1][2..]}";
 
         public event PropertyChangedEventHandler? PropertyChanged;
         public bool IsSelected
@@ -3258,6 +5089,24 @@
                 selectionChanged();
             }
         }
+    }
+
+    public sealed record CAlignBaseEditPair(int Index, CAlignBaseEditKey Left, CAlignBaseEditKey Right)
+    {
+        public string Name => $"Group {Index}";
+        public double EditorLeft => Left.EditorLeft;
+        public double EditorTop => Left.EditorTop;
+        public Brush KeyBrush => Left.KeyBrush;
+    }
+
+    public sealed record ST_ALIGN_DISTORTION_PAIR(int Index, ST_ALIGN_DISTORTION_KEY Left, ST_ALIGN_DISTORTION_KEY Right, double StageY)
+    {
+        public const double EditorHeight = 190;
+        public string Name => $"Group {Index}";
+        public string StageYText => $"Stage Y (Setting): {StageY:0.000} mm";
+        public double EditorLeft => Left.EditorLeft;
+        public double EditorTop => Left.EditorTop;
+        public Brush KeyBrush => Left.KeyBrush;
     }
 
     public sealed record ST_ALIGN_DISTORTION_KEY(string Name, double GlassX, double GlassY, Brush KeyBrush)
@@ -3279,16 +5128,86 @@
         public string BaseSourceY { get; internal set; } = "-";
         public double? LastLoadRawX { get; internal set; }
         public double? LastLoadRawY { get; internal set; }
-        public string BaseMinusLoadX => Subtract(BaseX, LastLoadX);
-        public string BaseMinusLoadY => Subtract(BaseY, LastLoadY);
+        public string BaseMinusLoadX => Subtract(BaseRawX, LastLoadRawX);
+        public string BaseMinusLoadY => Subtract(BaseRawY, LastLoadRawY);
         public string PositionText => $"Recipe X: {GlassX:0.###} mm / Y: {GlassY:0.###} mm" + (IsInsideGlass ? "" : " (outside glass)");
 
-        private static string Subtract(string baseValue, string loadValue)
+        private static string Subtract(double? baseValue, double? loadValue)
         {
-            if (!double.TryParse(baseValue, NumberStyles.Float, CultureInfo.InvariantCulture, out var basis) || !double.TryParse(loadValue, NumberStyles.Float, CultureInfo.InvariantCulture, out var loaded) || !double.IsFinite(basis) || !double.IsFinite(loaded) || !double.IsFinite(basis - loaded))
+            if (baseValue is not { } basis || loadValue is not { } loaded || !double.IsFinite(basis - loaded))
                 return "-";
-            return (basis - loaded).ToString("0.000", CultureInfo.InvariantCulture);
+            var difference = Math.Round(basis - loaded, 3, MidpointRounding.AwayFromZero);
+            return (difference == 0 ? 0 : difference).ToString("0.000", CultureInfo.InvariantCulture);
         }
+    }
+
+
+
+    public sealed record ST_WAPAGE_ALIGNBASE_ROW(ST_WAPAGE_ALIGNBASE_POINT Point, double? Vision = null, double? Base = null, double? Range = null, double? Calculated = null)
+    {
+        public string Name => Point.Label;
+        public string Detail => $"Vision: {Point.VisionId}\nWapage: {Point.BaseId}\nRange: {Point.RangeId}";
+        public string VisionText => Format(Vision);
+        public string BaseText => Format(Base);
+        public string RangeText => Format(Range);
+        public string CalculatedText => Format(Calculated);
+        private static string Format(double? value) => value is { } number ? Math.Round(number, 4, MidpointRounding.AwayFromZero).ToString("0.####", CultureInfo.InvariantCulture) : "-";
+    }
+
+    public sealed class CAlignWapagePanel : INotifyPropertyChanged
+    {
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public IReadOnlyList<ST_WAPAGE_ALIGNBASE_ROW> Rows { get; private set; } = CAlignWapageService.Points.Select(point => new ST_WAPAGE_ALIGNBASE_ROW(point)).ToArray();
+        public IReadOnlyDictionary<string, double>? LoadedVisionValues { get; private set; }
+        public DateTimeOffset? LastLoadedAt { get; private set; }
+        public string LastLoadTime => LastLoadedAt?.ToString("yyMMdd-HH:mm:ss", CultureInfo.InvariantCulture) ?? "-";
+        public double? CalculatedPixels { get; private set; }
+        public string CalculationText { get; private set; } = "Align Camera Resolution / Tolerance 설정을 확인하세요.";
+        public string Status { get; private set; } = "Load를 누르면 Vision / Wapage Base / Range를 읽습니다. (pixel)";
+
+        public void UpdateSettings(IReadOnlyList<ST_SYSTEM_PARAMETER> settings)
+        {
+            double? Read(string key)
+            {
+                var text = settings.FirstOrDefault(item => item.Key.Equals(key, StringComparison.OrdinalIgnoreCase))?.Value;
+                return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) && double.IsFinite(value) ? value : null;
+            }
+            var resolution = Read(CSettingManager.AlignCameraResolutionKey);
+            var tolerance = Read(CSettingManager.WapageAlignBaseToleranceKey);
+            var pixels = resolution is > 0 && tolerance is >= 0 ? tolerance.Value / resolution.Value : double.NaN;
+            CalculatedPixels = double.IsFinite(pixels) ? pixels : null;
+            var text = CalculatedPixels is null ? "Align Camera Resolution / Tolerance 설정을 확인하세요."
+                : FormattableString.Invariant($"Setting: {tolerance:0.####} mm / {resolution:0.########} mm/pixel = {pixels:0.####} pixel");
+            if (text == CalculationText && Rows.All(row => row.Calculated == CalculatedPixels))
+                return;
+            CalculationText = text;
+            Rows = Rows.Select(row => row with { Calculated = CalculatedPixels }).ToArray();
+            Changed();
+        }
+
+        public void ApplyLoad(IReadOnlyDictionary<string, double> values, DateTimeOffset loadedAt)
+        {
+            var ids = CAlignWapageService.Points.SelectMany(point => new[] { point.VisionId, point.BaseId, point.RangeId }).ToArray();
+            if (ids.Any(id => !values.TryGetValue(id, out var value) || !double.IsFinite(value)))
+                throw new InvalidOperationException("Wapage Load 값을 모두 읽지 못했습니다. 이전 표시값을 유지합니다.");
+            Rows = CAlignWapageService.Points.Select(point => new ST_WAPAGE_ALIGNBASE_ROW(point, values[point.VisionId], values[point.BaseId], values[point.RangeId], CalculatedPixels)).ToArray();
+            LoadedVisionValues = CAlignWapageService.Points.ToDictionary(point => point.VisionId, point => values[point.VisionId], StringComparer.OrdinalIgnoreCase);
+            LastLoadedAt = loadedAt;
+            Status = "Vision / Wapage Base / Range Load 완료";
+            Changed();
+        }
+        public void ApplyBase(IReadOnlyDictionary<string, double> values)
+        {
+            Rows = Rows.Select(row => row with { Base = values[row.Point.BaseId] }).ToArray();
+            SetStatus("Vision → Wapage AlignBase 기록 및 읽기 확인 완료");
+        }
+        public void ApplyRange(IReadOnlyDictionary<string, double> values)
+        {
+            Rows = Rows.Select(row => row with { Range = values[row.Point.RangeId] }).ToArray();
+            SetStatus("Wapage AlignBase Range 기록 및 읽기 확인 완료");
+        }
+        public void SetStatus(string text) { Status = text; Changed(); }
+        private void Changed() => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(null));
     }
 
     // This service is called only by Load; it owns no polling timer or device worker.
@@ -3377,7 +5296,7 @@
             return result;
         }
 
-        private static string MapId(string key) => key.Replace("ALIGNBASE_", "ALIGN_LASTLOAD_", StringComparison.Ordinal);
+        private static string MapId(string key) => CAlignDistortionCycle.ResultId(key);
         private static string[] Targets(IReadOnlyCollection<string>? parameterKeys)
         {
             var requested = (parameterKeys ?? CAlignBaseData.ParameterKeys).ToArray();
@@ -3392,14 +5311,19 @@
         private readonly IReadOnlyDictionary<int, ST_DESIGN_SHOT_POINT[]> _shotsByCell;
         private readonly IReadOnlyDictionary<string, ST_HEAD_SHOT_POINT> _headShots;
         private readonly IReadOnlyDictionary<string, string> _parameters;
+        private readonly CRecipeShotMaskingPlan _maskingPlan;
         private readonly Func<int, ST_CORRECTION_OFFSET_VIEWER_PREVIEW> _buildPreview;
         private readonly bool _reviewOffsets;
+        private ST_DESIGN_SHOT_POINT[] _selectedCellShots = [];
+        private IReadOnlyDictionary<string, ST_RECIPE_SHOT_MASKING_RESULT> _selectedShotStates =
+            new Dictionary<string, ST_RECIPE_SHOT_MASKING_RESULT>(StringComparer.OrdinalIgnoreCase);
+        private string _selectedShotKey = "";
+
         public CAlignOffsetViewerPanel(
-            ST_RECIPE_DEFINITION recipe, 
-            IReadOnlyDictionary<string, string> parameters, 
-            Func<int, ST_CORRECTION_OFFSET_VIEWER_PREVIEW> buildPreview, 
-            bool reviewOffsets = false
-        )
+            ST_RECIPE_DEFINITION recipe,
+            IReadOnlyDictionary<string, string> parameters,
+            Func<int, ST_CORRECTION_OFFSET_VIEWER_PREVIEW> buildPreview,
+            bool reviewOffsets = false)
         {
             _reviewOffsets = reviewOffsets;
             RecipeName = recipe.Name;
@@ -3412,8 +5336,10 @@
             var designShots = CShotCoordinatePlanBuilder.BuildDesignShots(current);
             _shotsByCell = designShots.GroupBy(shot => shot.CellNo).ToDictionary(group => group.Key, group => group.ToArray());
             _headShots = CShotCoordinatePlanBuilder.Build(current).Shots.ToDictionary(shot => shot.ShotKey, StringComparer.Ordinal);
+            _maskingPlan = CRecipeShotMaskingPlan.Build(current);
             TotalShotCount = designShots.Count;
             SelectCellCommand = new CButtonCommand(SelectCell);
+            HeadCards = CreateHeadCards([]);
             ApplyPreview(0);
         }
 
@@ -3421,62 +5347,317 @@
         public CButtonCommand SelectCellCommand { get; }
         public string RecipeName { get; }
         public string ViewerTitle => _reviewOffsets ? "Cur Review Offset View" : "Current Offset View";
-        public string OffsetDescription => _reviewOffsets ? "Review Offset: Saved value   |   Scanner Converted Offset: Current head direction" : "Design Offset: X/Y   |   Scanner Converted Offset: Current head direction";
+        public string OffsetDescription => _reviewOffsets
+            ? "Review Offset · Design X/Y / Scanner Converted GX/GY"
+            : "Align Offset · Design X/Y / Scanner Converted GX/GY";
         public int TotalShotCount { get; }
         public ImageSource? PreviewImage { get; private set; }
+        public ImageSource? ShotMapImage { get; private set; }
         public IReadOnlyList<ST_CELL_PREVIEW_LABEL> CellLabels { get; private set; } = [];
+        public IReadOnlyList<ST_CORRECTION_OUTPUT_VIEWER_HEAD_CARD> HeadCards { get; private set; }
         public IReadOnlyList<ST_ALIGN_OFFSET_VIEW_ROW> Rows { get; private set; } = [];
-        public IReadOnlyList<ST_ALIGN_OFFSET_VIEW_CARD_ROW> ShotRows { get; private set; } = [];
+        public ST_ALIGN_OFFSET_VIEW_ROW? SelectedRow { get; private set; }
         public bool HasSelectedCell => Rows.Count > 0;
+        public bool HasNoSelectedCell => !HasSelectedCell;
         public string Summary { get; private set; } = "";
-        public string SelectedCellTitle { get; private set; } = "Select a Cell";
+        public string SelectedCellTitle { get; private set; } = "NO CELL SELECTED";
+        public string SelectedShotName => SelectedRow is null ? "NO SHOT SELECTED" : $"{SelectedRow.ShotName} · {SelectedRow.Head}";
+        public string SelectedShotDetail => SelectedRow is null ? "-" : $"ROW {SelectedRow.GroupRow + 1:N0} · COL {SelectedRow.GroupColumn + 1:N0}";
+        public double ShotMapSurfaceWidth => GetShotMapSize().Width;
+        public double ShotMapSurfaceHeight => GetShotMapSize().Height;
 
         private void SelectCell(object? value)
         {
-            if (!int.TryParse(value?.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var cellNo) || !_shotsByCell.TryGetValue(cellNo, out var shots))
+            if (!int.TryParse(value?.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var cellNo) ||
+                !_shotsByCell.TryGetValue(cellNo, out var shots))
                 return;
-            Rows = shots.OrderBy(shot => shot.CellShotNo).Select(shot =>
-            {
-                var assigned = _headShots.GetValueOrDefault(shot.ShotKey);
-                var xValue = _reviewOffsets ? shot.ReviewOffsetX : shot.AlignOffsetX;
-                var yValue = _reviewOffsets ? shot.ReviewOffsetY : shot.AlignOffsetY;
-                var design = !_reviewOffsets || shot.ReviewOffsetIsDesign;
-                var converted = assigned is null ? ((double X, double Y)? )null : CReviewOffsetData.ToScanner(_parameters, assigned.HeadNo, xValue, yValue, design);
-                return new ST_ALIGN_OFFSET_VIEW_ROW(
-                    CReviewShotNameFormatter.ToMatrixName(shot.CellShotNo, shot.GroupCountX), 
-                    assigned is null ? "-" : $"H{assigned.HeadNo:00}", 
-                    xValue, 
-                    yValue, 
-                    converted is { } x ? CAlignShotOffsetData.RoundValue(x.X) : null, 
-                    converted is { } y ? CAlignShotOffsetData.RoundValue(y.Y) : null, 
-                    assigned is null ? "Head not assigned" : CScannerAxisTransform.Format(CScannerAxisTransform.Read(_parameters, assigned.HeadNo))
-                )
-                {
-                    StoredTitle = !_reviewOffsets ? "Design Offset (mm)" : design ? "Design Review Offset (mm)" : "Review Offset · Scanner (mm)"
-                };
-            }).ToArray();
-            var cards = shots.OrderBy(shot => shot.CellShotNo).Zip(Rows).ToDictionary(pair => pair.First.ShotKey, pair => pair.Second);
-            ShotRows = shots.GroupBy(shot => shot.GroupRow).OrderBy(group => group.Key).Select(group => new ST_ALIGN_OFFSET_VIEW_CARD_ROW(group.Key, group.OrderBy(shot => shot.GroupColumn).Select(shot => cards[shot.ShotKey]).ToArray())).ToArray();
-            SelectedCellTitle = $"Cell{cellNo:00} / {Rows.Count:N0} Shots";
+
+            _selectedCellShots = shots.OrderBy(shot => shot.GroupRow).ThenBy(shot => shot.GroupColumn).ThenBy(shot => shot.CellShotNo).ToArray();
+            _selectedShotStates = _selectedCellShots.ToDictionary(
+                shot => shot.ShotKey,
+                shot => _headShots.TryGetValue(shot.ShotKey, out var assigned)
+                    ? _maskingPlan.EvaluateShot(assigned)
+                    : ST_RECIPE_SHOT_MASKING_RESULT.Empty,
+                StringComparer.OrdinalIgnoreCase);
+            _selectedShotKey = "";
+            SelectedRow = null;
+            Rows = _selectedCellShots.Select(CreateRow).ToArray();
+            ShotMapImage = BuildShotMap(_selectedCellShots, _selectedShotStates, _selectedShotKey);
+            HeadCards = CreateHeadCards(_selectedCellShots
+                .Select(shot => _headShots.GetValueOrDefault(shot.ShotKey))
+                .Where(shot => shot is not null)
+                .Select(shot => shot!)
+                .ToArray());
+            SelectedCellTitle = $"CELL{cellNo:00} / {Rows.Count:N0} SHOTS";
             ApplyPreview(cellNo);
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(null));
+        }
+
+        public void SelectShotByKey(string shotKey)
+        {
+            if (string.IsNullOrWhiteSpace(shotKey))
+                return;
+            var row = Rows.FirstOrDefault(item => item.ShotKey.Equals(shotKey, StringComparison.OrdinalIgnoreCase));
+            if (row is null)
+                return;
+            if (_selectedShotKey.Equals(row.ShotKey, StringComparison.OrdinalIgnoreCase) && ReferenceEquals(SelectedRow, row))
+                return;
+
+            _selectedShotKey = row.ShotKey;
+            SelectedRow = row;
+            ShotMapImage = BuildShotMap(_selectedCellShots, _selectedShotStates, _selectedShotKey);
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(null));
+        }
+
+        public void SelectShotAt(double x, double y)
+        {
+            if (_selectedCellShots.Length == 0)
+                return;
+            var firstShot = _selectedCellShots[0];
+            var mapRect = GetShotMapRect(firstShot.GroupCountX, firstShot.GroupCountY);
+            if (!mapRect.Contains(new Point(x, y)))
+                return;
+
+            var column = Math.Clamp((int)((x - mapRect.Left) / mapRect.Width * firstShot.GroupCountX), 0, firstShot.GroupCountX - 1);
+            var row = Math.Clamp((int)((y - mapRect.Top) / mapRect.Height * firstShot.GroupCountY), 0, firstShot.GroupCountY - 1);
+            var shot = _selectedCellShots.FirstOrDefault(item => item.GroupColumn == column && item.GroupRow == row);
+            if (shot is not null)
+                SelectShotByKey(shot.ShotKey);
+        }
+
+        private ST_ALIGN_OFFSET_VIEW_ROW CreateRow(ST_DESIGN_SHOT_POINT shot)
+        {
+            var assigned = _headShots.GetValueOrDefault(shot.ShotKey);
+            var xValue = _reviewOffsets ? shot.ReviewOffsetX : shot.AlignOffsetX;
+            var yValue = _reviewOffsets ? shot.ReviewOffsetY : shot.AlignOffsetY;
+            var isDesignCoordinate = !_reviewOffsets || shot.ReviewOffsetIsDesign;
+            (double X, double Y)? design = assigned is null
+                ? null
+                : isDesignCoordinate
+                    ? (xValue, yValue)
+                    : CScannerAxisTransform.ScannerOffsetToDesign(_parameters, assigned.HeadNo, xValue, yValue);
+            var converted = assigned is null
+                ? ((double X, double Y)?)null
+                : CReviewOffsetData.ToScanner(_parameters, assigned.HeadNo, xValue, yValue, isDesignCoordinate);
+            var state = _selectedShotStates.GetValueOrDefault(shot.ShotKey, ST_RECIPE_SHOT_MASKING_RESULT.Empty);
+            return new ST_ALIGN_OFFSET_VIEW_ROW(
+                CReviewShotNameFormatter.ToMatrixName(shot.CellShotNo, shot.GroupCountX),
+                assigned is null ? "-" : $"H{assigned.HeadNo:00}",
+                design?.X ?? xValue,
+                design?.Y ?? yValue,
+                converted is { } gx ? CAlignShotOffsetData.RoundValue(gx.X) : null,
+                converted is { } gy ? CAlignShotOffsetData.RoundValue(gy.Y) : null,
+                assigned is null ? "Head not assigned" : CScannerAxisTransform.Format(CScannerAxisTransform.Read(_parameters, assigned.HeadNo)))
+            {
+                ShotKey = shot.ShotKey,
+                GroupColumn = shot.GroupColumn,
+                GroupRow = shot.GroupRow,
+                GroupCountX = shot.GroupCountX,
+                GroupCountY = shot.GroupCountY,
+                IsMasked = state.IsMasked,
+                IsChessSkipped = state.IsChessSkipped,
+                StoredTitle = "Design Offset (mm)"
+            };
         }
 
         private void ApplyPreview(int selectedCellNo)
         {
             var preview = _buildPreview(selectedCellNo);
             PreviewImage = preview.Image;
-            CellLabels = preview.CellLabels.Select(label => label with { Width = 26 }).ToArray();
+            CellLabels = preview.CellLabels;
             Summary = preview.Summary;
+        }
+
+        private Size GetShotMapSize()
+        {
+            if (_selectedCellShots.FirstOrDefault() is not { } firstShot)
+                return new Size(680.0, 420.0);
+            return firstShot.GroupCountX > firstShot.GroupCountY ? new Size(680.0, 420.0) : new Size(420.0, 680.0);
+        }
+
+        private static Rect GetShotMapRect(int groupCountX, int groupCountY)
+        {
+            var size = groupCountX > groupCountY ? new Size(680.0, 420.0) : new Size(420.0, 680.0);
+            return new Rect(28.0, 28.0, size.Width - 56.0, size.Height - 56.0);
+        }
+
+        private static IReadOnlyList<ST_CORRECTION_OUTPUT_VIEWER_HEAD_CARD> CreateHeadCards(IReadOnlyList<ST_HEAD_SHOT_POINT> shots)
+        {
+            var assignedHeads = shots.Select(shot => shot.HeadNo).ToHashSet();
+            var inactiveBackground = new SolidColorBrush(Color.FromRgb(76, 91, 105));
+            var inactiveBorder = new SolidColorBrush(Color.FromRgb(139, 157, 174));
+            var inactiveText = new SolidColorBrush(Color.FromRgb(248, 250, 252));
+            inactiveBackground.Freeze();
+            inactiveBorder.Freeze();
+            inactiveText.Freeze();
+            return Enumerable.Range(1, 8).Select(headNo =>
+            {
+                var isAssigned = assignedHeads.Contains(headNo);
+                return new ST_CORRECTION_OUTPUT_VIEWER_HEAD_CARD(
+                    headNo,
+                    isAssigned,
+                    isAssigned ? CMenuMain.CreateHeadBrush(headNo) : inactiveBackground,
+                    isAssigned ? Brushes.White : inactiveBorder,
+                    isAssigned ? Brushes.White : inactiveText);
+            }).ToArray();
+        }
+
+        private static ImageSource? BuildShotMap(
+            IReadOnlyList<ST_DESIGN_SHOT_POINT> shots,
+            IReadOnlyDictionary<string, ST_RECIPE_SHOT_MASKING_RESULT> shotStates,
+            string selectedShotKey)
+        {
+            if (shots.Count == 0 || shots[0].GroupCountX <= 0 || shots[0].GroupCountY <= 0)
+                return null;
+
+            var firstShot = shots[0];
+            var mapSize = firstShot.GroupCountX > firstShot.GroupCountY ? new Size(680.0, 420.0) : new Size(420.0, 680.0);
+            var mapRect = GetShotMapRect(firstShot.GroupCountX, firstShot.GroupCountY);
+            var cellWidth = mapRect.Width / firstShot.GroupCountX;
+            var cellHeight = mapRect.Height / firstShot.GroupCountY;
+            var pointRadius = Math.Clamp(Math.Min(cellWidth, cellHeight) * 0.30, 1.2, 3.8);
+            var drawing = new DrawingGroup();
+            using (var context = drawing.Open())
+            {
+                context.DrawRectangle(new SolidColorBrush(Color.FromArgb(1, 0, 0, 0)), null, new Rect(0.0, 0.0, mapSize.Width, mapSize.Height));
+                context.DrawRectangle(new SolidColorBrush(Color.FromRgb(17, 24, 32)), null, mapRect);
+                var gridPen = new Pen(new SolidColorBrush(Color.FromArgb(72, 102, 136, 164)), 0.8);
+                gridPen.Freeze();
+                var columnStep = Math.Max(1, firstShot.GroupCountX / 6);
+                var rowStep = Math.Max(1, firstShot.GroupCountY / 8);
+                for (var column = columnStep; column < firstShot.GroupCountX; column += columnStep)
+                {
+                    var lineX = mapRect.Left + (mapRect.Width * column / firstShot.GroupCountX);
+                    context.DrawLine(gridPen, new Point(lineX, mapRect.Top), new Point(lineX, mapRect.Bottom));
+                }
+                for (var row = rowStep; row < firstShot.GroupCountY; row += rowStep)
+                {
+                    var lineY = mapRect.Top + (mapRect.Height * row / firstShot.GroupCountY);
+                    context.DrawLine(gridPen, new Point(mapRect.Left, lineY), new Point(mapRect.Right, lineY));
+                }
+
+                const int maximumPreviewPoints = 10_000;
+                var sampleStep = Math.Max(1, (int)Math.Ceiling(shots.Count / (double)maximumPreviewPoints));
+                var shotGeometry = new StreamGeometry();
+                var maskingGeometry = new StreamGeometry();
+                var chessGeometry = new StreamGeometry();
+                using (var shotContext = shotGeometry.Open())
+                using (var maskingContext = maskingGeometry.Open())
+                using (var chessContext = chessGeometry.Open())
+                {
+                    for (var index = 0; index < shots.Count; index += sampleStep)
+                    {
+                        var shot = shots[index];
+                        var centerX = mapRect.Left + ((shot.GroupColumn + 0.5) * cellWidth);
+                        var centerY = mapRect.Top + ((shot.GroupRow + 0.5) * cellHeight);
+                        var state = shotStates.GetValueOrDefault(shot.ShotKey, ST_RECIPE_SHOT_MASKING_RESULT.Empty);
+                        if (!state.IsMasked && !state.IsChessSkipped)
+                            AddShotCircle(shotContext, centerX, centerY, pointRadius);
+                        if (state.IsMasked)
+                            AddMaskCross(maskingContext, centerX, centerY, Math.Max(2.2, pointRadius * 1.8));
+                        if (state.IsChessSkipped)
+                            AddChessDiamond(chessContext, centerX, centerY, Math.Max(2.2, pointRadius * 1.8));
+                    }
+                }
+
+                shotGeometry.Freeze();
+                maskingGeometry.Freeze();
+                chessGeometry.Freeze();
+                var shotBrush = new SolidColorBrush(Color.FromRgb(45, 212, 191));
+                var maskingBrush = new SolidColorBrush(Color.FromRgb(248, 113, 113));
+                var chessBrush = new SolidColorBrush(Color.FromRgb(192, 132, 252));
+                shotBrush.Freeze();
+                maskingBrush.Freeze();
+                chessBrush.Freeze();
+                var maskingPen = new Pen(maskingBrush, 1.8);
+                var chessPen = new Pen(chessBrush, 1.5);
+                maskingPen.Freeze();
+                chessPen.Freeze();
+                context.DrawGeometry(shotBrush, null, shotGeometry);
+                context.DrawGeometry(null, maskingPen, maskingGeometry);
+                context.DrawGeometry(new SolidColorBrush(Color.FromArgb(76, 192, 132, 252)), chessPen, chessGeometry);
+
+                var selectedShot = string.IsNullOrWhiteSpace(selectedShotKey)
+                    ? null
+                    : shots.FirstOrDefault(shot => shot.ShotKey.Equals(selectedShotKey, StringComparison.OrdinalIgnoreCase));
+                if (selectedShot is not null)
+                {
+                    var selectedX = mapRect.Left + ((selectedShot.GroupColumn + 0.5) * cellWidth);
+                    var selectedY = mapRect.Top + ((selectedShot.GroupRow + 0.5) * cellHeight);
+                    var selectedBrush = new SolidColorBrush(Color.FromRgb(251, 191, 36));
+                    selectedBrush.Freeze();
+                    var selectedPen = new Pen(selectedBrush, 2.0);
+                    selectedPen.Freeze();
+                    context.DrawEllipse(new SolidColorBrush(Color.FromArgb(165, 17, 24, 32)), selectedPen, new Point(selectedX, selectedY), 8.0, 8.0);
+                    context.DrawLine(selectedPen, new Point(selectedX - 12.0, selectedY), new Point(selectedX + 12.0, selectedY));
+                    context.DrawLine(selectedPen, new Point(selectedX, selectedY - 12.0), new Point(selectedX, selectedY + 12.0));
+                }
+
+                var framePen = new Pen(new SolidColorBrush(Color.FromRgb(102, 136, 164)), 1.4);
+                framePen.Freeze();
+                context.DrawRectangle(null, framePen, mapRect);
+            }
+
+            drawing.Freeze();
+            var image = new DrawingImage(drawing);
+            image.Freeze();
+            return image;
+        }
+
+        private static void AddShotCircle(StreamGeometryContext context, double centerX, double centerY, double radius)
+        {
+            const double bezierCircle = 0.5522847498307936;
+            var control = radius * bezierCircle;
+            context.BeginFigure(new Point(centerX + radius, centerY), true, true);
+            context.BezierTo(new Point(centerX + radius, centerY + control), new Point(centerX + control, centerY + radius), new Point(centerX, centerY + radius), true, false);
+            context.BezierTo(new Point(centerX - control, centerY + radius), new Point(centerX - radius, centerY + control), new Point(centerX - radius, centerY), true, false);
+            context.BezierTo(new Point(centerX - radius, centerY - control), new Point(centerX - control, centerY - radius), new Point(centerX, centerY - radius), true, false);
+            context.BezierTo(new Point(centerX + control, centerY - radius), new Point(centerX + radius, centerY - control), new Point(centerX + radius, centerY), true, false);
+        }
+
+        private static void AddMaskCross(StreamGeometryContext context, double centerX, double centerY, double radius)
+        {
+            context.BeginFigure(new Point(centerX - radius, centerY - radius), false, false);
+            context.LineTo(new Point(centerX + radius, centerY + radius), true, false);
+            context.BeginFigure(new Point(centerX - radius, centerY + radius), false, false);
+            context.LineTo(new Point(centerX + radius, centerY - radius), true, false);
+        }
+
+        private static void AddChessDiamond(StreamGeometryContext context, double centerX, double centerY, double radius)
+        {
+            context.BeginFigure(new Point(centerX, centerY - radius), true, true);
+            context.LineTo(new Point(centerX + radius, centerY), true, false);
+            context.LineTo(new Point(centerX, centerY + radius), true, false);
+            context.LineTo(new Point(centerX - radius, centerY), true, false);
         }
     }
 
-    public sealed record ST_ALIGN_OFFSET_VIEW_ROW(string ShotName, string Head, double StoredX, double StoredY, double? ScannerX, double? ScannerY, string HeadTransform)
+    public sealed record ST_ALIGN_OFFSET_VIEW_ROW(
+        string ShotName,
+        string Head,
+        double StoredX,
+        double StoredY,
+        double? ScannerX,
+        double? ScannerY,
+        string HeadTransform)
     {
+        public string ShotKey { get; init; } = "";
+        public int GroupColumn { get; init; }
+        public int GroupRow { get; init; }
+        public int GroupCountX { get; init; }
+        public int GroupCountY { get; init; }
+        public bool IsMasked { get; init; }
+        public bool IsChessSkipped { get; init; }
         public string StoredTitle { get; init; } = "Design Offset (mm)";
-    }
+        public string DesignOffsetX => Format(StoredX);
+        public string DesignOffsetY => Format(StoredY);
+        public string ScannerOffsetGx => Format(ScannerX);
+        public string ScannerOffsetGy => Format(ScannerY);
+        public string CoordinateDetail => $"{HeadTransform}\n{(IsMasked ? "MASKING" : IsChessSkipped ? "CHESS / LASER OFF" : "SHOT")}";
 
-    public sealed record ST_ALIGN_OFFSET_VIEW_CARD_ROW(int RowNo, IReadOnlyList<ST_ALIGN_OFFSET_VIEW_ROW> Shots);
+        private static string Format(double value) => CAlignShotOffsetData.RoundValue(value).ToString("F3", CultureInfo.InvariantCulture);
+        private static string Format(double? value) => value.HasValue ? Format(value.Value) : "-";
+    }
     public enum EN_FINE_LINE_STATE
     {
         Wait,
@@ -3546,6 +5727,7 @@
                 "STOP" => IsRunning,
                 "NG_RETRY" => CanConfigure && Lines.Any(line => line.State == EN_FINE_LINE_STATE.Ng),
                 "OFFSET_APPLY" => CanApplyOffset,
+                "OFFSET_ROLLBACK" => CanConfigure && _recipe is not null,
                 "OFFSET_INIT" => CanConfigure && _source?.Points.Count > 0,
                 "OFFSET_VIEW" => CanConfigure && _recipe is not null,
                 _ => false
@@ -4132,6 +6314,15 @@
             Status = $"Review Offset {(initialize ? "초기화" : "누적 적용")} 완료 · {fileName}";
             Notify();
         }
+
+        public void AcceptOffsetRollback(string fileName)
+        {
+            _offsetApplied = false;
+            Status = string.IsNullOrWhiteSpace(fileName)
+                ? "Review Offset 롤백 완료 · 활성 Offset 없음 (0.000)"
+                : $"Review Offset 롤백 완료 · 현재 활성 파일 {fileName}";
+            Notify();
+        }
 #endregion
     }
 
@@ -4400,7 +6591,20 @@
     }
 
     public sealed record ST_CORRECTION_OFFSET_SHOT_MATRIX_ROW(int RowNo, IReadOnlyList<ST_CORRECTION_OFFSET_SHOT_ITEM> Shots);
-    public sealed record ST_CORRECTION_OFFSET_SHOT_ITEM(string ShotKey, string ShotName, string Head, string StoredTitle, string StoredOffset, string ConvertedOffset, string CoordinateDetail);
+    public sealed record ST_CORRECTION_OFFSET_SHOT_ITEM(
+        string ShotKey,
+        string ShotName,
+        string Head,
+        string DesignOffsetX,
+        string DesignOffsetY,
+        string ScannerOffsetGx,
+        string ScannerOffsetGy,
+        string CoordinateDetail,
+        bool IsSelected);
+    public sealed record ST_CORRECTION_OUTPUT_VIEWER_HEAD_CARD(int HeadNo, bool IsAssigned, Brush Background, Brush BorderBrush, Brush Foreground)
+    {
+        public string Name => $"H{HeadNo:00}";
+    }
     public sealed record ST_CORRECTION_OFFSET_VIEWER_PREVIEW(ImageSource? Image, IReadOnlyList<ST_CELL_PREVIEW_LABEL> CellLabels, string Summary);
     internal readonly record struct ST_CORRECTION_AXIS_SETTING_STATE(string Summary, string Detail, string Vision, string Scanner, ST_CORRECTION_AXIS_FLIP_ROW VisionRow, IReadOnlyList<ST_CORRECTION_AXIS_FLIP_ROW> ScannerRows);
     public sealed record ST_CORRECTION_AXIS_FLIP_ROW(string Name, bool XFlip, bool YFlip, bool XyFlip)
@@ -4493,24 +6697,40 @@
         private static readonly (string Key, string Name)[] Options = [("RECIPE", "Recipe"), ("REVIEW", "Review"), ("ALIGN", "Align"), ("HEAD", "Head"), ("FIRST_BEAM", "First Beam"), ("SUM", "SUM")];
         private IReadOnlyDictionary<string, string> _parameters = new Dictionary<string, string>();
         private IReadOnlyList<ST_HEAD_SHOT_POINT> _shots = [];
+        private string _selectedShotKey = "";
         public COutputOffsetViewerPanel() => SelectKindCommand = new(SelectKind);
         public event PropertyChangedEventHandler? PropertyChanged;
         public CButtonCommand SelectKindCommand { get; }
         public string SelectedKind { get; private set; } = "SUM";
         public IReadOnlyList<ST_CORRECTION_OFFSET_KIND> Kinds => Options.Select(item => new ST_CORRECTION_OFFSET_KIND(item.Key, item.Name, item.Key == SelectedKind)).ToArray();
-        public string Description => SelectedKind == "SUM" ? "Design SUM / Scanner Converted SUM · mm · Recipe + Review + Align + Head + First Beam" : $"{Options.Single(item => item.Key == SelectedKind).Name} Offset · Saved / Scanner Converted · mm";
+        public string Description => SelectedKind == "SUM" ? "Design SUM / Scanner Converted SUM · mm · Recipe + Review + Align + Head + First Beam" : $"{Options.Single(item => item.Key == SelectedKind).Name} Offset · Design / Scanner Converted · mm";
         public IReadOnlyList<ST_CORRECTION_OFFSET_SHOT_MATRIX_ROW> ShotRows { get; private set; } = [];
+        public IReadOnlyList<ST_CORRECTION_OFFSET_SHOT_ITEM> ShotItems { get; private set; } = [];
+        public ST_CORRECTION_OFFSET_SHOT_ITEM? SelectedShotItem { get; private set; }
 
-        public void Update(IReadOnlyDictionary<string, string> parameters, IReadOnlyList<ST_HEAD_SHOT_POINT> shots)
+        public void Update(IReadOnlyDictionary<string, string> parameters, IReadOnlyList<ST_HEAD_SHOT_POINT> shots, string selectedShotKey)
         {
             _parameters = new Dictionary<string, string>(parameters, StringComparer.OrdinalIgnoreCase);
             _shots = shots;
+            _selectedShotKey = selectedShotKey;
             RefreshRows();
         }
 
         public void Clear()
         {
             _shots = [];
+            _selectedShotKey = "";
+            RefreshRows();
+        }
+
+        public void SelectShot(string shotKey)
+        {
+            if (_selectedShotKey.Equals(shotKey, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            _selectedShotKey = shotKey;
             RefreshRows();
         }
 
@@ -4525,28 +6745,30 @@
 
         private void RefreshRows()
         {
-            ShotRows = _shots.GroupBy(shot => shot.GroupRow).OrderBy(group => group.Key).Select(group => new ST_CORRECTION_OFFSET_SHOT_MATRIX_ROW(group.Key + 1, group.OrderBy(shot => shot.GroupColumn).ThenBy(shot => shot.CellShotNo).Select(CreateCard).ToArray())).ToArray();
+            var selectedKind = SelectedKind;
+            var orderedShots = _shots.OrderBy(shot => shot.GroupRow).ThenBy(shot => shot.GroupColumn).ThenBy(shot => shot.CellShotNo).ToArray();
+            ShotRows = [];
+            ShotItems = new CLazyOffsetShotItems(orderedShots, shot => CreateCard(shot, selectedKind));
+            var selectedIndex = string.IsNullOrWhiteSpace(_selectedShotKey) ? -1 : Array.FindIndex(orderedShots, shot => shot.ShotKey.Equals(_selectedShotKey, StringComparison.OrdinalIgnoreCase));
+            SelectedShotItem = selectedIndex >= 0 ? ShotItems[selectedIndex] : null;
             PropertyChanged?.Invoke(this, new(null));
         }
 
-        private ST_CORRECTION_OFFSET_SHOT_ITEM CreateCard(ST_HEAD_SHOT_POINT shot)
+        private ST_CORRECTION_OFFSET_SHOT_ITEM CreateCard(ST_HEAD_SHOT_POINT shot, string selectedKind)
         {
             var name = CReviewShotNameFormatter.ToMatrixName(shot.CellShotNo, shot.GroupCountX);
             (double X, double Y) saved, converted;
-            var title = "Saved · Design (mm)";
             var detail = CScannerAxisTransform.Format(CScannerAxisTransform.Read(_parameters, shot.HeadNo));
-            switch (SelectedKind)
+            switch (selectedKind)
             {
                 case "RECIPE":
                     // Recipe per-Shot offsets are already scanner coordinates in the process builder.
-                    saved = converted = (shot.RecipeOffsetX, shot.RecipeOffsetY);
-                    title = "Saved · Scanner (mm)";
+                    converted = (shot.RecipeOffsetX, shot.RecipeOffsetY);
+                    saved = CScannerAxisTransform.ScannerOffsetToDesign(_parameters, shot.HeadNo, converted.X, converted.Y);
                     break;
                 case "REVIEW":
                     converted = (shot.ReviewOffsetX, shot.ReviewOffsetY);
-                    var design = CReviewOffsetData.IsDesignCoordinate(_parameters, $"CELL{shot.CellNo}_{name}_REVIEW_OFFSET_");
-                    saved = design ? CScannerAxisTransform.ScannerOffsetToDesign(_parameters, shot.HeadNo, converted.X, converted.Y) : converted;
-                    title = design ? title : "Saved · Scanner (mm)";
+                    saved = CScannerAxisTransform.ScannerOffsetToDesign(_parameters, shot.HeadNo, converted.X, converted.Y);
                     break;
                 case "ALIGN":
                     saved = (shot.AlignOffsetX, shot.AlignOffsetY);
@@ -4564,15 +6786,63 @@
                 default:
                     converted = (shot.FinalScannerOffsetX, shot.FinalScannerOffsetY);
                     saved = CScannerAxisTransform.ScannerOffsetToDesign(_parameters, shot.HeadNo, converted.X, converted.Y);
-                    title = "Design SUM (mm)";
                     detail += "\nSUM은 별도 저장값이 없습니다. 구성 항목을 같은 설계 좌표로 환산한 합계와 기존 실제 적용 합계를 표시합니다.";
                     break;
             }
 
-            return new(shot.ShotKey, name, $"H{shot.HeadNo:00}", title, Pair(saved), Pair(converted), detail);
+            return new(
+                shot.ShotKey,
+                name,
+                $"H{shot.HeadNo:00}",
+                Number(saved.X),
+                Number(saved.Y),
+                Number(converted.X),
+                Number(converted.Y),
+                detail,
+                shot.ShotKey.Equals(_selectedShotKey, StringComparison.OrdinalIgnoreCase));
         }
 
-        private static string Pair((double X, double Y) value) => $"X {Number(value.X)}   Y {Number(value.Y)}";
+        private sealed class CLazyOffsetShotItems(IReadOnlyList<ST_HEAD_SHOT_POINT> shots, Func<ST_HEAD_SHOT_POINT, ST_CORRECTION_OFFSET_SHOT_ITEM> factory) : IReadOnlyList<ST_CORRECTION_OFFSET_SHOT_ITEM>, System.Collections.IList
+        {
+            private readonly ST_CORRECTION_OFFSET_SHOT_ITEM?[] _cache = new ST_CORRECTION_OFFSET_SHOT_ITEM?[shots.Count];
+            public int Count => shots.Count;
+            public ST_CORRECTION_OFFSET_SHOT_ITEM this[int index] => _cache[index] ??= factory(shots[index]);
+            object? System.Collections.IList.this[int index]
+            {
+                get => this[index];
+                set => throw new NotSupportedException();
+            }
+
+            bool System.Collections.IList.IsFixedSize => true;
+            bool System.Collections.IList.IsReadOnly => true;
+            bool System.Collections.ICollection.IsSynchronized => false;
+            object System.Collections.ICollection.SyncRoot => this;
+
+            public IEnumerator<ST_CORRECTION_OFFSET_SHOT_ITEM> GetEnumerator()
+            {
+                for (var index = 0; index < Count; index++)
+                {
+                    yield return this[index];
+                }
+            }
+
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+            int System.Collections.IList.Add(object? value) => throw new NotSupportedException();
+            void System.Collections.IList.Clear() => throw new NotSupportedException();
+            bool System.Collections.IList.Contains(object? value) => ((System.Collections.IList)this).IndexOf(value) >= 0;
+            int System.Collections.IList.IndexOf(object? value) => value is ST_CORRECTION_OFFSET_SHOT_ITEM item ? Array.IndexOf(_cache, item) : -1;
+            void System.Collections.IList.Insert(int index, object? value) => throw new NotSupportedException();
+            void System.Collections.IList.Remove(object? value) => throw new NotSupportedException();
+            void System.Collections.IList.RemoveAt(int index) => throw new NotSupportedException();
+            void System.Collections.ICollection.CopyTo(Array array, int index)
+            {
+                for (var itemIndex = 0; itemIndex < Count; itemIndex++)
+                {
+                    array.SetValue(this[itemIndex], index + itemIndex);
+                }
+            }
+        }
+
         private static string Number(double value)
         {
             var rounded = CAlignShotOffsetData.RoundValue(value);
@@ -4625,6 +6895,7 @@
             "REVIEW_START" => CanConfigure && Rows.Count > 0,
             "NG_RETRY" => CanConfigure && Rows.Any(row => row.Point.State == EN_REVIEW_POINT_STATE.Ng),
             "OFFSET_APPLY" => CanConfigure && Rows.Any(row => row.Point.State == EN_REVIEW_POINT_STATE.Ok && !row.Applied),
+            "OFFSET_ROLLBACK" => CanConfigure && _recipe is not null,
             "OFFSET_INIT" => CanConfigure && _assigned.Length > 0 && Rows.Count > 0,
             "OFFSET_VIEW" => CanConfigure && _recipe is not null,
             _ => false
@@ -4919,7 +7190,7 @@
             SelectHeadCommand = new(SelectHead, _ => !IsOffsetOperationRunning);
             SelectScopeCommand = new(SelectScope, _ => !IsOffsetOperationRunning);
             SelectCorrectionShotCommand = new(SelectCorrectionShot, _ => !IsOffsetOperationRunning);
-            OffsetActionCommand = new(RunOffsetAction, action => _executeOffsetAction is not null && (Inspection is not null ? Inspection.CanExecute(action?.ToString() ?? "") : !IsOffsetOperationRunning && (action?.ToString() == "OFFSET_VIEW" ? RecipeId.Length > 0 : action?.ToString()is "OFFSET_APPLY" or "OFFSET_INIT" && CorrectionRows.Count == 1)));
+            OffsetActionCommand = new(RunOffsetAction, action => _executeOffsetAction is not null && (Inspection is not null ? Inspection.CanExecute(action?.ToString() ?? "") : !IsOffsetOperationRunning && (action?.ToString() is "OFFSET_VIEW" or "OFFSET_ROLLBACK" ? RecipeId.Length > 0 : action?.ToString()is "OFFSET_APPLY" or "OFFSET_INIT" && CorrectionRows.Count == 1)));
             BackToGlassCommand = new(_ => ShowGlass());
             UpdateHeads();
         }

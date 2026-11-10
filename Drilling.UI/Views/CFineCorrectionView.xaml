@@ -25,6 +25,9 @@
         <Style x:Key="FineStopButton" TargetType="Button" BasedOn="{StaticResource FineButton}">
             <Setter Property="Background" Value="{DynamicResource ButtonDangerBrush}" /><Setter Property="Foreground" Value="White" />
         </Style>
+        <Style x:Key="FineRollbackButton" TargetType="Button" BasedOn="{StaticResource FineButton}">
+            <Setter Property="Background" Value="{DynamicResource ButtonWarningBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource ButtonWarningBorderBrush}" /><Setter Property="Foreground" Value="White" />
+        </Style>
         <Style x:Key="FineSummaryButton" TargetType="Button">
             <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}" />
             <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
@@ -146,9 +149,10 @@
                     <TextBlock Grid.Row="5" Text="{Binding OffsetStatus}" TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,3" />
                     <UniformGrid Grid.Row="6" Rows="1">
                         <Button Content="OFFSET APPLY" Style="{StaticResource FineStartButton}" menu:CButtonCommandBehavior.Command="{Binding ActionCommand}" CommandParameter="OFFSET_APPLY" />
+                        <Button Content="OFFSET ROLLBACK" Style="{StaticResource FineRollbackButton}" menu:CButtonCommandBehavior.Command="{Binding ActionCommand}" CommandParameter="OFFSET_ROLLBACK" />
                         <Button Content="OFFSET INIT" Style="{StaticResource FineStopButton}" menu:CButtonCommandBehavior.Command="{Binding ActionCommand}" CommandParameter="OFFSET_INIT" />
-                        <Button Content="CUR OFFSET VIEW" Style="{StaticResource FineButton}" menu:CButtonCommandBehavior.Command="{Binding ActionCommand}" CommandParameter="OFFSET_VIEW" />
                     </UniformGrid>
+                    <Button Grid.Row="7" Content="CUR REVIEW OFFSET VIEW" Height="34" Margin="2,6,2,0" Style="{StaticResource FineButton}" menu:CButtonCommandBehavior.Command="{Binding ActionCommand}" CommandParameter="OFFSET_VIEW" />
                 </Grid>
             </Border>
         </Grid>

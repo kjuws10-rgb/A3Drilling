@@ -1,6 +1,7 @@
-﻿namespace Drilling.Common.Managers
+namespace Drilling.Common.Managers
 {
     using Drilling.Common.Alarm;
+    using Drilling.Common.Recipe;
     using Drilling.Common.Interface;
     using Drilling.Common.InterLock;
     using Drilling.Common.Managers;
@@ -70,6 +71,43 @@
         }
 
         public async Task SaveRecipe(ST_RECIPE_DEFINITION recipe, CancellationToken cancellationToken = default) => await WithRecipeOperation(() => SaveRecipeCore(recipe, cancellationToken), cancellationToken).ConfigureAwait(false);
+        public Task<ST_RECIPE_DEFINITION> SaveParametersIfUnchanged(ST_RECIPE_DEFINITION expected, IReadOnlyDictionary<string, string> changes, CancellationToken token = default) => WithRecipeOperation(async () =>
+        {
+            var current = await recipeFile.Find(expected.Id, token).ConfigureAwait(false) ?? throw new InvalidOperationException("현재 레시피가 없습니다.");
+            var before = expected.Parameters.ToDictionary(p => p.Key, p => p.Value, StringComparer.OrdinalIgnoreCase);
+            var now = current.Parameters.ToDictionary(p => p.Key, p => p.Value, StringComparer.OrdinalIgnoreCase);
+            // Internal production count may change independently; never overwrite it.
+            before.Remove("CURRENT_PROCESS_COUNT"); now.Remove("CURRENT_PROCESS_COUNT");
+            if (before.Count != now.Count || before.Any(p => !now.TryGetValue(p.Key, out var value) || value != p.Value))
+                throw new InvalidOperationException("측정 후 레시피가 변경되었습니다. 기준을 다시 설정해 주세요.");
+            if (changes.Keys.Any(key => !now.ContainsKey(key))) throw new InvalidOperationException("저장할 레시피 파라미터가 없습니다.");
+            var updated = current with { Parameters = current.Parameters.Select(p => changes.TryGetValue(p.Key, out var value) ? p with { Value = value } : p).ToArray() };
+            // Once the file commit returns, finish readback/cache publication even if
+            // the UI cancels. History must not disguise a committed Default as unsaved.
+            await recipeFile.Save(updated, token).ConfigureAwait(false);
+            var saved = await recipeFile.Find(expected.Id, CancellationToken.None).ConfigureAwait(false) ?? throw new IOException("레시피 저장 명령은 완료됐지만 저장값을 다시 읽을 수 없습니다.");
+            UpdateCachedRecipe(saved);
+            try { await LoadHistoryCore(true, CancellationToken.None).ConfigureAwait(false); }
+            catch (Exception error) { System.Diagnostics.Trace.TraceError("Recipe parameter history refresh failed after commit: " + error); }
+            return saved;
+        }, token);
+        public Task<ST_RECIPE_DEFINITION> SaveAlignOffsetsIfUnchanged(ST_RECIPE_DEFINITION expected, IReadOnlyList<ST_ALIGN_SHOT_OFFSET> offsets, CancellationToken token = default) => WithRecipeOperation(async () =>
+        {
+            var current = await recipeFile.Find(expected.Id, token).ConfigureAwait(false) ?? throw new InvalidOperationException("현재 레시피가 없습니다.");
+            var before = expected.Parameters.ToDictionary(p => p.Key, p => p.Value, StringComparer.OrdinalIgnoreCase);
+            var now = current.Parameters.ToDictionary(p => p.Key, p => p.Value, StringComparer.OrdinalIgnoreCase);
+            before.Remove("CURRENT_PROCESS_COUNT"); now.Remove("CURRENT_PROCESS_COUNT");
+            if (before.Count != now.Count || before.Any(p => !now.TryGetValue(p.Key, out var value) || value != p.Value))
+                throw new InvalidOperationException("Distortion 측정 중 레시피가 변경되었습니다. 기존 보정값을 유지합니다.");
+            var updated = CAlignShotOffsetData.Apply(current, offsets);
+            await recipeFile.Save(updated, token).ConfigureAwait(false);
+            var saved = await recipeFile.Find(expected.Id, CancellationToken.None).ConfigureAwait(false) ?? throw new IOException("Align Offset 저장 후 레시피를 다시 읽지 못했습니다.");
+            UpdateCachedRecipe(saved);
+            try { await LoadHistoryCore(true, CancellationToken.None).ConfigureAwait(false); }
+            catch (Exception error) { System.Diagnostics.Trace.TraceError("Align Offset history refresh failed after commit: " + error); }
+            return saved;
+        }, token);
+
         // Merge only calibration angles into the latest Recipe under the existing operation gate.
         public Task SavePowerMeasureAngles(string recipeId, IReadOnlyDictionary<int, double> angles, CancellationToken token = default) => WithRecipeOperation(async () =>
         {
@@ -398,3 +436,5 @@ namespace Drilling.Common.Recipe
         }
     }
 }
+
+

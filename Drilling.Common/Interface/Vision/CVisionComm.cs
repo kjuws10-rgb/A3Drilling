@@ -1,4 +1,4 @@
-﻿namespace Drilling.Common.Interface.Vision
+namespace Drilling.Common.Interface.Vision
 {
     using System.Collections.Concurrent;
     using System.Globalization;
@@ -546,7 +546,7 @@
     public sealed record ST_VISION_SINGLE_RESULT(int Resolution, ST_VISION_MARK_FIND Mark);
     public sealed record ST_VISION_LINE_RESULT(int Resolution, int FindHoleCount, IReadOnlyList<ST_VISION_MARK_FIND> Marks);
     public sealed record ST_VISION_FLYING_READY(int InspectionType, IReadOnlyList<ST_VISION_MARK_SEARCH> Searches);
-    public sealed class CVisionLineCountExceededException(int actualCount, int maximumCount) : IOException($"Vision 수신 HoleCount({actualCount})가 Setting-Vision MaxHoleCountPerLine({maximumCount})을 초과했습니다.")
+    public sealed class CVisionLineCountExceededException(int actualCount, int maximumCount) : IOException($"Vision 수신 HoleCount({actualCount})가 Setting-Review MaxHoleCountPerLine({maximumCount})을 초과했습니다.")
     {
         public int ActualCount { get; } = actualCount;
         public int MaximumCount { get; } = maximumCount;

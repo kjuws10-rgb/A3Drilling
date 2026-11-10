@@ -1048,7 +1048,7 @@
                 headScopes: ShouldDrawSampleScope() ? _reviewManager.GetHeadScopes(_lastRecipe) : null, 
                 currentHolePoint: IsSimpleSampleRuleUi ? GetSimpleReferencePoint() : null, 
                 expandSmallCellBounds: false
-            );
+            , settings: _cameraSettings?.LoadSection(EN_SETTING_TAB.Motor));
             SampleGlassPreviewImage = preview.Image;
             SampleGlassPreviewInspectionOverlayImage = preview.InspectionOverlayImage;
             SampleCellPreviewLabels = preview.CellLabels;
@@ -2294,7 +2294,7 @@
                 return;
             }
 
-            var preview = CReviewGlassPreviewBuilder.Build(_lastRecipe, _lastAllPlan.CellCount, showShotPoints: false, expandSmallCellBounds: false, filledCellNos: GetSelectedInspectionCellNos());
+            var preview = CReviewGlassPreviewBuilder.Build(_lastRecipe, _lastAllPlan.CellCount, showShotPoints: false, expandSmallCellBounds: false, filledCellNos: GetSelectedInspectionCellNos(), settings: _cameraSettings?.LoadSection(EN_SETTING_TAB.Motor));
             RunGlassPreviewImage = preview.Image;
             SetCameraPreviewGeometry(preview);
             RunGlassPreviewInspectionOverlayImage = preview.InspectionOverlayImage;
@@ -2650,8 +2650,14 @@
 
                 var result = await _reviewManager.ExecuteOneShot(plan, point, operation, method, Progress, _oneShotCancellation.Token);
                 _oneShotResult = result;
-                OneShotStatus = operation == EN_ONE_SHOT_ACTION.Move ? (result.IsStageSimulation ? "이동 완료 (SIMULATION)" : "이동 완료") : $"검사 완료 · {result.Point.Judge}";
+                OneShotStatus = operation == EN_ONE_SHOT_ACTION.Move
+                    ? result.IsStageSimulation ? "이동 완료 (SIMULATION)" : "이동 완료"
+                    : string.IsNullOrWhiteSpace(result.ResultSaveError)
+                        ? $"검사 완료 · {result.Point.Judge}"
+                        : $"검사 완료 · {result.Point.Judge} / 결과 저장 실패";
                 _statusReporter($"{OneShotSelection} · {OneShotStatus}");
+                if (!string.IsNullOrWhiteSpace(result.ResultSaveError))
+                    warn("One Shot 결과 저장", result.ResultSaveError);
             }
             catch (OperationCanceledException)
             {
@@ -2843,7 +2849,7 @@
                 expandSmallCellBounds: false, 
                 emphasizeCurrentCell: active, 
                 currentCellNos: cells
-            );
+            , settings: _cameraSettings?.LoadSection(EN_SETTING_TAB.Motor));
             // Cell geometry and the base image are static for the run. Only change
             // the highlight overlay/labels when its Cell set actually changes.
             if (RunGlassPreviewImage is null)
@@ -3286,7 +3292,7 @@
                 emphasizeCurrentCell: IsReviewExecutionActive, 
                 currentCellNos: currentCellNos, 
                 filledCellNos: IsShotSelectionMode ? GetSelectedInspectionCellNos() : null
-            ) : emptyPreview;
+            , settings: _cameraSettings?.LoadSection(EN_SETTING_TAB.Motor)) : emptyPreview;
             _selectedSampleCellNo = Math.Clamp(_selectedSampleCellNo, 1, Math.Max(1, allPlan.CellCount));
             SetSampleMapColumnCount(CalculateShotMapColumnCount(allPlan, _selectedSampleCellNo));
             var simpleReferencePoint = IsSimpleSampleRuleUi ? GetSimpleReferencePoint() : null;
@@ -3307,7 +3313,7 @@
                 headScopes: ShouldDrawSampleScope() ? _reviewManager.GetHeadScopes(recipe) : null, 
                 currentHolePoint: IsSimpleSampleRuleUi ? GetSimpleReferencePoint() : null, 
                 expandSmallCellBounds: false
-            ) : emptyPreview;
+            , settings: _cameraSettings?.LoadSection(EN_SETTING_TAB.Motor)) : emptyPreview;
             _activePlanPointCount = activePointCount;
             Tabs = [new("RUN", IsRunTab, SelectTabCommand)];
             Modes = [Mode("ALL SHOT", ""), Mode("ONE SHOT", ""), Mode("BEAM INSPECTION", "")];

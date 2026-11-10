@@ -619,6 +619,7 @@
         public string Kind { get; }
         public string AlarmId => Subject.Length == 0 ? $"SEQ_{Scenario}_NG" : $"SEQ_{Scenario}_{Subject}_{Kind}";
         public static string ActionScenario(string id) => id.StartsWith("MOVE_", StringComparison.Ordinal) ? "PROCESS_MOVE"
+            : id.StartsWith("DISTORTION_", StringComparison.Ordinal) ? "DISTORTION"
             : id.StartsWith("IOF_", StringComparison.Ordinal) ? "IOF"
             : id.StartsWith("DOREADY_", StringComparison.Ordinal) ? "DOREADY"
             : id.StartsWith("PROCESS_", StringComparison.Ordinal) ? "PROCESS"
@@ -626,6 +627,7 @@
             : id.StartsWith("TPM_", StringComparison.Ordinal) ? "TPM" : "AUTO";
         public static string SignalScenario(string id, string fallback)
         {
+            if (id.Contains("DISTORTION", StringComparison.Ordinal)) return "DISTORTION";
             if (id.Contains("TOP_POWERMETER", StringComparison.Ordinal) || id == "PROCESS_SEQUENCE_TPM_LASER_ON") return "TPM";
             if (id.Contains("DOREADY", StringComparison.Ordinal)) return "DOREADY";
             if (id.Contains("DO_ALIGN", StringComparison.Ordinal) || id == "STAGE_MCC_BUSY_FLAGS") return "DO_ALIGN";

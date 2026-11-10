@@ -107,7 +107,7 @@
                 return;
             }
 
-            CCsvParser.Write(path, Headers, CreateHandshakeRows().Concat(CreateMotorStatusRows()).Concat(CreateLatestScenarioRows()).Concat(CreateVisionSpecRows()).Concat(CreateUnassignedLegacyRows()).ToArray());
+            CCsvParser.Write(path, Headers, CreateHandshakeRows().Concat(CreateMotorStatusRows()).Concat(CreateLatestScenarioRows()).Concat(CreateVisionSpecRows()).Concat(CreateAlignDistortionRows()).Concat(CreateUnassignedLegacyRows()).ToArray());
         }
 
         private string GetMapPath()
@@ -1521,134 +1521,6 @@
             use: false
         ), 
             Row(
-            "PROCESS_RECIPE_ALIGNBASE_X1", 
-            "ALIGN_BASE", 
-            "Recipe Align Base X1", 
-            0, 
-            "W8056", 
-            "DOUBLE", 
-            "OUT", 
-            "RW", 
-            "0.0001", 
-            "10000", 
-            "2", 
-            "0", 
-            "Spec 0.10 Config_Map Word Detail(가공) D216:G216 PROCESS_RECIPE_ALIGNBASE_X1; 주소 정의만 등록; 시퀀스 연결 전 USE=0; Recipe 기준값의 가공 PC 보고 주소; Vision LastLoad 수신 주소가 아님; 실제 전송은 후속 연결; Map 0.10: Distortion Bench Mark", 
-            use: false
-        ), 
-            Row(
-            "PROCESS_RECIPE_ALIGNBASE_X2", 
-            "ALIGN_BASE", 
-            "Recipe Align Base X2", 
-            0, 
-            "W8058", 
-            "DOUBLE", 
-            "OUT", 
-            "RW", 
-            "0.0001", 
-            "10000", 
-            "2", 
-            "0", 
-            "Spec 0.10 Config_Map Word Detail(가공) D217:G217 PROCESS_RECIPE_ALIGNBASE_X2; 주소 정의만 등록; 시퀀스 연결 전 USE=0; Recipe 기준값의 가공 PC 보고 주소; Vision LastLoad 수신 주소가 아님; 실제 전송은 후속 연결; Map 0.10: Distortion Bench Mark", 
-            use: false
-        ), 
-            Row(
-            "PROCESS_RECIPE_ALIGNBASE_X3", 
-            "ALIGN_BASE", 
-            "Recipe Align Base X3", 
-            0, 
-            "W805A", 
-            "DOUBLE", 
-            "OUT", 
-            "RW", 
-            "0.0001", 
-            "10000", 
-            "2", 
-            "0", 
-            "Spec 0.10 Config_Map Word Detail(가공) D218:G218 PROCESS_RECIPE_ALIGNBASE_X3; 주소 정의만 등록; 시퀀스 연결 전 USE=0; Recipe 기준값의 가공 PC 보고 주소; Vision LastLoad 수신 주소가 아님; 실제 전송은 후속 연결; Map 0.10: Distortion Bench Mark", 
-            use: false
-        ), 
-            Row(
-            "PROCESS_RECIPE_ALIGNBASE_X4", 
-            "ALIGN_BASE", 
-            "Recipe Align Base X4", 
-            0, 
-            "W805C", 
-            "DOUBLE", 
-            "OUT", 
-            "RW", 
-            "0.0001", 
-            "10000", 
-            "2", 
-            "0", 
-            "Spec 0.10 Config_Map Word Detail(가공) D219:G219 PROCESS_RECIPE_ALIGNBASE_X4; 주소 정의만 등록; 시퀀스 연결 전 USE=0; Recipe 기준값의 가공 PC 보고 주소; Vision LastLoad 수신 주소가 아님; 실제 전송은 후속 연결; Map 0.10: Distortion Bench Mark", 
-            use: false
-        ), 
-            Row(
-            "PROCESS_RECIPE_ALIGNBASE_Y1", 
-            "ALIGN_BASE", 
-            "Recipe Align Base Y1", 
-            0, 
-            "W805E", 
-            "DOUBLE", 
-            "OUT", 
-            "RW", 
-            "0.0001", 
-            "10000", 
-            "2", 
-            "0", 
-            "Spec 0.10 Config_Map Word Detail(가공) D220:G220 PROCESS_RECIPE_ALIGNBASE_Y1; 주소 정의만 등록; 시퀀스 연결 전 USE=0; Recipe 기준값의 가공 PC 보고 주소; Vision LastLoad 수신 주소가 아님; 실제 전송은 후속 연결; Map 0.10: Distortion Bench Mark", 
-            use: false
-        ), 
-            Row(
-            "PROCESS_RECIPE_ALIGNBASE_Y2", 
-            "ALIGN_BASE", 
-            "Recipe Align Base Y2", 
-            0, 
-            "W8060", 
-            "DOUBLE", 
-            "OUT", 
-            "RW", 
-            "0.0001", 
-            "10000", 
-            "2", 
-            "0", 
-            "Spec 0.10 Config_Map Word Detail(가공) D221:G221 PROCESS_RECIPE_ALIGNBASE_Y2; 주소 정의만 등록; 시퀀스 연결 전 USE=0; Recipe 기준값의 가공 PC 보고 주소; Vision LastLoad 수신 주소가 아님; 실제 전송은 후속 연결; Map 0.10: Distortion Bench Mark", 
-            use: false
-        ), 
-            Row(
-            "PROCESS_RECIPE_ALIGNBASE_Y3", 
-            "ALIGN_BASE", 
-            "Recipe Align Base Y3", 
-            0, 
-            "W8062", 
-            "DOUBLE", 
-            "OUT", 
-            "RW", 
-            "0.0001", 
-            "10000", 
-            "2", 
-            "0", 
-            "Spec 0.10 Config_Map Word Detail(가공) D222:G222 PROCESS_RECIPE_ALIGNBASE_Y3; 주소 정의만 등록; 시퀀스 연결 전 USE=0; Recipe 기준값의 가공 PC 보고 주소; Vision LastLoad 수신 주소가 아님; 실제 전송은 후속 연결; Map 0.10: Distortion Bench Mark", 
-            use: false
-        ), 
-            Row(
-            "PROCESS_RECIPE_ALIGNBASE_Y4", 
-            "ALIGN_BASE", 
-            "Recipe Align Base Y4", 
-            0, 
-            "W8064", 
-            "DOUBLE", 
-            "OUT", 
-            "RW", 
-            "0.0001", 
-            "10000", 
-            "2", 
-            "0", 
-            "Spec 0.10 Config_Map Word Detail(가공) D223:G223 PROCESS_RECIPE_ALIGNBASE_Y4; 주소 정의만 등록; 시퀀스 연결 전 USE=0; Recipe 기준값의 가공 PC 보고 주소; Vision LastLoad 수신 주소가 아님; 실제 전송은 후속 연결; Map 0.10: Distortion Bench Mark", 
-            use: false
-        ), 
-            Row(
             "PROCESS_LDPRO_ALARM", 
             "IF_PROCESS_DATA", 
             "Process Alarm Status", 
@@ -1745,134 +1617,6 @@
             use: false
         ), 
             Row(
-            "PROCESS_RECIPE_ALIGNBASE_RAGNE_X1", 
-            "ALIGN_BASE_LIMIT", 
-            "Bench Mark Limit X1", 
-            0, 
-            "W8070", 
-            "DOUBLE", 
-            "OUT", 
-            "RW", 
-            "0.0001", 
-            "10000", 
-            "2", 
-            "0", 
-            "Spec 0.10 Config_Map Word Detail(가공) D229:I229 PROCESS_RECIPE_ALIGNBASE_RAGNE_X1; Distortion Bench Mark Limit Range; 문서의 RAGNE 표기를 유지; 단위는 Stage 계약 확인; Align Offset Tolerance와 다른 Bench Mark 허용범위; 값 선택/자동 송신은 후속 작업; USE=0", 
-            use: false
-        ), 
-            Row(
-            "PROCESS_RECIPE_ALIGNBASE_RAGNE_X2", 
-            "ALIGN_BASE_LIMIT", 
-            "Bench Mark Limit X2", 
-            0, 
-            "W8072", 
-            "DOUBLE", 
-            "OUT", 
-            "RW", 
-            "0.0001", 
-            "10000", 
-            "2", 
-            "0", 
-            "Spec 0.10 Config_Map Word Detail(가공) D230:I230 PROCESS_RECIPE_ALIGNBASE_RAGNE_X2; Distortion Bench Mark Limit Range; 문서의 RAGNE 표기를 유지; 단위는 Stage 계약 확인; Align Offset Tolerance와 다른 Bench Mark 허용범위; 값 선택/자동 송신은 후속 작업; USE=0", 
-            use: false
-        ), 
-            Row(
-            "PROCESS_RECIPE_ALIGNBASE_RAGNE_X3", 
-            "ALIGN_BASE_LIMIT", 
-            "Bench Mark Limit X3", 
-            0, 
-            "W8074", 
-            "DOUBLE", 
-            "OUT", 
-            "RW", 
-            "0.0001", 
-            "10000", 
-            "2", 
-            "0", 
-            "Spec 0.10 Config_Map Word Detail(가공) D231:I231 PROCESS_RECIPE_ALIGNBASE_RAGNE_X3; Distortion Bench Mark Limit Range; 문서의 RAGNE 표기를 유지; 단위는 Stage 계약 확인; Align Offset Tolerance와 다른 Bench Mark 허용범위; 값 선택/자동 송신은 후속 작업; USE=0", 
-            use: false
-        ), 
-            Row(
-            "PROCESS_RECIPE_ALIGNBASE_RAGNE_X4", 
-            "ALIGN_BASE_LIMIT", 
-            "Bench Mark Limit X4", 
-            0, 
-            "W8076", 
-            "DOUBLE", 
-            "OUT", 
-            "RW", 
-            "0.0001", 
-            "10000", 
-            "2", 
-            "0", 
-            "Spec 0.10 Config_Map Word Detail(가공) D232:I232 PROCESS_RECIPE_ALIGNBASE_RAGNE_X4; Distortion Bench Mark Limit Range; 문서의 RAGNE 표기를 유지; 단위는 Stage 계약 확인; Align Offset Tolerance와 다른 Bench Mark 허용범위; 값 선택/자동 송신은 후속 작업; USE=0", 
-            use: false
-        ), 
-            Row(
-            "PROCESS_RECIPE_ALIGNBASE_RAGNE_Y1", 
-            "ALIGN_BASE_LIMIT", 
-            "Bench Mark Limit Y1", 
-            0, 
-            "W8078", 
-            "DOUBLE", 
-            "OUT", 
-            "RW", 
-            "0.0001", 
-            "10000", 
-            "2", 
-            "0", 
-            "Spec 0.10 Config_Map Word Detail(가공) D233:I233 PROCESS_RECIPE_ALIGNBASE_RAGNE_Y1; Distortion Bench Mark Limit Range; 문서의 RAGNE 표기를 유지; 단위는 Stage 계약 확인; Align Offset Tolerance와 다른 Bench Mark 허용범위; 값 선택/자동 송신은 후속 작업; USE=0", 
-            use: false
-        ), 
-            Row(
-            "PROCESS_RECIPE_ALIGNBASE_RAGNE_Y2", 
-            "ALIGN_BASE_LIMIT", 
-            "Bench Mark Limit Y2", 
-            0, 
-            "W807A", 
-            "DOUBLE", 
-            "OUT", 
-            "RW", 
-            "0.0001", 
-            "10000", 
-            "2", 
-            "0", 
-            "Spec 0.10 Config_Map Word Detail(가공) D234:I234 PROCESS_RECIPE_ALIGNBASE_RAGNE_Y2; Distortion Bench Mark Limit Range; 문서의 RAGNE 표기를 유지; 단위는 Stage 계약 확인; Align Offset Tolerance와 다른 Bench Mark 허용범위; 값 선택/자동 송신은 후속 작업; USE=0", 
-            use: false
-        ), 
-            Row(
-            "PROCESS_RECIPE_ALIGNBASE_RAGNE_Y3", 
-            "ALIGN_BASE_LIMIT", 
-            "Bench Mark Limit Y3", 
-            0, 
-            "W807C", 
-            "DOUBLE", 
-            "OUT", 
-            "RW", 
-            "0.0001", 
-            "10000", 
-            "2", 
-            "0", 
-            "Spec 0.10 Config_Map Word Detail(가공) D235:I235 PROCESS_RECIPE_ALIGNBASE_RAGNE_Y3; Distortion Bench Mark Limit Range; 문서의 RAGNE 표기를 유지; 단위는 Stage 계약 확인; Align Offset Tolerance와 다른 Bench Mark 허용범위; 값 선택/자동 송신은 후속 작업; USE=0", 
-            use: false
-        ), 
-            Row(
-            "PROCESS_RECIPE_ALIGNBASE_RAGNE_Y4", 
-            "ALIGN_BASE_LIMIT", 
-            "Bench Mark Limit Y4", 
-            0, 
-            "W807E", 
-            "DOUBLE", 
-            "OUT", 
-            "RW", 
-            "0.0001", 
-            "10000", 
-            "2", 
-            "0", 
-            "Spec 0.10 Config_Map Word Detail(가공) D236:I236 PROCESS_RECIPE_ALIGNBASE_RAGNE_Y4; Distortion Bench Mark Limit Range; 문서의 RAGNE 표기를 유지; 단위는 Stage 계약 확인; Align Offset Tolerance와 다른 Bench Mark 허용범위; 값 선택/자동 송신은 후속 작업; USE=0", 
-            use: false
-        ), 
-            Row(
             "STAGE_MCC_BUSY_FLAGS", 
             "IF_ALIGN", 
             "MCC Busy Word (bit1 Align)", 
@@ -1895,51 +1639,47 @@
             Row("DISTORTION_INSP_BUSY", "VISION_DISTORTION", "DISTORTION_INSP_BUSY", 0, "W10098", "WORD", "IN", "R", "1", "1", "1", "0", "Spec 0.10 비전 D71:G71; 1 Word 원시 상태; 자동 연결 전 USE=0", use: false),
             Row("DISTORTION_INSP_RESULT_OK", "VISION_DISTORTION", "DISTORTION_INSP_RESULT_OK", 0, "W10099", "WORD", "IN", "R", "1", "1", "1", "0", "Spec 0.10 비전 D72:G72; 1 Word 원시 상태; 자동 연결 전 USE=0", use: false),
             Row("DISTORTION_INSP_RESULT_NG", "VISION_DISTORTION", "DISTORTION_INSP_RESULT_NG", 0, "W1009A", "WORD", "IN", "R", "1", "1", "1", "0", "Spec 0.10 비전 D73:G73; 1 Word 원시 상태; 자동 연결 전 USE=0", use: false),
-            Row("DISTORTION_POS0_CAM1X", "VISION_DISTORTION_DATA", "DISTORTION_POS0_CAM1X", 0, "W10100", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Spec 0.10 비전 D169:H169; Distortion Pos0 (Align 완료위치) Cam1 X 위치 (mm); READ_SCALE=0.0001 WRITE_SCALE=10000; Load용 원시 수신 주소 정의; AK/DK와 CAM/Pos 매칭은 미확정; 자동 폴링/보정 연결 안 함; USE=0", use: false),
-            Row("DISTORTION_POS0_CAM1Y", "VISION_DISTORTION_DATA", "DISTORTION_POS0_CAM1Y", 0, "W10102", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Spec 0.10 비전 D170:H170; Distortion Pos0 (Align 완료위치) Cam1 Y 위치 (mm); READ_SCALE=0.0001 WRITE_SCALE=10000; Load용 원시 수신 주소 정의; AK/DK와 CAM/Pos 매칭은 미확정; 자동 폴링/보정 연결 안 함; USE=0", use: false),
-            Row("DISTORTION_POS0_CAM2X", "VISION_DISTORTION_DATA", "DISTORTION_POS0_CAM2X", 0, "W10104", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Spec 0.10 비전 D171:H171; Distortion Pos0 (Align 완료위치) Cam2 X 위치 (mm); READ_SCALE=0.0001 WRITE_SCALE=10000; Load용 원시 수신 주소 정의; AK/DK와 CAM/Pos 매칭은 미확정; 자동 폴링/보정 연결 안 함; USE=0", use: false),
-            Row("DISTORTION_POS0_CAM2Y", "VISION_DISTORTION_DATA", "DISTORTION_POS0_CAM2Y", 0, "W10106", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Spec 0.10 비전 D172:H172; Distortion Pos0 (Align 완료위치) Cam2 Y 위치 (mm); READ_SCALE=0.0001 WRITE_SCALE=10000; Load용 원시 수신 주소 정의; AK/DK와 CAM/Pos 매칭은 미확정; 자동 폴링/보정 연결 안 함; USE=0", use: false),
-            Row("DISTORTION_POS0_CAM3X", "VISION_DISTORTION_DATA", "DISTORTION_POS0_CAM3X", 0, "W10108", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Spec 0.10 비전 D173:H173; Distortion Pos0 (Align 완료위치) Cam3 X 위치 (mm); READ_SCALE=0.0001 WRITE_SCALE=10000; Load용 원시 수신 주소 정의; AK/DK와 CAM/Pos 매칭은 미확정; 자동 폴링/보정 연결 안 함; USE=0", use: false),
-            Row("DISTORTION_POS0_CAM3Y", "VISION_DISTORTION_DATA", "DISTORTION_POS0_CAM3Y", 0, "W1010A", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Spec 0.10 비전 D174:H174; Distortion Pos0 (Align 완료위치) Cam3 Y 위치 (mm); READ_SCALE=0.0001 WRITE_SCALE=10000; Load용 원시 수신 주소 정의; AK/DK와 CAM/Pos 매칭은 미확정; 자동 폴링/보정 연결 안 함; USE=0", use: false),
-            Row("DISTORTION_POS0_CAM4X", "VISION_DISTORTION_DATA", "DISTORTION_POS0_CAM4X", 0, "W1010C", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Spec 0.10 비전 D175:H175; Distortion Pos0 (Align 완료위치) Cam4 X 위치 (mm); READ_SCALE=0.0001 WRITE_SCALE=10000; Load용 원시 수신 주소 정의; AK/DK와 CAM/Pos 매칭은 미확정; 자동 폴링/보정 연결 안 함; USE=0", use: false),
-            Row("DISTORTION_POS0_CAM4Y", "VISION_DISTORTION_DATA", "DISTORTION_POS0_CAM4Y", 0, "W1010E", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Spec 0.10 비전 D176:H176; Distortion Pos0 (Align 완료위치) Cam4 Y 위치 (mm); READ_SCALE=0.0001 WRITE_SCALE=10000; Load용 원시 수신 주소 정의; AK/DK와 CAM/Pos 매칭은 미확정; 자동 폴링/보정 연결 안 함; USE=0", use: false),
-            Row("DISTORTION_POS1_CAM2X", "VISION_DISTORTION_DATA", "DISTORTION_POS1_CAM2X", 0, "W10114", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Spec 0.10 비전 D179:H179; Distortion Pos1 Cam2 X 위치 (mm); READ_SCALE=0.0001 WRITE_SCALE=10000; Load용 원시 수신 주소 정의; AK/DK와 CAM/Pos 매칭은 미확정; 자동 폴링/보정 연결 안 함; USE=0", use: false),
-            Row("DISTORTION_POS1_CAM2Y", "VISION_DISTORTION_DATA", "DISTORTION_POS1_CAM2Y", 0, "W10116", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Spec 0.10 비전 D180:H180; Distortion Pos1 Cam2 Y 위치 (mm); READ_SCALE=0.0001 WRITE_SCALE=10000; Load용 원시 수신 주소 정의; AK/DK와 CAM/Pos 매칭은 미확정; 자동 폴링/보정 연결 안 함; USE=0", use: false),
-            Row("DISTORTION_POS1_CAM4X", "VISION_DISTORTION_DATA", "DISTORTION_POS1_CAM4X", 0, "W10118", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Spec 0.10 비전 D181:H181; Distortion Pos1 Cam4 X 위치 (mm); READ_SCALE=0.0001 WRITE_SCALE=10000; Load용 원시 수신 주소 정의; AK/DK와 CAM/Pos 매칭은 미확정; 자동 폴링/보정 연결 안 함; USE=0", use: false),
-            Row("DISTORTION_POS1_CAM4Y", "VISION_DISTORTION_DATA", "DISTORTION_POS1_CAM4Y", 0, "W1011A", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Spec 0.10 비전 D182:H182; Distortion Pos1 Cam4 Y 위치 (mm); READ_SCALE=0.0001 WRITE_SCALE=10000; Load용 원시 수신 주소 정의; AK/DK와 CAM/Pos 매칭은 미확정; 자동 폴링/보정 연결 안 함; USE=0", use: false),
-            Row("DISTORTION_POS2_CAM2X", "VISION_DISTORTION_DATA", "DISTORTION_POS2_CAM2X", 0, "W10120", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Spec 0.10 비전 D185:H185; Distortion Pos2 Cam2 X 위치 (mm); READ_SCALE=0.0001 WRITE_SCALE=10000; Load용 원시 수신 주소 정의; AK/DK와 CAM/Pos 매칭은 미확정; 자동 폴링/보정 연결 안 함; USE=0", use: false),
-            Row("DISTORTION_POS2_CAM2Y", "VISION_DISTORTION_DATA", "DISTORTION_POS2_CAM2Y", 0, "W10122", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Spec 0.10 비전 D186:H186; Distortion Pos2 Cam2 Y 위치 (mm); READ_SCALE=0.0001 WRITE_SCALE=10000; Load용 원시 수신 주소 정의; AK/DK와 CAM/Pos 매칭은 미확정; 자동 폴링/보정 연결 안 함; USE=0", use: false),
-            Row("DISTORTION_POS2_CAM4X", "VISION_DISTORTION_DATA", "DISTORTION_POS2_CAM4X", 0, "W10124", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Spec 0.10 비전 D187:H187; Distortion Pos2 Cam4 X 위치 (mm); READ_SCALE=0.0001 WRITE_SCALE=10000; Load용 원시 수신 주소 정의; AK/DK와 CAM/Pos 매칭은 미확정; 자동 폴링/보정 연결 안 함; USE=0", use: false),
-            Row("DISTORTION_POS2_CAM4Y", "VISION_DISTORTION_DATA", "DISTORTION_POS2_CAM4Y", 0, "W10126", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Spec 0.10 비전 D188:H188; Distortion Pos2 Cam4 Y 위치 (mm); READ_SCALE=0.0001 WRITE_SCALE=10000; Load용 원시 수신 주소 정의; AK/DK와 CAM/Pos 매칭은 미확정; 자동 폴링/보정 연결 안 함; USE=0", use: false),
-            Row("DISTORTION_POS3_CAM2X", "VISION_DISTORTION_DATA", "DISTORTION_POS3_CAM2X", 0, "W1012C", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Spec 0.10 비전 D191:H191; Distortion Pos3 Cam2 X 위치 (mm); READ_SCALE=0.0001 WRITE_SCALE=10000; Load용 원시 수신 주소 정의; AK/DK와 CAM/Pos 매칭은 미확정; 자동 폴링/보정 연결 안 함; USE=0", use: false),
-            Row("DISTORTION_POS3_CAM2Y", "VISION_DISTORTION_DATA", "DISTORTION_POS3_CAM2Y", 0, "W1012E", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Spec 0.10 비전 D192:H192; Distortion Pos3 Cam2 Y 위치 (mm); READ_SCALE=0.0001 WRITE_SCALE=10000; Load용 원시 수신 주소 정의; AK/DK와 CAM/Pos 매칭은 미확정; 자동 폴링/보정 연결 안 함; USE=0", use: false),
-            Row("DISTORTION_POS3_CAM4X", "VISION_DISTORTION_DATA", "DISTORTION_POS3_CAM4X", 0, "W10130", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Spec 0.10 비전 D193:H193; Distortion Pos3 Cam4 X 위치 (mm); READ_SCALE=0.0001 WRITE_SCALE=10000; Load용 원시 수신 주소 정의; AK/DK와 CAM/Pos 매칭은 미확정; 자동 폴링/보정 연결 안 함; USE=0", use: false),
-            Row("DISTORTION_POS3_CAM4Y", "VISION_DISTORTION_DATA", "DISTORTION_POS3_CAM4Y", 0, "W10132", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Spec 0.10 비전 D194:H194; Distortion Pos3 Cam4 Y 위치 (mm); READ_SCALE=0.0001 WRITE_SCALE=10000; Load용 원시 수신 주소 정의; AK/DK와 CAM/Pos 매칭은 미확정; 자동 폴링/보정 연결 안 함; USE=0", use: false),
             Row("STAGE_DISTORTION_INSP_REQ", "VISION_DISTORTION", "DISTORTION_INSP_REQ", 0, "WC0CB", "WORD", "IN", "R", "1", "1", "1", "0", "Spec 0.10 물류 D219:H219; On  1 ,  Off  0; 1 Word 원시값; 자동 연결 전 USE=0", use: false),
             Row("STAGE_DISTORTION_INSP_STEP", "VISION_DISTORTION", "DISTORTION_INSP_STEP", 0, "WC0CC", "WORD", "IN", "R", "1", "1", "1", "0", "Spec 0.10 물류 D220:H220; 1, 2, 3 , 4  position; 1 Word 원시값; 자동 연결 전 USE=0", use: false),
             Row("STAGE_DISTORTION_INSP_DIR", "VISION_DISTORTION", "DISTORTION_INSP_DIR", 0, "WC0CD", "WORD", "IN", "R", "1", "1", "1", "0", "Spec 0.10 물류 D221:H221; Moveprocess  1 , review  2; 1 Word 원시값; 자동 연결 전 USE=0", use: false),
             Row("IOF_POS_ARRAY_X_1", "IF_IOF_DATA", "IOF X Array (Unused)", 0, "W8900", "DOUBLE", "OUT", "RW", "0.0001", "10000", "1000", "0", "Spec 0.10 가공 D1326:G1825; W8900~W8CE7; 좌표 500개/1000 Word; 문서에서 사용안함으로 명시; USE=0 유지; 일반 X용으로 자동 선택하지 않음", use: false),
-            Row("ALIGN_LASTLOAD_AK1_X", "ALIGN_LASTLOAD", "AK1 LastLoad X", 0, "UNASSIGNED", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Vision AK1 LastLoad X (mm); 수신 주소 미정; Load 일회 읽기 대상; 실제 주소 및 스케일 확인 후 활성화", use: false),
-            Row("ALIGN_LASTLOAD_AK1_Y", "ALIGN_LASTLOAD", "AK1 LastLoad Y", 0, "UNASSIGNED", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Vision AK1 LastLoad Y (mm); 수신 주소 미정; Load 일회 읽기 대상; 실제 주소 및 스케일 확인 후 활성화", use: false),
-            Row("ALIGN_LASTLOAD_AK2_X", "ALIGN_LASTLOAD", "AK2 LastLoad X", 0, "UNASSIGNED", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Vision AK2 LastLoad X (mm); 수신 주소 미정; Load 일회 읽기 대상; 실제 주소 및 스케일 확인 후 활성화", use: false),
-            Row("ALIGN_LASTLOAD_AK2_Y", "ALIGN_LASTLOAD", "AK2 LastLoad Y", 0, "UNASSIGNED", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Vision AK2 LastLoad Y (mm); 수신 주소 미정; Load 일회 읽기 대상; 실제 주소 및 스케일 확인 후 활성화", use: false),
-            Row("ALIGN_LASTLOAD_AK3_X", "ALIGN_LASTLOAD", "AK3 LastLoad X", 0, "UNASSIGNED", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Vision AK3 LastLoad X (mm); 수신 주소 미정; Load 일회 읽기 대상; 실제 주소 및 스케일 확인 후 활성화", use: false),
-            Row("ALIGN_LASTLOAD_AK3_Y", "ALIGN_LASTLOAD", "AK3 LastLoad Y", 0, "UNASSIGNED", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Vision AK3 LastLoad Y (mm); 수신 주소 미정; Load 일회 읽기 대상; 실제 주소 및 스케일 확인 후 활성화", use: false),
-            Row("ALIGN_LASTLOAD_AK4_X", "ALIGN_LASTLOAD", "AK4 LastLoad X", 0, "UNASSIGNED", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Vision AK4 LastLoad X (mm); 수신 주소 미정; Load 일회 읽기 대상; 실제 주소 및 스케일 확인 후 활성화", use: false),
-            Row("ALIGN_LASTLOAD_AK4_Y", "ALIGN_LASTLOAD", "AK4 LastLoad Y", 0, "UNASSIGNED", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Vision AK4 LastLoad Y (mm); 수신 주소 미정; Load 일회 읽기 대상; 실제 주소 및 스케일 확인 후 활성화", use: false),
-            Row("ALIGN_LASTLOAD_DK1_X", "ALIGN_LASTLOAD", "DK1 LastLoad X", 0, "UNASSIGNED", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Vision DK1 LastLoad X (mm); 수신 주소 미정; Load 일회 읽기 대상; 실제 주소 및 스케일 확인 후 활성화", use: false),
-            Row("ALIGN_LASTLOAD_DK1_Y", "ALIGN_LASTLOAD", "DK1 LastLoad Y", 0, "UNASSIGNED", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Vision DK1 LastLoad Y (mm); 수신 주소 미정; Load 일회 읽기 대상; 실제 주소 및 스케일 확인 후 활성화", use: false),
-            Row("ALIGN_LASTLOAD_DK2_X", "ALIGN_LASTLOAD", "DK2 LastLoad X", 0, "UNASSIGNED", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Vision DK2 LastLoad X (mm); 수신 주소 미정; Load 일회 읽기 대상; 실제 주소 및 스케일 확인 후 활성화", use: false),
-            Row("ALIGN_LASTLOAD_DK2_Y", "ALIGN_LASTLOAD", "DK2 LastLoad Y", 0, "UNASSIGNED", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Vision DK2 LastLoad Y (mm); 수신 주소 미정; Load 일회 읽기 대상; 실제 주소 및 스케일 확인 후 활성화", use: false),
-            Row("ALIGN_LASTLOAD_DK3_X", "ALIGN_LASTLOAD", "DK3 LastLoad X", 0, "UNASSIGNED", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Vision DK3 LastLoad X (mm); 수신 주소 미정; Load 일회 읽기 대상; 실제 주소 및 스케일 확인 후 활성화", use: false),
-            Row("ALIGN_LASTLOAD_DK3_Y", "ALIGN_LASTLOAD", "DK3 LastLoad Y", 0, "UNASSIGNED", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Vision DK3 LastLoad Y (mm); 수신 주소 미정; Load 일회 읽기 대상; 실제 주소 및 스케일 확인 후 활성화", use: false),
-            Row("ALIGN_LASTLOAD_DK4_X", "ALIGN_LASTLOAD", "DK4 LastLoad X", 0, "UNASSIGNED", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Vision DK4 LastLoad X (mm); 수신 주소 미정; Load 일회 읽기 대상; 실제 주소 및 스케일 확인 후 활성화", use: false),
-            Row("ALIGN_LASTLOAD_DK4_Y", "ALIGN_LASTLOAD", "DK4 LastLoad Y", 0, "UNASSIGNED", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Vision DK4 LastLoad Y (mm); 수신 주소 미정; Load 일회 읽기 대상; 실제 주소 및 스케일 확인 후 활성화", use: false),
-            Row("ALIGN_LASTLOAD_DK5_X", "ALIGN_LASTLOAD", "DK5 LastLoad X", 0, "UNASSIGNED", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Vision DK5 LastLoad X (mm); 수신 주소 미정; Load 일회 읽기 대상; 실제 주소 및 스케일 확인 후 활성화", use: false),
-            Row("ALIGN_LASTLOAD_DK5_Y", "ALIGN_LASTLOAD", "DK5 LastLoad Y", 0, "UNASSIGNED", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Vision DK5 LastLoad Y (mm); 수신 주소 미정; Load 일회 읽기 대상; 실제 주소 및 스케일 확인 후 활성화", use: false),
-            Row("ALIGN_LASTLOAD_DK6_X", "ALIGN_LASTLOAD", "DK6 LastLoad X", 0, "UNASSIGNED", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Vision DK6 LastLoad X (mm); 수신 주소 미정; Load 일회 읽기 대상; 실제 주소 및 스케일 확인 후 활성화", use: false),
-            Row("ALIGN_LASTLOAD_DK6_Y", "ALIGN_LASTLOAD", "DK6 LastLoad Y", 0, "UNASSIGNED", "DOUBLE", "IN", "R", "0.0001", "10000", "2", "0", "Vision DK6 LastLoad Y (mm); 수신 주소 미정; Load 일회 읽기 대상; 실제 주소 및 스케일 확인 후 활성화", use: false),
         ];
+        // Used only to create a missing map. Existing customer CSV addresses are never overwritten.
+        private static IEnumerable<IReadOnlyDictionary<string, string>> CreateAlignDistortionRows()
+        {
+            IReadOnlyDictionary<string, string> Value(string id, int address, string group, string direction = "OUT", string description = "") =>
+                Row(id, group, id, 0, "W" + address.ToString("X", CultureInfo.InvariantCulture), "DOUBLE", direction,
+                    direction == "OUT" ? "RW" : "R", "0.0001", "10000", "2", "0", "Spec 0.12; " + description + "; 일회 읽기/쓰기; 자동 폴링 없음");
+            yield return Value("PROCESS_DISTORTION_COUNT", 0x80C0, "DISTORTION", description: "DK Group 수 0~3; AK 제외");
+            for (var group = 0; group < 3; group++)
+            {
+                yield return Value($"PROCESS_DISTORTION_INDEX_{group}", 0x80C2 + group * 2, "DISTORTION", description: "Group 사용 logical 0/1");
+                yield return Value($"PROCESS_DISTORTION_INDEX_{group}_POSITION", 0x80C8 + group * 2, "DISTORTION", description: "Setting Motor ALIGN Stage Y (mm)");
+            }
+            foreach (var signal in new[] { "ABLE", "COMPLETE" })
+            {
+                var id = "HANDSHAKE_PRC_DISTORTION_" + signal;
+                yield return Row(id, "DISTORTION", id, 0, signal == "ABLE" ? "W8056" : "W8058", "DWORD", "OUT", "RW", "0.0001", "10000", "2", "100", "Spec 0.12; Stage ABLE/COMPLETE OFF 확인 후 우리 신호 OFF");
+                id = "HANDSHAKE_STG_DISTORTION_" + signal;
+                yield return Row(id, "DISTORTION", id, 0, "UNASSIGNED", "DWORD", "IN", "R", "0.0001", "10000", "2", "100", "Stage 수신 주소 미정; 확정 주소 입력 후 USE=1", use: false);
+            }
+            for (var position = 0; position <= 3; position++)
+            foreach (var camera in position == 0 ? new[] { 1, 2, 3, 4 } : new[] { 2, 4 })
+            foreach (var axis in new[] { "X", "Y" })
+            {
+                var address = position == 0 ? 0x10100 + (camera - 1) * 4 : 0x10114 + (position - 1) * 12 + (camera == 4 ? 4 : 0);
+                yield return Value($"DISTORTION_POS{position}_CAM{camera}{axis}", address + (axis == "Y" ? 2 : 0), "VISION_DISTORTION_DATA", "IN", "AK / DK LastLoad (mm); POS는 Group 고정; 추가 변환 없음");
+            }
+            foreach (var axis in new[] { "X", "Y" })
+            for (var camera = 1; camera <= 4; camera++)
+            {
+                var index = (axis == "X" ? 0 : 4) + camera - 1;
+                yield return Value($"SVID_FINEALN_CAM{camera}_GLS_RESULT_{axis}", 0x11A30 + (camera - 1) * 12 + (axis == "Y" ? 2 : 0), "WAPAGE", "IN", "Vision 원본; 단위 변환 없이 Wapage로 복사");
+                yield return Value($"PROCESS_WAPAGE_ALIGNBASE_{axis}{camera}", 0x8080 + index * 2, "WAPAGE", description: "CAM1~4 X 다음 CAM1~4 Y 순서");
+                yield return Value($"PROCESS_WAPAGE_ALIGNBASE_RAGNE_{axis}{camera}", 0x80A0 + index * 2, "WAPAGE", description: "허용범위 mm / Align Camera Resolution = pixel");
+            }
+        }
+
         private static IEnumerable<IReadOnlyDictionary<string, string>> CreateIofPositionRows()
         {
             for (var index = 1; index <= 500; index++)

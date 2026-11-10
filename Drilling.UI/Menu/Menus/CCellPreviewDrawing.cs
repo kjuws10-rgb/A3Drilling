@@ -60,23 +60,15 @@ internal static class CCellPreviewDrawing
 
     public static IReadOnlyList<ST_DISTORTION_KEY_PREVIEW> CreateDistortionKeyPreviews(double glassWidth, double glassHeight, double akMarginX, double akMarginY, Func<string, double?> readValue)
     {
-        var defaultSpanX = Math.Max(0.0, glassWidth - (akMarginX * 2.0));
-        var defaultSpanY = Math.Max(0.0, glassHeight - (akMarginY * 2.0));
-        global::Drilling.UI.Menu.Menus.ST_DISTORTION_KEY_PREVIEW BuildDISTORTION_KEY_PREVIEW(int keyNo)
+        if (!double.IsFinite(glassWidth) || !double.IsFinite(glassHeight) || glassWidth <= 0 || glassHeight <= 0) return [];
+        // Never use legacy recipe DK Y fields or invent evenly spaced DK rows.
+        return Enumerable.Range(0, 3).SelectMany(index =>
         {
-            var defaultX = keyNo switch
-            {
-                1 or 4 => 0.0,
-                2 or 5 => defaultSpanX / 2.0,
-                _ => defaultSpanX
-            };
-            var defaultY = keyNo <= 3 ? 0.0 : defaultSpanY;
-            var x = readValue($"DISTORTION_KEY{keyNo}_X") ?? defaultX;
-            var y = readValue($"DISTORTION_KEY{keyNo}_Y") ?? defaultY;
-            return new ST_DISTORTION_KEY_PREVIEW(keyNo, akMarginX + x, akMarginY + y);
-        }
-
-        return Enumerable.Range(1, 6).Select(BuildDISTORTION_KEY_PREVIEW).ToArray();
+            var stageY = readValue(Drilling.Common.Correction.CAlignKeyGeometry.StagePositionKey(index));
+            if (stageY is not { } position || !double.IsFinite(position)) return Array.Empty<ST_DISTORTION_KEY_PREVIEW>();
+            var y = Drilling.Common.Correction.CAlignKeyGeometry.DesignY(glassHeight, akMarginY, position);
+            return new[] { new ST_DISTORTION_KEY_PREVIEW(index * 2 + 1, akMarginX, y), new ST_DISTORTION_KEY_PREVIEW(index * 2 + 2, glassWidth - akMarginX, y) };
+        }).ToArray();
     }
 
     public static void DrawDistortionKeys(DrawingContext context, ST_GLASS_PREVIEW_FRAME frame, double glassWidth, double glassHeight, IReadOnlyList<ST_DISTORTION_KEY_PREVIEW> distortionKeys)

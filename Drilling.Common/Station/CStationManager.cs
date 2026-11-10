@@ -26,7 +26,7 @@
         public CStageRequestSequence StageRequests => _processStation.StageRequests;
         public bool CanReset => _processStation.CanReset;
 
-        public void StartStageRequests(Func<CancellationToken, Task<ST_STAGE_PROCESS_REQUEST>> request, ST_STAGE_REVIEW_ACTIONS? review = null, ST_STAGE_TPM_ACTIONS? tpm = null) => _processStation.StartStageRequests(request, review, tpm);
+        public void StartStageRequests(Func<CancellationToken, Task<ST_STAGE_PROCESS_REQUEST>> request, ST_STAGE_REVIEW_ACTIONS? review = null, ST_STAGE_TPM_ACTIONS? tpm = null, ST_STAGE_DISTORTION_ACTIONS? distortion = null) => _processStation.StartStageRequests(request, review, tpm, distortion);
         private readonly CStationProcess _processStation;
         public CStationManager(
             CInterfaceManager interfaceManager, 
@@ -109,6 +109,13 @@
                 throw new InvalidOperationException("Stop AUTO Stage request monitoring before RESET.");
             return _processStation.Reset(cancellationToken);
         }
+
+        public void InvalidatePreparedReviewOffset()
+        {
+            if (StageRequests.IsRunning)
+                throw new InvalidOperationException("AUTO Stage request monitoring이 실행 중일 때 Review Offset을 롤백할 수 없습니다.");
+            _processStation.InvalidatePreparedReviewOffset();
+        }
     }
 
     public enum EN_SEQUENCE_ACTION_STATE
@@ -124,6 +131,11 @@
     public static class CSequenceActionIds
     {
         public const string PrepareData = "DOREADY_DATA_PREPARE";
+        public const string DistortionPrepare = "DISTORTION_PREPARE";
+        public const string DistortionLoad = "DISTORTION_LOAD";
+        public const string DistortionCalculate = "DISTORTION_CALCULATE";
+        public const string DistortionSave = "DISTORTION_SAVE";
+        public const string DistortionSignalsClear = "DISTORTION_SIGNALS_CLEAR";
         public const string BuildUploadScript = "DOREADY_SCRIPT_BUILD_UPLOAD";
         public const string DoReadySignalsClear = "DOREADY_SIGNALS_CLEAR";
         public const string ProcessReadyPosition = "PROCESS_READY_POSITION";

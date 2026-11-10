@@ -239,6 +239,14 @@ public sealed class CManager
         {
             try
             {
+                await _logManager.StopInterfaceLoggingAsync().WaitAsync(TimeSpan.FromSeconds(5));
+            }
+            catch (Exception error)
+            {
+                CProgramOpenLog.Write("INTERFACE_LOG_FLUSH_FAILED", error);
+            }
+            try
+            {
                 await _logManager.StopSequenceLoggingAsync().WaitAsync(TimeSpan.FromSeconds(5));
             }
             catch (Exception error)

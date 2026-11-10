@@ -1,4 +1,4 @@
-using System.Windows.Controls;
+﻿using System.Windows.Controls;
 using System.Windows;
 using System.Windows.Input;
 using Drilling.UI.Menu.Menus;
@@ -19,6 +19,7 @@ public partial class CMainSequenceStatusView : UserControl
         if (sender is not FrameworkElement { DataContext: CMainSequenceCard card } || DataContext is not CMainSequenceStatus status) return;
         if (card.Id == "REVIEW_MEASURE") status.OpenReviewMonitor?.Invoke();
         else if (card.Id == "TPM_MEASURE") status.OpenPowerMeasureMonitor?.Invoke();
+        else if (card.Id == CSequenceActionIds.DistortionLoad) status.OpenDistortionResults?.Invoke();
         else if (card.Id == CSequenceActionIds.ProcessZeroResults) status.OpenZeroLineResults?.Invoke();
     }
 }
