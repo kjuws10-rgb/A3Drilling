@@ -1,0 +1,369 @@
+<Window x:Class="Drilling.UI.Popup.CReviewDataOffsetApplyDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="REVIEW DATA OFFSET APPLY"
+        Width="1540"
+        Height="920"
+        MinWidth="1220"
+        MinHeight="720"
+        WindowStartupLocation="CenterOwner"
+        FontFamily="Segoe UI"
+        KeyDown="OnKeyDown"
+        Background="{DynamicResource GridBackgroundBrush}"
+        Foreground="{DynamicResource TextPrimaryBrush}">
+    <Window.Resources>
+        <Style x:Key="ApplyCellButton" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="FontSize" Value="9" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="2">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsIncluded}" Value="True">
+                    <Setter Property="Background" Value="#237A4B" />
+                    <Setter Property="Foreground" Value="#FFFFFF" />
+                    <Setter Property="BorderBrush" Value="#86EFAC" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                    <Setter Property="Background" Value="#F6C453" />
+                    <Setter Property="Foreground" Value="#17212B" />
+                    <Setter Property="BorderBrush" Value="#FFF0B3" />
+                    <Setter Property="BorderThickness" Value="2" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="OffsetValueText" TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="TextAlignment" Value="Right" />
+            <Setter Property="Padding" Value="4,0,8,0" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="Bold" />
+        </Style>
+        <Style x:Key="OffsetAddedValueText" TargetType="TextBlock" BasedOn="{StaticResource OffsetValueText}">
+            <Setter Property="FontWeight" Value="Bold" />
+        </Style>
+        <Style x:Key="OffsetFinalValueText" TargetType="TextBlock" BasedOn="{StaticResource OffsetValueText}">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="Bold" />
+        </Style>
+        <Style x:Key="OffsetHeaderBase" TargetType="DataGridColumnHeader">
+            <Setter Property="Foreground" Value="{DynamicResource ButtonTextOnColorBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1,0,0,1" />
+            <Setter Property="Padding" Value="4,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="Bold" />
+        </Style>
+        <Style x:Key="CurrentOffsetHeader" TargetType="DataGridColumnHeader" BasedOn="{StaticResource OffsetHeaderBase}">
+            <Setter Property="Background" Value="{DynamicResource ButtonPrimaryBrush}" />
+        </Style>
+        <Style x:Key="AddedOffsetHeader" TargetType="DataGridColumnHeader" BasedOn="{StaticResource OffsetHeaderBase}">
+            <Setter Property="Background" Value="{DynamicResource ButtonWarningBrush}" />
+        </Style>
+        <Style x:Key="FinalOffsetHeader" TargetType="DataGridColumnHeader" BasedOn="{StaticResource OffsetHeaderBase}">
+            <Setter Property="Background" Value="{DynamicResource ButtonSuccessBrush}" />
+        </Style>
+    </Window.Resources>
+
+    <Border Padding="14"
+            Background="{DynamicResource PanelBackgroundBrush}"
+            BorderBrush="{DynamicResource PanelBorderBrush}"
+            BorderThickness="1">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="10" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="10" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Border Grid.Row="0"
+                    Padding="12,9"
+                    Background="{DynamicResource GridBackgroundBrush}"
+                    BorderBrush="{DynamicResource PanelBorderBrush}"
+                    BorderThickness="1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="280" />
+                        <ColumnDefinition Width="14" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="APPLY TYPE" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0" />
+                    <ComboBox Grid.Column="1"
+                              ItemsSource="{Binding ApplicationTypes}"
+                              SelectedItem="{Binding SelectedApplicationType, Mode=OneWay}"
+                              DisplayMemberPath="Name"
+                              Height="34"
+                              VerticalContentAlignment="Center"
+                              IsReadOnly="True" />
+                    <TextBlock Grid.Column="3"
+                               Text="{Binding SelectedApplicationType.Detail}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               FontSize="12"
+                               TextWrapping="Wrap"
+                               VerticalAlignment="Center" />
+                    <StackPanel Grid.Column="4" HorizontalAlignment="Right">
+                        <TextBlock Text="{Binding RecipeName, StringFormat='RECIPE : {0}'}" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                        <TextBlock Text="{Binding ResultFileName}" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis" MaxWidth="360" ToolTip="{Binding ResultFileName}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="4*" MinWidth="420" />
+                    <ColumnDefinition Width="10" />
+                    <ColumnDefinition Width="6*" MinWidth="680" />
+                </Grid.ColumnDefinitions>
+
+                <Grid Grid.Column="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="2*" />
+                        <RowDefinition Height="8" />
+                        <RowDefinition Height="1*" />
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" Style="{StaticResource PanelBorder}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <Grid Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="GLASS-CELL VIEW" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                <WrapPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <Border Width="12" Height="8" Background="#237A4B" BorderBrush="#86EFAC" BorderThickness="1" />
+                                    <TextBlock Text="APPLY CELL" Margin="4,0,10,0" FontSize="9" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                    <Border Width="12" Height="8" Background="#F6C453" BorderBrush="#FFF0B3" BorderThickness="1" />
+                                    <TextBlock Text="SELECTED" Margin="4,0,0,0" FontSize="9" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                </WrapPanel>
+                            </Grid>
+                            <Border Grid.Row="1"
+                                    Background="{DynamicResource GridBackgroundBrush}"
+                                    BorderBrush="{DynamicResource PanelBorderBrush}"
+                                    BorderThickness="1"
+                                    Padding="5"
+                                    ClipToBounds="True">
+                                <Viewbox Stretch="Uniform">
+                                    <Grid Width="{Binding GlassSurfaceWidth}" Height="{Binding GlassSurfaceHeight}" Background="Transparent">
+                                        <Image Source="{Binding GlassPreviewImage}" Stretch="Fill" IsHitTestVisible="False" />
+                                        <ItemsControl ItemsSource="{Binding CellLabels}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate><Canvas /></ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemContainerStyle>
+                                                <Style TargetType="ContentPresenter">
+                                                    <Setter Property="Canvas.Left" Value="{Binding Left}" />
+                                                    <Setter Property="Canvas.Top" Value="{Binding Top}" />
+                                                </Style>
+                                            </ItemsControl.ItemContainerStyle>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Button Width="{Binding Width}"
+                                                            Height="{Binding Height}"
+                                                            Content="{Binding CellNo}"
+                                                            IsEnabled="{Binding IsIncluded}"
+                                                            Style="{StaticResource ApplyCellButton}"
+                                                            Command="{Binding DataContext.SelectCellCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                            CommandParameter="{Binding CellNo}" />
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Grid>
+                                </Viewbox>
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Row="2" Style="{StaticResource PanelBorder}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <Grid Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="SHOT VIEW" FontSize="14" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding SelectedCellTitle}" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                </StackPanel>
+                                <WrapPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <Ellipse Width="7" Height="7" Fill="#64748B" />
+                                    <TextBlock Text="SHOT" Margin="3,0,7,0" FontSize="8" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                    <Ellipse Width="7" Height="7" Fill="#22C55E" />
+                                    <TextBlock Text="APPLY" Margin="3,0,7,0" FontSize="8" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                    <Grid Width="8" Height="8">
+                                        <Border Height="1.5" Background="#EF4444" RenderTransformOrigin="0.5,0.5"><Border.RenderTransform><RotateTransform Angle="45" /></Border.RenderTransform></Border>
+                                        <Border Height="1.5" Background="#EF4444" RenderTransformOrigin="0.5,0.5"><Border.RenderTransform><RotateTransform Angle="-45" /></Border.RenderTransform></Border>
+                                    </Grid>
+                                    <TextBlock Text="MASKING" Margin="3,0,7,0" FontSize="8" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                    <Border Width="7" Height="7" Background="#A855F7" RenderTransformOrigin="0.5,0.5"><Border.RenderTransform><RotateTransform Angle="45" /></Border.RenderTransform></Border>
+                                    <TextBlock Text="CHESS" Margin="3,0,7,0" FontSize="8" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                    <Ellipse Width="8" Height="8" Fill="#F6C453" Stroke="#B7791F" StrokeThickness="1" />
+                                    <TextBlock Text="SELECTED" Margin="3,0,0,0" FontSize="8" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                </WrapPanel>
+                            </Grid>
+                            <Border Grid.Row="1"
+                                    Background="{DynamicResource GridBackgroundBrush}"
+                                    BorderBrush="{DynamicResource PanelBorderBrush}"
+                                    BorderThickness="1"
+                                    Padding="4"
+                                    ClipToBounds="True">
+                                <Viewbox Stretch="Uniform">
+                                    <Grid Width="{Binding ShotMapSurfaceWidth}"
+                                          Height="{Binding ShotMapSurfaceHeight}"
+                                          Background="Transparent"
+                                          Cursor="Hand"
+                                          MouseLeftButtonDown="ShotMap_MouseLeftButtonDown">
+                                        <Image Source="{Binding ShotMapImage}" Stretch="Fill" IsHitTestVisible="False" />
+                                    </Grid>
+                                </Viewbox>
+                            </Border>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <Border Grid.Column="2" Style="{StaticResource PanelBorder}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <Grid Margin="0,0,0,6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="OFFSET APPLY PREVIEW" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="{Binding Summary}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                        </Grid>
+                        <Border Grid.Row="1" Margin="0,0,0,7" Padding="8,6" Background="{DynamicResource GridHeaderBackgroundBrush}" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1">
+                            <TextBlock Text="{Binding SelectedShotTitle}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextBrush}" />
+                        </Border>
+                        <DataGrid x:Name="OffsetPreviewGrid"
+                                  Grid.Row="2"
+                                  ItemsSource="{Binding Rows}"
+                                  SelectedItem="{Binding SelectedRow, Mode=OneWay}"
+                                  AutoGenerateColumns="False"
+                                  IsReadOnly="True"
+                                  CanUserAddRows="False"
+                                  CanUserDeleteRows="False"
+                                  CanUserReorderColumns="False"
+                                  CanUserResizeRows="False"
+                                  SelectionMode="Single"
+                                  SelectionUnit="FullRow"
+                                  HeadersVisibility="Column"
+                                  RowHeight="34"
+                                  ColumnHeaderHeight="38"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                  ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                  EnableRowVirtualization="True"
+                                  VirtualizingPanel.IsVirtualizing="True"
+                                  VirtualizingPanel.VirtualizationMode="Recycling"
+                                  SelectionChanged="OffsetPreviewGrid_SelectionChanged">
+                            <DataGrid.RowStyle>
+                                <Style TargetType="DataGridRow">
+                                    <Setter Property="Background" Value="{DynamicResource GridBackgroundBrush}" />
+                                    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                                    <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}" />
+                                    <Setter Property="BorderThickness" Value="0,0,0,1" />
+                                    <Style.Triggers>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter Property="Background" Value="#F6C453" />
+                                            <Setter Property="Foreground" Value="#17212B" />
+                                            <Setter Property="BorderBrush" Value="#FFF0B3" />
+                                            <Setter Property="BorderThickness" Value="3,0,0,1" />
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGrid.RowStyle>
+                            <DataGrid.CellStyle>
+                                <Style TargetType="DataGridCell">
+                                    <Setter Property="Background" Value="Transparent" />
+                                    <Setter Property="BorderThickness" Value="0" />
+                                    <Setter Property="Foreground" Value="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=Foreground}" />
+                                    <Setter Property="VerticalContentAlignment" Value="Center" />
+                                </Style>
+                            </DataGrid.CellStyle>
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="HEAD" Binding="{Binding Head}" Width="50" />
+                                <DataGridTextColumn Header="CELL" Binding="{Binding Cell}" Width="62" />
+                                <DataGridTextColumn Header="SHOT" Binding="{Binding ShotName}" Width="54" />
+                                <DataGridTextColumn Header="CURRENT X (mm)" Binding="{Binding CurrentXText}" Width="*" MinWidth="92"
+                                                    HeaderStyle="{StaticResource CurrentOffsetHeader}" ElementStyle="{StaticResource OffsetValueText}" />
+                                <DataGridTextColumn Header="CURRENT Y (mm)" Binding="{Binding CurrentYText}" Width="*" MinWidth="92"
+                                                    HeaderStyle="{StaticResource CurrentOffsetHeader}" ElementStyle="{StaticResource OffsetValueText}" />
+                                <DataGridTextColumn Header="ADD X (mm)" Binding="{Binding AddXText}" Width="*" MinWidth="88"
+                                                    HeaderStyle="{StaticResource AddedOffsetHeader}" ElementStyle="{StaticResource OffsetAddedValueText}" />
+                                <DataGridTextColumn Header="ADD Y (mm)" Binding="{Binding AddYText}" Width="*" MinWidth="88"
+                                                    HeaderStyle="{StaticResource AddedOffsetHeader}" ElementStyle="{StaticResource OffsetAddedValueText}" />
+                                <DataGridTextColumn Header="FINAL X (mm)" Binding="{Binding FinalXText}" Width="*" MinWidth="92"
+                                                    HeaderStyle="{StaticResource FinalOffsetHeader}" ElementStyle="{StaticResource OffsetFinalValueText}" />
+                                <DataGridTextColumn Header="FINAL Y (mm)" Binding="{Binding FinalYText}" Width="*" MinWidth="92"
+                                                    HeaderStyle="{StaticResource FinalOffsetHeader}" ElementStyle="{StaticResource OffsetFinalValueText}" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <Grid Grid.Row="4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="150" />
+                    <ColumnDefinition Width="10" />
+                    <ColumnDefinition Width="150" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="SAVE를 누르기 전에는 Review Offset 파일이 변경되지 않습니다."
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           FontSize="11"
+                           VerticalAlignment="Center" />
+                <Button Grid.Column="1"
+                        Content="SAVE"
+                        Height="42"
+                        FontSize="14"
+                        FontWeight="Bold"
+                        IsEnabled="{Binding CanSave}"
+                        Style="{StaticResource PrimaryButton}"
+                        Click="SaveClicked" />
+                <Button Grid.Column="3"
+                        Content="CANCEL"
+                        Height="42"
+                        FontSize="14"
+                        FontWeight="SemiBold"
+                        Style="{StaticResource SecondaryButton}"
+                        Click="CancelClicked" />
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

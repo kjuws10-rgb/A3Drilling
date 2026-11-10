@@ -9,8 +9,7 @@
     public sealed partial class CReviewResultFile(string configRoot) : CReviewResultFileBase
     {
 #region 공유 상태·초기값
-        private static readonly string[] BeamInspectionHeaders = ["GLASS_NAME", "HEAD_NAME", "CELL_NAME", "SHOT_NAME", ..Enumerable.Range(1, 16).SelectMany(beam => new[] { $"BEAM{beam}_X_MM", $"BEAM{beam}_Y_MM", $"BEAM{beam}_JUDGE" })];
-        private static readonly IReadOnlyList<IReadOnlyList<string>> RequiredHeaderGroups = [["SAVED_AT"], ["RECIPE_ID"], ["SHOT_KEY", "HOLE_KEY"], ["HEAD_NO"], ["CELL_NO"], ["ERROR_X"], ["ERROR_Y"], ["JUDGE"]];
+        private static readonly string[] BeamInspectionHeaders = ["SAVED_AT", "RECIPE_ID", "RESULT_STATUS", "STAGE_SIMULATION", "VISION_SIMULATION", "GLASS_NAME", "HEAD_NAME", "CELL_NAME", "SHOT_NAME", ..Enumerable.Range(1, 16).SelectMany(beam => new[] { $"BEAM{beam}_X_MM", $"BEAM{beam}_Y_MM", $"BEAM{beam}_JUDGE" })];
         private static readonly IReadOnlyList<string> Headers = [
             "SAVED_AT", 
             "GLASS_ID", 
@@ -34,30 +33,40 @@
             "SHOT_KEY", 
             "HEAD_NO", 
             "CELL_NO", 
-            "ERROR_X", 
-            "ERROR_Y", 
+            "VISION_X_FLIP",
+            "VISION_Y_FLIP",
+            "VISION_XY_FLIP",
+            "RECV_TARGET_MINUS_HOLE_X",
+            "RECV_TARGET_MINUS_HOLE_Y",
+            "VISION_FLIP_CONVERT_X",
+            "VISION_FLIP_CONVERT_Y",
             "JUDGE"
         ];
-        private readonly string _reviewResultRoot = Path.Combine(Directory.GetParent(configRoot)?.FullName ?? configRoot, "Data", "ReviewResult");
-        private readonly string _legacyReviewResultRoot = Path.Combine(Directory.GetParent(configRoot)?.FullName ?? configRoot, "Data", "Result");
+        private readonly string _reviewRoot = Path.Combine(Directory.GetParent(configRoot)?.FullName ?? configRoot, "Data", "Review");
         private string? _lastSavedPath;
 #endregion
 #region 기본 처리
-        public override string RootPath => _reviewResultRoot;
-        public override IReadOnlyList<string> SearchRootPaths => [_reviewResultRoot, _legacyReviewResultRoot];
+        public override string RootPath => _reviewRoot;
+        public override IReadOnlyList<string> SearchRootPaths => [_reviewRoot];
         public override string? LastSavedPath => _lastSavedPath;
 
         public override Task<ST_REVIEW_RESULT_FILE_DATA> Load(string path, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            CCsvParser.ValidateRequiredHeaders(path, "Review Result", RequiredHeaderGroups);
             var sourceRows = CCsvParser.Read(path);
             if (sourceRows.Count == 0)
             {
                 throw new InvalidDataException("Review Result validation failed. Result row is empty.");
             }
 
-            var rows = sourceRows.Select((row, index) => ToResultRow(row, index + 2)).ToArray();
+            var rows = sourceRows
+                .SelectMany((row, index) => ToResultRows(row, index + 2))
+                .ToArray();
+            if (rows.Length == 0)
+            {
+                throw new InvalidDataException("Review Result validation failed. There is no displayable result row.");
+            }
+
             var recipeIds = rows.Select(row => row.RecipeId).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
             if (recipeIds.Length != 1)
             {
@@ -66,7 +75,22 @@
 
             var fullPath = Path.GetFullPath(path);
             var metadataRow = sourceRows[0];
-            return Task.FromResult(new ST_REVIEW_RESULT_FILE_DATA(fullPath, Path.GetFileName(fullPath), recipeIds[0], rows.Max(row => row.SavedAt), rows) { GlassId = CCsvParser.Get(metadataRow, "GLASS_ID"), InspectionMethod = CCsvParser.Get(metadataRow, "INSPECTION_METHOD"), ResultStatus = NormalizeResultStatus(CCsvParser.Get(metadataRow, "RESULT_STATUS")), TotalCount = ReadOptionalInt(metadataRow, "TOTAL_COUNT", rows.Length), Rule = CCsvParser.Get(metadataRow, "RULE"), RuleScope = CCsvParser.Get(metadataRow, "RULE_SCOPE"), BeamNo = ReadOptionalInt(metadataRow, "BEAM_NO", 1), ReferenceCellNo = ReadOptionalNullableInt(metadataRow, "REFERENCE_CELL_NO"), ReferenceShot = CCsvParser.Get(metadataRow, "REFERENCE_SHOT"), RoughReference = CCsvParser.Get(metadataRow, "ROUGH_REFERENCE"), FineLineCount = ReadOptionalInt(metadataRow, "FINE_LINE_COUNT", 0) });
+            return Task.FromResult(new ST_REVIEW_RESULT_FILE_DATA(fullPath, Path.GetFileName(fullPath), recipeIds[0], rows.Max(row => row.SavedAt), rows)
+            {
+                GlassId = ReadFirstText(metadataRow, "GLASS_ID", "GLASS_NAME"),
+                InspectionMethod = ReadFirstText(metadataRow, "INSPECTION_METHOD", "METHOD"),
+                ResultStatus = NormalizeResultStatus(ReadFirstText(metadataRow, "RESULT_STATUS", "STATE")),
+                TotalCount = ReadOptionalInt(metadataRow, "TOTAL_COUNT", rows.Length),
+                Rule = CCsvParser.Get(metadataRow, "RULE"),
+                RuleScope = CCsvParser.Get(metadataRow, "RULE_SCOPE"),
+                BeamNo = ReadOptionalInt(metadataRow, "BEAM_NO", 1),
+                ReferenceCellNo = ReadOptionalNullableInt(metadataRow, "REFERENCE_CELL_NO"),
+                ReferenceShot = CCsvParser.Get(metadataRow, "REFERENCE_SHOT"),
+                RoughReference = CCsvParser.Get(metadataRow, "ROUGH_REFERENCE"),
+                FineLineCount = ReadOptionalInt(metadataRow, "FINE_LINE_COUNT", 0),
+                Origin = CCsvParser.Get(metadataRow, "ORIGIN"),
+                LineCount = ReadOptionalInt(metadataRow, "LINE_COUNT", 0)
+            });
         }
 
         public override Task Save(ST_REVIEW_RESULT_DATA result, CancellationToken cancellationToken = default)
@@ -89,13 +113,57 @@
 
             var metadata = CreateMetadata(result);
             _lastSavedPath = null;
-            var resultPath = string.IsNullOrWhiteSpace(result.TargetFilePath) ? GetResultPath(result, metadata) : Path.GetFullPath(result.TargetFilePath);
-            CCsvParser.Write(resultPath, Headers, rows.Select(point => ToRow(result, point, metadata)));
-            _lastSavedPath = Path.GetFullPath(resultPath);
+            if (string.IsNullOrWhiteSpace(result.TargetFilePath))
+            {
+                var directory = ManualDirectory(result.Plan.RecipeId, "ALL_SHOT");
+                _lastSavedPath = WriteUniqueCsv(directory, ResultFileStem(result.GlassId, result.SavedAt), Headers, rows.Select(point => ToRow(result, point, metadata)), cancellationToken);
+            }
+            else
+            {
+                var resultPath = Path.GetFullPath(result.TargetFilePath);
+                CCsvParser.Write(resultPath, Headers, rows.Select(point => ToRow(result, point, metadata)));
+                _lastSavedPath = resultPath;
+            }
             return Task.CompletedTask;
         }
 
-        private static ST_REVIEW_RESULT_FILE_ROW ToResultRow(IReadOnlyDictionary<string, string> row, int rowNo)
+        private static IReadOnlyList<ST_REVIEW_RESULT_FILE_ROW> ToResultRows(IReadOnlyDictionary<string, string> row, int rowNo)
+        {
+            if (!row.Keys.Any(key => key.Equals("BEAM1_JUDGE", StringComparison.OrdinalIgnoreCase)))
+            {
+                return [ToResultRow(row, rowNo)];
+            }
+
+            var beamRows = new List<ST_REVIEW_RESULT_FILE_ROW>();
+            for (var beamNo = 1; beamNo <= 16; beamNo++)
+            {
+                var judge = CCsvParser.Get(row, $"BEAM{beamNo}_JUDGE").Trim();
+                if (string.IsNullOrWhiteSpace(judge) || judge.Equals("미검사", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                beamRows.Add(ToResultRow(
+                    row,
+                    rowNo,
+                    beamNo,
+                    ReadOptionalFiniteDouble(row, $"BEAM{beamNo}_X_MM"),
+                    ReadOptionalFiniteDouble(row, $"BEAM{beamNo}_Y_MM"),
+                    judge));
+            }
+
+            return beamRows.Count > 0
+                ? beamRows
+                : [ToResultRow(row, rowNo, 0, 0.0, 0.0, "UNMEASURED")];
+        }
+
+        private static ST_REVIEW_RESULT_FILE_ROW ToResultRow(
+            IReadOnlyDictionary<string, string> row,
+            int rowNo,
+            int? beamNoOverride = null,
+            double? errorXOverride = null,
+            double? errorYOverride = null,
+            string? judgeOverride = null)
         {
             var savedAtText = CCsvParser.RequireText(row, "Review Result", rowNo, "SAVED_AT");
             if (!DateTimeOffset.TryParse(savedAtText, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var savedAt))
@@ -104,24 +172,34 @@
             }
 
             var recipeId = CCsvParser.RequireText(row, "Review Result", rowNo, "RECIPE_ID");
-            var sourceShotKey = CCsvParser.RequireText(row, "Review Result", rowNo, "SHOT_KEY", "HOLE_KEY");
+            var sourceShotKey = ReadFirstText(row, "SHOT_KEY", "HOLE_KEY");
             var shotName = CCsvParser.Get(row, "SHOT_NAME");
             var normalizedShotKey = CReviewManager.NormalizeShotKey(sourceShotKey);
             var shotKey = string.IsNullOrWhiteSpace(normalizedShotKey) ? sourceShotKey : normalizedShotKey;
-            var headNo = CCsvParser.ReadRequiredInt(CCsvParser.Get(row, "HEAD_NO"), "Review Result", rowNo, "HEAD_NO");
-            var cellNo = CCsvParser.ReadRequiredInt(CCsvParser.Get(row, "CELL_NO"), "Review Result", rowNo, "CELL_NO");
-            var errorX = CCsvParser.ReadDouble(CCsvParser.Get(row, "ERROR_X"), "Review Result", rowNo, "ERROR_X", 0.0);
-            var errorY = CCsvParser.ReadDouble(CCsvParser.Get(row, "ERROR_Y"), "Review Result", rowNo, "ERROR_Y", 0.0);
-            var judge = CCsvParser.RequireText(row, "Review Result", rowNo, "JUDGE").ToUpperInvariant();
-            return new ST_REVIEW_RESULT_FILE_ROW(savedAt, recipeId, shotKey, shotName, headNo, cellNo, errorX, errorY, judge);
-        }
+            if (string.IsNullOrWhiteSpace(shotKey) && string.IsNullOrWhiteSpace(shotName))
+            {
+                throw new InvalidDataException($"Review Result validation failed. Row {rowNo} / SHOT_KEY or SHOT_NAME is required.");
+            }
 
-        private string GetResultPath(ST_REVIEW_RESULT_DATA result, ST_REVIEW_RESULT_METADATA metadata)
-        {
-            var savedAt = result.SavedAt;
-            var glassId = SanitizeFileName(result.GlassId);
-            var fileName = CreateResultFileName(metadata, savedAt);
-            return Path.Combine(_reviewResultRoot, savedAt.ToString("yyyyMMdd", CultureInfo.InvariantCulture), glassId, NormalizeInspectionMethod(result.InspectionMethod), fileName);
+            var headNo = ReadRequiredPositiveInt(row, rowNo, "HEAD_NO", "HEAD_NAME");
+            var cellNo = ReadRequiredPositiveInt(row, rowNo, "CELL_NO", "CELL_NAME");
+            var errorX = errorXOverride ?? ReadOptionalFiniteDouble(row, "ERROR_X", "VISION_FLIP_CONVERT_X", "CONVERTED_X", "RECV_TARGET_MINUS_HOLE_X");
+            var errorY = errorYOverride ?? ReadOptionalFiniteDouble(row, "ERROR_Y", "VISION_FLIP_CONVERT_Y", "CONVERTED_Y", "RECV_TARGET_MINUS_HOLE_Y");
+            var judge = (judgeOverride ?? ReadFirstText(row, "JUDGE", "GROUP_JUDGE", "STATE")).Trim().ToUpperInvariant();
+            if (string.IsNullOrWhiteSpace(judge))
+            {
+                judge = "UNKNOWN";
+            }
+
+            return new ST_REVIEW_RESULT_FILE_ROW(savedAt, recipeId, shotKey, shotName, headNo, cellNo, errorX, errorY, judge)
+            {
+                BeamNo = beamNoOverride ?? ReadOptionalInt(row, "BEAM_NO", 0),
+                GroupColumn = ReadOneBasedIndex(row, "INDEX_X", "COLUMN"),
+                GroupRow = ReadOneBasedIndex(row, "INDEX_Y", "ROW"),
+                DesignX = ReadOptionalNullableFiniteDouble(row, "DESIGN_X"),
+                DesignY = ReadOptionalNullableFiniteDouble(row, "DESIGN_Y"),
+                ResultSource = CCsvParser.Get(row, "RESULT_SOURCE").Trim().ToUpperInvariant()
+            };
         }
 
         private static IReadOnlyDictionary<string, string> ToRow(ST_REVIEW_RESULT_DATA result, ST_REVIEW_PLAN_POINT point, ST_REVIEW_RESULT_METADATA metadata)
@@ -132,6 +210,7 @@
             var rowNo = (zeroBasedShotNo / columnCount) + 1;
             var columnNo = (zeroBasedShotNo % columnCount) + 1;
             var shotName = FormatShotName(point);
+            var converted = CReviewManager.VisionErrorToStageOffset(point.ErrorX, point.ErrorY, plan.VisionFlipType);
             return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
                 ["SAVED_AT"] = FormatDate(result.SavedAt),
@@ -156,8 +235,13 @@
                 ["SHOT_KEY"] = $"CELL{point.CellNo}_{shotName}",
                 ["HEAD_NO"] = point.HeadNo.ToString(CultureInfo.InvariantCulture),
                 ["CELL_NO"] = point.CellNo.ToString(CultureInfo.InvariantCulture),
-                ["ERROR_X"] = FormatDouble(point.ErrorX),
-                ["ERROR_Y"] = FormatDouble(point.ErrorY),
+                ["VISION_X_FLIP"] = plan.VisionFlipType.HasFlag(EN_VISION_FLIP_TYPE.XFlip) ? "ON" : "OFF",
+                ["VISION_Y_FLIP"] = plan.VisionFlipType.HasFlag(EN_VISION_FLIP_TYPE.YFlip) ? "ON" : "OFF",
+                ["VISION_XY_FLIP"] = plan.VisionFlipType.HasFlag(EN_VISION_FLIP_TYPE.XyFlip) ? "ON" : "OFF",
+                ["RECV_TARGET_MINUS_HOLE_X"] = FormatDouble(point.ErrorX),
+                ["RECV_TARGET_MINUS_HOLE_Y"] = FormatDouble(point.ErrorY),
+                ["VISION_FLIP_CONVERT_X"] = FormatDouble(converted.X),
+                ["VISION_FLIP_CONVERT_Y"] = FormatDouble(converted.Y),
                 ["JUDGE"] = point.Judge
             };
         }
@@ -221,9 +305,63 @@
             return int.TryParse(CCsvParser.Get(row, name), NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) ? value : defaultValue;
         }
 
+        private static string ReadFirstText(IReadOnlyDictionary<string, string> row, params string[] names)
+        {
+            foreach (var name in names)
+            {
+                var value = CCsvParser.Get(row, name).Trim();
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    return value;
+                }
+            }
+
+            return "";
+        }
+
+        private static int ReadRequiredPositiveInt(IReadOnlyDictionary<string, string> row, int rowNo, params string[] names)
+        {
+            var text = ReadFirstText(row, names);
+            if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) && value > 0)
+            {
+                return value;
+            }
+
+            var digits = new string(text.Where(char.IsDigit).ToArray());
+            if (int.TryParse(digits, NumberStyles.Integer, CultureInfo.InvariantCulture, out value) && value > 0)
+            {
+                return value;
+            }
+
+            throw new InvalidDataException($"Review Result validation failed. Row {rowNo} / {string.Join(" or ", names)} must identify a positive number.");
+        }
+
+        private static int ReadOneBasedIndex(IReadOnlyDictionary<string, string> row, params string[] names)
+        {
+            var text = ReadFirstText(row, names);
+            return int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) && value > 0
+                ? value - 1
+                : -1;
+        }
+
+        private static double ReadOptionalFiniteDouble(IReadOnlyDictionary<string, string> row, params string[] names)
+        {
+            return ReadOptionalNullableFiniteDouble(row, names) ?? 0.0;
+        }
+
+        private static double? ReadOptionalNullableFiniteDouble(IReadOnlyDictionary<string, string> row, params string[] names)
+        {
+            var text = ReadFirstText(row, names);
+            return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) && double.IsFinite(value)
+                ? value
+                : null;
+        }
+
         private static string NormalizeResultStatus(string? resultStatus)
         {
-            return resultStatus?.Trim().Equals("IN_PROGRESS", StringComparison.OrdinalIgnoreCase) == true ? "IN_PROGRESS" : "COMPLETED";
+            return string.IsNullOrWhiteSpace(resultStatus)
+                ? "COMPLETED"
+                : resultStatus.Trim().ToUpperInvariant();
         }
 
         private static string NormalizeInspectionMethod(string? inspectionMethod)
@@ -253,6 +391,80 @@
             return string.IsNullOrWhiteSpace(sanitized) ? "UNLINKED" : sanitized;
         }
 
+        private string ManualDirectory(string recipeId, string resultType) => Path.Combine(_reviewRoot, "Manual", SanitizeFileName(recipeId), resultType);
+        private string AutoDirectory(string recipeId) => Path.Combine(_reviewRoot, "Auto", SanitizeFileName(recipeId));
+        private string ZeroDefenceDirectory(string recipeId, string glassId) => Path.Combine(_reviewRoot, "ZeroDefence", SanitizeFileName(recipeId), SanitizeFileName(glassId));
+        private static string ResultFileStem(string glassId, DateTimeOffset savedAt) => $"{SanitizeFileName(glassId)}_{savedAt:yyyyMMdd_HHmmss_fff}";
+
+        private static string WriteUniqueCsv(
+            string directory,
+            string fileStem,
+            IReadOnlyList<string> headers,
+            IEnumerable<IReadOnlyDictionary<string, string>> rows,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Directory.CreateDirectory(directory);
+            var temporaryPath = Path.Combine(directory, $".{Guid.NewGuid():N}.tmp");
+            try
+            {
+                CCsvParser.Write(temporaryPath, headers, rows);
+                for (var duplicate = 0;; duplicate++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var suffix = duplicate == 0 ? "" : $"_{duplicate:00}";
+                    var path = Path.Combine(directory, fileStem + suffix + ".csv");
+                    try
+                    {
+                        System.IO.File.Move(temporaryPath, path, overwrite: false);
+                        return Path.GetFullPath(path);
+                    }
+                    catch (IOException) when (System.IO.File.Exists(path))
+                    {
+                    }
+                }
+            }
+            finally
+            {
+                if (System.IO.File.Exists(temporaryPath))
+                    System.IO.File.Delete(temporaryPath);
+            }
+        }
+
+        private static async Task<string> WriteUniqueLines(
+            string directory,
+            string fileStem,
+            IReadOnlyList<string> lines,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Directory.CreateDirectory(directory);
+            var temporaryPath = Path.Combine(directory, $".{Guid.NewGuid():N}.tmp");
+            try
+            {
+                await System.IO.File.WriteAllLinesAsync(temporaryPath, lines, new UTF8Encoding(true), cancellationToken).ConfigureAwait(false);
+                for (var duplicate = 0;; duplicate++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var suffix = duplicate == 0 ? "" : $"_{duplicate:00}";
+                    var path = Path.Combine(directory, fileStem + suffix + ".csv");
+                    try
+                    {
+                        System.IO.File.Move(temporaryPath, path, overwrite: false);
+                        return Path.GetFullPath(path);
+                    }
+                    catch (IOException) when (System.IO.File.Exists(path))
+                    {
+                    }
+                }
+            }
+            finally
+            {
+                if (System.IO.File.Exists(temporaryPath))
+                    System.IO.File.Delete(temporaryPath);
+            }
+        }
+
         private sealed record ST_REVIEW_RESULT_METADATA(string Rule, string RuleScope, int BeamNo, int? ReferenceCellNo, string ReferenceShot, string RoughReference, int FineLineCount);
 #endregion
 #region BeamInspection
@@ -261,13 +473,24 @@
             cancellationToken.ThrowIfCancellationRequested();
             if (result.Points.Count == 0 || result.Points.Any(p => p.BeamNo is < 1 or > 16))
                 throw new InvalidDataException("Beam Inspection 결과에는 1~16번 Beam이 필요합니다.");
-            string[] headers = ["GLASS_NAME", "HEAD_NAME", "CELL_NAME", "SHOT_NAME", ..Enumerable.Range(1, 16).SelectMany(beam => new[] { $"BEAM{beam}_X_MM", $"BEAM{beam}_Y_MM", $"BEAM{beam}_JUDGE" })];
+            var status = result.State switch
+            {
+                EN_REVIEW_SEQUENCE_STATE.Completed => "COMPLETED",
+                EN_REVIEW_SEQUENCE_STATE.Stopped => "STOPPED",
+                EN_REVIEW_SEQUENCE_STATE.Failed => "FAILED",
+                _ => "UNKNOWN"
+            };
             var rows = result.Points.GroupBy(p => (p.HeadNo, p.CellNo, p.ShotNo)).OrderBy(g => g.Key.HeadNo).ThenBy(g => g.Key.CellNo).ThenBy(g => g.Key.ShotNo).Select(group =>
             {
                 var point = group.First();
                 var beams = group.ToDictionary(p => p.BeamNo);
                 var row = new Dictionary<string, string>
                 {
+                    ["SAVED_AT"] = FormatDate(savedAt),
+                    ["RECIPE_ID"] = result.RecipeId,
+                    ["RESULT_STATUS"] = status,
+                    ["STAGE_SIMULATION"] = result.IsStageSimulation ? "ON" : "OFF",
+                    ["VISION_SIMULATION"] = result.IsVisionSimulation ? "ON" : "OFF",
                     ["GLASS_NAME"] = string.IsNullOrWhiteSpace(glassId) ? "UNLINKED" : glassId,
                     ["HEAD_NAME"] = $"HEAD {point.HeadNo:00}",
                     ["CELL_NAME"] = $"CELL {point.CellNo:00}",
@@ -285,50 +508,23 @@
 
                 return row;
             }).ToArray();
-            var root = Path.Combine(Path.GetDirectoryName(_reviewResultRoot)!, "BeamInspection");
-            if (result.IsSimulation)
-                root = Path.Combine(root, "SIM");
-            var directory = Path.Combine(root, savedAt.ToString("yyyyMMdd", CultureInfo.InvariantCulture));
-            var fileName = $"BeamInspection_{savedAt:HHmmss_fff}";
-            var path = Path.Combine(directory, fileName + ".csv");
-            var temporaryPath = Path.Combine(directory, $"{Guid.NewGuid():N}.tmp");
-            try
-            {
-                CCsvParser.Write(temporaryPath, headers, rows);
-                for (var duplicate = 1;; duplicate++)
-                {
-                    try
-                    {
-                        System.IO.File.Move(temporaryPath, path);
-                        break;
-                    }
-                    catch (IOException)when (System.IO.File.Exists(path))
-                    {
-                        path = Path.Combine(directory, $"{fileName}_{duplicate}.csv");
-                    }
-                }
-            }
-            finally
-            {
-                if (System.IO.File.Exists(temporaryPath))
-                    System.IO.File.Delete(temporaryPath);
-            }
-
-            return Task.FromResult(Path.GetFullPath(path));
+            var path = WriteUniqueCsv(ManualDirectory(result.RecipeId, "BEAM_INSPECTION"), ResultFileStem(glassId, savedAt), BeamInspectionHeaders, rows, cancellationToken);
+            _lastSavedPath = path;
+            return Task.FromResult(path);
         }
 
         public override Task<ST_BEAM_INSPECTION_RESULT_FILE_DATA?> LoadLastBeamInspection(CancellationToken cancellationToken = default) => Task.Run(() => LoadLastBeamInspectionCore(cancellationToken), cancellationToken);
         private ST_BEAM_INSPECTION_RESULT_FILE_DATA? LoadLastBeamInspectionCore(CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var root = Path.Combine(Path.GetDirectoryName(_reviewResultRoot)!, "BeamInspection");
+            var root = Path.Combine(_reviewRoot, "Manual");
             if (!Directory.Exists(root))
                 return null;
             FileInfo? latest;
             try
             {
                 // Filename suffixes are intentionally unrestricted: old files include completion/GUID suffixes.
-                latest = Directory.EnumerateFiles(root, "*.csv", System.IO.SearchOption.AllDirectories).Where(path => Path.GetFileName(path).StartsWith("BeamInspection_", StringComparison.OrdinalIgnoreCase)).Select(path =>
+                latest = Directory.EnumerateFiles(root, "*.csv", System.IO.SearchOption.AllDirectories).Where(path => string.Equals(Path.GetFileName(Path.GetDirectoryName(path)), "BEAM_INSPECTION", StringComparison.OrdinalIgnoreCase)).Select(path =>
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     return new FileInfo(path);
@@ -353,7 +549,7 @@
                 parser.SetDelimiters(",");
                 var headers = parser.ReadFields()?.Select(header => header.Trim()).ToArray();
                 if (headers is null || headers.Length != BeamInspectionHeaders.Length || headers.Distinct(StringComparer.OrdinalIgnoreCase).Count() != BeamInspectionHeaders.Length || !headers.ToHashSet(StringComparer.OrdinalIgnoreCase).SetEquals(BeamInspectionHeaders))
-                    throw new InvalidDataException("CSV 헤더에는 GLASS_NAME/HEAD_NAME/CELL_NAME/SHOT_NAME과 1~16번 Beam의 X_MM/Y_MM/JUDGE, 총 52개 열이 필요합니다.");
+                    throw new InvalidDataException($"CSV 헤더에는 Beam Inspection 메타데이터와 1~16번 Beam의 X_MM/Y_MM/JUDGE, 총 {BeamInspectionHeaders.Length}개 열이 필요합니다.");
                 var indexes = headers.Select((name, index) => (name, index)).ToDictionary(pair => pair.name, pair => pair.index, StringComparer.OrdinalIgnoreCase);
                 var shots = new List<ST_BEAM_INSPECTION_RESULT_SHOT>();
                 var identities = new HashSet<(int Head, int Cell, string Shot)>();
@@ -366,7 +562,7 @@
                     if (fields is null)
                         break;
                     if (fields.Length != BeamInspectionHeaders.Length)
-                        throw Error(rowNo, $"열 개수가 {fields.Length}개입니다. 각 Shot 행에는 52개 열이 필요합니다.");
+                        throw Error(rowNo, $"열 개수가 {fields.Length}개입니다. 각 Shot 행에는 {BeamInspectionHeaders.Length}개 열이 필요합니다.");
                     string Get(string name) => fields[indexes[name]];
                     string RequireName(string name)
                     {
@@ -414,9 +610,21 @@
 
                 if (shots.Count == 0)
                     throw new InvalidDataException("CSV에 Shot 결과 행이 없습니다.");
-                var relative = Path.GetRelativePath(root, latest.FullName);
-                var simulation = relative.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar).Any(part => part.Equals("SIM", StringComparison.OrdinalIgnoreCase));
-                return new(latest.FullName, latest.Name, new DateTimeOffset(latest.LastWriteTimeUtc).ToLocalTime(), simulation, glassName!, shots.AsReadOnly());
+                var simulation = false;
+                using var metadataParser = new TextFieldParser(latest.FullName, new UTF8Encoding(false, true), detectEncoding: true)
+                {
+                    HasFieldsEnclosedInQuotes = true,
+                    TrimWhiteSpace = false
+                };
+                metadataParser.SetDelimiters(",");
+                var metadataHeaders = metadataParser.ReadFields()!;
+                var metadataFields = metadataParser.ReadFields()!;
+                var metadata = metadataHeaders.Select((name, index) => (name, value: index < metadataFields.Length ? metadataFields[index] : "")).ToDictionary(pair => pair.name, pair => pair.value, StringComparer.OrdinalIgnoreCase);
+                simulation = ParseOnOff(metadata.GetValueOrDefault("STAGE_SIMULATION")) || ParseOnOff(metadata.GetValueOrDefault("VISION_SIMULATION"));
+                var savedAt = DateTimeOffset.TryParse(metadata.GetValueOrDefault("SAVED_AT"), CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var parsedSavedAt)
+                    ? parsedSavedAt
+                    : new DateTimeOffset(latest.LastWriteTimeUtc).ToLocalTime();
+                return new(latest.FullName, latest.Name, savedAt, simulation, glassName!, shots.AsReadOnly());
             }
             catch (Exception exception)when (exception is InvalidDataException or IOException or UnauthorizedAccessException or MalformedLineException or DecoderFallbackException)
             {
@@ -441,6 +649,65 @@
         }
 
         private static InvalidDataException Error(long rowNo, string detail) => new($"CSV {rowNo}행: {detail}");
+        private static bool ParseOnOff(string? value) => value?.Trim().Equals("ON", StringComparison.OrdinalIgnoreCase) == true;
+#endregion
+#region OneShot
+        public override Task<string> SaveOneShot(ST_ONE_SHOT_RESULT_DATA data, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var point = data.Result.Point;
+            var mark = data.Result.Mark ?? throw new InvalidDataException("ONE SHOT 검사 결과에 Vision Mark가 없습니다.");
+            var converted = CReviewManager.VisionErrorToStageOffset(point.ErrorX, point.ErrorY, data.Plan.VisionFlipType);
+            string[] headers = [
+                "SAVED_AT", "RECIPE_ID", "GLASS_ID", "RESULT_STATUS", "RUN_TYPE", "METHOD", "ACTION", "TOTAL_COUNT",
+                "STAGE_SIMULATION", "VISION_SIMULATION", "HEAD_NO", "CELL_NO", "SHOT_NAME", "SHOT_KEY", "BEAM_NO",
+                "DESIGN_X", "DESIGN_Y", "REVIEW_X_TARGET", "STAGE_Y_TARGET", "RESOLUTION", "CAMERA_RESOLUTION",
+                "TARGET_X", "TARGET_Y", "HOLE_X", "HOLE_Y", "VISION_X_FLIP", "VISION_Y_FLIP", "VISION_XY_FLIP",
+                "RECV_TARGET_MINUS_HOLE_X", "RECV_TARGET_MINUS_HOLE_Y", "VISION_FLIP_CONVERT_X", "VISION_FLIP_CONVERT_Y", "JUDGE"
+            ];
+            IReadOnlyDictionary<string, string>[] rows =
+            [
+                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["SAVED_AT"] = FormatDate(data.SavedAt),
+                    ["RECIPE_ID"] = data.Plan.RecipeId,
+                    ["GLASS_ID"] = string.IsNullOrWhiteSpace(data.GlassId) ? "UNLINKED" : data.GlassId,
+                    ["RESULT_STATUS"] = "COMPLETED",
+                    ["RUN_TYPE"] = "MANUAL",
+                    ["METHOD"] = data.Method.ToString().ToUpperInvariant(),
+                    ["ACTION"] = data.Action.ToString().ToUpperInvariant(),
+                    ["TOTAL_COUNT"] = "1",
+                    ["STAGE_SIMULATION"] = data.Result.IsStageSimulation ? "ON" : "OFF",
+                    ["VISION_SIMULATION"] = data.Result.IsVisionSimulation ? "ON" : "OFF",
+                    ["HEAD_NO"] = Int(point.HeadNo),
+                    ["CELL_NO"] = Int(point.CellNo),
+                    ["SHOT_NAME"] = CReviewShotNameFormatter.ToMatrixName(point.ShotNo, point.PixelCountX),
+                    ["SHOT_KEY"] = point.ShotKey,
+                    ["BEAM_NO"] = Int(point.BeamNo),
+                    ["DESIGN_X"] = Number(point.DesignX),
+                    ["DESIGN_Y"] = Number(point.DesignY),
+                    ["REVIEW_X_TARGET"] = Number(point.ReviewTargetX),
+                    ["STAGE_Y_TARGET"] = Number(point.ReviewTargetY),
+                    ["RESOLUTION"] = Int(data.Result.Resolution),
+                    ["CAMERA_RESOLUTION"] = Number(data.Result.CameraResolution),
+                    ["TARGET_X"] = Number(mark.TargetMarkX),
+                    ["TARGET_Y"] = Number(mark.TargetMarkY),
+                    ["HOLE_X"] = Number(mark.HoleX),
+                    ["HOLE_Y"] = Number(mark.HoleY),
+                    ["VISION_X_FLIP"] = data.Plan.VisionFlipType.HasFlag(EN_VISION_FLIP_TYPE.XFlip) ? "ON" : "OFF",
+                    ["VISION_Y_FLIP"] = data.Plan.VisionFlipType.HasFlag(EN_VISION_FLIP_TYPE.YFlip) ? "ON" : "OFF",
+                    ["VISION_XY_FLIP"] = data.Plan.VisionFlipType.HasFlag(EN_VISION_FLIP_TYPE.XyFlip) ? "ON" : "OFF",
+                    ["RECV_TARGET_MINUS_HOLE_X"] = Number(point.ErrorX),
+                    ["RECV_TARGET_MINUS_HOLE_Y"] = Number(point.ErrorY),
+                    ["VISION_FLIP_CONVERT_X"] = Number(converted.X),
+                    ["VISION_FLIP_CONVERT_Y"] = Number(converted.Y),
+                    ["JUDGE"] = point.Judge
+                }
+            ];
+            var path = WriteUniqueCsv(ManualDirectory(data.Plan.RecipeId, "ONE_SHOT"), ResultFileStem(data.GlassId, data.SavedAt), headers, rows, cancellationToken);
+            _lastSavedPath = path;
+            return Task.FromResult(path);
+        }
 #endregion
 #region Correction
         public override Task<string> SaveFineCorrection(ST_FINE_REVIEW_RESULT_DATA result, CancellationToken cancellationToken = default)
@@ -460,7 +727,10 @@
                 "RECIPE_ID", 
                 "GLASS_ID", 
                 "ORIGIN", 
+                "ZERO_LINE_RUN_ID", 
+                "ZERO_LINE_SAVED_AT", 
                 "METHOD", 
+                "LINE_COUNT", 
                 "IMMEDIATE_RETRY", 
                 "RETRY_LIMIT", 
                 "CAPTURE_ATTEMPT", 
@@ -497,6 +767,7 @@
                 "JUDGE"
             ];
             var plan = result.Request.Plan;
+            var glassId = string.IsNullOrWhiteSpace(result.GlassId) ? result.Request.Context?.GlassId ?? "UNLINKED" : result.GlassId;
             var rows = snapshot.Lines.SelectMany(line => line.Points.Select(point =>
             {
                 var measured = point.State is EN_REVIEW_POINT_STATE.Ok or EN_REVIEW_POINT_STATE.Ng;
@@ -507,9 +778,12 @@
                 {
                     ["SAVED_AT"] = FormatDate(result.SavedAt),
                     ["RECIPE_ID"] = snapshot.RecipeId,
-                    ["GLASS_ID"] = result.Request.Context?.GlassId ?? "-",
+                    ["GLASS_ID"] = glassId,
                     ["ORIGIN"] = result.Request.Context?.ZeroLineFollowUp == true ? "AUTO ZERO_LINE_FOLLOWUP (INSPECTION ONLY)" : result.Request.Context?.Origin ?? "MANUAL FINE",
+                    ["ZERO_LINE_RUN_ID"] = result.Request.Context?.ZeroLineRunId?.ToString("N", CultureInfo.InvariantCulture) ?? "",
+                    ["ZERO_LINE_SAVED_AT"] = FormatDate(result.Request.Context?.ZeroLineSavedAt),
                     ["METHOD"] = result.Request.Method == EN_FINE_INSPECTION_METHOD.Flying ? "FLYING" : "P2P",
+                    ["LINE_COUNT"] = Int(result.Request.Context?.LinesPerCell ?? result.Request.Lines.Count),
                     ["IMMEDIATE_RETRY"] = result.Request.ImmediateRetry ? "ON" : "OFF",
                     ["RETRY_LIMIT"] = Int(result.Request.CountMismatchRetries),
                     ["CAPTURE_ATTEMPT"] = Int(result.CaptureAttempts.GetValueOrDefault(point.ShotKey)),
@@ -546,34 +820,23 @@
                     ["JUDGE"] = measured ? point.State == EN_REVIEW_POINT_STATE.Ok ? "OK" : "NG" : point.Judge == "ERROR" ? "ERROR" : "미검사"
                 };
             })).ToArray();
-            var directory = Path.Combine(_reviewResultRoot, "FINE", SanitizeFileName(plan.RecipeId), result.SavedAt.ToString("yyyyMMdd", CultureInfo.InvariantCulture));
-            var name = result.SavedAt.ToString("yyyyMMdd_HHmmss_fff", CultureInfo.InvariantCulture);
-            var path = Path.Combine(directory, name + ".csv");
-            var temporary = Path.Combine(directory, $".{Guid.NewGuid():N}.tmp");
-            try
-            {
-                CCsvParser.Write(temporary, headers, rows);
-                for (var duplicate = 1;; duplicate++)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    try
-                    {
-                        System.IO.File.Move(temporary, path, overwrite: false);
-                        break;
-                    }
-                    catch (IOException)when (System.IO.File.Exists(path))
-                    {
-                        path = Path.Combine(directory, $"{name}_{duplicate}.csv");
-                    }
-                }
-            }
-            finally
-            {
-                if (System.IO.File.Exists(temporary))
-                    System.IO.File.Delete(temporary);
-            }
-
-            _lastSavedPath = Path.GetFullPath(path);
+            var zeroLineFollowUp = result.Request.Context?.ZeroLineFollowUp == true;
+            var zeroLineRunId = result.Request.Context?.ZeroLineRunId;
+            if (zeroLineFollowUp && (zeroLineRunId is null || zeroLineRunId == Guid.Empty))
+                throw new InvalidDataException("0선 후속 검사 결과에 부모 0선 Run ID가 없습니다.");
+            var zeroLineSavedAt = result.Request.Context?.ZeroLineSavedAt;
+            if (zeroLineFollowUp && zeroLineSavedAt is null)
+                throw new InvalidDataException("0선 후속 검사 결과에 부모 0선 저장 시각이 없습니다.");
+            var automatic = result.Request.Context?.Origin.Equals("AUTO", StringComparison.OrdinalIgnoreCase) == true;
+            var directory = zeroLineFollowUp
+                ? ZeroDefenceDirectory(plan.RecipeId, glassId)
+                : automatic
+                    ? AutoDirectory(plan.RecipeId)
+                    : ManualDirectory(plan.RecipeId, "FINE");
+            var fileStem = zeroLineFollowUp
+                ? $"{zeroLineSavedAt!.Value:yyyyMMdd_HHmmss_fff}_FOLLOWUP"
+                : ResultFileStem(glassId, result.SavedAt);
+            _lastSavedPath = WriteUniqueCsv(directory, fileStem, headers, rows, cancellationToken);
             return Task.FromResult(_lastSavedPath);
         }
 
@@ -585,6 +848,7 @@
             string[] headers = [
                 "SAVED_AT", 
                 "RECIPE_ID", 
+                "GLASS_ID", 
                 "RUN_TYPE", 
                 "RULE_SCOPE", 
                 "RESULT_STATUS", 
@@ -633,6 +897,7 @@
                 {
                     ["SAVED_AT"] = FormatDate(result.SavedAt),
                     ["RECIPE_ID"] = result.Plan.RecipeId,
+                    ["GLASS_ID"] = string.IsNullOrWhiteSpace(result.GlassId) ? "UNLINKED" : result.GlassId,
                     ["RUN_TYPE"] = result.IsNgRetry ? "NG_RETRY" : "INITIAL",
                     ["RULE_SCOPE"] = result.Plan.CorrectionPlan?.Scope == EN_REVIEW_CORRECTION_SCOPE.HeadCell ? "HEAD_CELL" : "HEAD",
                     ["RESULT_STATUS"] = status,
@@ -664,49 +929,20 @@
                     ["JUDGE"] = measured ? point.State == EN_REVIEW_POINT_STATE.Ok ? "OK" : "NG" : error ? "ERROR" : "미검사"
                 };
             }).ToArray();
-            var directory = Path.Combine(_reviewResultRoot, "ROUGH", SanitizeFileName(result.Plan.RecipeId), result.SavedAt.ToString("yyyyMMdd", CultureInfo.InvariantCulture));
-            var name = result.SavedAt.ToString("yyyyMMdd_HHmmss_fff", CultureInfo.InvariantCulture);
-            var path = Path.Combine(directory, name + ".csv");
-            var temporary = Path.Combine(directory, $".{Guid.NewGuid():N}.tmp");
-            try
-            {
-                CCsvParser.Write(temporary, headers, rows);
-                for (var duplicate = 1;; duplicate++)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    try
-                    {
-                        System.IO.File.Move(temporary, path, overwrite: false);
-                        break;
-                    }
-                    catch (IOException)when (System.IO.File.Exists(path))
-                    {
-                        path = Path.Combine(directory, $"{name}_{duplicate}.csv");
-                    }
-                }
-            }
-            finally
-            {
-                if (System.IO.File.Exists(temporary))
-                    System.IO.File.Delete(temporary);
-            }
-
-            var fullPath = Path.GetFullPath(path);
-            _lastSavedPath = fullPath;
-            return Task.FromResult(fullPath);
+            var path = WriteUniqueCsv(ManualDirectory(result.Plan.RecipeId, "ROUGH"), ResultFileStem(result.GlassId, result.SavedAt), headers, rows, cancellationToken);
+            _lastSavedPath = path;
+            return Task.FromResult(path);
         }
 
         private static string Int(int value) => value.ToString(CultureInfo.InvariantCulture);
         private static string Number(double value) => Math.Round(value, 3, MidpointRounding.AwayFromZero).ToString("0.000", CultureInfo.InvariantCulture);
         public override async Task<string> SaveZeroLine(ST_ZERO_LINE_RESULT_DATA data, CancellationToken token = default)
         {
-            var directory = Path.Combine(Directory.GetParent(Path.GetFullPath(configRoot))!.FullName, "Data", "ZeroDefence", data.SavedAt.ToString("yyyyMMdd", CultureInfo.InvariantCulture));
-            Directory.CreateDirectory(directory);
-            var path = Path.Combine(directory, $"ZeroDefence_{data.SavedAt:HHmmss_fffffff}_{data.Plan.RunId:N}.csv");
+            var directory = ZeroDefenceDirectory(data.Plan.RecipeId, data.Plan.GlassId);
             static string Field(object? value) => "\"" + (Convert.ToString(value, CultureInfo.InvariantCulture) ?? "").Replace("\"", "\"\"") + "\"";
             var lines = new List<string>
             {
-                "SavedAt,RunId,Recipe,Glass,Group,ResultStatus,GroupJudge,Head,Cell,Shot,Beam,ReviewX,StageY,State,Resolution,TargetX,TargetY,HoleX,HoleY,RecvX,RecvY,ConvertedX,ConvertedY,Judge,Detail,StageSimulation,VisionSimulation,ToleranceX,ToleranceY,VisionFlip"
+                "SAVED_AT,RUN_ID,RECIPE_ID,GLASS_ID,GROUP,RESULT_STATUS,GROUP_JUDGE,HEAD_NO,CELL_NO,SHOT_NAME,BEAM_NO,REVIEW_X_TARGET,STAGE_Y_TARGET,STATE,RESOLUTION,TARGET_X,TARGET_Y,HOLE_X,HOLE_Y,RECV_X,RECV_Y,CONVERTED_X,CONVERTED_Y,JUDGE,DETAIL,STAGE_SIMULATION,VISION_SIMULATION,TOLERANCE_X,TOLERANCE_Y,VISION_FLIP"
             };
             var results = data.Status.Results ?? throw new InvalidDataException("0선 결과가 없습니다.");
             foreach (var result in results)
@@ -717,19 +953,8 @@
                 lines.Add(string.Join(",", new object? [] { data.SavedAt.ToString("O"), data.Plan.RunId, data.Plan.RecipeId, data.Plan.GlassId, data.Plan.Group, data.Status.State, data.Status.Judge, p.HeadNo, p.CellNo, CReviewShotNameFormatter.ToMatrixName(p.ShotNo, p.PixelCountX), p.BeamNo, p.ReviewTargetX, p.ReviewTargetY, result.State, result.Resolution, result.Mark?.TargetMarkX, result.Mark?.TargetMarkY, result.Mark?.HoleX, result.Mark?.HoleY, measured ? p.ErrorX : null, measured ? p.ErrorY : null, measured ? converted.X : null, measured ? converted.Y : null, p.Judge, result.Detail, data.StageSimulation, data.VisionSimulation, data.Plan.VisionPlan.ToleranceX, data.Plan.VisionPlan.ToleranceY, data.Plan.VisionPlan.VisionFlipType }.Select(Field)));
             }
 
-            // Unique run ID and atomic publication prevent a partial result file appearing as complete.
-            var temporary = path + ".tmp";
-            try
-            {
-                await System.IO.File.WriteAllLinesAsync(temporary, lines, new UTF8Encoding(true), token).ConfigureAwait(false);
-                System.IO.File.Move(temporary, path);
-            }
-            finally
-            {
-                if (System.IO.File.Exists(temporary))
-                    System.IO.File.Delete(temporary);
-            }
-
+            var path = await WriteUniqueLines(directory, $"{data.SavedAt:yyyyMMdd_HHmmss_fff}_ZERO_DEFENCE", lines, token).ConfigureAwait(false);
+            _lastSavedPath = path;
             return path;
         }
 #endregion

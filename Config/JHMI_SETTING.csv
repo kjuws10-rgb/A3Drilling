@@ -93,7 +93,9 @@ OPTION,REVIEW,REVIEW_X_ANIMATION_FLIP,Review X Animation Flip,BOOL,,1,1,OFF,0,1,
 OPTION,REVIEW,VISION_ANIMATION_USE,Vision Animation Use,BOOL,,1,1,ON,0,1,ON일 때만 Correction Review 프리뷰의 카메라 위치 애니메이션 표시
 OPTION,REVIEW,MaxHoleCountPerLine,MaxHoleCountPerLine,INT,count,1,1,300,1,29126,1001 송신·1003 수신 배열의 고정 칸 수; Count는 실제 유효 개수; 송신 잔여 칸은 모든 필드 -1; 수신 Count 초과 시 HEAVY 알람 및 검사 중단
 OPTION,REVIEW,Review_Camera_Resolution,Review_Camera_Resolution,DOUBLE,mm/pixel,1,1,0.0025,0,0,카메라 1 pixel당 길이(mm); 기본 0.0025 mm/pixel=2.5 um/pixel; 오차(mm)=이 값 x 수신 nResolution x (Target-Hole); Vision Flip 적용 후 Tolerance 판정; 양의 유한값만 저장
+OPTION,REVIEW,REVIEW_OFFSET_SCALE,Review Offset Scale,INT,%,1,1,100,0,2147483647,가공 좌표 생성 시 저장된 Review Offset에 적용할 비율; 0%=미적용; 100%=원래 값; 200%=2배; 저장값과 설계 Masking/Chess 판정은 변경하지 않음
 OPTION,ALIGN,Align_Camera_Resolution,Align_Camera_Resolution,DOUBLE,mm/pixel,1,1,0.00345,0,0,얼라인 카메라 1 pixel당 길이(mm); 기본 0.00345 mm/pixel; 허용범위(pixel)=Wapage_AlignBase_Tolerance(mm) / 이 값; 양의 유한값만 저장
+OPTION,ALIGN,ALIGN_OFFSET_SCALE,Align Offset Scale,INT,%,1,1,100,0,2147483647,가공 좌표 생성 시 저장된 Align Offset에 적용할 비율; 0%=미적용; 100%=원래 값; 200%=2배; 저장값과 설계 Masking/Chess 판정은 변경하지 않음
 OPTION,ALIGN,Wapage_AlignBase_Tolerance,Wapage_AlignBase_Tolerance,DOUBLE,mm,1,1,0.1,0,0,Wapage Align Base 허용범위(mm); 0 이상; MELSEC 기록 시 Align_Camera_Resolution(mm/pixel)으로 나누어 pixel로 환산; 실제 신호 연결은 추후 작업
 OPTION,INTERLOCK,SCANNER_TEMP_LIMIT,Scanner Temp Limit,DOUBLE,°C,1,1,1000,0,1000,스캐너 Galvo Temp 인터락 상한값 (섭씨)
 OPTION,INTERLOCK,DOE_Z_TOLERANCE,DOE Z Tolerance,DOUBLE,mm,1,1,0,0,1000,Recipe값 대비 +- 허용오차

@@ -109,6 +109,13 @@
                 throw new InvalidOperationException("Stop AUTO Stage request monitoring before RESET.");
             return _processStation.Reset(cancellationToken);
         }
+
+        public void InvalidatePreparedReviewOffset()
+        {
+            if (StageRequests.IsRunning)
+                throw new InvalidOperationException("AUTO Stage request monitoring이 실행 중일 때 Review Offset을 롤백할 수 없습니다.");
+            _processStation.InvalidatePreparedReviewOffset();
+        }
     }
 
     public enum EN_SEQUENCE_ACTION_STATE

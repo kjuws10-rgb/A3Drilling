@@ -3859,8 +3859,11 @@
             var maskedHoleNumbers = new SortedSet<int>();
             var isEdgeMasked = false;
             var centerIndex = (_splitBeamCount - 1) / 2.0;
-            var centerX = _baseCellCenterX + ParseOffset(OffsetX) + _additionalFinalOffsetX;
-            var centerY = _baseCellCenterY + ParseOffset(OffsetY) + _additionalFinalOffsetY;
+            // Match CRecipeShotMaskingPlan: classify using the original Cell design.
+            // CorrectedCenterX/Y still show machining offsets, but editing an Offset
+            // must not change the design's masking membership or masked Beam numbers.
+            var centerX = _baseCellCenterX;
+            var centerY = _baseCellCenterY;
             for (var row = 0; row < _splitBeamCount; row++)
             {
                 for (var column = 0; column < _splitBeamCount; column++)

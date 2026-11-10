@@ -2834,14 +2834,24 @@
             if (string.IsNullOrWhiteSpace(glass))
                 glass = (await CreateStageProcessRequestCore(token).ConfigureAwait(false)).GlassId;
             var followUp = station.ZeroLine is { FollowUpRequested: true, Plan: not null };
+            Guid? zeroLineRunId = null;
+            DateTimeOffset? zeroLineSavedAt = null;
             if (followUp)
             {
                 var plan = station.ZeroLine!.Plan!;
                 if (!plan.RecipeId.Equals(recipe.Id, StringComparison.OrdinalIgnoreCase) || !plan.GlassId.Equals(glass, StringComparison.Ordinal))
                     throw new InvalidOperationException("0선 후속 검사 대상의 Glass/Recipe가 현재 Review와 다릅니다.");
                 _autoReviewZeroLineRunId = plan.RunId;
+                zeroLineRunId = plan.RunId;
+                zeroLineSavedAt = station.ZeroLine.ResultSavedAt
+                    ?? throw new InvalidOperationException("0선 후속 검사 대상의 최초 결과 저장 시각이 없습니다.");
             }
-            return new(recipe, glass, options) { ZeroLineFollowUp = followUp };
+            return new(recipe, glass, options)
+            {
+                ZeroLineFollowUp = followUp,
+                ZeroLineRunId = zeroLineRunId,
+                ZeroLineSavedAt = zeroLineSavedAt
+            };
         }
 
         private ST_STAGE_DISTORTION_ACTIONS CreateAutoDistortionActions()

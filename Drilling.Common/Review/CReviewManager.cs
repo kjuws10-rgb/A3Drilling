@@ -2787,6 +2787,7 @@ namespace Drilling.Common.Review
                     var data = new ST_FINE_REVIEW_RESULT_DATA(request, snapshot, DateTimeOffset.Now, attempted, visionSimulation)
                     {
                         IsStageSimulation = stageSimulation,
+                        GlassId = request.Context?.GlassId ?? productManager?.Current?.GlassId ?? "",
                         CaptureAttempts = new System.Collections.ObjectModel.ReadOnlyDictionary<string, int>(captureAttempts)
                     };
                     var path = await Task.Run(() => reviewResultFile.SaveFineCorrection(data, CancellationToken.None));
@@ -2845,7 +2846,8 @@ namespace Drilling.Common.Review
 #region OneShot
         // Default CENTER has its own test identity and nominal beam slots, rather than
         // pretending that a production Cell/Shot was processed. It shares the Review
-        // execution lock, Process Move owner and Mark Find Single protocol.
+        // execution lock and Process Move owner. Shot CENTER uses Mark Find Single;
+        // cross CENTER uses Mark Find Setting Single exactly once.
         public async Task<DefaultInspectionSession> OpenDefaultInspection(CancellationToken token)
         {
             if (IsReviewSimulation()) throw new InvalidOperationException("Default 측정은 수신한 Vision 결과만 사용합니다. Vision Simulation을 OFF하고 비전 또는 외부 테스트 클라이언트를 연결해 주세요.");
@@ -2984,7 +2986,31 @@ namespace Drilling.Common.Review
 
                 CheckStop();
                 SequenceState = EN_REVIEW_SEQUENCE_STATE.Completed;
-                return new(result, mark, stageSimulation, visionSimulation) { Resolution = receivedResolution, CameraResolution = cameraResolution };
+                var oneShotResult = new ST_ONE_SHOT_RESULT(result, mark, stageSimulation, visionSimulation)
+                {
+                    Resolution = receivedResolution,
+                    CameraResolution = cameraResolution
+                };
+                if (action != EN_ONE_SHOT_ACTION.Move)
+                {
+                    var savedAt = DateTimeOffset.Now;
+                    var glassId = productManager?.Current?.GlassId ?? "";
+                    try
+                    {
+                        var data = new ST_ONE_SHOT_RESULT_DATA(plan, oneShotResult, savedAt, glassId, action, method);
+                        var path = await Task.Run(() => reviewResultFile.SaveOneShot(data, CancellationToken.None));
+                        oneShotResult = oneShotResult with { ResultFilePath = path };
+                        LastSavedResultPath = path;
+                        WriteReviewLog("ONE_SHOT_RESULT_SAVED", path);
+                    }
+                    catch (Exception error)
+                    {
+                        oneShotResult = oneShotResult with { ResultSaveError = error.Message };
+                        WriteReviewLog("ONE_SHOT_RESULT_SAVE_ERROR", error.ToString());
+                    }
+                }
+
+                return oneShotResult;
             }
             catch (OperationCanceledException)
             {
@@ -3142,7 +3168,10 @@ namespace Drilling.Common.Review
                     return snapshot;
                 try
                 {
-                    var result = new ST_ROUGH_REVIEW_RESULT_DATA(plan, snapshot, DateTimeOffset.Now, retryNg, attempted, stageSimulation, visionSimulation);
+                    var result = new ST_ROUGH_REVIEW_RESULT_DATA(plan, snapshot, DateTimeOffset.Now, retryNg, attempted, stageSimulation, visionSimulation)
+                    {
+                        GlassId = productManager?.Current?.GlassId ?? ""
+                    };
                     // A user Stop cancels motion/measurement, but must not cancel the final result save.
                     var path = await Task.Run(() => reviewResultFile.SaveRoughCorrection(result, CancellationToken.None));
                     LastSavedResultPath = path;
@@ -3261,7 +3290,7 @@ namespace Drilling.Common.Review
                 }).ToArray();
             }
 
-            public Task<string> Save(ST_ZERO_LINE_CYCLE_STATUS status, CancellationToken token) => _owner.SaveZeroLineResult(new(_plan, status, _stageSimulation, IsSimulation, DateTimeOffset.Now), token);
+            public Task<string> Save(ST_ZERO_LINE_CYCLE_STATUS status, DateTimeOffset savedAt, CancellationToken token) => _owner.SaveZeroLineResult(new(_plan, status, _stageSimulation, IsSimulation, savedAt), token);
             public void Dispose()
             {
                 if (_disposed)
@@ -3863,7 +3892,15 @@ namespace Drilling.Common.Review
         public string? TargetFilePath { get; init; }
     }
 
-    public sealed record ST_REVIEW_RESULT_FILE_ROW(DateTimeOffset SavedAt, string RecipeId, string ShotKey, string ShotName, int HeadNo, int CellNo, double ErrorX, double ErrorY, string Judge);
+    public sealed record ST_REVIEW_RESULT_FILE_ROW(DateTimeOffset SavedAt, string RecipeId, string ShotKey, string ShotName, int HeadNo, int CellNo, double ErrorX, double ErrorY, string Judge)
+    {
+        public int BeamNo { get; init; }
+        public int GroupColumn { get; init; } = -1;
+        public int GroupRow { get; init; } = -1;
+        public double? DesignX { get; init; }
+        public double? DesignY { get; init; }
+        public string ResultSource { get; init; } = "";
+    }
     public sealed record ST_REVIEW_RESULT_FILE_DATA(string FilePath, string FileName, string RecipeId, DateTimeOffset SavedAt, IReadOnlyList<ST_REVIEW_RESULT_FILE_ROW> Rows)
     {
         public string GlassId { get; init; } = "";
@@ -3875,6 +3912,8 @@ namespace Drilling.Common.Review
         public string ReferenceShot { get; init; } = "";
         public string RoughReference { get; init; } = "";
         public int FineLineCount { get; init; }
+        public string Origin { get; init; } = "";
+        public int LineCount { get; init; }
         public string ResultStatus { get; init; } = "COMPLETED";
         public int TotalCount { get; init; }
     }
@@ -3887,6 +3926,20 @@ namespace Drilling.Common.Review
         Task Save(ST_REVIEW_RESULT_DATA result, CancellationToken cancellationToken = default);
     }
 
+    public sealed record ST_REVIEW_RESULT_CATALOG_ITEM(
+        string FilePath,
+        string FileName,
+        string Source,
+        string ResultType,
+        string RecipeId,
+        DateTimeOffset SavedAt,
+        string ResultStatus,
+        string GlassId,
+        string RunType,
+        string Method,
+        int? TotalCount,
+        string ResultMessage);
+
     // The surrounding application still exposes Review files through these base
     // classes.  Keeping the compatibility layer here lets the new Review engine
     // run without changing the existing manager/configuration wiring.
@@ -3895,11 +3948,14 @@ namespace Drilling.Common.Review
         public virtual Task<string> SaveZeroLine(ST_ZERO_LINE_RESULT_DATA result, CancellationToken cancellationToken = default) => throw new NotSupportedException("0선방어 결과 저장이 구현되지 않았습니다.");
         public virtual Task<string> SaveFineCorrection(ST_FINE_REVIEW_RESULT_DATA result, CancellationToken cancellationToken = default) => throw new NotSupportedException("FINE 검사 결과 저장이 구현되지 않았습니다.");
         public virtual Task<string> SaveRoughCorrection(ST_ROUGH_REVIEW_RESULT_DATA result, CancellationToken cancellationToken = default) => throw new NotSupportedException("ROUGH 검사 결과 저장이 구현되지 않았습니다.");
+        public virtual Task<string> SaveOneShot(ST_ONE_SHOT_RESULT_DATA result, CancellationToken cancellationToken = default) => throw new NotSupportedException("ONE SHOT 결과 저장이 구현되지 않았습니다.");
         public virtual Task<ST_BEAM_INSPECTION_RESULT_FILE_DATA?> LoadLastBeamInspection(CancellationToken cancellationToken = default) => throw new NotSupportedException("Beam Inspection 결과 불러오기가 구현되지 않았습니다.");
         public virtual Task<string> SaveBeamInspection(ST_BEAM_INSPECTION_SNAPSHOT result, string glassId, DateTimeOffset savedAt, CancellationToken cancellationToken = default) => throw new NotSupportedException("Beam Inspection 결과 저장이 구현되지 않았습니다.");
         public abstract string RootPath { get; }
         public virtual IReadOnlyList<string> SearchRootPaths => [RootPath];
         public virtual string? LastSavedPath => null;
+        public virtual Task<IReadOnlyList<ST_REVIEW_RESULT_CATALOG_ITEM>> ListCorrectionResults(CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<ST_REVIEW_RESULT_CATALOG_ITEM>>([]);
 
         public abstract Task<ST_REVIEW_RESULT_FILE_DATA> Load(string path, CancellationToken cancellationToken = default);
         public abstract Task Save(ST_REVIEW_RESULT_DATA result, CancellationToken cancellationToken = default);
@@ -3919,12 +3975,23 @@ namespace Drilling.Common.Review
         }
     }
 
+    public sealed record ST_REVIEW_OFFSET_ROLLBACK_RESULT(
+        string RecipeId,
+        string RemovedFileName,
+        DateTimeOffset RemovedSavedAt,
+        string ArchivedFilePath,
+        ST_REVIEW_OFFSET_FILE_DATA Current);
+
     public abstract class CReviewOffsetFileBase
     {
         public abstract string RootPath { get; }
 
         public abstract Task<ST_REVIEW_OFFSET_FILE_DATA> LoadLatest(string recipeId, CancellationToken cancellationToken = default);
         public abstract Task<ST_REVIEW_OFFSET_FILE_DATA> SaveNew(string recipeId, IReadOnlyList<ST_REVIEW_OFFSET_ROW> rows, CancellationToken cancellationToken = default);
+        public abstract Task<ST_REVIEW_OFFSET_ROLLBACK_RESULT> RollbackLatest(
+            string recipeId,
+            string expectedLatestFilePath,
+            CancellationToken cancellationToken = default);
     }
 
     public interface IReviewManager
@@ -3981,6 +4048,7 @@ namespace Drilling.Common.Review
     public sealed record ST_FINE_REVIEW_RESULT_DATA(ST_FINE_REVIEW_REQUEST Request, ST_FINE_REVIEW_SNAPSHOT Snapshot, DateTimeOffset SavedAt, IReadOnlySet<string> AttemptedShotKeys, bool IsVisionSimulation)
     {
         public bool IsStageSimulation { get; init; } = true;
+        public string GlassId { get; init; } = "";
         public IReadOnlyDictionary<string, int> CaptureAttempts { get; init; } = new Dictionary<string, int>();
     }
 
@@ -4001,7 +4069,10 @@ namespace Drilling.Common.Review
     {
         public int Resolution { get; init; }
         public double CameraResolution { get; init; } = CSettingManager.DefaultVisionCameraResolution;
+        public string ResultFilePath { get; init; } = "";
+        public string ResultSaveError { get; init; } = "";
     }
+    public sealed record ST_ONE_SHOT_RESULT_DATA(ST_REVIEW_PLAN Plan, ST_ONE_SHOT_RESULT Result, DateTimeOffset SavedAt, string GlassId, EN_ONE_SHOT_ACTION Action, EN_ONE_SHOT_METHOD Method);
     public sealed record ST_ROUGH_REVIEW_SNAPSHOT(string RecipeId, IReadOnlyList<ST_REVIEW_PLAN_POINT> Points, EN_REVIEW_SEQUENCE_STATE State, string Message)
     {
         public string ResultFilePath { get; init; } = "";
@@ -4016,7 +4087,10 @@ namespace Drilling.Common.Review
         IReadOnlySet<string> AttemptedShotKeys, 
         bool IsStageSimulation, 
         bool IsVisionSimulation
-    );
+    )
+    {
+        public string GlassId { get; init; } = "";
+    }
     /// <summary>Raw camera pixel coordinates. Resolution is the received integer ATF multiplier.</summary>
     public sealed record ST_ROUGH_REVIEW_MEASUREMENT(double TargetX, double TargetY, double HoleX, double HoleY, string Judge)
     {

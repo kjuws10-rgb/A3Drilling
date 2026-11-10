@@ -2650,8 +2650,14 @@
 
                 var result = await _reviewManager.ExecuteOneShot(plan, point, operation, method, Progress, _oneShotCancellation.Token);
                 _oneShotResult = result;
-                OneShotStatus = operation == EN_ONE_SHOT_ACTION.Move ? (result.IsStageSimulation ? "이동 완료 (SIMULATION)" : "이동 완료") : $"검사 완료 · {result.Point.Judge}";
+                OneShotStatus = operation == EN_ONE_SHOT_ACTION.Move
+                    ? result.IsStageSimulation ? "이동 완료 (SIMULATION)" : "이동 완료"
+                    : string.IsNullOrWhiteSpace(result.ResultSaveError)
+                        ? $"검사 완료 · {result.Point.Judge}"
+                        : $"검사 완료 · {result.Point.Judge} / 결과 저장 실패";
                 _statusReporter($"{OneShotSelection} · {OneShotStatus}");
+                if (!string.IsNullOrWhiteSpace(result.ResultSaveError))
+                    warn("One Shot 결과 저장", result.ResultSaveError);
             }
             catch (OperationCanceledException)
             {

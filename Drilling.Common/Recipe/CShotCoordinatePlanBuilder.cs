@@ -30,6 +30,8 @@
             var scannerReferenceOffsetX = ReadScannerReferenceOffsetX(parameters);
             var shiftOffsetX = ReadDouble(parameters, 0.0, "SHIFT_OFFSET_X");
             var shiftOffsetY = ReadDouble(parameters, 0.0, "SHIFT_OFFSET_Y");
+            var reviewOffsetScale = ReadOffsetScale(parameters, "REVIEW_OFFSET_SCALE");
+            var alignOffsetScale = ReadOffsetScale(parameters, "ALIGN_OFFSET_SCALE");
             int SelectHeadNo(int headNo)
             {
                 return headNo;
@@ -140,6 +142,10 @@
                 // stage/head direction here, when building scanner/script coordinates.
                 var alignScannerOffset = CScannerAxisTransform.DesignOffsetToScanner(parameters, preparedShot.HeadNo, preparedShot.DesignShot.AlignOffsetX, preparedShot.DesignShot.AlignOffsetY);
                 var reviewScannerOffset = CReviewOffsetData.ToScanner(parameters, preparedShot.HeadNo, preparedShot.DesignShot.ReviewOffsetX, preparedShot.DesignShot.ReviewOffsetY, preparedShot.DesignShot.ReviewOffsetIsDesign);
+                // Scale the current machining contribution only. Stored design offsets
+                // remain unchanged, so repeated builds never compound the percentage.
+                alignScannerOffset = (alignScannerOffset.X * alignOffsetScale, alignScannerOffset.Y * alignOffsetScale);
+                reviewScannerOffset = (reviewScannerOffset.X * reviewOffsetScale, reviewScannerOffset.Y * reviewOffsetScale);
                 var shiftScannerOffsetXOnly = preparedShot.ScannerTransform.Apply(shiftOffsetX, 0.0);
                 var shiftScannerOffsetX = (scannerBase.X - noShiftScannerBase.X) + shiftScannerOffsetXOnly.X;
                 var shiftScannerOffsetY = (scannerBase.Y - noShiftScannerBase.Y) + shiftScannerOffsetXOnly.Y;
@@ -192,6 +198,15 @@
 
             var shots = OrderShots(calculatedShots, stageScanDirectionY).Select(SelectItem).ToArray();
             return new ST_SHOT_COORDINATE_PLAN(headCount, cellCount, glassSizeX, glassSizeY, encoderScale, shots);
+        }
+
+        private static double ReadOffsetScale(IReadOnlyDictionary<string, string> parameters, string key)
+        {
+            if (!parameters.TryGetValue(key, out var text))
+                return 1.0; // Existing configurations retain 100% by default.
+            if (!int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var percent) || percent < 0)
+                throw new InvalidOperationException($"{key}: 0 이상의 정수(%)를 입력해 주세요.");
+            return percent / 100.0;
         }
 
         // All recipe shots, including disabled heads and masked/chess-skipped shots.
@@ -856,8 +871,12 @@
             var isEdgeMasked = false;
             var beamHalfSpan = modelPattern.BeamPitchMillimeters / 2.0;
             var centerIndex = (_splitBeamCount - 1) / 2.0;
-            var centerX = (point.GroupColumn * modelPattern.GroupPitchMillimeters) + point.FinalScannerOffsetX;
-            var centerY = (point.GroupRow * modelPattern.GroupPitchMillimeters) + point.FinalScannerOffsetY;
+            // Mask membership is fixed by the Cell's recipe design, just like Chess.
+            // Offsets move the machining coordinates only: Recipe/Default/FirstBeam/
+            // Align/Review/Shift corrections and Head flips must never reclassify a Shot.
+            // The masking rectangles use this same Cell-local, uncorrected design frame.
+            var centerX = point.GroupColumn * modelPattern.GroupPitchMillimeters;
+            var centerY = point.GroupRow * modelPattern.GroupPitchMillimeters;
             for (var row = 0; row < _splitBeamCount; row++)
             {
                 for (var column = 0; column < _splitBeamCount; column++)
@@ -897,6 +916,7 @@
 
         private static bool IsChessSkipped(ST_HEAD_SHOT_POINT point, ST_MODEL_PATTERN_AREA modelPattern)
         {
+            // Design row/column identity is invariant under machining corrections.
             if (modelPattern.Chess <= 1)
             {
                 return false;

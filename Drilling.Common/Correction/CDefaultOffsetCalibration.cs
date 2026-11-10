@@ -81,8 +81,8 @@ public static class CDefaultOffsetCalibration
     {
         if (new[] { options.BoardCenterX, options.TestStageY, options.Tolerance }.Any(v => !double.IsFinite(v)) || options.Tolerance <= 0)
             throw new InvalidOperationException("가공할 Stage Y 위치와 Recipe Review 허용오차를 확인해 주세요.");
-        if (!Enum.IsDefined(options.MachiningMode) || !Enum.IsDefined(options.VisionMethod))
-            throw new InvalidOperationException("Default 가공 방식과 Vision 검사 방식을 확인해 주세요.");
+        if (!Enum.IsDefined(options.MachiningMode))
+            throw new InvalidOperationException("Default 가공 방식을 확인해 주세요.");
         if (options.MachiningMode == EN_DEFAULT_MACHINING_MODE.Cross && (!double.IsFinite(options.CrossSize) || options.CrossSize <= 0))
             throw new InvalidOperationException("십자 전체 길이는 0보다 큰 유한한 mm 값이어야 합니다.");
     }
@@ -159,16 +159,28 @@ public static class CDefaultOffsetCalibration
         return new(cx, cy, residual, px, py);
     }
 
+    public static ST_DEFAULT_OFFSET_FIT FitCross(ST_DEFAULT_OFFSET_MARK mark)
+    {
+        if (mark.Beam != 0 || mark.Judge != "OK" ||
+            new[] { mark.X, mark.Y, mark.RawX, mark.RawY, mark.CorrectionX, mark.CorrectionY, mark.EncoderX, mark.EncoderY }.Any(v => !double.IsFinite(v)))
+            throw new InvalidOperationException("유효한 십자 중심 측정값이 필요합니다.");
+        // FIND SETTING returns the center of the machined cross directly. There is
+        // no DOE grid to fit, so pitch and residual are intentionally zero.
+        return new(mark.X, mark.Y, 0, 0, 0);
+    }
+
     // The global reference never comes from a previously measured Head. H4/H5
     // straddle the glass center; the configured pitch locates every other Head.
     // Stage Y targets preserve the machine's odd/even Head row separation.
     public static ST_DEFAULT_OFFSET_HEAD_RESULT WithHeadReference(IReadOnlyDictionary<string, string> values, ST_DEFAULT_OFFSET_HEAD_RESULT result)
     {
-        if (result.Head is < 1 or > 8 || !double.IsFinite(result.Q) || result.Marks.Count != 16 ||
-            !result.Marks.Select(m => m.Beam).Order().SequenceEqual(Enumerable.Range(1, 16)) ||
+        var isCrossMeasurement = result.Marks.Count == 1 && result.Marks[0].Beam == 0;
+        var isShotMeasurement = result.Marks.Count == 16 &&
+            result.Marks.Select(m => m.Beam).Order().SequenceEqual(Enumerable.Range(1, 16));
+        if (result.Head is < 1 or > 8 || !double.IsFinite(result.Q) || !(isCrossMeasurement || isShotMeasurement) ||
             result.Marks.Any(m => !double.IsFinite(m.EncoderX) || !double.IsFinite(m.EncoderY) ||
                 !double.IsFinite(m.CorrectionX) || !double.IsFinite(m.CorrectionY)))
-            throw new InvalidOperationException("Head 중심 계산에 유효한 16빔 측정 좌표가 필요합니다.");
+            throw new InvalidOperationException("Head 중심 계산에 유효한 십자 중심 또는 16빔 측정 좌표가 필요합니다.");
         var boardCenter = Number(values, "REVIEW_CAMERA_ALIGN_KEY_POS_X") + Number(values, "GLASS_SIZE_X") / 2 - Number(values, "AK_MARGIN_X");
         var targetX = boardCenter + (result.Head - 4.5) * Number(values, "HeadGapX");
         var direction = CScannerAxisTransform.ReadStageDirection(values);
@@ -222,7 +234,16 @@ public sealed record ST_DEFAULT_OFFSET_OPTIONS(double BoardCenterX, double TestS
 {
     public EN_DEFAULT_MACHINING_MODE MachiningMode { get; init; } = EN_DEFAULT_MACHINING_MODE.Shot;
     public double CrossSize { get; init; } = 0.1;
-    public EN_ONE_SHOT_METHOD VisionMethod { get; init; } = EN_ONE_SHOT_METHOD.MarkFindSingle;
+    // The inspection command is part of the machining contract, not an independent
+    // operator option: a cross is found once as a setting mark, while a shot checks
+    // every DOE beam with the normal mark command.
+    public EN_ONE_SHOT_METHOD VisionMethod => MachiningMode == EN_DEFAULT_MACHINING_MODE.Cross
+        ? EN_ONE_SHOT_METHOD.MarkFindSettingSingle
+        : EN_ONE_SHOT_METHOD.MarkFindSingle;
+    public int InspectionPointCount => MachiningMode == EN_DEFAULT_MACHINING_MODE.Cross ? 1 : 16;
+    public string InspectionDescription => MachiningMode == EN_DEFAULT_MACHINING_MODE.Cross
+        ? "십자 중심 1회 측정"
+        : "DOE 16빔 측정";
     public string MachiningDescription => MachiningMode == EN_DEFAULT_MACHINING_MODE.Cross
         ? $"십자 가공 · 전체 길이 {CrossSize.ToString("0.#####", CultureInfo.InvariantCulture)} mm · Head Jump Speed 사용" : "샷 가공 · Head Shot Count 사용";
     public string VisionDescription => VisionMethod == EN_ONE_SHOT_METHOD.MarkFindSettingSingle ? "Mark Find Setting Single" : "Mark Find Single";

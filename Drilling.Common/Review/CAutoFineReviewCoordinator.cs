@@ -275,7 +275,12 @@
                 StopOnNgLine = false,
                 CountMismatchRetries = input.ZeroLineFollowUp ? 0 : input.Options.CountMismatchRetries,
                 ImmediateRetry = input.Options.ImmediateRetry,
-                Context = new(input.Recipe.Name, input.GlassId, "AUTO", input.Options.LineCount, frozen) { ZeroLineFollowUp = input.ZeroLineFollowUp }
+                Context = new(input.Recipe.Name, input.GlassId, "AUTO", input.Options.LineCount, frozen)
+                {
+                    ZeroLineFollowUp = input.ZeroLineFollowUp,
+                    ZeroLineRunId = input.ZeroLineRunId,
+                    ZeroLineSavedAt = input.ZeroLineSavedAt
+                }
             };
             return new(request, input.ZeroLineFollowUp ? Array.Empty<ST_REVIEW_PLAN_POINT>() : Array.AsReadOnly(targets), frozen) { ZeroLineFollowUp = input.ZeroLineFollowUp };
             double Tolerance(string key) => double.TryParse(parameters.GetValueOrDefault(key, "0.03"), NumberStyles.Float, CultureInfo.InvariantCulture, out var value) && double.IsFinite(value) && value >= 0 ? value : throw new InvalidOperationException($"{key} 설정을 확인해 주세요.");
@@ -315,6 +320,8 @@
     public sealed record ST_AUTO_REVIEW_INPUT(ST_RECIPE_DEFINITION Recipe, string GlassId, ST_AUTO_REVIEW_OPTIONS Options)
     {
         public bool ZeroLineFollowUp { get; init; }
+        public Guid? ZeroLineRunId { get; init; }
+        public DateTimeOffset? ZeroLineSavedAt { get; init; }
     }
     public sealed record ST_AUTO_FINE_PLAN(ST_FINE_REVIEW_REQUEST Request, IReadOnlyList<ST_REVIEW_PLAN_POINT> OffsetTargets, IReadOnlyDictionary<string, string> Parameters)
     {
@@ -324,6 +331,8 @@
     public sealed record ST_FINE_REVIEW_CONTEXT(string RecipeName, string GlassId, string Origin, int LinesPerCell, IReadOnlyDictionary<string, string> Parameters)
     {
         public bool ZeroLineFollowUp { get; init; }
+        public Guid? ZeroLineRunId { get; init; }
+        public DateTimeOffset? ZeroLineSavedAt { get; init; }
     }
     public sealed record ST_FINE_REVIEW_MONITOR(
         Guid RunId, 

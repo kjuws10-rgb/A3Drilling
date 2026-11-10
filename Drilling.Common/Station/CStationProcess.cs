@@ -90,6 +90,9 @@
         private ST_SCRIPT_BUILD_RESULT? _lastScript;
         private IReadOnlyList<ST_INTERLOCK_ITEM> _lastInterLockItems = [];
         private ST_PROCESS_MODEL? _processModel;
+        private string _preparedReviewOffsetFilePath = "";
+        private DateTimeOffset _preparedReviewOffsetSavedAt = DateTimeOffset.MinValue;
+        private bool _preparedReviewOffsetInvalidated;
         private ST_PROCESS_STATISTICS _statistics = EmptyStatistics();
         private ST_STATION_PROCESS_STATUS _snapshot;
         private ST_STATION_STATUS _stationStatus;
@@ -239,6 +242,7 @@
             }
 
             _processModel = BuildProcessModel(processId, recipeId, glassId, lotId, runtimeParameters);
+            _preparedReviewOffsetInvalidated = false;
             _stageModelLogCycle = StageRequests?.LogCycleId ?? "";
             _protectWindowCounted = false;
             var preview = BuildPreview(_processModel, EN_HEAD_PROCESS_STATUS.Ready);
@@ -268,6 +272,8 @@
                 processModel = ReadProcessModelForStart();
             }
 
+            EnsurePreparedReviewOffsetIsCurrent(processModel, cancellationToken);
+
             var startInterLock = GetInterLockSummary(cancellationToken, processModel);
             if (!startInterLock.CanAutoRun)
             {
@@ -284,6 +290,8 @@
                 if (_manualMofRunning || _manualMofRequiresStop)
                     throw new InvalidOperationException("Manual MOF is active or requires STOP.");
                 EnsureStartAllowed();
+                if (_preparedReviewOffsetInvalidated)
+                    throw new InvalidOperationException("Review Offset이 변경되어 준비된 가공 모델이 무효화되었습니다. DoReady를 다시 실행해 주세요.");
                 _sequenceCancellation?.Dispose();
                 _sequenceCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                 _sequenceError = "";
@@ -541,6 +549,7 @@
 
         private void RunProcessStep(ST_PROCESS_MODEL processModel, CancellationToken cancellationToken)
         {
+            EnsurePreparedReviewOffsetIsCurrent(processModel, cancellationToken);
             _sequenceActions.Run(CSequenceActionIds.BuildUploadScript, () =>
             {
                 BuildAutomationScript(processModel, cancellationToken);
@@ -1526,13 +1535,52 @@
         {
             if (_reviewOffsetFile is null)
             {
+                _preparedReviewOffsetFilePath = "";
+                _preparedReviewOffsetSavedAt = DateTimeOffset.MinValue;
                 CReviewOffsetData.RemoveFromParameters(parameters);
                 return;
             }
 
             var reviewOffset = _reviewOffsetFile.LoadLatest(recipeId, cancellationToken).GetAwaiter().GetResult();
+            _preparedReviewOffsetFilePath = reviewOffset.FilePath;
+            _preparedReviewOffsetSavedAt = reviewOffset.SavedAt;
             CReviewOffsetData.ApplyToParameters(parameters, reviewOffset);
             AddProcessLog("INFO", "REVIEW_OFFSET", $"Loaded latest Review Offset file: {reviewOffset.FileName} ({reviewOffset.Rows.Count} rows)");
+        }
+
+        public void InvalidatePreparedReviewOffset()
+        {
+            lock (_sequenceLock)
+            {
+                if (_sequenceState != EN_STATION_SEQUENCE.Ready || _manualMofRunning || _manualMofRequiresStop)
+                    throw new InvalidOperationException("가공 또는 Manual MOF가 진행 중일 때 Review Offset을 롤백할 수 없습니다.");
+
+                _preparedReviewOffsetInvalidated = true;
+                AddProcessLog("WARN", "REVIEW_OFFSET", "Prepared process model invalidated by Review Offset rollback.");
+            }
+        }
+
+        private void EnsurePreparedReviewOffsetIsCurrent(ST_PROCESS_MODEL processModel, CancellationToken cancellationToken)
+        {
+            if (_reviewOffsetFile is null)
+                return;
+
+            string expectedPath;
+            DateTimeOffset expectedSavedAt;
+            lock (_sequenceLock)
+            {
+                if (_preparedReviewOffsetInvalidated)
+                    throw new InvalidOperationException("Review Offset이 변경되어 준비된 가공 모델이 무효화되었습니다. DoReady를 다시 실행해 주세요.");
+                expectedPath = _preparedReviewOffsetFilePath;
+                expectedSavedAt = _preparedReviewOffsetSavedAt;
+            }
+
+            var current = _reviewOffsetFile.LoadLatest(processModel.RecipeId, cancellationToken).GetAwaiter().GetResult();
+            if (!current.FilePath.Equals(expectedPath, StringComparison.OrdinalIgnoreCase)
+                || current.SavedAt != expectedSavedAt)
+            {
+                throw new InvalidOperationException("가공 준비 후 Review Offset 파일이 변경되었습니다. 삭제되거나 이전 버전인 Offset으로 가공하지 않도록 DoReady를 다시 실행해 주세요.");
+            }
         }
 
         private static string NormalizeReviewOffsetShotId(string value)
@@ -6280,8 +6328,9 @@
         {
             if (_saved || _vision is null)
                 return;
-            var path = await _vision.Save(Status, token).ConfigureAwait(false);
-            Volatile.Write(ref _status, Status with { ResultFile = path });
+            var savedAt = DateTimeOffset.Now;
+            var path = await _vision.Save(Status, savedAt, token).ConfigureAwait(false);
+            Volatile.Write(ref _status, Status with { ResultFile = path, ResultSavedAt = savedAt });
             _saved = true;
         }
 

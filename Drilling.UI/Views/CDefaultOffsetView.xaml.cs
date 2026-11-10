@@ -79,8 +79,14 @@ public partial class CDefaultOffsetView : UserControl
         var machiningModes = new[] { "샷 가공", "십자 가공" };
         var machining = new ComboBox { Name = "DefaultMachiningMode", ItemsSource = machiningModes, SelectedIndex = (int)current.MachiningMode, FontSize = 15, Margin = new Thickness(0,4,0,4), VerticalContentAlignment = VerticalAlignment.Center };
         var crossSize = new TextBox { Name = "DefaultCrossSize", Text = current.CrossSize.ToString("0.#####", CultureInfo.InvariantCulture), Margin = new Thickness(0,4,0,4), VerticalContentAlignment = VerticalAlignment.Center, FontSize = 15, Padding = new Thickness(6,0,6,0), IsEnabled = current.MachiningMode == EN_DEFAULT_MACHINING_MODE.Cross };
-        machining.SelectionChanged += (_, _) => crossSize.IsEnabled = machining.SelectedIndex == (int)EN_DEFAULT_MACHINING_MODE.Cross;
-        var vision = new ComboBox { Name = "DefaultVisionMethod", ItemsSource = new[] { "Mark Find Single", "Mark Find Setting Single" }, SelectedIndex = (int)current.VisionMethod, FontSize = 15, Margin = new Thickness(0,4,0,4), VerticalContentAlignment = VerticalAlignment.Center };
+        var vision = new TextBox { Name = "DefaultVisionMethod", Text = current.VisionDescription, IsReadOnly = true, Focusable = false, FontSize = 15, Margin = new Thickness(0,4,0,4), VerticalContentAlignment = VerticalAlignment.Center, Padding = new Thickness(6,0,6,0) };
+        void UpdateMachiningMode()
+        {
+            var cross = machining.SelectedIndex == (int)EN_DEFAULT_MACHINING_MODE.Cross;
+            crossSize.IsEnabled = cross;
+            vision.Text = cross ? "Mark Find Setting Single" : "Mark Find Single";
+        }
+        machining.SelectionChanged += (_, _) => UpdateMachiningMode();
         void AddInputRow(int row, string label, Control control)
         {
             layout.RowDefinitions.Add(new() { Height = new GridLength(43) });
@@ -92,7 +98,7 @@ public partial class CDefaultOffsetView : UserControl
         layout.ColumnDefinitions[1].Width = new GridLength(230);
         AddInputRow(2, "가공 방식", machining);
         AddInputRow(3, "십자 가로·세로 전체 길이 (mm)", crossSize);
-        AddInputRow(4, "비전 검사 방식", vision);
+        AddInputRow(4, "비전 검사 방식 (자동)", vision);
         layout.RowDefinitions.Add(new() { Height = new GridLength(1, GridUnitType.Star) });
         var reference = new StackPanel { Margin = new Thickness(0,14,0,12) };
         reference.Children.Add(new TextBlock { Text = "자동 계산 · 설정값 (읽기 전용)", FontSize = 15, FontWeight = FontWeights.Bold, Margin = new Thickness(0,0,0,8) });
@@ -115,7 +121,7 @@ public partial class CDefaultOffsetView : UserControl
         foreach (var item in geometries.OrderBy(p => p.Key))
             AddFieldRow(fields.RowDefinitions.Count, $"H{item.Key:00}", (item.Value.FieldHalfX * 2).ToString("0.###", CultureInfo.InvariantCulture), (item.Value.FieldHalfY * 2).ToString("0.###", CultureInfo.InvariantCulture), item.Value.DoeAngle.ToString("0.###", CultureInfo.InvariantCulture));
         reference.Children.Add(fields);
-        reference.Children.Add(new TextBlock { Text = "십자 길이 10 mm: 가로·세로 각각 중심 기준 −5~+5 mm를 1회 가공합니다.\n십자 속도는 Head별 Recipe Jump Speed, 샷 가공은 Shot Count를 사용합니다.\nField는 전체 폭·높이입니다. Y=55 mm이면 중심 기준 ±27.5 mm입니다.\n허용오차는 Recipe의 Review Tolerance X/Y 중 작은 값입니다.\n각 Head는 입력한 Stage Y 위치에서 가공합니다.", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0,10,0,0), FontSize = 13 });
+        reference.Children.Add(new TextBlock { Text = "십자 길이 10 mm: 가로·세로 각각 중심 기준 −5~+5 mm를 1회 가공합니다.\n십자 가공은 Mark Find Setting Single로 중심을 1회 검사하고, 샷 가공은 Mark Find Single로 DOE 16빔을 검사합니다.\n십자 속도는 Head별 Recipe Jump Speed, 샷 가공은 Shot Count를 사용합니다.\nField는 전체 폭·높이입니다. Y=55 mm이면 중심 기준 ±27.5 mm입니다.\n허용오차는 Recipe의 Review Tolerance X/Y 중 작은 값입니다.\n각 Head는 입력한 Stage Y 위치에서 가공합니다.", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0,10,0,0), FontSize = 13 });
         var referenceScroll = new ScrollViewer { Content = reference, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
         Grid.SetRow(referenceScroll, 5); Grid.SetColumnSpan(referenceScroll, 2); layout.Children.Add(referenceScroll);
         layout.RowDefinitions.Add(new() { Height = new GridLength(44) });
@@ -131,7 +137,7 @@ public partial class CDefaultOffsetView : UserControl
             var shape = (EN_DEFAULT_MACHINING_MODE)machining.SelectedIndex;
             var size = current.CrossSize;
             if (shape == EN_DEFAULT_MACHINING_MODE.Cross && (!double.TryParse(crossSize.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out size) || !double.IsFinite(size) || size <= 0)) { Popup.CRecipeConfirmDialog.ShowWarning("입력 확인", "십자 전체 길이에 0보다 큰 유한한 mm 값을 입력해 주세요."); return; }
-            var options = current with { TestStageY = stageY, MachiningMode = shape, CrossSize = size, VisionMethod = (EN_ONE_SHOT_METHOD)vision.SelectedIndex };
+            var options = current with { TestStageY = stageY, MachiningMode = shape, CrossSize = size };
             try { CDefaultOffsetCalibration.ValidateOptions(options); }
             catch (InvalidOperationException error) { Popup.CRecipeConfirmDialog.ShowWarning("입력 확인", error.Message); return; }
             result = (options, selectedModel); dialog.DialogResult = true;

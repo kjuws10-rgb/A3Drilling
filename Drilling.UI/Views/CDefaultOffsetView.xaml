@@ -108,7 +108,7 @@
                         <Grid Grid.Column="2">
                             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                             <Grid Margin="0,0,0,4">
-                                <TextBlock Text="BEAM DETAIL" Style="{StaticResource SetupTitle}" VerticalAlignment="Center" />
+                                <TextBlock Text="MACHINING DETAIL" Style="{StaticResource SetupTitle}" VerticalAlignment="Center" />
                             </Grid>
                             <Border Grid.Row="1" Background="#F5F5F5" BorderBrush="{DynamicResource GridLineBrush}" BorderThickness="1" CornerRadius="3" ClipToBounds="True">
                                 <Image x:Name="DefaultBeamPreview" Source="{Binding BeamImage}" Stretch="Uniform" />
@@ -117,7 +117,7 @@
                                 <TextBlock Text="{Binding GeometryText}" Style="{StaticResource SetupCaption}" TextTrimming="CharacterEllipsis" ToolTip="{Binding GeometryText}" />
                                 <StackPanel Orientation="Horizontal" Margin="0,5,0,5">
                                     <Border Width="9" Height="9" Background="White" BorderBrush="#8092A3" BorderThickness="1.5" VerticalAlignment="Center" />
-                                    <TextBlock Text="예상 위치" Style="{StaticResource SetupCaption}" Margin="4,0,12,0" />
+                                    <TextBlock Text="가공 형상" Style="{StaticResource SetupCaption}" Margin="4,0,12,0" />
                                     <TextBlock Text="＋" Foreground="#4682B4" FontWeight="Bold" FontSize="13" />
                                     <TextBlock Text="기준 중심" Style="{StaticResource SetupCaption}" Margin="3,0,12,0" />
                                     <Ellipse Width="9" Height="9" Fill="#2E8B57" VerticalAlignment="Center" />
@@ -126,7 +126,7 @@
                                 <Grid>
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                     <TextBlock Text="{Binding BeamSummary}" Style="{StaticResource SetupCaption}" FontWeight="Bold" />
-                                    <TextBlock Grid.Column="1" Text="설계 기준 빔 배열" Style="{StaticResource SetupCaption}" HorizontalAlignment="Right" />
+                                    <TextBlock Grid.Column="1" Text="{Binding PatternCaption}" Style="{StaticResource SetupCaption}" HorizontalAlignment="Right" />
                                 </Grid>
                                 <Grid Margin="0,5,0,0">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
