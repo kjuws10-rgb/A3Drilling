@@ -68,9 +68,20 @@ namespace Drilling.Common.Review
 
         public ST_REVIEW_PLAN CreatePlan(ST_RECIPE_DEFINITION recipe, IReadOnlyCollection<string> selectedShotKeys, int selectedBeamNo)
         {
+            return CreatePlan(recipe, selectedShotKeys, selectedBeamNo, 0.0, 0.0);
+        }
+
+        public ST_REVIEW_PLAN CreatePlan(
+            ST_RECIPE_DEFINITION recipe,
+            IReadOnlyCollection<string> selectedShotKeys,
+            int selectedBeamNo,
+            double shiftOffsetX,
+            double shiftOffsetY)
+        {
+            ValidateShiftOffset(shiftOffsetX, shiftOffsetY);
             ValidateBeamNo(selectedBeamNo, ReadInt(recipe, 0, "SPLITED_BEAM_COUNT"));
             var selectedSet = selectedShotKeys.Where(key => !string.IsNullOrWhiteSpace(key)).Select(NormalizeShotKey).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            var allPlan = CreateAllPlan(recipe, selectedBeamNo);
+            var allPlan = CreateAllPlan(recipe, selectedBeamNo, shiftOffsetX, shiftOffsetY);
             if (selectedSet.Count == 0)
             {
                 return allPlan with
@@ -124,16 +135,26 @@ namespace Drilling.Common.Review
             }
         }
 
-        public static IReadOnlyList<ST_REVIEW_BEAM_POSITION> GetShotBeamPositions(ST_RECIPE_DEFINITION recipe, ST_REVIEW_PLAN_POINT point, double stageScanDirectionY)
+        public static IReadOnlyList<ST_REVIEW_BEAM_POSITION> GetShotBeamPositions(
+            ST_RECIPE_DEFINITION recipe,
+            ST_REVIEW_PLAN_POINT point,
+            double stageScanDirectionY,
+            double shiftOffsetX = 0.0,
+            double shiftOffsetY = 0.0)
         {
-            var calculate = CreateShotBeamPositionCalculator(recipe, stageScanDirectionY);
+            var calculate = CreateShotBeamPositionCalculator(recipe, stageScanDirectionY, shiftOffsetX, shiftOffsetY);
             var splitBeamCount = ReadInt(recipe, 0, "SPLITED_BEAM_COUNT");
             return Enumerable.Range(1, splitBeamCount * splitBeamCount).Select(beam => calculate(point, beam)).ToArray();
         }
 
         /// <summary>Build recipe lookup and Cell geometry once for a batch. No device access or live recipe mutation.</summary>
-        public static Func<ST_REVIEW_PLAN_POINT, int, ST_REVIEW_BEAM_POSITION> CreateShotBeamPositionCalculator(ST_RECIPE_DEFINITION recipe, double stageScanDirectionY)
+        public static Func<ST_REVIEW_PLAN_POINT, int, ST_REVIEW_BEAM_POSITION> CreateShotBeamPositionCalculator(
+            ST_RECIPE_DEFINITION recipe,
+            double stageScanDirectionY,
+            double shiftOffsetX = 0.0,
+            double shiftOffsetY = 0.0)
         {
+            ValidateShiftOffset(shiftOffsetX, shiftOffsetY);
             var splitBeamCount = ReadInt(recipe, 0, "SPLITED_BEAM_COUNT");
             ValidateBeamNo(1, splitBeamCount);
             var parameters = recipe.Parameters.GroupBy(parameter => parameter.Key, StringComparer.OrdinalIgnoreCase).ToDictionary(group => group.Key, group => group.Last().Value, StringComparer.OrdinalIgnoreCase);
@@ -156,7 +177,15 @@ namespace Drilling.Common.Review
                     return (rotation, layout.BeamPitchMillimeters);
                 });
                 var offset = CalculateBeamOffset(beamNo, splitBeamCount, cell.BeamPitch);
-                var target = CalculateReviewTarget(point.DesignX - marginX, point.DesignY - marginY, cameraAlignX, cameraAlignY, offset.X, offset.Y, cell.Rotation, stageScanDirectionY);
+                var target = CalculateReviewTarget(
+                    point.DesignX - marginX + shiftOffsetX,
+                    point.DesignY - marginY + shiftOffsetY,
+                    cameraAlignX,
+                    cameraAlignY,
+                    offset.X,
+                    offset.Y,
+                    cell.Rotation,
+                    stageScanDirectionY);
                 if (!double.IsFinite(target.X) || !double.IsFinite(target.Y))
                     throw new InvalidOperationException($"Beam {beamNo}의 목표 위치를 계산할 수 없습니다.");
                 return new ST_REVIEW_BEAM_POSITION(beamNo, target.Y, target.X);
@@ -165,8 +194,45 @@ namespace Drilling.Common.Review
 
         public ST_REVIEW_PLAN CreateAllPlan(ST_RECIPE_DEFINITION recipe, int selectedBeamNo)
         {
+            return CreateAllPlan(recipe, selectedBeamNo, 0.0, 0.0);
+        }
+
+        public ST_REVIEW_PLAN CreateAllPlan(
+            ST_RECIPE_DEFINITION recipe,
+            int selectedBeamNo,
+            double shiftOffsetX,
+            double shiftOffsetY)
+        {
+            ValidateShiftOffset(shiftOffsetX, shiftOffsetY);
             ValidateBeamNo(selectedBeamNo, ReadInt(recipe, 0, "SPLITED_BEAM_COUNT"));
-            return CreatePlanCore(recipe, _ => true, selectedBeamNo, selectAllAssignedPoints: true);
+            return CreatePlanCore(recipe, _ => true, selectedBeamNo, selectAllAssignedPoints: true, shiftOffsetX, shiftOffsetY);
+        }
+
+        public static ST_REVIEW_PLAN ApplyShiftOffset(ST_REVIEW_PLAN plan, double shiftOffsetX, double shiftOffsetY)
+        {
+            ValidateShiftOffset(shiftOffsetX, shiftOffsetY);
+            var deltaX = shiftOffsetX - plan.ShiftOffsetX;
+            var deltaY = plan.StageScanDirectionY * (shiftOffsetY - plan.ShiftOffsetY);
+
+            ST_REVIEW_PLAN_POINT Apply(ST_REVIEW_PLAN_POINT point)
+            {
+                var targetX = point.ReviewTargetX + deltaX;
+                var targetY = point.ReviewTargetY + deltaY;
+                if (!double.IsFinite(targetX) || !double.IsFinite(targetY))
+                    throw new InvalidOperationException($"Shift Offset 적용 후 Review 목표 좌표가 유효하지 않습니다. X={targetX:R}, Y={targetY:R}");
+                return point with { ReviewTargetX = targetX, ReviewTargetY = targetY };
+            }
+
+            var correction = plan.CorrectionPlan is null
+                ? null
+                : plan.CorrectionPlan with { SourcePoints = plan.CorrectionPlan.SourcePoints.Select(Apply).ToArray() };
+            return plan with
+            {
+                Points = plan.Points.Select(Apply).ToArray(),
+                CorrectionPlan = correction,
+                ShiftOffsetX = shiftOffsetX,
+                ShiftOffsetY = shiftOffsetY
+            };
         }
 
         /// <summary>
@@ -387,7 +453,13 @@ namespace Drilling.Common.Review
             return await RunRetryPoints(orderedPoints, "Review ready point retry completed.", progress, cancellationToken);
         }
 
-        private ST_REVIEW_PLAN CreatePlanCore(ST_RECIPE_DEFINITION recipe, Func<ST_REVIEW_PLAN_POINT, bool> useSelector, int selectedBeamNo = 1, bool selectAllAssignedPoints = false)
+        private ST_REVIEW_PLAN CreatePlanCore(
+            ST_RECIPE_DEFINITION recipe,
+            Func<ST_REVIEW_PLAN_POINT, bool> useSelector,
+            int selectedBeamNo = 1,
+            bool selectAllAssignedPoints = false,
+            double shiftOffsetX = 0.0,
+            double shiftOffsetY = 0.0)
         {
             const int headCount = DefaultHeadCount;
             var cellCount = ReadRequiredCellCount(recipe, "MAX_CELL_NUMBER");
@@ -399,7 +471,18 @@ namespace Drilling.Common.Review
             var processCoordinatePlan = CShotCoordinatePlanBuilder.Build(runtimeCoordinateParameters);
             var excludedShots = BuildReviewExcludedShots(runtimeCoordinateParameters, processCoordinatePlan.Shots);
             var assignedHeadNos = processCoordinatePlan.Shots.GroupBy(shot => (shot.CellNo, shot.CellShotNo)).ToDictionary(group => group.Key, group => group.Last().HeadNo);
-            IReadOnlyList<ST_REVIEW_PLAN_POINT> points = BuildShotPoints(recipe, headCount, cellCount, coordinateSettings, assignedHeadNos, stageScanDirectionY, selectedBeamNo, selectAllAssignedPoints, excludedShots);
+            IReadOnlyList<ST_REVIEW_PLAN_POINT> points = BuildShotPoints(
+                recipe,
+                headCount,
+                cellCount,
+                coordinateSettings,
+                assignedHeadNos,
+                stageScanDirectionY,
+                selectedBeamNo,
+                selectAllAssignedPoints,
+                excludedShots,
+                shiftOffsetX,
+                shiftOffsetY);
             if (!selectAllAssignedPoints)
             {
                 points = points.Select(point =>
@@ -418,7 +501,9 @@ namespace Drilling.Common.Review
             return new ST_REVIEW_PLAN(recipe.Id, cellCount, toleranceX, toleranceY, coordinateSettings.VisionFlipType, DateTimeOffset.Now, points)
             {
                 StageScanDirectionY = stageScanDirectionY,
-                StageSpeed = ReadDouble(recipe, 0, "STAGE_SPEED")
+                StageSpeed = ReadDouble(recipe, 0, "STAGE_SPEED"),
+                ShiftOffsetX = shiftOffsetX,
+                ShiftOffsetY = shiftOffsetY
             };
         }
 
@@ -555,7 +640,9 @@ namespace Drilling.Common.Review
             double stageScanDirectionY, 
             int selectedBeamNo, 
             bool selectAllAssignedPoints, 
-            IReadOnlyDictionary<string, string> excludedShots
+            IReadOnlyDictionary<string, string> excludedShots,
+            double shiftOffsetX,
+            double shiftOffsetY
         )
         {
             var headLayout = coordinateSettings.HeadLayout;
@@ -597,7 +684,15 @@ namespace Drilling.Common.Review
                 var cellNo = cell.Definition.CellNo;
                 var shotName = CReviewShotNameFormatter.ToMatrixName(shotGroup.CellShotNo, cell.Layout.GroupCountX);
                 var headNo = assignedHeadNos.TryGetValue((cellNo, shotGroup.CellShotNo), out var processHeadNo) ? processHeadNo : 0;
-                var reviewTarget = CalculateReviewTarget(shotGroup.DesignX - akMarginX, shotGroup.DesignY - akMarginY, reviewCameraAlignKeyPosX, reviewCameraAlignKeyPosY, beamOffset.X, beamOffset.Y, cell.Definition.RotationDegrees, stageScanDirectionY);
+                var reviewTarget = CalculateReviewTarget(
+                    shotGroup.DesignX - akMarginX + shiftOffsetX,
+                    shotGroup.DesignY - akMarginY + shiftOffsetY,
+                    reviewCameraAlignKeyPosX,
+                    reviewCameraAlignKeyPosY,
+                    beamOffset.X,
+                    beamOffset.Y,
+                    cell.Definition.RotationDegrees,
+                    stageScanDirectionY);
                 // TODO: Review coordinate transformation will be redesigned in a separate work item.
                 // This final command-boundary guard remains intentional until that pipeline owns validation end to end.
                 if (!double.IsFinite(reviewTarget.X) || !double.IsFinite(reviewTarget.Y))
@@ -847,6 +942,13 @@ namespace Drilling.Common.Review
             {
                 throw new ArgumentOutOfRangeException(nameof(beamNo), beamNo, $"Review beam number must be between 1 and {maximumBeamNo}.");
             }
+        }
+
+        private static void ValidateShiftOffset(double shiftOffsetX, double shiftOffsetY)
+        {
+            if (!double.IsFinite(shiftOffsetX) || !double.IsFinite(shiftOffsetY))
+                throw new ArgumentOutOfRangeException(nameof(shiftOffsetX),
+                    $"Review Shift Offset은 유한한 값이어야 합니다. X={shiftOffsetX:R}, Y={shiftOffsetY:R}");
         }
 
         private static ST_REVIEW_COORDINATE_OFFSET CalculateReviewTarget(
@@ -1193,7 +1295,12 @@ namespace Drilling.Common.Review
             var targets = new List<ST_REVIEW_PLAN_POINT>();
             foreach (var shot in shots.OfType<ST_REVIEW_PLAN_POINT>().OrderBy(p => p.CellNo).ThenBy(p => p.ShotNo))
             {
-                var positions = GetShotBeamPositions(recipe, shot, allPlan.StageScanDirectionY).ToDictionary(p => p.BeamNo);
+                var positions = GetShotBeamPositions(
+                    recipe,
+                    shot,
+                    allPlan.StageScanDirectionY,
+                    allPlan.ShiftOffsetX,
+                    allPlan.ShiftOffsetY).ToDictionary(p => p.BeamNo);
                 foreach (var beam in beams)
                 {
                     var position = positions[beam];
@@ -1226,7 +1333,9 @@ namespace Drilling.Common.Review
                 var snapshot = new ST_BEAM_INSPECTION_SNAPSHOT(recipe.Id, Array.AsReadOnly(targets.ToArray()), SequenceState, activeIndex, message, stageSimulation || visionSimulation)
                 {
                     IsStageSimulation = stageSimulation,
-                    IsVisionSimulation = visionSimulation
+                    IsVisionSimulation = visionSimulation,
+                    ShiftOffsetX = allPlan.ShiftOffsetX,
+                    ShiftOffsetY = allPlan.ShiftOffsetY
                 };
                 progress(snapshot);
                 return snapshot;
@@ -1239,7 +1348,9 @@ namespace Drilling.Common.Review
                 var snapshot = new ST_BEAM_INSPECTION_SNAPSHOT(recipe.Id, Array.AsReadOnly(targets.ToArray()), SequenceState, -1, message, stageSimulation || visionSimulation)
                 {
                     IsStageSimulation = stageSimulation,
-                    IsVisionSimulation = visionSimulation
+                    IsVisionSimulation = visionSimulation,
+                    ShiftOffsetX = allPlan.ShiftOffsetX,
+                    ShiftOffsetY = allPlan.ShiftOffsetY
                 };
                 try
                 {
@@ -2928,7 +3039,8 @@ namespace Drilling.Common.Review
             EN_ONE_SHOT_ACTION action, 
             EN_ONE_SHOT_METHOD method, 
             Action<string> progress, 
-            CancellationToken cancellationToken = default
+            CancellationToken cancellationToken = default,
+            bool saveResult = true
         )
         {
             if (!Enum.IsDefined(action) || !Enum.IsDefined(method))
@@ -2991,7 +3103,7 @@ namespace Drilling.Common.Review
                     Resolution = receivedResolution,
                     CameraResolution = cameraResolution
                 };
-                if (action != EN_ONE_SHOT_ACTION.Move)
+                if (action != EN_ONE_SHOT_ACTION.Move && saveResult)
                 {
                     var savedAt = DateTimeOffset.Now;
                     var glassId = productManager?.Current?.GlassId ?? "";
@@ -3677,6 +3789,8 @@ namespace Drilling.Common.Review
     {
         public bool IsStageSimulation { get; init; } = IsSimulation;
         public bool IsVisionSimulation { get; init; } = IsSimulation;
+        public double ShiftOffsetX { get; init; }
+        public double ShiftOffsetY { get; init; }
         public string? SavedPath { get; init; }
         public string? SaveError { get; init; }
         public int CompletedCount => Points.Count(p => p.State is EN_REVIEW_POINT_STATE.Ok or EN_REVIEW_POINT_STATE.Ng);
@@ -3690,7 +3804,11 @@ namespace Drilling.Common.Review
     }
 
     public sealed record ST_BEAM_INSPECTION_RESULT_SHOT(string GlassName, string HeadName, int HeadNo, string CellName, int CellNo, string ShotName, IReadOnlyList<ST_BEAM_INSPECTION_RESULT_BEAM> Beams);
-    public sealed record ST_BEAM_INSPECTION_RESULT_FILE_DATA(string FilePath, string FileName, DateTimeOffset SavedAt, bool IsSimulation, string GlassName, IReadOnlyList<ST_BEAM_INSPECTION_RESULT_SHOT> Shots);
+    public sealed record ST_BEAM_INSPECTION_RESULT_FILE_DATA(string FilePath, string FileName, DateTimeOffset SavedAt, bool IsSimulation, string GlassName, IReadOnlyList<ST_BEAM_INSPECTION_RESULT_SHOT> Shots)
+    {
+        public double ShiftOffsetX { get; init; }
+        public double ShiftOffsetY { get; init; }
+    }
     internal interface IReviewPointListInfo
     {
         bool AreAllPointsSelected { get; }
@@ -3863,6 +3981,8 @@ namespace Drilling.Common.Review
         public string InspectionMethod { get; init; } = "P2P";
         public double StageScanDirectionY { get; init; } = -1.0;
         public double? StageSpeed { get; init; }
+        public double ShiftOffsetX { get; init; }
+        public double ShiftOffsetY { get; init; }
 
         private static readonly ConditionalWeakTable<IReadOnlyList<ST_REVIEW_PLAN_POINT>, CReviewPointCache> ReviewPointCaches = new();
         private CReviewPointCache ReviewPointCache => ReviewPointCaches.GetValue(Points, static points => new CReviewPointCache(points));
@@ -3916,7 +4036,21 @@ namespace Drilling.Common.Review
         public int LineCount { get; init; }
         public string ResultStatus { get; init; } = "COMPLETED";
         public int TotalCount { get; init; }
+        public double ShiftOffsetX { get; init; }
+        public double ShiftOffsetY { get; init; }
     }
+
+    public sealed record ST_REVIEW_REINSPECTION_UPDATE(
+        int CellNo,
+        string ShotKey,
+        string ShotName,
+        int SourceBeamNo,
+        int BeamNo,
+        double RawResultX,
+        double RawResultY,
+        double ResultX,
+        double ResultY,
+        string Judge);
 
     public interface IReviewResultFile
     {
@@ -3951,6 +4085,7 @@ namespace Drilling.Common.Review
         public virtual Task<string> SaveOneShot(ST_ONE_SHOT_RESULT_DATA result, CancellationToken cancellationToken = default) => throw new NotSupportedException("ONE SHOT 결과 저장이 구현되지 않았습니다.");
         public virtual Task<ST_BEAM_INSPECTION_RESULT_FILE_DATA?> LoadLastBeamInspection(CancellationToken cancellationToken = default) => throw new NotSupportedException("Beam Inspection 결과 불러오기가 구현되지 않았습니다.");
         public virtual Task<string> SaveBeamInspection(ST_BEAM_INSPECTION_SNAPSHOT result, string glassId, DateTimeOffset savedAt, CancellationToken cancellationToken = default) => throw new NotSupportedException("Beam Inspection 결과 저장이 구현되지 않았습니다.");
+        public virtual Task<string> SaveReinspectionRevision(ST_REVIEW_RESULT_FILE_DATA source, IReadOnlyList<ST_REVIEW_REINSPECTION_UPDATE> updates, DateTimeOffset savedAt, CancellationToken cancellationToken = default) => throw new NotSupportedException("재검사 결과 저장이 구현되지 않았습니다.");
         public abstract string RootPath { get; }
         public virtual IReadOnlyList<string> SearchRootPaths => [RootPath];
         public virtual string? LastSavedPath => null;
@@ -3982,12 +4117,37 @@ namespace Drilling.Common.Review
         string ArchivedFilePath,
         ST_REVIEW_OFFSET_FILE_DATA Current);
 
+    public sealed record ST_REVIEW_OFFSET_SOURCE_APPLICATION(
+        string SourceResultFile,
+        string OffsetFile,
+        DateTimeOffset AppliedAt,
+        string HistoryFilePath);
+
+    public sealed class CReviewOffsetDuplicateSourceException(
+        ST_REVIEW_OFFSET_SOURCE_APPLICATION existingApplication)
+        : InvalidOperationException(
+            $"{existingApplication.AppliedAt:yyyy-MM-dd} 적용 이력에 동일한 Review Result가 있습니다: "
+            + existingApplication.SourceResultFile)
+    {
+        public ST_REVIEW_OFFSET_SOURCE_APPLICATION ExistingApplication { get; } = existingApplication;
+    }
+
     public abstract class CReviewOffsetFileBase
     {
         public abstract string RootPath { get; }
 
         public abstract Task<ST_REVIEW_OFFSET_FILE_DATA> LoadLatest(string recipeId, CancellationToken cancellationToken = default);
         public abstract Task<ST_REVIEW_OFFSET_FILE_DATA> SaveNew(string recipeId, IReadOnlyList<ST_REVIEW_OFFSET_ROW> rows, CancellationToken cancellationToken = default);
+        public abstract Task<ST_REVIEW_OFFSET_SOURCE_APPLICATION?> FindSourceApplication(
+            string recipeId,
+            string sourceResultFile,
+            CancellationToken cancellationToken = default);
+        public abstract Task<ST_REVIEW_OFFSET_FILE_DATA> SaveNewFromSource(
+            string recipeId,
+            IReadOnlyList<ST_REVIEW_OFFSET_ROW> rows,
+            string sourceResultFile,
+            bool allowDuplicate,
+            CancellationToken cancellationToken = default);
         public abstract Task<ST_REVIEW_OFFSET_ROLLBACK_RESULT> RollbackLatest(
             string recipeId,
             string expectedLatestFilePath,
@@ -4006,7 +4166,9 @@ namespace Drilling.Common.Review
 
         ST_REVIEW_PLAN CreatePlan(ST_RECIPE_DEFINITION recipe, IReadOnlyCollection<string> selectedShotKeys);
         ST_REVIEW_PLAN CreatePlan(ST_RECIPE_DEFINITION recipe, IReadOnlyCollection<string> selectedShotKeys, int selectedBeamNo);
+        ST_REVIEW_PLAN CreatePlan(ST_RECIPE_DEFINITION recipe, IReadOnlyCollection<string> selectedShotKeys, int selectedBeamNo, double shiftOffsetX, double shiftOffsetY);
         ST_REVIEW_PLAN CreateAllPlan(ST_RECIPE_DEFINITION recipe, int selectedBeamNo);
+        ST_REVIEW_PLAN CreateAllPlan(ST_RECIPE_DEFINITION recipe, int selectedBeamNo, double shiftOffsetX, double shiftOffsetY);
         Task<ST_REVIEW_SEQUENCE_STATUS> Start(ST_REVIEW_PLAN plan, string? productId, Action<ST_REVIEW_PLAN>? progress = null, CancellationToken cancellationToken = default);
         void Stop();
         Task<ST_REVIEW_SEQUENCE_STATUS> RetryRemaining(Action<ST_REVIEW_PLAN>? progress = null, CancellationToken cancellationToken = default);

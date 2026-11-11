@@ -2790,7 +2790,22 @@
         private Guid? _autoReviewZeroLineRunId;
         private ST_STAGE_REVIEW_ACTIONS CreateAutoReviewActions()
         {
-            _autoFineReview ??= new(_reviewManager, _manager.ReviewOffsetFile(), CreateStageReviewInput);
+            void RaiseDuplicateSourceAlarm(CReviewOffsetDuplicateSourceException duplicate)
+            {
+                _alarmManager.SetAlarm("AUTO_REVIEW_OFFSET_DUPLICATE_SOURCE");
+                _manager.Log().WriteStationState(
+                    "REVIEW",
+                    "ALARM",
+                    "AUTO_REVIEW_OFFSET_DUPLICATE_SOURCE",
+                    duplicate.Message);
+            }
+
+            _autoFineReview ??= new(
+                _reviewManager,
+                _manager.ReviewOffsetFile(),
+                CreateStageReviewInput,
+                simulationMeasurement: null,
+                duplicateSourceDetected: RaiseDuplicateSourceAlarm);
             return new(_autoFineReview.Prepare, async token =>
             {
                 try

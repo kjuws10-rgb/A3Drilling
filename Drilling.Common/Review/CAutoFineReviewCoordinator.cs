@@ -11,7 +11,8 @@
         CReviewManager review, 
         CReviewOffsetFileBase offsets, 
         Func<CancellationToken, Task<ST_AUTO_REVIEW_INPUT>> capture, 
-        Func<IReadOnlyList<ST_REVIEW_PLAN_POINT>, CancellationToken, Task<IReadOnlyList<ST_VISION_MARK_FIND>>>? simulationMeasurement = null
+        Func<IReadOnlyList<ST_REVIEW_PLAN_POINT>, CancellationToken, Task<IReadOnlyList<ST_VISION_MARK_FIND>>>? simulationMeasurement = null,
+        Action<CReviewOffsetDuplicateSourceException>? duplicateSourceDetected = null
     )
     {
         private ST_AUTO_FINE_PLAN? _prepared;
@@ -137,7 +138,28 @@
                 };
             }
 
-            var saved = await offsets.SaveNew(plan.Request.Plan.RecipeId, rows.Values.OrderBy(row => row.CellId).ThenBy(row => row.ShotId).ToArray(), token).ConfigureAwait(false);
+            ST_REVIEW_OFFSET_FILE_DATA saved;
+            try
+            {
+                saved = await offsets.SaveNewFromSource(
+                    plan.Request.Plan.RecipeId,
+                    rows.Values.OrderBy(row => row.CellId).ThenBy(row => row.ShotId).ToArray(),
+                    result.ResultFilePath,
+                    allowDuplicate: false,
+                    token).ConfigureAwait(false);
+            }
+            catch (CReviewOffsetDuplicateSourceException duplicate)
+            {
+                var existing = duplicate.ExistingApplication;
+                var appliedAt = existing.AppliedAt.ToLocalTime();
+                Outcome = $"{appliedAt:yyyy년 MM월 dd일} 이력에 동일한 Review Result가 있어 "
+                    + $"자동 Review Offset 적용을 NG 처리했습니다. Source={existing.SourceResultFile} / "
+                    + $"기존 Offset={existing.OffsetFile}";
+                review.RecordAutoFineLog("AUTO_REVIEW_OFFSET_DUPLICATE_SOURCE", Outcome);
+                duplicateSourceDetected?.Invoke(duplicate);
+                throw new InvalidDataException(Outcome, duplicate);
+            }
+
             _saved = true;
             review.FineMonitor.MarkOffsetSaved(result.RunId, saved.FileName);
             Outcome = $"전체 OK · {deltas.Count:N0} Shots FINE 누적 보정 저장 · 다음 Glass에 적용 / {saved.FileName}";
@@ -190,6 +212,9 @@
                 // produced the zero-line result. Later settings only fill missing keys.
                 if (!input.ZeroLineFollowUp || !parameters.ContainsKey(setting.Key))
                     parameters[setting.Key] = setting.Value;
+            // Manual MOF Shift Offset must never affect AUTO inspection.
+            parameters["SHIFT_OFFSET_X"] = "0.000000";
+            parameters["SHIFT_OFFSET_Y"] = "0.000000";
             var frozen = new ReadOnlyDictionary<string, string>(parameters);
             var effectiveRecipe = input.Recipe with
             {

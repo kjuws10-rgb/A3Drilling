@@ -71,6 +71,37 @@
                      HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
                      TextChanged="LogTextChanged" />
             </Grid>
+
+            <Border Grid.ColumnSpan="3" Panel.ZIndex="20" Background="#B3172028">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsBusy}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <Border Width="430" Padding="24" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Background="{DynamicResource PanelBackgroundBrush}"
+                        BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="LOADING LOG DATA"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   FontSize="17" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                        <ProgressBar Value="{Binding LoadProgress, Mode=OneWay}"
+                                     Minimum="0" Maximum="100" Height="16" Margin="0,16,0,8" />
+                        <Grid>
+                            <TextBlock Text="{Binding LoadProgressText}"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" />
+                            <TextBlock Text="{Binding LoadProgress, StringFormat={}{0:0}%}"
+                                       Foreground="{DynamicResource AccentTextBrush}"
+                                       FontSize="12" FontWeight="Bold" HorizontalAlignment="Right" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </Border>
         </Grid>
     </Border>
 </UserControl>

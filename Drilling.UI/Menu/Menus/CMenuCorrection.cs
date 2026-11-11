@@ -88,6 +88,8 @@
         private CancellationTokenSource? _fineCancellation;
         private string _lastReviewOffsetWarning = "";
         public Action<string, string> ReviewOffsetWarning { get; set; } = (title, message) => CRecipeConfirmDialog.ShowWarning(title, message);
+        public Func<string, string, bool> DuplicateReviewOffsetConfirmation { get; set; }
+            = CRecipeConfirmDialog.ShowDuplicateOffsetConfirmation;
 
         private CancellationTokenSource? _roughCancellation;
         internal bool BlocksMenuNavigation => _fineCancellation is { IsCancellationRequested: false }
@@ -141,7 +143,8 @@
                 _settingManager,
                 _selectedRecipeIdProvider,
                 _statusReporter,
-                () => ExecuteReviewOffsetRollback());
+                () => ExecuteReviewOffsetRollback(),
+                SaveReviewOffsetFromResult);
             if (defaultManager is not null && defaultScriptFile is not null)
                 DefaultOffset.ExecuteAction = ExecuteDefaultAction;
             DefaultOffset.SourceInvalidated += () => { if (_defaultOwnSave) return; _defaultCancellation?.Cancel(); if (_defaultCancellation is null) _defaultRun = null; };
@@ -169,6 +172,40 @@
             }
 
             BackToOutputViewerGlassCommand = new CButtonCommand(BackToOutputViewerGlassCallback);
+        }
+
+        private bool TryConfirmInitialReviewStart(
+            string title,
+            string context,
+            string fallbackMessage,
+            Func<string, string, bool>? injectedConfirmation,
+            out double shiftOffsetX,
+            out double shiftOffsetY)
+        {
+            shiftOffsetX = 0.0;
+            shiftOffsetY = 0.0;
+            if (injectedConfirmation is not null)
+                return injectedConfirmation(title, fallbackMessage);
+
+            var completion = _defaultManager?.Station().LastCompletedManualMof;
+            if (completion is null)
+            {
+                return CRecipeConfirmDialog.ShowConfirmation(
+                    title,
+                    fallbackMessage + "\n\n성공 완료한 Manual MOF 이력이 없습니다.\nShift Offset 0.000 / 0.000 mm로 검사를 시작합니다.",
+                    "시작");
+            }
+
+            var choice = CReviewShiftOffsetDialog.Show(completion, context);
+            if (choice == EN_REVIEW_SHIFT_OFFSET_CHOICE.Cancel)
+                return false;
+            if (choice == EN_REVIEW_SHIFT_OFFSET_CHOICE.Apply)
+            {
+                shiftOffsetX = completion.ShiftOffsetX;
+                shiftOffsetY = completion.ShiftOffsetY;
+            }
+
+            return true;
         }
 
 #endregion
@@ -1646,11 +1683,24 @@
                 var latestOffsets = await _reviewOffsetFile.LoadLatest(selectedRecipeId);
                 var offsetRecipe = await LoadReviewResultRecipe(_loadedReviewResult);
                 var offsetParameters = BuildOutputViewerParameterMap(offsetRecipe, LoadSimpleOffsetSettings());
-                var savedOffsetFile = await Task.Run(() =>
+                var mergedRows = await Task.Run(() => MergeReviewOffsetRows(
+                    latestOffsets.Rows,
+                    ApplyPreviewRows,
+                    offsetParameters));
+                var savedOffsetFile = await SaveReviewOffsetFromResult(
+                    selectedRecipeId,
+                    mergedRows,
+                    _loadedReviewResult.FilePath);
+                if (savedOffsetFile is null)
                 {
-                    var mergedRows = MergeReviewOffsetRows(latestOffsets.Rows, ApplyPreviewRows, offsetParameters);
-                    return _reviewOffsetFile.SaveNew(selectedRecipeId, mergedRows).GetAwaiter().GetResult();
-                });
+                    await ReportReviewDataCommand(
+                        "Save",
+                        "동일한 검사 결과의 Review Offset 중복 적용을 취소했습니다.",
+                        "WARN",
+                        $"{pendingRows.Length:N0} Rows / Pending Save");
+                    return;
+                }
+
                 ApplyPreviewRows = ApplyPreviewRows.Select(SelectValue).ToArray();
                 CurrentOffsetRows = ApplyPreviewRows.Select(SelectCORRECTION_REVIEW_OFFSET_ROW).ToArray();
                 _hasPendingReviewOffsetApply = false;
@@ -2195,6 +2245,70 @@
         {
             var normalized = (value ?? "").Trim().Replace("-", "_", StringComparison.Ordinal).Replace(".", "_", StringComparison.Ordinal).ToUpperInvariant();
             return normalized.StartsWith("CELL", StringComparison.Ordinal) ? normalized : $"CELL{cellNo}_{normalized}";
+        }
+
+        private async Task<ST_REVIEW_OFFSET_FILE_DATA?> SaveReviewOffsetFromResult(
+            string recipeId,
+            IReadOnlyList<ST_REVIEW_OFFSET_ROW> rows,
+            string sourceResultFile)
+        {
+            if (string.IsNullOrWhiteSpace(sourceResultFile))
+            {
+                throw new InvalidOperationException(
+                    "검사 결과 파일이 저장되지 않아 Review Offset 적용 이력을 기록할 수 없습니다.");
+            }
+
+            var existing = await Task.Run(() => _reviewOffsetFile.FindSourceApplication(
+                recipeId,
+                sourceResultFile));
+            var allowDuplicate = false;
+            if (existing is not null)
+            {
+                if (!ConfirmDuplicateReviewOffset(existing))
+                {
+                    return null;
+                }
+
+                allowDuplicate = true;
+            }
+
+            try
+            {
+                return await Task.Run(() => _reviewOffsetFile.SaveNewFromSource(
+                    recipeId,
+                    rows,
+                    sourceResultFile,
+                    allowDuplicate));
+            }
+            catch (CReviewOffsetDuplicateSourceException duplicate) when (!allowDuplicate)
+            {
+                // Recheck under the file lock protects two manual APPLY requests that race.
+                if (!ConfirmDuplicateReviewOffset(duplicate.ExistingApplication))
+                {
+                    return null;
+                }
+
+                return await Task.Run(() => _reviewOffsetFile.SaveNewFromSource(
+                    recipeId,
+                    rows,
+                    sourceResultFile,
+                    allowDuplicate: true));
+            }
+        }
+
+        private bool ConfirmDuplicateReviewOffset(
+            ST_REVIEW_OFFSET_SOURCE_APPLICATION existing)
+        {
+            var appliedAt = existing.AppliedAt.ToLocalTime();
+            var message = $"{appliedAt:yyyy년 MM월 dd일} 이력 파일 내에 동일한 파일로 "
+                + "Review Offset을 적용한 이력이 있습니다.\n\n"
+                + $"Source Result: {existing.SourceResultFile}\n"
+                + $"기존 Offset: {existing.OffsetFile}\n"
+                + $"적용 시각: {appliedAt:yyyy-MM-dd HH:mm:ss}\n\n"
+                + "한 번 더 중복 적용하시겠습니까?";
+            return DuplicateReviewOffsetConfirmation(
+                "Review Offset 중복 적용 확인",
+                message);
         }
 
         private static string FormatReviewOffsetSource(string recipeId, ST_REVIEW_OFFSET_FILE_DATA reviewOffsetFile)
@@ -2774,6 +2888,7 @@
                 return;
             if (_isReviewOperationRunning || action is not ("START" or "RESTART" or "RESUME_NG") || !Fine.CanConfigure || Fine.Lines.Count == 0)
                 return;
+            var injectedConfirmation = confirm;
             confirm ??= (title, message) => CRecipeConfirmDialog.ShowConfirmation(title, message);
             warn ??= (title, message) => CRecipeConfirmDialog.ShowWarning(title, message);
             _isReviewOperationRunning = true;
@@ -2785,10 +2900,29 @@
             try
             {
                 var resume = action == "RESUME_NG";
+                var initial = action == "START";
                 var start = resume ? Fine.RetryStartLineNo ?? 1 : 1;
                 var count = Fine.Lines.Where(line => line.OrderNo >= start).Sum(line => line.Points.Count);
-                if (!confirm("FINE Review Start", $"{Fine.RecipeName} / {Fine.InspectionMethod} / Beam {Fine.SelectedBeam}\nLine #{start}부터 {count:N0}개 Shot을 검사하시겠습니까?\nStage는 공통 Process Move / IOF로 동작하며, MELSEC과 Vision은 각각 해당 장치의 연결·시뮬레이션 설정을 따릅니다."))
+                var message = $"{Fine.RecipeName} / {Fine.InspectionMethod} / Beam {Fine.SelectedBeam}\n" +
+                    $"Line #{start}부터 {count:N0}개 Shot을 검사하시겠습니까?\n" +
+                    "Stage는 공통 Process Move / IOF로 동작하며, MELSEC과 Vision은 각각 해당 장치의 연결·시뮬레이션 설정을 따릅니다.";
+                var shiftOffsetX = 0.0;
+                var shiftOffsetY = 0.0;
+                if (initial)
+                {
+                    if (!TryConfirmInitialReviewStart(
+                            "FINE Review Start",
+                            $"FINE / {Fine.RecipeName} / {Fine.InspectionMethod} / Beam {Fine.SelectedBeam} / {count:N0} Shots",
+                            message,
+                            injectedConfirmation,
+                            out shiftOffsetX,
+                            out shiftOffsetY))
+                        return;
+                }
+                else if (!confirm("FINE Review Start", message))
+                {
                     return;
+                }
                 if (!CheckOperationAlarm("FINE REVIEW"))
                     return;
                 _fineCancellation = new CancellationTokenSource();
@@ -2801,6 +2935,8 @@
                 if (version != Fine.SourceVersion)
                     throw new InvalidOperationException("레시피 또는 Setting이 변경되었습니다. 검사 대상을 다시 확인해 주세요.");
                 token.ThrowIfCancellationRequested();
+                if (initial)
+                    Fine.SetShiftOffset(shiftOffsetX, shiftOffsetY);
                 var request = Fine.CreateRequest(start, resume);
                 if (version != Fine.SourceVersion)
                     throw new InvalidOperationException("검사 대상이 변경되었습니다. 다시 확인해 주세요.");
@@ -2893,7 +3029,8 @@
                 settings = LoadSimpleOffsetSettings();
                 EnsureSource(recipe, settings);
                 var parameters = BuildOutputViewerParameterMap(recipe, settings);
-                var saved = await Task.Run(async () =>
+                var sourceResultFile = initialize ? "" : Fine.LastResultPath;
+                var mergedRows = await Task.Run(async () =>
                 {
                     var latest = await _reviewOffsetFile.LoadLatest(recipe.Id);
                     if (!latest.RecipeId.Equals(recipe.Id, StringComparison.OrdinalIgnoreCase))
@@ -2912,8 +3049,20 @@
                         };
                     }
 
-                    return await _reviewOffsetFile.SaveNew(recipe.Id, rows.Values.OrderBy(row => row.CellId).ThenBy(row => row.ShotId).ToArray());
+                    return rows.Values
+                        .OrderBy(row => row.CellId)
+                        .ThenBy(row => row.ShotId)
+                        .ToArray();
                 });
+                var saved = initialize
+                    ? await Task.Run(() => _reviewOffsetFile.SaveNew(recipe.Id, mergedRows))
+                    : await SaveReviewOffsetFromResult(recipe.Id, mergedRows, sourceResultFile);
+                if (saved is null)
+                {
+                    _statusReporter("FINE Offset Apply: 동일한 검사 결과의 중복 적용을 취소했습니다.");
+                    return;
+                }
+
                 _simpleOffsetRecipeId = saved.RecipeId;
                 _simpleOffsetLoad = Task.FromResult(saved);
                 Simple.Update(recipe, settings, saved);
@@ -3711,6 +3860,7 @@
                 return;
             }
 
+            var injectedConfirmation = confirm;
             confirm ??= (title, message) => CRecipeConfirmDialog.ShowConfirmation(title, message, action == "OFFSET_INIT" ? "초기화" : "확인", useDangerStyle: action == "OFFSET_INIT");
             completed ??= (title, message) => CRecipeConfirmDialog.ShowCompletion(title, message);
             warn ??= (title, message) => CRecipeConfirmDialog.ShowWarning(title, message);
@@ -3732,8 +3882,26 @@
                     var retry = action == "NG_RETRY";
                     var plan = inspection.CreatePlan();
                     var count = plan.Points.Count(point => !retry || point.State == EN_REVIEW_POINT_STATE.Ng);
-                    if (!confirm(retry ? "NG Retry" : "Review Start", $"{recipe.Name} / {Rough.SelectedHeadsText} / Beam {inspection.SelectedBeam}\n{count}개 Shot을 {(retry ? "재검사" : "PtoP 검사")}하시겠습니까?"))
-                        return;
+                    var message = $"{recipe.Name} / {Rough.SelectedHeadsText} / Beam {inspection.SelectedBeam}\n" +
+                        $"{count}개 Shot을 {(retry ? "재검사" : "PtoP 검사")}하시겠습니까?";
+                    if (retry)
+                    {
+                        if (!confirm("NG Retry", message))
+                            return;
+                    }
+                    else
+                    {
+                        if (!TryConfirmInitialReviewStart(
+                                "Review Start",
+                                $"ROUGH / {recipe.Name} / {Rough.SelectedHeadsText} / Beam {inspection.SelectedBeam} / {count} Shots",
+                                message,
+                                injectedConfirmation,
+                                out var shiftOffsetX,
+                                out var shiftOffsetY))
+                            return;
+                        inspection.SetShiftOffset(shiftOffsetX, shiftOffsetY);
+                        plan = inspection.CreatePlan();
+                    }
                     if (!CheckOperationAlarm("ROUGH REVIEW"))
                         return;
                     Rough.BackToGlassCommand.Execute(null);
@@ -3766,7 +3934,8 @@
                     return;
                 EnsureSimpleOffsetSource(request, await LoadSelectedOutputViewerRecipe(CancellationToken.None, false) ?? throw new InvalidOperationException("현재 레시피가 없습니다."), LoadSimpleOffsetSettings());
                 var parameters = BuildOutputViewerParameterMap(recipe, settings);
-                var saved = await Task.Run(async () =>
+                var sourceResultFile = initialize ? "" : inspection.LastResultPath;
+                var mergedRows = await Task.Run(async () =>
                 {
                     var latest = await _reviewOffsetFile.LoadLatest(recipe.Id);
                     if (!latest.RecipeId.Equals(recipe.Id, StringComparison.OrdinalIgnoreCase))
@@ -3785,8 +3954,20 @@
                         };
                     }
 
-                    return await _reviewOffsetFile.SaveNew(recipe.Id, merged.Values.OrderBy(row => row.CellId).ThenBy(row => row.ShotId).ToArray());
+                    return merged.Values
+                        .OrderBy(row => row.CellId)
+                        .ThenBy(row => row.ShotId)
+                        .ToArray();
                 });
+                var saved = initialize
+                    ? await Task.Run(() => _reviewOffsetFile.SaveNew(recipe.Id, mergedRows))
+                    : await SaveReviewOffsetFromResult(recipe.Id, mergedRows, sourceResultFile);
+                if (saved is null)
+                {
+                    _statusReporter("ROUGH Offset Apply: 동일한 검사 결과의 중복 적용을 취소했습니다.");
+                    return;
+                }
+
                 _simpleOffsetRecipeId = saved.RecipeId;
                 _simpleOffsetLoad = Task.FromResult(saved);
                 inspection.MarkApplied(initialize);
@@ -5678,6 +5859,8 @@
         private ST_GLASS_PREVIEW_FRAME _sourceFrame = new(44, 62, 772, 420);
         private IReadOnlyList<ST_CELL_PREVIEW_LABEL> _sourceCells = [];
         private int _selectedBeam = 1;
+        private double _shiftOffsetX;
+        private double _shiftOffsetY;
         private ST_RECIPE_DEFINITION? _recipe;
         private int _sourceVersion;
         private bool _operationRunning;
@@ -5824,6 +6007,7 @@
                 EN_REVIEW_POINT_STATE.Ready, 
                 "WAIT"
             )).ToArray();
+            var stageDirection = CScannerAxisTransform.ReadStageDirection(parameters);
             _source = new(
                 recipe.Id, 
                 points.Select(point => point.CellNo).Distinct().Count(), 
@@ -5832,7 +6016,10 @@
                 CReviewManager.ParseVisionFlipType(parameters.GetValueOrDefault("VisionXFlip"), parameters.GetValueOrDefault("VisionYFlip"), parameters.GetValueOrDefault("VisionXyFlip")), 
                 DateTimeOffset.Now, 
                 points
-            );
+            )
+            {
+                StageScanDirectionY = stageDirection
+            };
             var preview = CHeadAssignmentPreviewBuilder.BuildRecipePreview(parameters, new HashSet<int>(), CHeadAssignmentPreviewBuilder.BuildHeadLayout(settings), showKeys: false);
             if (preview.ValidationMessage.Length > 0)
                 throw new InvalidOperationException(preview.ValidationMessage);
@@ -5858,6 +6045,8 @@
             RecipeId = "";
             RecipeName = "-";
             _source = null;
+            _shiftOffsetX = 0.0;
+            _shiftOffsetY = 0.0;
             _sourceCells = [];
             _parameters = new Dictionary<string, string>();
             PreviewImage = null;
@@ -5889,6 +6078,8 @@
             _lastSnapshots.Clear();
             LastResultPath = "";
             _offsetApplied = false;
+            _shiftOffsetX = 0.0;
+            _shiftOffsetY = 0.0;
             var selection = CReviewRulePlanBuilder.Build(_source, new(EN_REVIEW_CORRECTION_RULE.Fine, EN_REVIEW_CORRECTION_SCOPE.HeadCell, SelectedBeam, "", EN_REVIEW_REFERENCE_LINE.First, LineCount)).ShotKeys.ToHashSet(StringComparer.OrdinalIgnoreCase);
             var cellModels = _source.Points.Select(point => point.CellNo).Distinct().ToDictionary(cell => cell, cell => CRecipeModelPixelCountReader.ReadCellModelType(_parameters, cell));
             var counts = cellModels.Values.GroupBy(model => model).ToDictionary(group => group.Key, group => group.Count());
@@ -6005,12 +6196,38 @@
             )).ToArray();
             var plan = source with
             {
-                Points = Array.AsReadOnly(lines.SelectMany(line => line.Points).ToArray())
+                Points = Array.AsReadOnly(lines.SelectMany(line => line.Points).ToArray()),
+                ShiftOffsetX = _shiftOffsetX,
+                ShiftOffsetY = _shiftOffsetY
             };
             return new(plan, Array.AsReadOnly(lines), IsFlying ? EN_FINE_INSPECTION_METHOD.Flying : EN_FINE_INSPECTION_METHOD.PtoP, startLineNo, resume)
             {
                 Context = new(RecipeName, "-", "MANUAL FINE", LineCount, new System.Collections.ObjectModel.ReadOnlyDictionary<string, string>(new Dictionary<string, string>(_parameters)))
             };
+        }
+
+        public void SetShiftOffset(double shiftOffsetX, double shiftOffsetY)
+        {
+            var source = _source ?? throw new InvalidOperationException("검사 대상이 없습니다.");
+            if (Lines.Count == 0)
+                throw new InvalidOperationException("검사 라인이 없습니다.");
+
+            var current = source with
+            {
+                Points = Array.AsReadOnly(Lines.SelectMany(line => line.Points).ToArray()),
+                ShiftOffsetX = _shiftOffsetX,
+                ShiftOffsetY = _shiftOffsetY
+            };
+            var shifted = CReviewManager.ApplyShiftOffset(current, shiftOffsetX, shiftOffsetY);
+            var points = shifted.Points.ToDictionary(point => point.ShotKey, StringComparer.OrdinalIgnoreCase);
+            foreach (var line in Lines)
+                line.UpdateRoute(line.Points.Select(point => points[point.ShotKey]).ToArray());
+
+            _shiftOffsetX = shiftOffsetX;
+            _shiftOffsetY = shiftOffsetY;
+            _source = source with { ShiftOffsetX = shiftOffsetX, ShiftOffsetY = shiftOffsetY };
+            Layout();
+            Notify();
         }
 
         public void SetOperationRunning(bool value)
@@ -6405,6 +6622,18 @@
             if (State == state)
                 return;
             State = state;
+            PropertyChanged?.Invoke(this, new(null));
+        }
+
+        internal void UpdateRoute(IReadOnlyList<ST_REVIEW_PLAN_POINT> points)
+        {
+            if (points.Count == 0 || points.Count != Points.Count ||
+                !Points.Select(point => point.ShotKey).SequenceEqual(points.Select(point => point.ShotKey)))
+                throw new InvalidOperationException("FINE 검사 라인의 Shift Offset 대상을 확인할 수 없습니다.");
+
+            Points = points;
+            StartPosition = new(points[0].BeamNo, points[0].ReviewTargetY, points[0].ReviewTargetX);
+            EndPosition = new(points[^1].BeamNo, points[^1].ReviewTargetY, points[^1].ReviewTargetX);
             PropertyChanged?.Invoke(this, new(null));
         }
 
@@ -6859,6 +7088,8 @@
         private string _targetSignature = "";
         private int _sourceVersion;
         private int _selectedBeam = 1;
+        private double _shiftOffsetX;
+        private double _shiftOffsetY;
         private ST_SIMPLE_CORRECTION_FIRST_SHOT[] _references = [];
         private ST_SIMPLE_CORRECTION_SHOT[] _assigned = [];
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -6872,6 +7103,7 @@
         public string ReviewX { get; private set; } = "-";
         public string Mode { get; private set; } = "OFFLINE";
         public string Status { get; private set; } = "검사 대기";
+        public string LastResultPath { get; private set; } = "";
 
         public int SelectedBeam
         {
@@ -6910,6 +7142,9 @@
                 SourceInvalidated?.Invoke();
                 _targetSignature = "";
                 Rows = [];
+                LastResultPath = "";
+                _shiftOffsetX = 0.0;
+                _shiftOffsetY = 0.0;
             }
 
             _recipe = recipe;
@@ -6930,6 +7165,7 @@
             _references = [];
             _assigned = [];
             Rows = [];
+            LastResultPath = "";
             BeamNumbers = [];
             Status = "현재 레시피를 선택해 주세요.";
             Notify();
@@ -6949,6 +7185,8 @@
             }
 
             _targetSignature = signature;
+            _shiftOffsetX = 0.0;
+            _shiftOffsetY = 0.0;
             if (_recipe is null || _selectedBeam < 1)
             {
                 Rows = [];
@@ -6993,13 +7231,30 @@
             )
             {
                 CorrectionPlan = new(EN_REVIEW_CORRECTION_RULE.Rough, owner.IsHeadScope ? EN_REVIEW_CORRECTION_SCOPE.Head : EN_REVIEW_CORRECTION_SCOPE.HeadCell, Rows.Select(row => row.Point).ToArray()),
-                StageSpeed = double.TryParse(_parameters.GetValueOrDefault("STAGE_SPEED"), NumberStyles.Float, CultureInfo.InvariantCulture, out var stageSpeed) ? stageSpeed : null
+                StageSpeed = double.TryParse(_parameters.GetValueOrDefault("STAGE_SPEED"), NumberStyles.Float, CultureInfo.InvariantCulture, out var stageSpeed) ? stageSpeed : null,
+                StageScanDirectionY = CScannerAxisTransform.ReadStageDirection(_parameters),
+                ShiftOffsetX = _shiftOffsetX,
+                ShiftOffsetY = _shiftOffsetY
             };
+        }
+
+        public void SetShiftOffset(double shiftOffsetX, double shiftOffsetY)
+        {
+            var shifted = CReviewManager.ApplyShiftOffset(CreatePlan(), shiftOffsetX, shiftOffsetY);
+            var points = shifted.Points.ToDictionary(point => point.ShotKey, StringComparer.OrdinalIgnoreCase);
+            foreach (var row in Rows)
+                row.Update(points[row.Point.ShotKey]);
+
+            _shiftOffsetX = shiftOffsetX;
+            _shiftOffsetY = shiftOffsetY;
+            Notify();
+            owner.RefreshInspectionDisplay();
         }
 
         public void Begin(bool retry)
         {
             IsRunning = true;
+            LastResultPath = "";
             if (!retry)
                 foreach (var row in Rows)
                 {
@@ -7019,6 +7274,7 @@
                 if (points.TryGetValue(row.Point.ShotKey, out var point))
                     row.Update(point);
             Status = snapshot.Message;
+            LastResultPath = snapshot.ResultFilePath;
             RefreshFeedback();
             Notify();
             owner.RefreshInspectionDisplay();
@@ -7190,7 +7446,7 @@
             SelectHeadCommand = new(SelectHead, _ => !IsOffsetOperationRunning);
             SelectScopeCommand = new(SelectScope, _ => !IsOffsetOperationRunning);
             SelectCorrectionShotCommand = new(SelectCorrectionShot, _ => !IsOffsetOperationRunning);
-            OffsetActionCommand = new(RunOffsetAction, action => _executeOffsetAction is not null && (Inspection is not null ? Inspection.CanExecute(action?.ToString() ?? "") : !IsOffsetOperationRunning && (action?.ToString() is "OFFSET_VIEW" or "OFFSET_ROLLBACK" ? RecipeId.Length > 0 : action?.ToString()is "OFFSET_APPLY" or "OFFSET_INIT" && CorrectionRows.Count == 1)));
+            OffsetActionCommand = new(RunOffsetAction, CanExecuteOffsetAction);
             BackToGlassCommand = new(_ => ShowGlass());
             UpdateHeads();
         }
@@ -7321,7 +7577,7 @@
                 _representatives.Clear();
                 _selectedCell = 0;
                 _selectedCorrectionShotKey = "";
-                _inputDrafts.Clear();
+                ClearInputDrafts();
             }
 
             if (!cells.ContainsKey(_selectedCell))
@@ -7342,7 +7598,7 @@
         public void Clear(string message)
         {
             _parameters = new Dictionary<string, string>();
-            _inputDrafts.Clear();
+            ClearInputDrafts();
             _selectedCorrectionShotKey = "";
             _cells = new Dictionary<int, ST_SIMPLE_CORRECTION_SHOT[]>();
             _enabledHeads = new HashSet<int>();
@@ -7419,6 +7675,33 @@
             await _executeOffsetAction!(value?.ToString() ?? "");
         }
 
+        private bool CanExecuteOffsetAction(object? value)
+        {
+            if (_executeOffsetAction is null)
+            {
+                return false;
+            }
+
+            var action = value?.ToString() ?? "";
+            if (Inspection is not null)
+            {
+                return Inspection.CanExecute(action);
+            }
+
+            if (IsOffsetOperationRunning)
+            {
+                return false;
+            }
+
+            return action switch
+            {
+                "OFFSET_VIEW" or "OFFSET_ROLLBACK" => RecipeId.Length > 0,
+                "OFFSET_APPLY" => CorrectionRows.Count == 1 && CorrectionRows[0].HasPendingChanges,
+                "OFFSET_INIT" => CorrectionRows.Count == 1,
+                _ => false
+            };
+        }
+
         public void SetOffsetOperationRunning(bool running)
         {
             IsOffsetOperationRunning = running;
@@ -7426,6 +7709,7 @@
             SelectHeadCommand.NotifyCanExecuteChanged();
             SelectScopeCommand.NotifyCanExecuteChanged();
             SelectCorrectionShotCommand.NotifyCanExecuteChanged();
+            OffsetActionCommand.NotifyCanExecuteChanged();
             Notify();
         }
 
@@ -7454,7 +7738,10 @@
                 return;
             var affected = changed.Select(row => (row.CellId, row.ShotId.ToUpperInvariant())).ToHashSet();
             foreach (var key in _inputDrafts.Where(item => affected.Contains((item.Value.CellNo, item.Value.ShotName.ToUpperInvariant()))).Select(item => item.Key).ToArray())
+            {
+                _inputDrafts[key].PropertyChanged -= OnSimpleCorrectionInputChanged;
                 _inputDrafts.Remove(key);
+            }
             // Offset changes may affect scanner ordering, so rebuild the actual first-Shot references as well.
             Update(recipe, settings, saved);
             RefreshCorrectionRows();
@@ -7511,6 +7798,7 @@
                 if (!_inputDrafts.TryGetValue(key, out var input))
                 {
                     input = new CSimpleCorrectionInput(_selectedHead, row.CellNo, row.ShotKey, row.ShotName);
+                    input.PropertyChanged += OnSimpleCorrectionInputChanged;
                     _inputDrafts.Add(key, input);
                 }
 
@@ -7526,6 +7814,22 @@
                 input.UpdateCurrent(design.X, design.Y);
                 return input;
             }).ToArray();
+            OffsetActionCommand.NotifyCanExecuteChanged();
+        }
+
+        private void OnSimpleCorrectionInputChanged(object? sender, PropertyChangedEventArgs eventArgs)
+        {
+            OffsetActionCommand.NotifyCanExecuteChanged();
+        }
+
+        private void ClearInputDrafts()
+        {
+            foreach (var input in _inputDrafts.Values)
+            {
+                input.PropertyChanged -= OnSimpleCorrectionInputChanged;
+            }
+
+            _inputDrafts.Clear();
         }
 
         private void RefreshCallouts()
@@ -7759,6 +8063,9 @@
         public string Title { get; } = $"Cell{cellNo:00}-{shotName}";
         public string CurrentX { get; private set; } = "0.000";
         public string CurrentY { get; private set; } = "0.000";
+        public bool HasPendingChanges => (_editedX || _editedY)
+            && (!_inputX.Equals(CurrentX, StringComparison.Ordinal)
+                || !_inputY.Equals(CurrentY, StringComparison.Ordinal));
 
         public string InputX
         {

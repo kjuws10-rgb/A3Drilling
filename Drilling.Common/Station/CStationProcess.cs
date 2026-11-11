@@ -8,6 +8,7 @@
     using System.Diagnostics.CodeAnalysis;
     using System.Runtime.ExceptionServices;
     using System.Text;
+    using System.Text.Json;
     using Drilling.Common.Log;
     using Drilling.Common.Motion;
     using Drilling.Common.Alarm;
@@ -79,6 +80,7 @@
         private readonly CAutomationScriptFileBase _automationScriptFile;
         private readonly CAutomationManager _automationManager;
         private readonly CLogManager? _logManager;
+        private readonly string? _manualMofCompletionPath;
         private readonly object _sequenceLock = new();
         private readonly object _processLogLock = new();
         private readonly CSequenceActionStatusStore _sequenceActions = new();
@@ -106,6 +108,7 @@
         private bool _manualMofRequiresStop;
         private string _manualMofMessage = "";
         private string _manualMofDirectory = "";
+        private ST_MANUAL_MOF_COMPLETION? _lastCompletedManualMof;
         private readonly SemaphoreSlim _protectWindowCountGate = new(1, 1);
         private bool _protectWindowCounted;
         private bool _stageMachiningCompleted;
@@ -145,9 +148,18 @@
             _automationScriptFile = automationScriptFile;
             _automationManager = automationManager;
             _logManager = logManager;
+            _manualMofCompletionPath = ResolveManualMofCompletionPath(scriptDirectory);
             _snapshot = CreateSnapshot(null, [], EN_SCRIPT_STATUS.NotCreated, EN_PROCESS_STEP.Idle, null);
             _stationStatus = new ST_STATION_STATUS(EN_STATION_ID.Process, stationName, EN_STATION_STATE.Idle, EN_PROCESS_STEP.Idle, EN_SCRIPT_STATUS.NotCreated, "Station idle.", DateTimeOffset.Now);
             StageRequests = CreateStageRequestSequence();
+            try
+            {
+                _lastCompletedManualMof = LoadManualMofCompletion(_manualMofCompletionPath);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException or InvalidDataException)
+            {
+                _manualMofMessage = $"마지막 Manual MOF Shift 이력을 읽지 못했습니다: {exception.Message}";
+            }
             if (_logManager is not null)
                 _interfaceManager.StageReviewSequences.Trace += item => AddProcessLog("INFO", "STAGE_MOVE_IOF", FormattableString.Invariant($"Event={item.Number}; MELSEC_{item.DeviceNo}; {item.Phase}; Value={item.Value}; {item.Detail}"));
         }
@@ -3391,6 +3403,15 @@
             }
         }
 
+        public ST_MANUAL_MOF_COMPLETION? LastCompletedManualMof
+        {
+            get
+            {
+                lock (_sequenceLock)
+                    return _lastCompletedManualMof;
+            }
+        }
+
         public Task RunManualMofAsync(ST_STAGE_PROCESS_REQUEST request, IReadOnlySet<int> selectedHeads, CancellationToken token = default)
         {
             var heads = selectedHeads.Where(head => head is >= 1 and <= 8).ToHashSet();
@@ -3400,6 +3421,8 @@
             {
                 Parameters = new Dictionary<string, string>(request.Parameters, StringComparer.OrdinalIgnoreCase)
             };
+            var shiftOffsetX = ReadManualMofShiftOffset(frozen.Parameters, "SHIFT_OFFSET_X");
+            var shiftOffsetY = ReadManualMofShiftOffset(frozen.Parameters, "SHIFT_OFFSET_Y");
             lock (_sequenceLock)
             {
                 if (_manualMofRunning || _manualMofRequiresStop || StageRequests.IsRunning || _sequenceState != EN_STATION_SEQUENCE.Ready || !_stageOwnedTasks.IsEmpty || !_stageBufferedRuns.IsEmpty)
@@ -3412,7 +3435,7 @@
                 _manualMofDirectory = "";
                 _manualMofActions.ResetToWaiting(CManualMofActionIds.All);
                 var runToken = _manualMofCancellation.Token;
-                _manualMofExecution = Task.Run(() => ExecuteManualMof(frozen, heads, runToken));
+                _manualMofExecution = Task.Run(() => ExecuteManualMof(frozen, heads, shiftOffsetX, shiftOffsetY, runToken));
                 return _manualMofExecution;
             }
         }
@@ -3463,7 +3486,12 @@
             }
         }
 
-        private async Task ExecuteManualMof(ST_STAGE_PROCESS_REQUEST request, HashSet<int> heads, CancellationToken token)
+        private async Task ExecuteManualMof(
+            ST_STAGE_PROCESS_REQUEST request,
+            HashSet<int> heads,
+            double shiftOffsetX,
+            double shiftOffsetY,
+            CancellationToken token)
         {
             CStageReviewSequences.Session? stage = null;
             var success = false;
@@ -3548,6 +3576,18 @@
                 await _manualMofActions.RunAsync("COMPLETE", () => ReleaseCompletedStageTasks(token)).ConfigureAwait(false);
                 success = true;
                 message = "MOF 가공 완료";
+                var completion = new ST_MANUAL_MOF_COMPLETION(DateTimeOffset.Now, shiftOffsetX, shiftOffsetY);
+                lock (_sequenceLock)
+                    _lastCompletedManualMof = completion;
+                try
+                {
+                    SaveManualMofCompletion(_manualMofCompletionPath, completion);
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+                {
+                    message += $" / Shift 이력 저장 실패: {exception.Message}";
+                    AddProcessLog("ERROR", "MANUAL_MOF", message);
+                }
             }
             catch (Exception exception)
             {
@@ -3668,6 +3708,55 @@
             if (!parameters.TryGetValue(key, out var text) || !double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) || !double.IsFinite(value))
                 throw new InvalidOperationException($"{key} 설정값을 확인해 주세요.");
             return value;
+        }
+
+        private static double ReadManualMofShiftOffset(IReadOnlyDictionary<string, string> parameters, string key)
+        {
+            if (!parameters.TryGetValue(key, out var text) || string.IsNullOrWhiteSpace(text))
+                return 0.0;
+            if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) || !double.IsFinite(value))
+                throw new InvalidOperationException($"{key} 설정값을 확인해 주세요.");
+            return value;
+        }
+
+        private static string? ResolveManualMofCompletionPath(string? scriptDirectory)
+        {
+            if (string.IsNullOrWhiteSpace(scriptDirectory))
+                return null;
+            var fullScriptDirectory = Path.GetFullPath(scriptDirectory);
+            var dataDirectory = Directory.GetParent(fullScriptDirectory)?.FullName ?? fullScriptDirectory;
+            return Path.Combine(dataDirectory, "ManualMof", "LastSuccessfulMof.json");
+        }
+
+        private static ST_MANUAL_MOF_COMPLETION? LoadManualMofCompletion(string? path)
+        {
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+                return null;
+            var completion = JsonSerializer.Deserialize<ST_MANUAL_MOF_COMPLETION>(File.ReadAllText(path))
+                ?? throw new InvalidDataException("Manual MOF Shift 이력 내용이 없습니다.");
+            if (completion.CompletedAt == default || !double.IsFinite(completion.ShiftOffsetX) || !double.IsFinite(completion.ShiftOffsetY))
+                throw new InvalidDataException("Manual MOF Shift 이력 값이 올바르지 않습니다.");
+            return completion;
+        }
+
+        private static void SaveManualMofCompletion(string? path, ST_MANUAL_MOF_COMPLETION completion)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                return;
+            var directory = Path.GetDirectoryName(path)
+                ?? throw new IOException("Manual MOF Shift 이력 경로를 확인할 수 없습니다.");
+            Directory.CreateDirectory(directory);
+            var temporaryPath = Path.Combine(directory, $".{Path.GetFileName(path)}.{Guid.NewGuid():N}.tmp");
+            try
+            {
+                File.WriteAllText(temporaryPath, JsonSerializer.Serialize(completion));
+                File.Move(temporaryPath, path, overwrite: true);
+            }
+            finally
+            {
+                if (File.Exists(temporaryPath))
+                    File.Delete(temporaryPath);
+            }
         }
 
 #endregion
@@ -3899,6 +3988,9 @@
                     EnsureZeroLineFollowUpCompleted();
                     var data = await request(token).ConfigureAwait(false);
                     var parameters = new Dictionary<string, string>(data.Parameters, StringComparer.OrdinalIgnoreCase);
+                    // Manual MOF Shift is never applied to AUTO machining.
+                    parameters["SHIFT_OFFSET_X"] = "0.000000";
+                    parameters["SHIFT_OFFSET_Y"] = "0.000000";
                     PrepareProcess(data.ProcessId, data.RecipeId, data.GlassId, data.LotId, parameters, token, preserveSequenceActions: true);
                     await StageProcessData().PrepareDoReady(StageProcessSpeed(), token).ConfigureAwait(false);
                     await CaptureZeroLineCycle(data, token).ConfigureAwait(false);
@@ -5761,6 +5853,7 @@
         public Func<CancellationToken, Task>? ReadResults { get; init; }
     }
     public sealed record ST_MANUAL_MOF_STATUS(bool IsRunning, bool RequiresStop, string Message, string ScriptDirectory, IReadOnlyDictionary<string, ST_SEQUENCE_ACTION_STATUS> Actions);
+    public sealed record ST_MANUAL_MOF_COMPLETION(DateTimeOffset CompletedAt, double ShiftOffsetX, double ShiftOffsetY);
     public static class CManualMofActionIds
     {
         public static readonly string[] All = ["PREPARE", "BUILD", "UPLOAD", "ZERO", "RUN", "SCAN", "COMPLETE"];

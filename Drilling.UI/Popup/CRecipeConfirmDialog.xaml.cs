@@ -17,6 +17,26 @@ public partial class CRecipeConfirmDialog : Window
         return dialog.ShowDialog() == true;
     }
 
+    public static bool ShowDuplicateOffsetConfirmation(string title, string message)
+    {
+        var dialog = new CRecipeConfirmDialog(title, message, "중복 적용", useDangerStyle: true)
+        {
+            Owner = Application.Current?.MainWindow
+        };
+        dialog.CancelButton.Content = "아니오";
+        return dialog.ShowDialog() == true;
+    }
+
+    public static bool ShowSavedResultLoadConfirmation(string title, string message)
+    {
+        var dialog = new CRecipeConfirmDialog(title, message, "예, LOAD", useDangerStyle: false)
+        {
+            Owner = Application.Current?.MainWindow
+        };
+        dialog.CancelButton.Content = "아니오";
+        return dialog.ShowDialog() == true;
+    }
+
     public static bool ShowRecipeFolderCopy(string title, string message)
     {
         var dialog = new CRecipeConfirmDialog(title, message, "복사", useDangerStyle: false)

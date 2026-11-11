@@ -21,6 +21,7 @@ namespace Drilling.UI.Menu.Menus
             private readonly Func<string> _selectedRecipeIdProvider;
             private readonly Action<string> _statusReporter;
             private readonly Func<Task> _rollbackReviewOffset;
+            private readonly Func<string, IReadOnlyList<ST_REVIEW_OFFSET_ROW>, string, Task<ST_REVIEW_OFFSET_FILE_DATA?>> _saveReviewOffsetFromResult;
             private bool _isBusy;
             private ST_REVIEW_RESULT_TREE_NODE? _selectedNode;
 
@@ -32,7 +33,8 @@ namespace Drilling.UI.Menu.Menus
                 CSettingManager settingManager,
                 Func<string> selectedRecipeIdProvider,
                 Action<string> statusReporter,
-                Func<Task> rollbackReviewOffset)
+                Func<Task> rollbackReviewOffset,
+                Func<string, IReadOnlyList<ST_REVIEW_OFFSET_ROW>, string, Task<ST_REVIEW_OFFSET_FILE_DATA?>> saveReviewOffsetFromResult)
             {
                 _reviewResultFile = reviewResultFile;
                 _reviewOffsetFile = reviewOffsetFile;
@@ -42,6 +44,7 @@ namespace Drilling.UI.Menu.Menus
                 _selectedRecipeIdProvider = selectedRecipeIdProvider;
                 _statusReporter = statusReporter;
                 _rollbackReviewOffset = rollbackReviewOffset;
+                _saveReviewOffsetFromResult = saveReviewOffsetFromResult;
                 RefreshCommand = new CButtonCommand(RefreshRequested, _ => !IsBusy);
                 LoadDataCommand = new CButtonCommand(LoadDataRequested, _ => CanLoadData);
                 SelectCellCommand = new CButtonCommand(SelectCell);
@@ -49,6 +52,7 @@ namespace Drilling.UI.Menu.Menus
                 OffsetRollbackCommand = new CButtonCommand(OffsetRollbackRequested, _ => CanEditOffsets);
                 OffsetInitCommand = new CButtonCommand(OffsetInitRequested, _ => CanEditOffsets);
                 OffsetViewCommand = new CButtonCommand(OffsetViewRequested, _ => CanEditOffsets);
+                InitializeReinspectionCommands();
                 Nodes = BuildTree([]);
             }
 
@@ -93,6 +97,7 @@ namespace Drilling.UI.Menu.Menus
 
             public void Select(ST_REVIEW_RESULT_TREE_NODE node)
             {
+                SetSelectedTreeNode(node);
                 _selectedNode = node;
                 SelectedTitle = node.Name;
                 SelectedStatus = node.Result?.ResultStatus ?? node.Kind;
@@ -115,7 +120,9 @@ namespace Drilling.UI.Menu.Menus
                 await Refresh();
             }
 
-            private async Task Refresh(CancellationToken cancellationToken = default)
+            private async Task Refresh(
+                CancellationToken cancellationToken = default,
+                string? preferredResultPath = null)
             {
                 if (IsBusy)
                 {
@@ -125,7 +132,9 @@ namespace Drilling.UI.Menu.Menus
                 IsBusy = true;
                 try
                 {
-                    var selectedPath = _selectedNode?.Result?.FilePath;
+                    var selectedPath = string.IsNullOrWhiteSpace(preferredResultPath)
+                        ? _selectedNode?.Result?.FilePath
+                        : preferredResultPath;
                     var selectedRecipeId = NormalizeRecipeId(_selectedRecipeIdProvider());
                     var allResults = await _reviewResultFile.ListCorrectionResults(cancellationToken);
                     var results = string.IsNullOrWhiteSpace(selectedRecipeId)
@@ -134,6 +143,10 @@ namespace Drilling.UI.Menu.Menus
                             .Where(result => NormalizeRecipeId(result.RecipeId).Equals(selectedRecipeId, StringComparison.OrdinalIgnoreCase))
                             .ToArray();
                     Nodes = BuildTree(results);
+                    if (!string.IsNullOrWhiteSpace(selectedPath))
+                    {
+                        Nodes = ExpandResultPath(Nodes, selectedPath);
+                    }
                     StatusText = $"{results.Length:N0} RESULTS";
                     Notify(nameof(Nodes));
                     Notify(nameof(StatusText));
@@ -169,6 +182,7 @@ namespace Drilling.UI.Menu.Menus
 
             private void ClearSelection()
             {
+                SetSelectedTreeNode(null);
                 _selectedNode = null;
                 SelectedTitle = "NO RESULT SELECTED";
                 SelectedStatus = "WAIT";
@@ -290,6 +304,37 @@ namespace Drilling.UI.Menu.Menus
                 }
             }
 
+            private static IReadOnlyList<ST_REVIEW_RESULT_TREE_NODE> ExpandResultPath(
+                IEnumerable<ST_REVIEW_RESULT_TREE_NODE> nodes,
+                string resultPath)
+            {
+                return nodes.Select(node =>
+                {
+                    var children = ExpandResultPath(node.Children, resultPath);
+                    var containsResult = node.Result?.FilePath.Equals(resultPath, StringComparison.OrdinalIgnoreCase) == true
+                        || children.Any(ContainsExpandedResult);
+                    return node with
+                    {
+                        Children = children,
+                        IsExpanded = node.IsExpanded || containsResult
+                    };
+                }).ToArray();
+
+                bool ContainsExpandedResult(ST_REVIEW_RESULT_TREE_NODE node)
+                {
+                    return node.Result?.FilePath.Equals(resultPath, StringComparison.OrdinalIgnoreCase) == true
+                        || node.Children.Any(ContainsExpandedResult);
+                }
+            }
+
+            private void SetSelectedTreeNode(ST_REVIEW_RESULT_TREE_NODE? selectedNode)
+            {
+                foreach (var node in Flatten(Nodes))
+                {
+                    node.IsSelected = ReferenceEquals(node, selectedNode);
+                }
+            }
+
             private static int CountResults(ST_REVIEW_RESULT_TREE_NODE node)
             {
                 return node.Result is null ? node.Children.Sum(CountResults) : 1;
@@ -321,8 +366,25 @@ namespace Drilling.UI.Menu.Menus
             ST_REVIEW_RESULT_CATALOG_ITEM? Result,
             bool IsExpanded)
         {
+            private bool _isSelected;
+
+            public event PropertyChangedEventHandler? PropertyChanged;
             public Brush DetailBrush => CReviewDataPanel.StatusBrush(Result?.ResultStatus ?? Kind);
             public bool IsDirectory => Result is null;
+            public bool IsSelected
+            {
+                get => _isSelected;
+                set
+                {
+                    if (_isSelected == value)
+                    {
+                        return;
+                    }
+
+                    _isSelected = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelected)));
+                }
+            }
         }
 
         public sealed record ST_REVIEW_DATA_DETAIL_ITEM(string Name, string Value);

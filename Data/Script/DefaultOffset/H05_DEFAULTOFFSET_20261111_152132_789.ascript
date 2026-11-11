@@ -1,0 +1,32 @@
+﻿// Default SETUP_CENTER · no Cell/Align/Review/Shift offsets
+// CreatedAt=2026-11-11 15:21:32.789 +09:00
+program
+// Session=fce00d78797a4ee380201a73acd9c429, TestId=971588e84fdd4557a6e0561f844a5620
+// Machining=Shot, CrossFullSize=1 mm, Vision=MarkFindSingle
+GalvoLaserOutput(GX5, GalvoLaser.Off)
+IfovOff()
+SetupTaskDistanceUnits(DistanceUnits.Primary)
+SetupTaskTimeUnits(TimeUnits.Seconds)
+VelocityBlendingOff()
+SetupTaskWaitMode(WaitMode.Auto)
+SetupTaskTargetMode(TargetMode.Absolute)
+GalvoConfigureLaserOutputPeriod(GX5, 0)
+GalvoConfigureLaser1PulseWidth(GX5, 0)
+GalvoConfigureLaserMode(GX5, 0)
+ParameterSetTaskValue(TaskGetIndex(), TaskParameter.MotionUpdateRate, 100)
+ParameterSetTaskValue(TaskGetIndex(), TaskParameter.ExecuteNumLines, 110)
+PsoReset (GX5)
+GalvoConfigureLaserOutputPeriod(GX5, 5)
+MoveDelay([GX5,GY5], 1)
+AnalogOutputSet(GX5, 0, 10)
+GalvoConfigureLaser1PulseWidth(GX5, 5)
+SetupAxisSpeed(GX5, 1500)
+SetupAxisSpeed(GY5, 1500)
+MoveRapid([GX5, GY5], [0, 0])
+WaitForMotionDone([GX5, GY5])
+MoveDelay([GX5,GY5], 0.8)
+GalvoLaserOutput(GX5, GalvoLaser.On)
+MoveDelay([GX5,GY5], 0.01)
+GalvoLaserOutput(GX5, GalvoLaser.Off)
+MoveDelay([GX5,GY5], 0.2)
+end

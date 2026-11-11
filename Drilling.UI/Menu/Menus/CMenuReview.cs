@@ -2030,11 +2030,30 @@
                 return;
             if (!StartCommand.CanExecute(null))
                 return;
-            confirm ??= (title, message) => CRecipeConfirmDialog.ShowConfirmation(title, message, "시작");
             var detail = IsBeamInspectionMode ? $"선택 Shot {_selectedInspectionShotKeys.Count:N0}개 / Beam {_selectedInspectionBeamNos.Count}개" : $"{_selectedInspectionMethod} / Beam{_selectedRunBeamNo}";
-            if (!confirm($"{_selectedMode} 검사 시작", $"Recipe: {_recipeId}\n{detail}\n\n{_selectedMode} 검사를 시작하시겠습니까?"))
+            var shiftOffset = (X: 0.0, Y: 0.0);
+            if (confirm is not null)
+            {
+                if (!confirm($"{_selectedMode} 검사 시작", $"Recipe: {_recipeId}\n{detail}\n\n{_selectedMode} 검사를 시작하시겠습니까?"))
+                    return;
+            }
+            else if (_stationManager.LastCompletedManualMof is { } completion)
+            {
+                var choice = CReviewShiftOffsetDialog.Show(completion, $"Recipe: {_recipeId} / {_selectedMode} / {detail}");
+                if (choice == EN_REVIEW_SHIFT_OFFSET_CHOICE.Cancel)
+                    return;
+                if (choice == EN_REVIEW_SHIFT_OFFSET_CHOICE.Apply)
+                    shiftOffset = (completion.ShiftOffsetX, completion.ShiftOffsetY);
+            }
+            else if (!CRecipeConfirmDialog.ShowConfirmation(
+                         $"{_selectedMode} 검사 시작",
+                         $"Recipe: {_recipeId}\n{detail}\n\n성공 완료한 Manual MOF 이력이 없습니다.\nShift Offset 0.000 / 0.000 mm로 검사를 시작하시겠습니까?",
+                         "시작"))
+            {
                 return;
-            await StartReviewSequence();
+            }
+
+            await StartReviewSequence(shiftOffset.X, shiftOffset.Y);
         }
 
         private void RequestReviewStop(Func<string, string, bool>? confirm = null)
@@ -2171,7 +2190,7 @@
                 Apply();
         }
 
-        private async Task StartBeamInspectionSequence()
+        private async Task StartBeamInspectionSequence(double shiftOffsetX, double shiftOffsetY)
         {
             if (IsReviewExecutionActive || IsSampleSelectTab || _loadedBeamInspectionResult is not null || _isBeamInspectionResultLoading)
                 return;
@@ -2186,7 +2205,7 @@
                 var recipe = await LoadSelectedRecipe(token) ?? throw new InvalidOperationException("Recipe를 불러올 수 없습니다.");
                 if (_lastRecipe is null || !recipe.Id.Equals(_lastRecipe.Id, StringComparison.OrdinalIgnoreCase))
                     throw new InvalidOperationException("Recipe가 변경되었습니다. Shot과 Beam을 다시 선택해 주세요.");
-                var allPlan = _reviewManager.CreateAllPlan(recipe, _selectedRunBeamNo);
+                var allPlan = _reviewManager.CreateAllPlan(recipe, _selectedRunBeamNo, shiftOffsetX, shiftOffsetY);
                 // Snapshot the choices before any screen refresh, and revalidate against the latest Recipe.
                 var shots = _selectedInspectionShotKeys.ToArray();
                 var beams = _selectedInspectionBeamNos.ToArray();
@@ -2925,7 +2944,7 @@
             return _reviewManager.CreatePlan(recipe, targetKeys, _selectedRunBeamNo);
         }
 
-        private async Task StartReviewSequence()
+        private async Task StartReviewSequence(double shiftOffsetX, double shiftOffsetY)
         {
             if (!CheckOperationAlarm("REVIEW START"))
                 return;
@@ -2933,7 +2952,7 @@
                 return;
             if (IsBeamInspectionMode)
             {
-                await StartBeamInspectionSequence();
+                await StartBeamInspectionSequence(shiftOffsetX, shiftOffsetY);
                 return;
             }
 
@@ -2978,7 +2997,7 @@
 
                 var recipe = await LoadSelectedRecipe(token) ?? CreateFallbackRecipe();
                 ApplySplitBeamContext(recipe);
-                var allPlan = _reviewManager.CreateAllPlan(recipe, _selectedRunBeamNo);
+                var allPlan = _reviewManager.CreateAllPlan(recipe, _selectedRunBeamNo, shiftOffsetX, shiftOffsetY);
                 ApplyRecipeContext(recipe, allPlan);
                 var planShotKeys = _selectedMode.Equals("ALL SHOT", StringComparison.OrdinalIgnoreCase) ? null : GetPlanShotKeys(allPlan);
                 if (planShotKeys is { Count: 0 })
@@ -2987,7 +3006,9 @@
                     return;
                 }
 
-                var reviewPlan = planShotKeys is null ? allPlan : _reviewManager.CreatePlan(recipe, planShotKeys, _selectedRunBeamNo);
+                var reviewPlan = planShotKeys is null
+                    ? allPlan
+                    : _reviewManager.CreatePlan(recipe, planShotKeys, _selectedRunBeamNo, shiftOffsetX, shiftOffsetY);
                 reviewPlan = ConfigureReviewCorrectionPlan(reviewPlan, allPlan);
                 reviewPlan = reviewPlan with
                 {

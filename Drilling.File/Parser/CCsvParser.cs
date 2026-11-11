@@ -93,6 +93,57 @@ internal static class CCsvParser
         WriteLines(path, lines);
     }
 
+    public static void Append(
+        string path,
+        IReadOnlyList<string> headers,
+        IReadOnlyDictionary<string, string> row)
+    {
+        if (!System.IO.File.Exists(path) || new FileInfo(path).Length == 0)
+        {
+            Write(path, headers, [row]);
+            return;
+        }
+
+        var unexpected = row.Keys.FirstOrDefault(key =>
+            !headers.Contains(key, StringComparer.OrdinalIgnoreCase));
+        if (unexpected is not null)
+        {
+            throw new InvalidDataException($"CSV append failed. Unexpected column: {unexpected}");
+        }
+
+        var line = string.Join(",", headers.Select(header => Escape(Get(row, header))));
+        using var stream = new FileStream(
+            path,
+            FileMode.Open,
+            FileAccess.ReadWrite,
+            FileShare.Read);
+        var originalLength = stream.Length;
+        stream.Position = originalLength;
+        try
+        {
+            var prefix = originalLength > 0 && ReadLastByte(stream) != (byte)'\n'
+                ? Environment.NewLine
+                : "";
+            stream.Position = originalLength;
+            var bytes = CsvWriteEncoding.GetBytes(prefix + line + Environment.NewLine);
+            stream.Write(bytes, 0, bytes.Length);
+            stream.Flush(flushToDisk: true);
+        }
+        catch
+        {
+            stream.SetLength(originalLength);
+            stream.Flush(flushToDisk: true);
+            throw;
+        }
+    }
+
+    private static byte ReadLastByte(FileStream stream)
+    {
+        stream.Position = stream.Length - 1;
+        var value = stream.ReadByte();
+        return value < 0 ? (byte)0 : (byte)value;
+    }
+
     public static IReadOnlyList<string> ReadLines(string path)
     {
         if (!System.IO.File.Exists(path))

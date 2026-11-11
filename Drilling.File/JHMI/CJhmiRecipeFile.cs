@@ -1323,7 +1323,16 @@
                 var stagedRecipe = Path.Combine(staging, recipe.Id + ".csv");
                 SaveCore(recipe, token, stagedRecipe, writeHistory: false);
                 foreach (var folder in folders)
-                    CopyDirectory(Path.Combine(root, folder.SourceName), Path.Combine(staging, folder.TargetName), token);
+                {
+                    var excludeApplyHistory = folder.SourceName.EndsWith(
+                        "_reviewoffset",
+                        StringComparison.OrdinalIgnoreCase);
+                    CopyDirectory(
+                        Path.Combine(root, folder.SourceName),
+                        Path.Combine(staging, folder.TargetName),
+                        token,
+                        excludeApplyHistory);
+                }
                 token.ThrowIfCancellationRequested();
                 foreach (var folder in folders)
                 {
@@ -1352,7 +1361,11 @@
             _logManager.WriteRecipeCreate(GetRecipeName(recipe));
         }
 
-        private static void CopyDirectory(string source, string destination, CancellationToken token)
+        private static void CopyDirectory(
+            string source,
+            string destination,
+            CancellationToken token,
+            bool excludeReviewApplyHistory = false)
         {
             token.ThrowIfCancellationRequested();
             RejectLink(source);
@@ -1365,7 +1378,19 @@
             }
 
             foreach (var child in Directory.EnumerateDirectories(source))
-                CopyDirectory(child, Path.Combine(destination, Path.GetFileName(child)), token);
+            {
+                if (excludeReviewApplyHistory
+                    && Path.GetFileName(child).Equals("_apply", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                CopyDirectory(
+                    child,
+                    Path.Combine(destination, Path.GetFileName(child)),
+                    token,
+                    excludeReviewApplyHistory);
+            }
         }
 
         private static void RejectLink(string path)

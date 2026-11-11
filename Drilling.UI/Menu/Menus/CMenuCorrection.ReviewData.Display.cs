@@ -15,6 +15,7 @@ namespace Drilling.UI.Menu.Menus
         {
             private CancellationTokenSource? _dataLoadCancellation;
             private int _dataLoadVersion;
+            private int _shotMapRenderVersion;
             private bool _isDataLoading;
             private bool _hasLoadedData;
             private double _loadProgress;
@@ -42,6 +43,7 @@ namespace Drilling.UI.Menu.Menus
             public Brush DataLoadHintBrush => _dataLoadHintBrush;
             public ImageSource? GlassPreviewImage { get; private set; }
             public ImageSource? ShotMapImage { get; private set; }
+            public CReviewCameraPreview Camera { get; } = new();
             public IReadOnlyList<ST_REVIEW_DATA_CELL_LABEL> CellLabels { get; private set; } = [];
             public IReadOnlyList<ST_REVIEW_DATA_GRID_ROW> Rows { get; private set; } = [];
             public ST_REVIEW_DATA_GRID_ROW? SelectedRow { get; private set; }
@@ -428,7 +430,7 @@ namespace Drilling.UI.Menu.Menus
                 var firstCell = model.ResultCellNos.Order().FirstOrDefault();
                 if (firstCell > 0)
                 {
-                    ApplyCellSelection(firstCell);
+                    ApplyCellSelection(firstCell, true);
                 }
                 else
                 {
@@ -448,15 +450,42 @@ namespace Drilling.UI.Menu.Menus
                 ApplyCellSelection(cellNo);
             }
 
-            private void ApplyCellSelection(int cellNo)
+            private void ApplyCellSelection(int cellNo, bool renderSynchronously = false)
             {
+                var previousCellNo = _selectedCellNo;
+                if (previousCellNo > 0 && previousCellNo != cellNo)
+                {
+                    foreach (var row in _allRows.Where(row => row.CellNo == previousCellNo))
+                    {
+                        row.IsReinspectionSelected = false;
+                    }
+
+                    NotifyReinspectionCommandState();
+                }
+
                 _selectedCellNo = cellNo;
                 Rows = _allRows.Where(row => row.CellNo == cellNo).ToArray();
                 var firstResolved = Rows.FirstOrDefault(row => row.IsResolved);
                 SelectedRow = firstResolved ?? Rows.FirstOrDefault();
                 _selectedShotKey = SelectedRow?.ShotKey ?? "";
-                RefreshGlassPreview();
-                RefreshShotMap();
+                if (GlassPreviewImage is null)
+                {
+                    RefreshGlassPreview();
+                }
+                else
+                {
+                    RefreshCellSelectionOverlay();
+                }
+
+                if (renderSynchronously)
+                {
+                    RefreshShotMap();
+                }
+                else
+                {
+                    QueueShotMapRender(cellNo, _selectedShotKey);
+                }
+
                 RefreshSelectionText();
                 NotifyDisplayState();
             }
@@ -486,14 +515,12 @@ namespace Drilling.UI.Menu.Menus
 
             public void SelectRow(ST_REVIEW_DATA_GRID_ROW row)
             {
-                if (!_hasLoadedData || row is null)
+                if (!_hasLoadedData
+                    || row is null
+                    || row.CellNo != _selectedCellNo
+                    || !Rows.Any(currentRow => ReferenceEquals(currentRow, row)))
                 {
                     return;
-                }
-
-                if (_selectedCellNo != row.CellNo)
-                {
-                    ApplyCellSelection(row.CellNo);
                 }
 
                 ApplyShotSelection(row.ShotKey, row);
@@ -508,12 +535,12 @@ namespace Drilling.UI.Menu.Menus
 
                 _selectedShotKey = shotKey;
                 SelectedRow = preferredRow ?? Rows.FirstOrDefault(row => row.ShotKey.Equals(shotKey, StringComparison.OrdinalIgnoreCase));
-                RefreshShotMap();
+                QueueShotMapRender(_selectedCellNo, _selectedShotKey);
                 RefreshSelectionText();
-                Notify(nameof(ShotMapImage));
                 Notify(nameof(SelectedRow));
                 Notify(nameof(SelectedShotTitle));
                 Notify(nameof(SelectedShotDetail));
+                NotifyReinspectionCommandState();
             }
 
             private void RefreshGlassPreview()
@@ -522,6 +549,7 @@ namespace Drilling.UI.Menu.Menus
                 {
                     GlassPreviewImage = null;
                     CellLabels = [];
+                    Camera.Clear();
                     return;
                 }
 
@@ -531,6 +559,18 @@ namespace Drilling.UI.Menu.Menus
                 GlassSurfaceWidth = preview.Width;
                 GlassSurfaceHeight = preview.Height;
                 GlassSummary = $"{_resultCellNos.Count:N0} Result Cells / {_allRows.Count:N0} Result Rows";
+                if (_isReinspectionMode)
+                {
+                    var cameraParameters = new Dictionary<string, string>(_loadedParameters, StringComparer.OrdinalIgnoreCase)
+                    {
+                        [CReviewCameraPreview.UseSettingKey] = "ON"
+                    };
+                    Camera.Configure(cameraParameters, preview.GlassBounds);
+                }
+                else
+                {
+                    Camera.Clear();
+                }
             }
 
             private void RefreshShotMap()
@@ -540,6 +580,52 @@ namespace Drilling.UI.Menu.Menus
                 ShotMapSurfaceWidth = size.Width;
                 ShotMapSurfaceHeight = size.Height;
                 ShotMapImage = BuildReviewDataShotMap(shots, _selectedShotKey);
+            }
+
+            private void RefreshCellSelectionOverlay()
+            {
+                CellLabels = CellLabels
+                    .Select(label => label with
+                    {
+                        IsSelected = label.IsIncluded && label.CellNo == _selectedCellNo
+                    })
+                    .ToArray();
+            }
+
+            private async void QueueShotMapRender(int cellNo, string selectedShotKey)
+            {
+                var version = Interlocked.Increment(ref _shotMapRenderVersion);
+                var shots = _shotsByCell.GetValueOrDefault(cellNo, []);
+                try
+                {
+                    var render = await Task.Run(() =>
+                    {
+                        var size = GetReviewDataShotMapSize(shots);
+                        var image = BuildReviewDataShotMap(shots, selectedShotKey);
+                        return (Size: size, Image: image);
+                    });
+                    if (version != Volatile.Read(ref _shotMapRenderVersion)
+                        || !_hasLoadedData
+                        || _selectedCellNo != cellNo
+                        || !_selectedShotKey.Equals(selectedShotKey, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return;
+                    }
+
+                    ShotMapSurfaceWidth = render.Size.Width;
+                    ShotMapSurfaceHeight = render.Size.Height;
+                    ShotMapImage = render.Image;
+                    Notify(nameof(ShotMapSurfaceWidth));
+                    Notify(nameof(ShotMapSurfaceHeight));
+                    Notify(nameof(ShotMapImage));
+                }
+                catch (Exception exception)
+                {
+                    if (version == Volatile.Read(ref _shotMapRenderVersion))
+                    {
+                        _statusReporter($"Review Data Shot View render failed: {exception.Message}");
+                    }
+                }
             }
 
             private void RefreshSelectionText()
@@ -624,19 +710,15 @@ namespace Drilling.UI.Menu.Menus
 
                         var isIncluded = resultCellNos.Contains(cellNo);
                         var isSelected = isIncluded && cellNo == selectedCellNo;
-                        var fill = isSelected
-                            ? new SolidColorBrush(Color.FromArgb(120, 246, 196, 83))
-                            : isIncluded
-                                ? new SolidColorBrush(Color.FromArgb(92, 74, 222, 128))
-                                : new SolidColorBrush(Color.FromArgb(20, 139, 157, 174));
-                        var border = isSelected
-                            ? new SolidColorBrush(Color.FromRgb(246, 196, 83))
-                            : isIncluded
-                                ? new SolidColorBrush(Color.FromRgb(74, 222, 128))
-                                : new SolidColorBrush(Color.FromArgb(110, 139, 157, 174));
+                        var fill = isIncluded
+                            ? new SolidColorBrush(Color.FromArgb(92, 74, 222, 128))
+                            : new SolidColorBrush(Color.FromArgb(20, 139, 157, 174));
+                        var border = isIncluded
+                            ? new SolidColorBrush(Color.FromRgb(74, 222, 128))
+                            : new SolidColorBrush(Color.FromArgb(110, 139, 157, 174));
                         fill.Freeze();
                         border.Freeze();
-                        var pen = new Pen(border, isSelected ? 3.0 : isIncluded ? 2.0 : 1.0);
+                        var pen = new Pen(border, isIncluded ? 2.0 : 1.0);
                         pen.Freeze();
                         context.DrawGeometry(fill, pen, boundary);
                         var label = CCellPreviewDrawing.CreateCellLabel(cellNo, boundary.Bounds, canvasWidth, canvasHeight, isSelected);
@@ -661,7 +743,7 @@ namespace Drilling.UI.Menu.Menus
                 drawing.Freeze();
                 var image = new DrawingImage(drawing);
                 image.Freeze();
-                return new ST_REVIEW_DATA_GLASS_PREVIEW(image, labels, canvasWidth, canvasHeight);
+                return new ST_REVIEW_DATA_GLASS_PREVIEW(image, labels, canvasWidth, canvasHeight, frameBounds);
             }
 
             private static ImageSource? BuildReviewDataShotMap(
@@ -803,6 +885,8 @@ namespace Drilling.UI.Menu.Menus
 
             private void ClearLoadedDisplay()
             {
+                ResetReinspectionState();
+                Interlocked.Increment(ref _shotMapRenderVersion);
                 _hasLoadedData = false;
                 _loadedParameters = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                 _resultCellNos = new HashSet<int>();
@@ -816,6 +900,7 @@ namespace Drilling.UI.Menu.Menus
                 _selectedShotKey = "";
                 GlassPreviewImage = null;
                 ShotMapImage = null;
+                Camera.Clear();
                 CellLabels = [];
                 Rows = [];
                 SelectedRow = null;
@@ -837,6 +922,7 @@ namespace Drilling.UI.Menu.Menus
                 Notify(nameof(IsDataLoading));
                 Notify(nameof(ShowDataPlaceholder));
                 NotifyLoadCommandState();
+                NotifyReinspectionCommandState();
             }
 
             private void SetLoadProgress(double value, string text)
@@ -886,6 +972,7 @@ namespace Drilling.UI.Menu.Menus
                 Notify(nameof(ShotMapSurfaceWidth));
                 Notify(nameof(ShotMapSurfaceHeight));
                 NotifyLoadCommandState();
+                NotifyReinspectionCommandState();
             }
         }
 
@@ -900,7 +987,8 @@ namespace Drilling.UI.Menu.Menus
             ImageSource Image,
             IReadOnlyList<ST_REVIEW_DATA_CELL_LABEL> CellLabels,
             double Width,
-            double Height);
+            double Height,
+            Rect GlassBounds);
 
         public sealed record ST_REVIEW_DATA_CELL_LABEL(
             int CellNo,
@@ -946,6 +1034,7 @@ namespace Drilling.UI.Menu.Menus
             int GroupCountY,
             bool IsResolved)
         {
+            public bool IsReinspectionSelected { get; set; }
             public string Head => $"H{HeadNo:00}";
             public string Cell => $"CELL{CellNo:00}";
             public string Beam => BeamNo > 0 ? BeamNo.ToString(CultureInfo.InvariantCulture) : "-";

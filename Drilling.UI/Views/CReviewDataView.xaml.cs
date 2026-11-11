@@ -7,6 +7,25 @@ namespace Drilling.UI.Views
     using System.Windows.Threading;
     using Drilling.UI.Menu.Menus;
 
+    internal sealed class CBindingProxy : Freezable
+    {
+        public static readonly DependencyProperty DataProperty = DependencyProperty.Register(
+            nameof(Data),
+            typeof(object),
+            typeof(CBindingProxy));
+
+        public object? Data
+        {
+            get => GetValue(DataProperty);
+            set => SetValue(DataProperty, value);
+        }
+
+        protected override Freezable CreateInstanceCore()
+        {
+            return new CBindingProxy();
+        }
+    }
+
     public partial class CReviewDataView : UserControl
     {
         public CReviewDataView()
@@ -65,6 +84,43 @@ namespace Drilling.UI.Views
                 ReviewDataResultGrid.Dispatcher.BeginInvoke(
                     DispatcherPriority.Background,
                     new Action(() => ReviewDataResultGrid.ScrollIntoView(selectedRow)));
+            }
+        }
+
+        private void ReviewDataResultGrid_LoadingRow(object sender, DataGridRowEventArgs eventArgs)
+        {
+            if (DataContext is CMenuCorrection.CReviewDataPanel panel)
+            {
+                eventArgs.Row.SetCurrentValue(
+                    DataGridRow.IsSelectedProperty,
+                    ReferenceEquals(eventArgs.Row.Item, panel.SelectedRow));
+            }
+        }
+
+        private void ReviewDataReinspectionGrid_SelectionChanged(
+            object sender,
+            SelectionChangedEventArgs eventArgs)
+        {
+            if (sender is DataGrid
+                {
+                    SelectedItem: CMenuCorrection.ST_REVIEW_DATA_REINSPECTION_ITEM item
+                }
+                && DataContext is CMenuCorrection.CReviewDataPanel panel)
+            {
+                panel.SelectReinspectionShot(item);
+            }
+        }
+
+        private void ReviewDataReinspectionCheckBox_Changed(object sender, RoutedEventArgs eventArgs)
+        {
+            if (sender is CheckBox
+                {
+                    DataContext: CMenuCorrection.ST_REVIEW_DATA_GRID_ROW row,
+                    IsChecked: var isChecked
+                }
+                && DataContext is CMenuCorrection.CReviewDataPanel panel)
+            {
+                panel.SetReinspectionRowSelection(row, isChecked == true);
             }
         }
 

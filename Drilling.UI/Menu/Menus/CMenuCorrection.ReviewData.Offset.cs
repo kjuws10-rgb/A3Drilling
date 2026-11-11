@@ -108,7 +108,13 @@ namespace Drilling.UI.Menu.Menus
                         throw new InvalidOperationException("팝업을 확인하는 동안 Review Offset 파일이 변경되었습니다. DATA LOAD 상태는 유지되므로 OFFSET APPLY를 다시 열어 확인해 주세요.");
                     }
 
-                    var saved = await Task.Run(() => _reviewOffsetFile.SaveNew(recipe.Id, plan.SavedRows));
+                    var saved = await _saveReviewOffsetFromResult(recipe.Id, plan.SavedRows, sourcePath);
+                    if (saved is null)
+                    {
+                        _statusReporter("Review Data Offset Apply: 동일한 검사 결과의 중복 적용을 취소했습니다.");
+                        return;
+                    }
+
                     var message = $"{plan.ApplicationType.Name} / {plan.Rows.Count:N0}개 Shot의 Review Offset을 누적 적용했습니다.\n{saved.FileName}";
                     _statusReporter(message.Replace(Environment.NewLine, " "));
                     CRecipeConfirmDialog.ShowCompletion("Review Data Offset Apply 완료", message);

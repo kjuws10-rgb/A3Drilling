@@ -9,7 +9,8 @@
     public sealed partial class CReviewResultFile(string configRoot) : CReviewResultFileBase
     {
 #region 공유 상태·초기값
-        private static readonly string[] BeamInspectionHeaders = ["SAVED_AT", "RECIPE_ID", "RESULT_STATUS", "STAGE_SIMULATION", "VISION_SIMULATION", "GLASS_NAME", "HEAD_NAME", "CELL_NAME", "SHOT_NAME", ..Enumerable.Range(1, 16).SelectMany(beam => new[] { $"BEAM{beam}_X_MM", $"BEAM{beam}_Y_MM", $"BEAM{beam}_JUDGE" })];
+        private static readonly string[] BeamInspectionBaseHeaders = ["SAVED_AT", "RECIPE_ID", "RESULT_STATUS", "STAGE_SIMULATION", "VISION_SIMULATION", "GLASS_NAME", "HEAD_NAME", "CELL_NAME", "SHOT_NAME", ..Enumerable.Range(1, 16).SelectMany(beam => new[] { $"BEAM{beam}_X_MM", $"BEAM{beam}_Y_MM", $"BEAM{beam}_JUDGE" })];
+        private static readonly string[] BeamInspectionHeaders = ["SAVED_AT", "RECIPE_ID", "RESULT_STATUS", "STAGE_SIMULATION", "VISION_SIMULATION", "GLASS_NAME", "HEAD_NAME", "CELL_NAME", "SHOT_NAME", "SHIFT_OFFSET_X", "SHIFT_OFFSET_Y", ..Enumerable.Range(1, 16).SelectMany(beam => new[] { $"BEAM{beam}_X_MM", $"BEAM{beam}_Y_MM", $"BEAM{beam}_JUDGE" })];
         private static readonly IReadOnlyList<string> Headers = [
             "SAVED_AT", 
             "GLASS_ID", 
@@ -24,6 +25,8 @@
             "REFERENCE_SHOT", 
             "ROUGH_REFERENCE", 
             "FINE_LINE_COUNT", 
+            "SHIFT_OFFSET_X",
+            "SHIFT_OFFSET_Y",
             "RESULT_SOURCE", 
             "SHOT_NAME", 
             "ROW", 
@@ -89,7 +92,9 @@
                 RoughReference = CCsvParser.Get(metadataRow, "ROUGH_REFERENCE"),
                 FineLineCount = ReadOptionalInt(metadataRow, "FINE_LINE_COUNT", 0),
                 Origin = CCsvParser.Get(metadataRow, "ORIGIN"),
-                LineCount = ReadOptionalInt(metadataRow, "LINE_COUNT", 0)
+                LineCount = ReadOptionalInt(metadataRow, "LINE_COUNT", 0),
+                ShiftOffsetX = ReadOptionalDouble(metadataRow, "SHIFT_OFFSET_X"),
+                ShiftOffsetY = ReadOptionalDouble(metadataRow, "SHIFT_OFFSET_Y")
             });
         }
 
@@ -125,6 +130,231 @@
                 _lastSavedPath = resultPath;
             }
             return Task.CompletedTask;
+        }
+
+        public override Task<string> SaveReinspectionRevision(
+            ST_REVIEW_RESULT_FILE_DATA source,
+            IReadOnlyList<ST_REVIEW_REINSPECTION_UPDATE> updates,
+            DateTimeOffset savedAt,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            ArgumentNullException.ThrowIfNull(source);
+            ArgumentNullException.ThrowIfNull(updates);
+            if (updates.Count == 0)
+            {
+                throw new InvalidDataException("재검사 결과 저장 대상이 없습니다.");
+            }
+
+            var sourcePath = Path.GetFullPath(source.FilePath);
+            if (!System.IO.File.Exists(sourcePath))
+            {
+                throw new FileNotFoundException("BASE 검사 결과 파일을 찾을 수 없습니다.", sourcePath);
+            }
+
+            var headers = CCsvParser.ReadHeaders(sourcePath);
+            if (headers.Count == 0)
+            {
+                throw new InvalidDataException("BASE 검사 결과 파일의 CSV 헤더가 없습니다.");
+            }
+
+            var headerSet = headers.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            if (headerSet.Contains("BEAM1_JUDGE"))
+            {
+                throw new InvalidOperationException("BEAM INSPECTION 결과는 RE-INSPECTION으로 저장할 수 없습니다.");
+            }
+
+            var rows = CCsvParser.Read(sourcePath)
+                .Select(row => new Dictionary<string, string>(row, StringComparer.OrdinalIgnoreCase))
+                .ToArray();
+            if (rows.Length == 0)
+            {
+                throw new InvalidDataException("BASE 검사 결과 파일에 결과 행이 없습니다.");
+            }
+
+            foreach (var row in rows)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (headerSet.Contains("SAVED_AT"))
+                {
+                    row["SAVED_AT"] = FormatRevisionSavedAt(row.GetValueOrDefault("SAVED_AT") ?? "", savedAt);
+                }
+            }
+
+            var updatedRowIndexes = new HashSet<int>();
+            foreach (var update in updates)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                ValidateReinspectionUpdate(update);
+                var rowIndex = FindReinspectionRowIndex(rows, update);
+                if (!updatedRowIndexes.Add(rowIndex))
+                {
+                    throw new InvalidDataException($"동일한 BASE 결과 행이 재검사 목록에 중복되었습니다. CELL{update.CellNo:00} / {update.ShotName}");
+                }
+
+                ApplyReinspectionUpdate(rows[rowIndex], headerSet, update);
+            }
+
+            var directory = Path.GetDirectoryName(sourcePath)
+                ?? throw new InvalidDataException("BASE 검사 결과 파일의 저장 폴더를 확인할 수 없습니다.");
+            var baseStem = Path.GetFileNameWithoutExtension(sourcePath);
+            var revisionMarker = baseStem.LastIndexOf("_REINSP_", StringComparison.OrdinalIgnoreCase);
+            if (revisionMarker > 0)
+            {
+                baseStem = baseStem[..revisionMarker];
+            }
+
+            var fileStem = $"{baseStem}_REINSP_{savedAt:yyyyMMdd_HHmmss_fff}";
+            _lastSavedPath = WriteUniqueCsv(directory, fileStem, headers, rows, cancellationToken);
+            return Task.FromResult(_lastSavedPath);
+        }
+
+        private static void ValidateReinspectionUpdate(ST_REVIEW_REINSPECTION_UPDATE update)
+        {
+            if (update.CellNo <= 0 || string.IsNullOrWhiteSpace(update.ShotName))
+            {
+                throw new InvalidDataException("재검사 결과의 Cell 또는 Shot 정보가 올바르지 않습니다.");
+            }
+
+            if (update.BeamNo is < 1 or > 16)
+            {
+                throw new InvalidDataException($"재검사 Beam 번호는 1~16이어야 합니다. CELL{update.CellNo:00} / {update.ShotName}");
+            }
+
+            if (!double.IsFinite(update.RawResultX)
+                || !double.IsFinite(update.RawResultY)
+                || !double.IsFinite(update.ResultX)
+                || !double.IsFinite(update.ResultY))
+            {
+                throw new InvalidDataException($"재검사 결과 좌표는 유한한 숫자여야 합니다. CELL{update.CellNo:00} / {update.ShotName}");
+            }
+
+            if (!update.Judge.Equals("OK", StringComparison.OrdinalIgnoreCase)
+                && !update.Judge.Equals("NG", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidDataException($"재검사 판정은 OK 또는 NG여야 합니다. CELL{update.CellNo:00} / {update.ShotName}");
+            }
+        }
+
+        private static int FindReinspectionRowIndex(
+            IReadOnlyList<Dictionary<string, string>> rows,
+            ST_REVIEW_REINSPECTION_UPDATE update)
+        {
+            var candidates = rows
+                .Select((row, index) => (row, index))
+                .Where(pair => IsReinspectionTargetRow(pair.row, update))
+                .ToArray();
+            if (candidates.Length == 0)
+            {
+                throw new InvalidDataException($"BASE 검사 결과에서 재검사 Shot을 찾을 수 없습니다. CELL{update.CellNo:00} / {update.ShotName}");
+            }
+
+            if (candidates.Length == 1)
+            {
+                return candidates[0].index;
+            }
+
+            var beamCandidates = candidates
+                .Where(pair => ReadOptionalInt(pair.row, "BEAM_NO", 0) == update.SourceBeamNo)
+                .ToArray();
+            if (beamCandidates.Length == 1)
+            {
+                return beamCandidates[0].index;
+            }
+
+            throw new InvalidDataException($"BASE 검사 결과에서 재검사 Shot 행을 하나로 식별할 수 없습니다. CELL{update.CellNo:00} / {update.ShotName}");
+        }
+
+        private static bool IsReinspectionTargetRow(
+            IReadOnlyDictionary<string, string> row,
+            ST_REVIEW_REINSPECTION_UPDATE update)
+        {
+            var cellText = ReadFirstText(row, "CELL_NO", "CELL_NAME");
+            var cellDigits = new string(cellText.Where(char.IsDigit).ToArray());
+            if (!int.TryParse(cellDigits, NumberStyles.Integer, CultureInfo.InvariantCulture, out var cellNo)
+                || cellNo != update.CellNo)
+            {
+                return false;
+            }
+
+            var sourceKey = CReviewManager.NormalizeShotKey(ReadFirstText(row, "SHOT_KEY", "HOLE_KEY"));
+            var targetKey = CReviewManager.NormalizeShotKey(update.ShotKey);
+            if (!string.IsNullOrWhiteSpace(sourceKey)
+                && !string.IsNullOrWhiteSpace(targetKey)
+                && sourceKey.Equals(targetKey, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return ReadFirstText(row, "SHOT_NAME")
+                .Equals(update.ShotName, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static void ApplyReinspectionUpdate(
+            IDictionary<string, string> row,
+            IReadOnlySet<string> headers,
+            ST_REVIEW_REINSPECTION_UPDATE update)
+        {
+            SetIfPresent(row, headers, "BEAM_NO", update.BeamNo.ToString(CultureInfo.InvariantCulture));
+
+            var hasCoordinates = false;
+            hasCoordinates |= SetCoordinatePair(row, headers, "RECV_TARGET_MINUS_HOLE_X", "RECV_TARGET_MINUS_HOLE_Y", update.RawResultX, update.RawResultY);
+            hasCoordinates |= SetCoordinatePair(row, headers, "RECV_X", "RECV_Y", update.RawResultX, update.RawResultY);
+            hasCoordinates |= SetCoordinatePair(row, headers, "VISION_FLIP_CONVERT_X", "VISION_FLIP_CONVERT_Y", update.ResultX, update.ResultY);
+            hasCoordinates |= SetCoordinatePair(row, headers, "CONVERTED_X", "CONVERTED_Y", update.ResultX, update.ResultY);
+            hasCoordinates |= SetCoordinatePair(row, headers, "ERROR_X", "ERROR_Y", update.ResultX, update.ResultY);
+            if (!hasCoordinates)
+            {
+                throw new InvalidDataException("BASE 검사 결과 파일에 갱신 가능한 X/Y 결과 열이 없습니다.");
+            }
+
+            SetIfPresent(row, headers, "JUDGE", update.Judge.ToUpperInvariant());
+            SetIfPresent(row, headers, "STATE", update.Judge.ToUpperInvariant());
+            SetIfPresent(row, headers, "RESULT_SOURCE", "MEASURED");
+        }
+
+        private static bool SetCoordinatePair(
+            IDictionary<string, string> row,
+            IReadOnlySet<string> headers,
+            string xHeader,
+            string yHeader,
+            double x,
+            double y)
+        {
+            var hasX = headers.Contains(xHeader);
+            var hasY = headers.Contains(yHeader);
+            if (hasX != hasY)
+            {
+                throw new InvalidDataException($"BASE 검사 결과의 {xHeader}/{yHeader} 열 구성이 올바르지 않습니다.");
+            }
+
+            if (!hasX)
+            {
+                return false;
+            }
+
+            row[xHeader] = FormatDouble(x);
+            row[yHeader] = FormatDouble(y);
+            return true;
+        }
+
+        private static void SetIfPresent(
+            IDictionary<string, string> row,
+            IReadOnlySet<string> headers,
+            string header,
+            string value)
+        {
+            if (headers.Contains(header))
+            {
+                row[header] = value;
+            }
+        }
+
+        private static string FormatRevisionSavedAt(string sourceValue, DateTimeOffset savedAt)
+        {
+            return sourceValue.Contains('T')
+                ? savedAt.ToString("O", CultureInfo.InvariantCulture)
+                : FormatDate(savedAt);
         }
 
         private static IReadOnlyList<ST_REVIEW_RESULT_FILE_ROW> ToResultRows(IReadOnlyDictionary<string, string> row, int rowNo)
@@ -226,6 +456,8 @@
                 ["REFERENCE_SHOT"] = metadata.ReferenceShot,
                 ["ROUGH_REFERENCE"] = metadata.RoughReference,
                 ["FINE_LINE_COUNT"] = metadata.FineLineCount > 0 ? metadata.FineLineCount.ToString(CultureInfo.InvariantCulture) : "",
+                ["SHIFT_OFFSET_X"] = FormatDouble(plan.ShiftOffsetX),
+                ["SHIFT_OFFSET_Y"] = FormatDouble(plan.ShiftOffsetY),
                 ["RESULT_SOURCE"] = "MEASURED",
                 ["SHOT_NAME"] = shotName,
                 ["ROW"] = rowNo.ToString(CultureInfo.InvariantCulture),
@@ -347,6 +579,16 @@
         private static double ReadOptionalFiniteDouble(IReadOnlyDictionary<string, string> row, params string[] names)
         {
             return ReadOptionalNullableFiniteDouble(row, names) ?? 0.0;
+        }
+
+        private static double ReadOptionalDouble(IReadOnlyDictionary<string, string> row, string name)
+        {
+            var text = CCsvParser.Get(row, name);
+            if (string.IsNullOrWhiteSpace(text))
+                return 0.0;
+            if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) || !double.IsFinite(value))
+                throw new InvalidDataException($"Review Result validation failed. {name} must be a finite number.");
+            return value;
         }
 
         private static double? ReadOptionalNullableFiniteDouble(IReadOnlyDictionary<string, string> row, params string[] names)
@@ -494,7 +736,9 @@
                     ["GLASS_NAME"] = string.IsNullOrWhiteSpace(glassId) ? "UNLINKED" : glassId,
                     ["HEAD_NAME"] = $"HEAD {point.HeadNo:00}",
                     ["CELL_NAME"] = $"CELL {point.CellNo:00}",
-                    ["SHOT_NAME"] = CReviewShotNameFormatter.ToMatrixName(point.ShotNo, point.PixelCountX)
+                    ["SHOT_NAME"] = CReviewShotNameFormatter.ToMatrixName(point.ShotNo, point.PixelCountX),
+                    ["SHIFT_OFFSET_X"] = FormatDouble(result.ShiftOffsetX),
+                    ["SHIFT_OFFSET_Y"] = FormatDouble(result.ShiftOffsetY)
                 };
                 for (var beam = 1; beam <= 16; beam++)
                 {
@@ -548,12 +792,17 @@
                 };
                 parser.SetDelimiters(",");
                 var headers = parser.ReadFields()?.Select(header => header.Trim()).ToArray();
-                if (headers is null || headers.Length != BeamInspectionHeaders.Length || headers.Distinct(StringComparer.OrdinalIgnoreCase).Count() != BeamInspectionHeaders.Length || !headers.ToHashSet(StringComparer.OrdinalIgnoreCase).SetEquals(BeamInspectionHeaders))
-                    throw new InvalidDataException($"CSV 헤더에는 Beam Inspection 메타데이터와 1~16번 Beam의 X_MM/Y_MM/JUDGE, 총 {BeamInspectionHeaders.Length}개 열이 필요합니다.");
+                var headerSet = headers?.ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var hasShiftOffset = headerSet?.SetEquals(BeamInspectionHeaders) == true;
+                var isBaseFormat = headerSet?.SetEquals(BeamInspectionBaseHeaders) == true;
+                if (headers is null || headers.Distinct(StringComparer.OrdinalIgnoreCase).Count() != headers.Length || !hasShiftOffset && !isBaseFormat)
+                    throw new InvalidDataException("CSV 헤더에는 Beam Inspection 메타데이터, 선택적인 SHIFT_OFFSET_X/Y와 1~16번 Beam의 X_MM/Y_MM/JUDGE가 필요합니다.");
                 var indexes = headers.Select((name, index) => (name, index)).ToDictionary(pair => pair.name, pair => pair.index, StringComparer.OrdinalIgnoreCase);
                 var shots = new List<ST_BEAM_INSPECTION_RESULT_SHOT>();
                 var identities = new HashSet<(int Head, int Cell, string Shot)>();
                 string? glassName = null;
+                double? shiftOffsetX = null;
+                double? shiftOffsetY = null;
                 while (!parser.EndOfData)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
@@ -561,8 +810,8 @@
                     var fields = parser.ReadFields();
                     if (fields is null)
                         break;
-                    if (fields.Length != BeamInspectionHeaders.Length)
-                        throw Error(rowNo, $"열 개수가 {fields.Length}개입니다. 각 Shot 행에는 {BeamInspectionHeaders.Length}개 열이 필요합니다.");
+                    if (fields.Length != headers.Length)
+                        throw Error(rowNo, $"열 개수가 {fields.Length}개입니다. 헤더와 동일한 {headers.Length}개 열이 필요합니다.");
                     string Get(string name) => fields[indexes[name]];
                     string RequireName(string name)
                     {
@@ -579,6 +828,15 @@
                     var headName = RequireName("HEAD_NAME");
                     var cellName = RequireName("CELL_NAME");
                     var shotName = RequireName("SHOT_NAME");
+                    if (hasShiftOffset)
+                    {
+                        var rowShiftX = ReadFiniteValue(Get("SHIFT_OFFSET_X"), rowNo, "SHIFT_OFFSET_X");
+                        var rowShiftY = ReadFiniteValue(Get("SHIFT_OFFSET_Y"), rowNo, "SHIFT_OFFSET_Y");
+                        if (shiftOffsetX.HasValue && (shiftOffsetX.Value != rowShiftX || shiftOffsetY!.Value != rowShiftY))
+                            throw Error(rowNo, "한 결과 파일의 SHIFT_OFFSET_X/Y는 모든 Shot 행에서 같아야 합니다.");
+                        shiftOffsetX = rowShiftX;
+                        shiftOffsetY = rowShiftY;
+                    }
                     var headNo = ReadNameNumber(headName, "HEAD", rowNo);
                     var cellNo = ReadNameNumber(cellName, "CELL", rowNo);
                     if (headNo > 8)
@@ -624,7 +882,11 @@
                 var savedAt = DateTimeOffset.TryParse(metadata.GetValueOrDefault("SAVED_AT"), CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var parsedSavedAt)
                     ? parsedSavedAt
                     : new DateTimeOffset(latest.LastWriteTimeUtc).ToLocalTime();
-                return new(latest.FullName, latest.Name, savedAt, simulation, glassName!, shots.AsReadOnly());
+                return new(latest.FullName, latest.Name, savedAt, simulation, glassName!, shots.AsReadOnly())
+                {
+                    ShiftOffsetX = shiftOffsetX ?? 0.0,
+                    ShiftOffsetY = shiftOffsetY ?? 0.0
+                };
             }
             catch (Exception exception)when (exception is InvalidDataException or IOException or UnauthorizedAccessException or MalformedLineException or DecoderFallbackException)
             {
@@ -643,8 +905,20 @@
 
         private static double ReadFinite(string text, long rowNo, int beam, string name)
         {
+            try
+            {
+                return ReadFiniteValue(text, rowNo, name);
+            }
+            catch (InvalidDataException exception)
+            {
+                throw Error(rowNo, $"Beam {beam}: {exception.Message}");
+            }
+        }
+
+        private static double ReadFiniteValue(string text, long rowNo, string name)
+        {
             if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) || !double.IsFinite(value))
-                throw Error(rowNo, $"Beam {beam}: {name}은 유한한 숫자여야 합니다. 소수점은 '.'을 사용하세요. 입력: {text}");
+                throw new InvalidDataException($"{name}은 유한한 숫자여야 합니다. 소수점은 '.'을 사용하세요. 입력: {text}");
             return value;
         }
 
@@ -754,6 +1028,8 @@
                 "INDEX_Y", 
                 "DESIGN_X", 
                 "DESIGN_Y", 
+                "SHIFT_OFFSET_X",
+                "SHIFT_OFFSET_Y",
                 "REVIEW_X_TARGET", 
                 "STAGE_Y_TARGET", 
                 "VISION_X_FLIP", 
@@ -807,6 +1083,8 @@
                     ["INDEX_Y"] = Int(indexY),
                     ["DESIGN_X"] = Number(point.DesignX),
                     ["DESIGN_Y"] = Number(point.DesignY),
+                    ["SHIFT_OFFSET_X"] = Number(plan.ShiftOffsetX),
+                    ["SHIFT_OFFSET_Y"] = Number(plan.ShiftOffsetY),
                     ["REVIEW_X_TARGET"] = Number(point.ReviewTargetX),
                     ["STAGE_Y_TARGET"] = Number(point.ReviewTargetY),
                     ["VISION_X_FLIP"] = plan.VisionFlipType.HasFlag(EN_VISION_FLIP_TYPE.XFlip) ? "ON" : "OFF",
@@ -867,6 +1145,8 @@
                 "INDEX_Y", 
                 "DESIGN_X", 
                 "DESIGN_Y", 
+                "SHIFT_OFFSET_X",
+                "SHIFT_OFFSET_Y",
                 "REVIEW_X_TARGET", 
                 "STAGE_Y_TARGET", 
                 "VISION_X_FLIP", 
@@ -916,6 +1196,8 @@
                     ["INDEX_Y"] = Int(y),
                     ["DESIGN_X"] = Number(point.DesignX),
                     ["DESIGN_Y"] = Number(point.DesignY),
+                    ["SHIFT_OFFSET_X"] = Number(result.Plan.ShiftOffsetX),
+                    ["SHIFT_OFFSET_Y"] = Number(result.Plan.ShiftOffsetY),
                     ["REVIEW_X_TARGET"] = Number(point.ReviewTargetX),
                     ["STAGE_Y_TARGET"] = Number(point.ReviewTargetY),
                     ["VISION_X_FLIP"] = flip.HasFlag(EN_VISION_FLIP_TYPE.XFlip) ? "ON" : "OFF",

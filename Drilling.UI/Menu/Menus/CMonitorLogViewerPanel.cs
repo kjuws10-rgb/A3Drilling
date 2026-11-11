@@ -37,6 +37,8 @@
         public IReadOnlyList<CLogTreeNode> TreeRoots { get; }
         public bool IsTreeBusy => _isTreeBusy;
         public bool IsBusy { get; private set; }
+        public double LoadProgress { get; private set; }
+        public string LoadProgressText { get; private set; } = "0% · 로그 파일 준비 중";
         public CButtonCommand RefreshTreeCommand { get; }
 
         public Task InitializeAsync() => _initializeTask ??= ExpandDirectoryAsync(TreeRoots[0]);
@@ -125,17 +127,30 @@
             FilePath = "";
             Text = "";
             IsBusy = true;
+            LoadProgress = 0.0;
+            LoadProgressText = "0% · 로그 파일 준비 중";
             Status = "로그를 읽고 있습니다...";
             NotifyView();
             try
             {
                 // Read/decode off the UI thread. Cancel an old selection; only publish the latest file.
-                var file = await Task.Run(() => CLogTextReader.ReadAllAsync(_fileScope.ResolveFile(path), cts.Token), cts.Token);
+                var progress = new Progress<double>(value =>
+                {
+                    if (version != _readVersion || !IsBusy)
+                        return;
+                    LoadProgress = Math.Clamp(value, 0.0, 100.0);
+                    LoadProgressText = $"{LoadProgress:0}% · 로그 파일 읽는 중";
+                    Notify(nameof(LoadProgress));
+                    Notify(nameof(LoadProgressText));
+                });
+                var file = await CLogTextReader.ReadAllAsync(_fileScope.ResolveFile(path), progress, cts.Token);
                 if (version != _readVersion)
                     return;
                 FilePath = Path.GetFullPath(path);
                 _lastOpenedDirectory = Path.GetDirectoryName(FilePath);
                 Text = file.Text;
+                LoadProgress = 100.0;
+                LoadProgressText = "100% · 로그 표시 완료";
                 Status = Text.Length == 0 ? "내용이 없는 파일입니다." : $"{file.FileLength / 1024.0:N1} KB · 읽기 전용 · 전체 내용";
             }
             catch (OperationCanceledException) when (cts.IsCancellationRequested)
@@ -167,7 +182,9 @@
                 nameof(FilePath),
                 nameof(Text),
                 nameof(Status),
-                nameof(IsBusy)
+                nameof(IsBusy),
+                nameof(LoadProgress),
+                nameof(LoadProgressText)
             }
 
             )
