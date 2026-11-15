@@ -153,6 +153,38 @@ public partial class CMonitorView : UserControl
         HideCoordinateGlassPreviewHoverTip();
     }
 
+    private async void CoordinateShotMap_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        var monitor = _rootView?.CurrentScreen.Monitor ?? _monitorMenu;
+        if (sender is not FrameworkElement shotMap || monitor is null)
+        {
+            return;
+        }
+
+        var point = e.GetPosition(shotMap);
+        e.Handled = true;
+        await monitor.SelectCoordinateShotAt(point.X, point.Y);
+    }
+
+    private async void CoordinateShotCoordinateGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        var monitor = _rootView?.CurrentScreen.Monitor ?? _monitorMenu;
+        if (sender is not DataGrid grid ||
+            grid.SelectedItem is not ST_MONITOR_COORDINATE_SHOT_COORDINATE_ROW row ||
+            monitor is null)
+        {
+            return;
+        }
+
+        grid.ScrollIntoView(row);
+        if (row.IsSelected)
+        {
+            return;
+        }
+
+        await monitor.SelectCoordinateShotFromGrid(row.ShotKey);
+    }
+
     private void PositionCoordinateGlassPreviewHoverTip(Point pointer)
     {
         const double margin = 4.0;

@@ -94,7 +94,7 @@
                             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
                             <Grid Margin="0,0,0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                 <TextBlock Text="GLASS VIEW" Style="{StaticResource SetupTitle}" />
-                                <TextBlock Grid.Column="1" Text="● 예상 가공점" FontSize="10" Foreground="{DynamicResource ButtonPrimaryBrush}" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Text="＋ AK1/AK3  ┆ 실측 중앙  ● 예상 가공점" FontSize="9" Foreground="{DynamicResource ButtonPrimaryBrush}" VerticalAlignment="Center" />
                             </Grid>
                             <Border Grid.Row="1" Background="#F5F5F5" BorderBrush="{DynamicResource GridLineBrush}" BorderThickness="1" CornerRadius="3" ClipToBounds="True">
                                 <Viewbox x:Name="DefaultGlassPreview" Stretch="Uniform">
@@ -151,7 +151,7 @@
                             </Border>
                         </Grid>
                         <UniformGrid Grid.Row="1" Columns="3" VerticalAlignment="Center" Margin="0,6,0,0">
-                            <StackPanel><TextBlock Text="기판 중앙 X (mm)" Style="{StaticResource SetupCaption}" /><TextBlock Text="{Binding BoardReference}" Style="{StaticResource SetupValue}" Margin="0,3,0,0" /></StackPanel>
+                            <StackPanel><TextBlock Text="AK1·AK3 중앙 X (mm)" Style="{StaticResource SetupCaption}" /><TextBlock Text="{Binding BoardReference}" Style="{StaticResource SetupValue}" Margin="0,3,0,0" /></StackPanel>
                             <StackPanel><TextBlock Text="Stage Y 현재 (mm)" Style="{StaticResource SetupCaption}" /><TextBlock Text="{Binding StageY}" Style="{StaticResource SetupValue}" Margin="0,3,0,0" /></StackPanel>
                             <StackPanel><TextBlock Text="Review X 현재 (mm)" Style="{StaticResource SetupCaption}" /><TextBlock Text="{Binding ReviewX}" Style="{StaticResource SetupValue}" Margin="0,3,0,0" /></StackPanel>
                         </UniformGrid>

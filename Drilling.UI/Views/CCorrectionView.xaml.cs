@@ -2,13 +2,55 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Drilling.UI.Menu.Menus;
+using Drilling.UI.Popup;
 
 namespace Drilling.UI.Views;
 public partial class CCorrectionView : UserControl
 {
+    private TabItem? _lastCorrectionReviewTab;
+    private bool _restoringCorrectionReviewTab;
+
     public CCorrectionView()
     {
         InitializeComponent();
+    }
+
+    private void CorrectionReviewTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_restoringCorrectionReviewTab || e.OriginalSource != sender || sender is not TabControl tabs || tabs.SelectedItem is not TabItem selected)
+            return;
+
+        if (DataContext is not CRootView root || root.CurrentScreen.Correction is not CMenuCorrection correction)
+        {
+            _lastCorrectionReviewTab = selected;
+            return;
+        }
+
+        var review = root.CurrentScreen.Review;
+        if (review?.IsReviewExecutionActive == true && !ReferenceEquals(selected, _lastCorrectionReviewTab))
+        {
+            RestoreCorrectionReviewTab(tabs);
+            CRecipeConfirmDialog.ShowWarning("검사 진행 중", "현재 검사를 중지한 후 다른 탭으로 이동해 주세요.");
+            return;
+        }
+
+        if (selected.Tag is string mode && !correction.TrySelectReviewInspectionMode(mode))
+        {
+            RestoreCorrectionReviewTab(tabs);
+            return;
+        }
+
+        _lastCorrectionReviewTab = selected;
+    }
+
+    private void RestoreCorrectionReviewTab(TabControl tabs)
+    {
+        if (_lastCorrectionReviewTab is null)
+            return;
+
+        _restoringCorrectionReviewTab = true;
+        tabs.SelectedItem = _lastCorrectionReviewTab;
+        _restoringCorrectionReviewTab = false;
     }
 
     private void SelectOutputViewerShotFromMap(object sender, MouseButtonEventArgs e)

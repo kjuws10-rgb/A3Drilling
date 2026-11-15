@@ -134,12 +134,20 @@ public sealed class CManager
             _logManager, 
             GetScriptDirectory(), 
             _recipeManager, 
-            _reviewManager
+            _reviewManager,
+            HandleProtectWindowRetryExhausted
         );
         AddStartupStep("Create Station Manager", EN_MANAGER_STARTUP_RESULT.Ready, $"Script={GetScriptDirectory()}");
         _stationManager.StageRequests.Failed += _alarmManager.SetSequenceFailure;
         _interfaceManager.StageReviewSequences.Failed += _alarmManager.SetSequenceFailure;
         AddStartupStep("Create Menu Managers", EN_MANAGER_STARTUP_RESULT.Ready, "Recipe/Setting managers created.");
+    }
+
+    private void HandleProtectWindowRetryExhausted(ST_PROTECT_WINDOW_RETRY_EXHAUSTED exhausted)
+    {
+        var detail = FormattableString.Invariant($"Recipe={exhausted.RecipeId}; TrayCount={exhausted.TrayCount}; Maximum={exhausted.MaximumCount}; RetryCount={exhausted.RetryCount}; AUTO continues.");
+        _logManager.WriteStationState("PROTECT_WINDOW", "WARNING", "PROTECT_WINDOW_RETRY_EXHAUSTED", detail);
+        _alarmManager.SetAlarm("PROTECT_WINDOW_RETRY_EXHAUSTED");
     }
 
     public string ConfigRoot

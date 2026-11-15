@@ -16,6 +16,7 @@
             "GLASS_ID", 
             "RECIPE_ID", 
             "INSPECTION_METHOD", 
+            "RUN_TYPE",
             "RESULT_STATUS", 
             "TOTAL_COUNT", 
             "RULE", 
@@ -43,6 +44,8 @@
             "RECV_TARGET_MINUS_HOLE_Y",
             "VISION_FLIP_CONVERT_X",
             "VISION_FLIP_CONVERT_Y",
+            "VISION_RESULT_CODE",
+            "NG_REASON",
             "JUDGE"
         ];
         private readonly string _reviewRoot = Path.Combine(Directory.GetParent(configRoot)?.FullName ?? configRoot, "Data", "Review");
@@ -82,6 +85,7 @@
             {
                 GlassId = ReadFirstText(metadataRow, "GLASS_ID", "GLASS_NAME"),
                 InspectionMethod = ReadFirstText(metadataRow, "INSPECTION_METHOD", "METHOD"),
+                RunType = ReadFirstText(metadataRow, "RUN_TYPE", "ORIGIN"),
                 ResultStatus = NormalizeResultStatus(ReadFirstText(metadataRow, "RESULT_STATUS", "STATE")),
                 TotalCount = ReadOptionalInt(metadataRow, "TOTAL_COUNT", rows.Length),
                 Rule = CCsvParser.Get(metadataRow, "RULE"),
@@ -120,7 +124,10 @@
             _lastSavedPath = null;
             if (string.IsNullOrWhiteSpace(result.TargetFilePath))
             {
-                var directory = ManualDirectory(result.Plan.RecipeId, "ALL_SHOT");
+                var resultType = result.Plan.ResultType.Equals("ONE_LINE", StringComparison.OrdinalIgnoreCase)
+                    ? "ONE_LINE"
+                    : "ALL_SHOT";
+                var directory = ManualDirectory(result.Plan.RecipeId, resultType);
                 _lastSavedPath = WriteUniqueCsv(directory, ResultFileStem(result.GlassId, result.SavedAt), Headers, rows.Select(point => ToRow(result, point, metadata)), cancellationToken);
             }
             else
@@ -138,12 +145,58 @@
             DateTimeOffset savedAt,
             CancellationToken cancellationToken = default)
         {
+            return SaveRevision(
+                source,
+                updates,
+                savedAt,
+                "REINSP",
+                ApplyReinspectionUpdate,
+                cancellationToken);
+        }
+
+        public override Task<string> SaveEditedRevision(
+            ST_REVIEW_RESULT_FILE_DATA source,
+            IReadOnlyList<ST_REVIEW_RESULT_EDIT_UPDATE> updates,
+            DateTimeOffset savedAt,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(updates);
+            var revisionUpdates = updates
+                .Select(update => new ST_REVIEW_REINSPECTION_UPDATE(
+                    update.CellNo,
+                    update.ShotKey,
+                    update.ShotName,
+                    update.SourceBeamNo,
+                    update.SourceBeamNo,
+                    update.ResultX,
+                    update.ResultY,
+                    update.ResultX,
+                    update.ResultY,
+                    update.Judge))
+                .ToArray();
+            return SaveRevision(
+                source,
+                revisionUpdates,
+                savedAt,
+                "EDIT",
+                ApplyEditedResultUpdate,
+                cancellationToken);
+        }
+
+        private Task<string> SaveRevision(
+            ST_REVIEW_RESULT_FILE_DATA source,
+            IReadOnlyList<ST_REVIEW_REINSPECTION_UPDATE> updates,
+            DateTimeOffset savedAt,
+            string revisionType,
+            Action<IDictionary<string, string>, IReadOnlySet<string>, ST_REVIEW_REINSPECTION_UPDATE> applyUpdate,
+            CancellationToken cancellationToken)
+        {
             cancellationToken.ThrowIfCancellationRequested();
             ArgumentNullException.ThrowIfNull(source);
             ArgumentNullException.ThrowIfNull(updates);
             if (updates.Count == 0)
             {
-                throw new InvalidDataException("재검사 결과 저장 대상이 없습니다.");
+                throw new InvalidDataException("결과 갱신 대상이 없습니다.");
             }
 
             var sourcePath = Path.GetFullPath(source.FilePath);
@@ -161,7 +214,7 @@
             var headerSet = headers.ToHashSet(StringComparer.OrdinalIgnoreCase);
             if (headerSet.Contains("BEAM1_JUDGE"))
             {
-                throw new InvalidOperationException("BEAM INSPECTION 결과는 RE-INSPECTION으로 저장할 수 없습니다.");
+                throw new InvalidOperationException("BEAM INSPECTION 결과는 결과 갱신 파일로 저장할 수 없습니다.");
             }
 
             var rows = CCsvParser.Read(sourcePath)
@@ -189,24 +242,29 @@
                 var rowIndex = FindReinspectionRowIndex(rows, update);
                 if (!updatedRowIndexes.Add(rowIndex))
                 {
-                    throw new InvalidDataException($"동일한 BASE 결과 행이 재검사 목록에 중복되었습니다. CELL{update.CellNo:00} / {update.ShotName}");
+                    throw new InvalidDataException($"동일한 BASE 결과 행이 갱신 목록에 중복되었습니다. CELL{update.CellNo:00} / {update.ShotName}");
                 }
 
-                ApplyReinspectionUpdate(rows[rowIndex], headerSet, update);
+                applyUpdate(rows[rowIndex], headerSet, update);
             }
 
             var directory = Path.GetDirectoryName(sourcePath)
                 ?? throw new InvalidDataException("BASE 검사 결과 파일의 저장 폴더를 확인할 수 없습니다.");
-            var baseStem = Path.GetFileNameWithoutExtension(sourcePath);
-            var revisionMarker = baseStem.LastIndexOf("_REINSP_", StringComparison.OrdinalIgnoreCase);
-            if (revisionMarker > 0)
-            {
-                baseStem = baseStem[..revisionMarker];
-            }
-
-            var fileStem = $"{baseStem}_REINSP_{savedAt:yyyyMMdd_HHmmss_fff}";
+            var baseStem = StripRevisionSuffix(Path.GetFileNameWithoutExtension(sourcePath));
+            var fileStem = $"{baseStem}_{revisionType}_{savedAt:yyyyMMdd_HHmmss_fff}";
             _lastSavedPath = WriteUniqueCsv(directory, fileStem, headers, rows, cancellationToken);
             return Task.FromResult(_lastSavedPath);
+        }
+
+        private static string StripRevisionSuffix(string fileStem)
+        {
+            var markers = new[]
+            {
+                fileStem.LastIndexOf("_REINSP_", StringComparison.OrdinalIgnoreCase),
+                fileStem.LastIndexOf("_EDIT_", StringComparison.OrdinalIgnoreCase)
+            };
+            var marker = markers.Where(index => index > 0).DefaultIfEmpty(-1).Min();
+            return marker > 0 ? fileStem[..marker] : fileStem;
         }
 
         private static void ValidateReinspectionUpdate(ST_REVIEW_REINSPECTION_UPDATE update)
@@ -311,6 +369,35 @@
             SetIfPresent(row, headers, "JUDGE", update.Judge.ToUpperInvariant());
             SetIfPresent(row, headers, "STATE", update.Judge.ToUpperInvariant());
             SetIfPresent(row, headers, "RESULT_SOURCE", "MEASURED");
+            SetIfPresent(row, headers, "VISION_RESULT_CODE", "");
+            SetIfPresent(row, headers, "NG_REASON", update.Judge.Equals("NG", StringComparison.OrdinalIgnoreCase) ? CReviewNgReasons.Reinspection : "");
+        }
+
+        private static void ApplyEditedResultUpdate(
+            IDictionary<string, string> row,
+            IReadOnlySet<string> headers,
+            ST_REVIEW_REINSPECTION_UPDATE update)
+        {
+            var hasCoordinates = false;
+            hasCoordinates |= SetCoordinatePair(row, headers, "VISION_FLIP_CONVERT_X", "VISION_FLIP_CONVERT_Y", update.ResultX, update.ResultY);
+            hasCoordinates |= SetCoordinatePair(row, headers, "CONVERTED_X", "CONVERTED_Y", update.ResultX, update.ResultY);
+            hasCoordinates |= SetCoordinatePair(row, headers, "ERROR_X", "ERROR_Y", update.ResultX, update.ResultY);
+            if (!hasCoordinates)
+            {
+                hasCoordinates |= SetCoordinatePair(row, headers, "RECV_TARGET_MINUS_HOLE_X", "RECV_TARGET_MINUS_HOLE_Y", update.ResultX, update.ResultY);
+                hasCoordinates |= SetCoordinatePair(row, headers, "RECV_X", "RECV_Y", update.ResultX, update.ResultY);
+            }
+
+            if (!hasCoordinates)
+            {
+                throw new InvalidDataException("BASE 검사 결과 파일에 수정 가능한 X/Y 결과 열이 없습니다.");
+            }
+
+            SetIfPresent(row, headers, "JUDGE", update.Judge.ToUpperInvariant());
+            SetIfPresent(row, headers, "STATE", update.Judge.ToUpperInvariant());
+            SetIfPresent(row, headers, "RESULT_SOURCE", "EDITED");
+            SetIfPresent(row, headers, "VISION_RESULT_CODE", "");
+            SetIfPresent(row, headers, "NG_REASON", update.Judge.Equals("NG", StringComparison.OrdinalIgnoreCase) ? "RESULT_EDIT" : "");
         }
 
         private static bool SetCoordinatePair(
@@ -428,7 +515,9 @@
                 GroupRow = ReadOneBasedIndex(row, "INDEX_Y", "ROW"),
                 DesignX = ReadOptionalNullableFiniteDouble(row, "DESIGN_X"),
                 DesignY = ReadOptionalNullableFiniteDouble(row, "DESIGN_Y"),
-                ResultSource = CCsvParser.Get(row, "RESULT_SOURCE").Trim().ToUpperInvariant()
+                ResultSource = CCsvParser.Get(row, "RESULT_SOURCE").Trim().ToUpperInvariant(),
+                VisionResultCode = ReadOptionalNullableInt(row, "VISION_RESULT_CODE"),
+                NgReason = CCsvParser.Get(row, "NG_REASON").Trim().ToUpperInvariant()
             };
         }
 
@@ -447,6 +536,7 @@
                 ["GLASS_ID"] = result.GlassId,
                 ["RECIPE_ID"] = plan.RecipeId,
                 ["INSPECTION_METHOD"] = result.InspectionMethod,
+                ["RUN_TYPE"] = plan.ResultType,
                 ["RESULT_STATUS"] = NormalizeResultStatus(result.ResultStatus),
                 ["TOTAL_COUNT"] = Math.Max(result.TotalCount, plan.ReviewPoints.Count).ToString(CultureInfo.InvariantCulture),
                 ["RULE"] = metadata.Rule,
@@ -474,6 +564,8 @@
                 ["RECV_TARGET_MINUS_HOLE_Y"] = FormatDouble(point.ErrorY),
                 ["VISION_FLIP_CONVERT_X"] = FormatDouble(converted.X),
                 ["VISION_FLIP_CONVERT_Y"] = FormatDouble(converted.Y),
+                ["VISION_RESULT_CODE"] = point.VisionResultCode?.ToString(CultureInfo.InvariantCulture) ?? "",
+                ["NG_REASON"] = point.NgReason,
                 ["JUDGE"] = point.Judge
             };
         }
@@ -937,7 +1029,8 @@
                 "STAGE_SIMULATION", "VISION_SIMULATION", "HEAD_NO", "CELL_NO", "SHOT_NAME", "SHOT_KEY", "BEAM_NO",
                 "DESIGN_X", "DESIGN_Y", "REVIEW_X_TARGET", "STAGE_Y_TARGET", "RESOLUTION", "CAMERA_RESOLUTION",
                 "TARGET_X", "TARGET_Y", "HOLE_X", "HOLE_Y", "VISION_X_FLIP", "VISION_Y_FLIP", "VISION_XY_FLIP",
-                "RECV_TARGET_MINUS_HOLE_X", "RECV_TARGET_MINUS_HOLE_Y", "VISION_FLIP_CONVERT_X", "VISION_FLIP_CONVERT_Y", "JUDGE"
+                "RECV_TARGET_MINUS_HOLE_X", "RECV_TARGET_MINUS_HOLE_Y", "VISION_FLIP_CONVERT_X", "VISION_FLIP_CONVERT_Y",
+                "VISION_RESULT_CODE", "NG_REASON", "JUDGE"
             ];
             IReadOnlyDictionary<string, string>[] rows =
             [
@@ -975,6 +1068,8 @@
                     ["RECV_TARGET_MINUS_HOLE_Y"] = Number(point.ErrorY),
                     ["VISION_FLIP_CONVERT_X"] = Number(converted.X),
                     ["VISION_FLIP_CONVERT_Y"] = Number(converted.Y),
+                    ["VISION_RESULT_CODE"] = point.VisionResultCode?.ToString(CultureInfo.InvariantCulture) ?? "",
+                    ["NG_REASON"] = point.NgReason,
                     ["JUDGE"] = point.Judge
                 }
             ];
@@ -1040,6 +1135,8 @@
                 "VISION_FLIP_CONVERT_X", 
                 "VISION_FLIP_CONVERT_Y", 
                 "RESULT_SOURCE", 
+                "VISION_RESULT_CODE",
+                "NG_REASON",
                 "JUDGE"
             ];
             var plan = result.Request.Plan;
@@ -1095,6 +1192,8 @@
                     ["VISION_FLIP_CONVERT_X"] = measured ? Number(converted.X) : "미검사",
                     ["VISION_FLIP_CONVERT_Y"] = measured ? Number(converted.Y) : "미검사",
                     ["RESULT_SOURCE"] = measured ? result.AttemptedShotKeys.Contains(point.ShotKey) ? "MEASURED" : "RETAINED" : point.Judge == "ERROR" ? "ERROR" : "UNMEASURED",
+                    ["VISION_RESULT_CODE"] = measured ? point.VisionResultCode?.ToString(CultureInfo.InvariantCulture) ?? "" : "",
+                    ["NG_REASON"] = measured ? point.NgReason : "",
                     ["JUDGE"] = measured ? point.State == EN_REVIEW_POINT_STATE.Ok ? "OK" : "NG" : point.Judge == "ERROR" ? "ERROR" : "미검사"
                 };
             })).ToArray();
@@ -1157,6 +1256,8 @@
                 "VISION_FLIP_CONVERT_X", 
                 "VISION_FLIP_CONVERT_Y", 
                 "RESULT_SOURCE", 
+                "VISION_RESULT_CODE",
+                "NG_REASON",
                 "JUDGE"
             ];
             var flip = result.Plan.VisionFlipType;
@@ -1208,6 +1309,8 @@
                     ["VISION_FLIP_CONVERT_X"] = measured ? Number(design.X) : "미검사",
                     ["VISION_FLIP_CONVERT_Y"] = measured ? Number(design.Y) : "미검사",
                     ["RESULT_SOURCE"] = measured ? result.AttemptedShotKeys.Contains(point.ShotKey) ? "MEASURED" : "RETAINED" : error ? "ERROR" : "UNMEASURED",
+                    ["VISION_RESULT_CODE"] = measured ? point.VisionResultCode?.ToString(CultureInfo.InvariantCulture) ?? "" : "",
+                    ["NG_REASON"] = measured ? point.NgReason : "",
                     ["JUDGE"] = measured ? point.State == EN_REVIEW_POINT_STATE.Ok ? "OK" : "NG" : error ? "ERROR" : "미검사"
                 };
             }).ToArray();

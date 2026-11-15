@@ -3123,7 +3123,7 @@
             </Grid>
             <Grid Visibility="{Binding CurrentScreen.Monitor.IsCoordinateViewer, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="112" />
+                    <RowDefinition Height="92" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
@@ -3152,7 +3152,7 @@
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Button Height="58"
+                                    <Button Height="48"
                                             Margin="5,0"
                                             Background="{Binding BackgroundBrush}"
                                             BorderBrush="{Binding BorderBrush}"
@@ -3173,13 +3173,25 @@
 
                 <Grid Grid.Row="1">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="580" />
+                        <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
 
                     <Border Grid.Column="0"
-                            Style="{StaticResource PanelBorder}"
+                            Width="580"
                             Margin="0,0,12,0">
+                        <Border.Style>
+                            <Style TargetType="Border"
+                                   BasedOn="{StaticResource PanelBorder}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsChecked, ElementName=CoordinatePositionValuesToggle}"
+                                                 Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
                         <DockPanel>
                             <TextBlock DockPanel.Dock="Top"
                                        Text="SETTING / RECIPE POSITION VALUES"
@@ -3204,72 +3216,115 @@
 
                     <Border Grid.Column="1"
                             Style="{StaticResource PanelBorder}">
-                        <DockPanel>
-                            <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <Grid Grid.Row="0" Margin="0,0,0,8">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0"
-                                            Orientation="Horizontal"
-                                            VerticalAlignment="Center">
-                                    <TextBlock Text="COORDINATE PREVIEW"
-                                               Style="{StaticResource PanelTitle}"
-                                               FontSize="18" />
-                                    <StackPanel Orientation="Horizontal"
-                                                VerticalAlignment="Center"
-                                                Margin="18,0,0,0">
-                                        <Border Width="16"
-                                                Height="12"
-                                                Background="#3C275E"
-                                                BorderBrush="#6F4EA0"
-                                                BorderThickness="1"
-                                                Margin="0,0,6,0" />
-                                        <TextBlock Text="= CHESS"
-                                                   Foreground="{DynamicResource TextSecondaryBrush}"
-                                                   FontSize="11"
-                                                   FontWeight="SemiBold"
-                                                   VerticalAlignment="Center"
-                                                   Margin="0,0,14,0" />
-                                        <Border Width="16"
-                                                Height="12"
-                                                Background="Transparent"
-                                                BorderBrush="#E65A5A"
-                                                BorderThickness="2"
-                                                Margin="0,0,6,0" />
-                                        <TextBlock Text="= MASKING"
-                                                   Foreground="{DynamicResource TextSecondaryBrush}"
-                                                   FontSize="11"
-                                                   FontWeight="SemiBold"
-                                                   VerticalAlignment="Center" />
-                                    </StackPanel>
-                                </StackPanel>
-                                <StackPanel Grid.Column="1"
-                                            Orientation="Horizontal"
-                                            VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding CurrentScreen.Monitor.CoordinateSelectedBasisName}"
-                                               Foreground="{DynamicResource AccentTextBrush}"
-                                               FontSize="14"
-                                               FontWeight="SemiBold"
-                                               Margin="0,0,18,0" />
-                                    <TextBlock Text="{Binding CurrentScreen.Monitor.CoordinateSelectedCellName}"
-                                               Foreground="{DynamicResource TextSecondaryBrush}"
-                                               FontSize="14"
-                                               Margin="0,0,18,0" />
-                                    <TextBlock Text="{Binding CurrentScreen.Monitor.CoordinateSelectedShotName}"
-                                               Foreground="{DynamicResource TextSecondaryBrush}"
-                                               FontSize="14" />
-                                </StackPanel>
+                                <TextBlock Grid.Column="0"
+                                           Text="COORDINATE PREVIEW"
+                                           Style="{StaticResource PanelTitle}"
+                                           FontSize="18"
+                                           VerticalAlignment="Center" />
+                                <ToggleButton Grid.Column="1"
+                                              x:Name="CoordinatePositionValuesToggle"
+                                              Width="176"
+                                              Height="34"
+                                              HorizontalAlignment="Right"
+                                              VerticalAlignment="Center"
+                                              Cursor="Hand"
+                                              IsChecked="False"
+                                              ToolTip="Setting / Recipe Position Values 표시 또는 숨김">
+                                        <ToggleButton.Style>
+                                            <Style TargetType="ToggleButton">
+                                                <Setter Property="Content" Value="POSITION VALUES" />
+                                                <Setter Property="Background" Value="{DynamicResource ButtonSecondaryBrush}" />
+                                                <Setter Property="BorderBrush" Value="{DynamicResource ButtonSecondaryBorderBrush}" />
+                                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                                                <Setter Property="BorderThickness" Value="1" />
+                                                <Setter Property="FontSize" Value="12" />
+                                                <Setter Property="FontWeight" Value="SemiBold" />
+                                                <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="ToggleButton">
+                                                            <Border x:Name="ToggleBorder"
+                                                                    Background="{TemplateBinding Background}"
+                                                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                                                    CornerRadius="4">
+                                                                <ContentPresenter HorizontalAlignment="Center"
+                                                                                  VerticalAlignment="Center" />
+                                                            </Border>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter TargetName="ToggleBorder" Property="Background" Value="{DynamicResource MenuItemSelectedBackgroundBrush}" />
+                                                                    <Setter TargetName="ToggleBorder" Property="BorderBrush" Value="{DynamicResource MenuItemSelectedBorderBrush}" />
+                                                                    <Setter Property="Foreground" Value="{DynamicResource MenuItemSelectedTextBrush}" />
+                                                                </Trigger>
+                                                                <Trigger Property="IsChecked" Value="True">
+                                                                    <Setter Property="Content" Value="HIDE VALUES" />
+                                                                    <Setter TargetName="ToggleBorder" Property="Background" Value="{DynamicResource ButtonPrimaryBrush}" />
+                                                                    <Setter TargetName="ToggleBorder" Property="BorderBrush" Value="{DynamicResource ButtonPrimaryBorderBrush}" />
+                                                                    <Setter Property="Foreground" Value="{DynamicResource ButtonTextOnColorBrush}" />
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Style>
+                                        </ToggleButton.Style>
+                                </ToggleButton>
                             </Grid>
 
-                            <Border Visibility="{Binding CurrentScreen.Monitor.CoordinateIsGlassPreviewVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                    Background="{DynamicResource GridBackgroundBrush}"
-                                    BorderBrush="{DynamicResource PanelBorderBrush}"
-                                    BorderThickness="1"
-                                    Padding="10">
-                                <Grid>
-                                    <Grid x:Name="CoordinateGlassPreviewViewport"
-                                          ClipToBounds="True">
+                            <Grid Grid.Row="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="34*" />
+                                    <ColumnDefinition Width="10" />
+                                    <ColumnDefinition Width="66*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="13*" />
+                                    <RowDefinition Height="10" />
+                                    <RowDefinition Height="7*" />
+                                </Grid.RowDefinitions>
+
+                                <Border Grid.Row="0"
+                                        Grid.Column="0"
+                                        Background="{DynamicResource GridBackgroundBrush}"
+                                        BorderBrush="{DynamicResource PanelBorderBrush}"
+                                        BorderThickness="1"
+                                        Padding="8">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="*" />
+                                        </Grid.RowDefinitions>
+                                        <Grid Margin="2,0,2,6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="GLASS-CELL VIEW"
+                                                       Style="{StaticResource PanelTitle}"
+                                                       FontSize="15" />
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding CurrentScreen.Monitor.CoordinateGlassPreviewSummary}"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       FontSize="12"
+                                                       FontWeight="SemiBold"
+                                                       VerticalAlignment="Center" />
+                                        </Grid>
+                                        <Grid Grid.Row="1"
+                                              x:Name="CoordinateGlassPreviewViewport"
+                                              Background="{DynamicResource GridBackgroundBrush}"
+                                              ClipToBounds="True">
                                         <Image Source="{Binding CurrentScreen.Monitor.CoordinateGlassPreviewImage}"
                                                Stretch="Uniform"
                                                HorizontalAlignment="Stretch"
@@ -3279,21 +3334,23 @@
                                                       IsHitTestVisible="True">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
-                                                    <Button Width="{Binding Width}"
+                                                    <Button Content="{Binding CellNo}"
+                                                            Width="{Binding Width}"
                                                             Height="{Binding Height}"
                                                             menu:CButtonCommandBehavior.Command="{Binding DataContext.CurrentScreen.Monitor.SelectCoordinateCellCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                             CommandParameter="{Binding CellNo}"
                                                             Padding="0"
                                                             Cursor="Hand"
-                                                            Background="Transparent"
-                                                            BorderThickness="0"
+                                                            FontSize="9"
+                                                            FontWeight="Bold"
                                                             MouseMove="CoordinateCellPreviewLabel_MouseMove"
                                                             MouseLeave="CoordinateCellPreviewLabel_MouseLeave">
                                                         <Button.Style>
                                                             <Style TargetType="Button">
-                                                                <Setter Property="Background" Value="Transparent" />
-                                                                <Setter Property="BorderBrush" Value="Transparent" />
-                                                                <Setter Property="BorderThickness" Value="0" />
+                                                                <Setter Property="Background" Value="#F4F7FA" />
+                                                                <Setter Property="BorderBrush" Value="#3F6F98" />
+                                                                <Setter Property="BorderThickness" Value="1" />
+                                                                <Setter Property="Foreground" Value="#203446" />
                                                                 <Setter Property="FocusVisualStyle" Value="{x:Null}" />
                                                                 <Setter Property="Template">
                                                                     <Setter.Value>
@@ -3309,21 +3366,23 @@
                                                                         </ControlTemplate>
                                                                     </Setter.Value>
                                                                 </Setter>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                        <Setter Property="Background" Value="#F6C453" />
+                                                                        <Setter Property="Foreground" Value="#17212B" />
+                                                                        <Setter Property="BorderBrush" Value="#FFF4D6" />
+                                                                        <Setter Property="BorderThickness" Value="2" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
                                                             </Style>
                                                         </Button.Style>
                                                     </Button>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
-                                        <TextBlock Text="{Binding CurrentScreen.Monitor.CoordinateGlassPreviewSummary}"
-                                                   HorizontalAlignment="Right"
-                                                   VerticalAlignment="Bottom"
-                                                   Margin="0,0,10,8"
-                                                   Foreground="{DynamicResource TextSecondaryBrush}"
-                                                   FontSize="13"
-                                                   FontWeight="SemiBold" />
                                     </Grid>
-                                    <Border x:Name="CoordinateGlassPreviewHoverTip"
+                                    <Border Grid.Row="1"
+                                            x:Name="CoordinateGlassPreviewHoverTip"
                                             Panel.ZIndex="10"
                                             HorizontalAlignment="Left"
                                             VerticalAlignment="Top"
@@ -3345,106 +3404,419 @@
                                 </Grid>
                             </Border>
 
-                            <Border Visibility="{Binding CurrentScreen.Monitor.CoordinateIsCellDetailVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                    Background="{DynamicResource GridBackgroundBrush}"
-                                    BorderBrush="{DynamicResource PanelBorderBrush}"
-                                    BorderThickness="1"
-                                    Padding="10">
+                                <Border Grid.Row="2"
+                                        Grid.Column="0"
+                                        Background="{DynamicResource GridBackgroundBrush}"
+                                        BorderBrush="{DynamicResource PanelBorderBrush}"
+                                        BorderThickness="1"
+                                        Padding="8">
                                 <Grid>
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="*" />
                                     </Grid.RowDefinitions>
 
-                                    <Button Content="BACK TO GLASS"
-                                            menu:CButtonCommandBehavior.Command="{Binding CurrentScreen.Monitor.BackToCoordinateGlassPreviewCommand}"
-                                            HorizontalAlignment="Left"
-                                            MinWidth="132"
-                                            Height="34"
-                                            Padding="12,0"
-                                            Margin="0,0,0,8"
-                                            Background="{DynamicResource ButtonSecondaryBrush}"
-                                            BorderBrush="{DynamicResource ButtonSecondaryBorderBrush}"
-                                            Foreground="{DynamicResource TextPrimaryBrush}"
-                                            FontSize="11"
-                                            FontWeight="SemiBold"
-                                            Cursor="Hand" />
+                                    <Grid Margin="2,0,2,6">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="SHOT VIEW"
+                                                   Style="{StaticResource PanelTitle}"
+                                                   FontSize="15" />
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding CurrentScreen.Monitor.CoordinateSelectedCellName}"
+                                                   Foreground="{DynamicResource AccentTextBrush}"
+                                                   FontSize="12"
+                                                   FontWeight="SemiBold"
+                                                   Margin="12,0,0,0"
+                                                   VerticalAlignment="Center" />
+                                        <StackPanel Grid.Column="2"
+                                                    Orientation="Horizontal"
+                                                    VerticalAlignment="Center">
+                                            <Ellipse Width="7"
+                                                     Height="7"
+                                                     Fill="#64748B" />
+                                            <TextBlock Text="SHOT"
+                                                       Margin="3,0,8,0"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       FontSize="8"
+                                                       VerticalAlignment="Center" />
+                                            <Border Width="13"
+                                                    Height="8"
+                                                    Background="#3C275E"
+                                                    BorderBrush="#6F4EA0"
+                                                    BorderThickness="1"
+                                                    Margin="0,0,4,0" />
+                                            <TextBlock Text="CHESS"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       FontSize="8"
+                                                       FontWeight="SemiBold"
+                                                       Margin="0,0,8,0" />
+                                            <Border Width="13"
+                                                    Height="8"
+                                                    Background="Transparent"
+                                                    BorderBrush="#E65A5A"
+                                                    BorderThickness="2"
+                                                    Margin="0,0,4,0" />
+                                            <TextBlock Text="MASKING"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       FontSize="8"
+                                                       FontWeight="SemiBold"
+                                                       Margin="0,0,8,0" />
+                                            <Ellipse Width="8"
+                                                     Height="8"
+                                                     Fill="#F6C453"
+                                                     Stroke="#B7791F"
+                                                     StrokeThickness="1" />
+                                            <TextBlock Text="SELECTED"
+                                                       Margin="3,0,0,0"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       FontSize="8"
+                                                       VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Grid>
 
-                                    <ScrollViewer Grid.Row="1"
-                                                  VerticalScrollBarVisibility="Auto"
-                                                  HorizontalScrollBarVisibility="Auto">
-                                        <ItemsControl ItemsSource="{Binding CurrentScreen.Monitor.CoordinateShotMatrixRows}">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <ItemsControl ItemsSource="{Binding Shots}"
-                                                                  HorizontalAlignment="Stretch"
-                                                                  Margin="0,0,0,5">
-                                                        <ItemsControl.ItemsPanel>
-                                                            <ItemsPanelTemplate>
-                                                                <StackPanel Orientation="Horizontal" />
-                                                            </ItemsPanelTemplate>
-                                                        </ItemsControl.ItemsPanel>
-                                                        <ItemsControl.ItemTemplate>
-                                                            <DataTemplate>
-                                                                <Button menu:CButtonCommandBehavior.Command="{Binding SelectCommand}"
-                                                                        CommandParameter="{Binding ShotKey}"
-                                                                        Width="132"
-                                                                        Height="78"
-                                                                        Margin="3"
-                                                                        Padding="5"
-                                                                        Cursor="Hand">
-                                                                    <Button.Style>
-                                                                        <Style TargetType="Button">
-                                                                            <Setter Property="Background" Value="{Binding BackgroundBrush}" />
-                                                                            <Setter Property="BorderBrush" Value="{Binding BorderBrush}" />
-                                                                            <Setter Property="BorderThickness" Value="{Binding BorderThickness}" />
-                                                                            <Setter Property="Template">
-                                                                                <Setter.Value>
-                                                                                    <ControlTemplate TargetType="Button">
-                                                                                        <Border Background="{TemplateBinding Background}"
-                                                                                                BorderBrush="{TemplateBinding BorderBrush}"
-                                                                                                BorderThickness="{TemplateBinding BorderThickness}"
-                                                                                                CornerRadius="4">
-                                                                                            <ContentPresenter Margin="{TemplateBinding Padding}"
-                                                                                                              HorizontalAlignment="Stretch"
-                                                                                                              VerticalAlignment="Center" />
-                                                                                        </Border>
-                                                                                    </ControlTemplate>
-                                                                                </Setter.Value>
-                                                                            </Setter>
-                                                                        </Style>
-                                                                    </Button.Style>
-                                                                    <Grid>
-                                                                        <Grid.RowDefinitions>
-                                                                            <RowDefinition Height="Auto" />
-                                                                            <RowDefinition Height="*" />
-                                                                        </Grid.RowDefinitions>
-                                                                        <TextBlock Text="{Binding ShotName}"
-                                                                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                                                                   FontSize="12"
-                                                                                   FontWeight="Bold"
-                                                                                   HorizontalAlignment="Center" />
-                                                                        <TextBlock Grid.Row="1"
-                                                                                   Text="{Binding Detail}"
-                                                                                   Foreground="{Binding DetailBrush}"
-                                                                                   FontSize="10"
-                                                                                   FontWeight="SemiBold"
-                                                                                   TextAlignment="Center"
-                                                                                   TextWrapping="Wrap"
-                                                                                   HorizontalAlignment="Center"
-                                                                                   VerticalAlignment="Center" />
-                                                                    </Grid>
-                                                                </Button>
-                                                            </DataTemplate>
-                                                        </ItemsControl.ItemTemplate>
-                                                    </ItemsControl>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </ScrollViewer>
+                                    <Grid Grid.Row="1">
+                                        <Viewbox Stretch="Uniform">
+                                            <Grid Width="{Binding CurrentScreen.Monitor.CoordinateShotMapSurfaceWidth}"
+                                                  Height="{Binding CurrentScreen.Monitor.CoordinateShotMapSurfaceHeight}"
+                                                  Background="Transparent"
+                                                  Cursor="Hand"
+                                                  MouseLeftButtonDown="CoordinateShotMap_MouseLeftButtonDown">
+                                                <Image Source="{Binding CurrentScreen.Monitor.CoordinateShotMapImage}"
+                                                       Stretch="Fill"
+                                                       IsHitTestVisible="False" />
+                                            </Grid>
+                                        </Viewbox>
+                                    </Grid>
+                                    <TextBlock Grid.Row="1"
+                                               Text="Select a cell in the Glass-Cell View."
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                               FontSize="14"
+                                               FontWeight="SemiBold"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding CurrentScreen.Monitor.CoordinateHasShotMap}"
+                                                                 Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
                                 </Grid>
-                            </Border>
-                        </DockPanel>
+                                </Border>
+
+                                <Border Grid.Row="0"
+                                        Grid.Column="2"
+                                        Background="{DynamicResource GridBackgroundBrush}"
+                                        BorderBrush="{DynamicResource PanelBorderBrush}"
+                                        BorderThickness="1"
+                                        Padding="8">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="*" />
+                                        </Grid.RowDefinitions>
+                                        <Grid Margin="2,0,2,6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="SHOT DETAIL"
+                                                       Style="{StaticResource PanelTitle}"
+                                                       FontSize="15" />
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding CurrentScreen.Monitor.CoordinateCalculationSummary}"
+                                                       Foreground="{DynamicResource AccentTextBrush}"
+                                                       FontSize="12"
+                                                       FontWeight="SemiBold"
+                                                       VerticalAlignment="Center" />
+                                        </Grid>
+                                        <Grid Grid.Row="1">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="40*" />
+                                                <ColumnDefinition Width="10" />
+                                                <ColumnDefinition Width="60*" />
+                                            </Grid.ColumnDefinitions>
+                                            <DataGrid Grid.Column="0"
+                                                      ItemsSource="{Binding CurrentScreen.Monitor.CoordinateCalculationRows}"
+                                                      IsReadOnly="True"
+                                                      Style="{StaticResource PlainDataGrid}"
+                                                      FontSize="11"
+                                                      ColumnHeaderHeight="30"
+                                                      RowHeight="28"
+                                                      SelectionMode="Single"
+                                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                                      ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                                <DataGrid.RowStyle>
+                                                    <Style TargetType="DataGridRow">
+                                                        <Setter Property="ToolTip" Value="{Binding Description}" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsResult}" Value="True">
+                                                                <Setter Property="Background" Value="{DynamicResource MenuItemSelectedBackgroundBrush}" />
+                                                                <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+                                                                <Setter Property="FontWeight" Value="Bold" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </DataGrid.RowStyle>
+                                                <DataGrid.Columns>
+                                                    <DataGridTemplateColumn Header="USE" Width="42">
+                                                        <DataGridTemplateColumn.CellTemplate>
+                                                            <DataTemplate>
+                                                                <CheckBox IsChecked="{Binding IsSelected, Mode=OneWay}"
+                                                                          HorizontalAlignment="Center"
+                                                                          VerticalAlignment="Center"
+                                                                          Cursor="Hand"
+                                                                          menu:CButtonCommandBehavior.Command="{Binding DataContext.CurrentScreen.Monitor.ToggleCoordinateOffsetCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                          CommandParameter="{Binding}">
+                                                                    <CheckBox.Style>
+                                                                        <Style TargetType="CheckBox">
+                                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding IsSelectable}" Value="True">
+                                                                                    <Setter Property="Visibility" Value="Visible" />
+                                                                                </DataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </CheckBox.Style>
+                                                                </CheckBox>
+                                                            </DataTemplate>
+                                                        </DataGridTemplateColumn.CellTemplate>
+                                                    </DataGridTemplateColumn>
+                                                    <DataGridTextColumn Header="OFFSET / POSITION" Binding="{Binding Step}" Width="*" MinWidth="150" />
+                                                    <DataGridTextColumn Header="X AXIS" Binding="{Binding X}" Width="82" />
+                                                    <DataGridTextColumn Header="Y AXIS" Binding="{Binding Y}" Width="82" />
+                                                </DataGrid.Columns>
+                                            </DataGrid>
+                                            <Border Grid.Column="2"
+                                                    Background="{DynamicResource PanelBackgroundBrush}"
+                                                    BorderBrush="{DynamicResource PanelBorderBrush}"
+                                                    BorderThickness="1"
+                                                    Padding="6">
+                                                <Grid>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="*" />
+                                                    </Grid.RowDefinitions>
+                                                    <Grid Grid.Row="0"
+                                                          Height="28"
+                                                          Margin="0,0,0,5">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto" />
+                                                            <ColumnDefinition Width="68" />
+                                                            <ColumnDefinition Width="10" />
+                                                            <ColumnDefinition Width="Auto" />
+                                                            <ColumnDefinition Width="68" />
+                                                            <ColumnDefinition Width="12" />
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="74" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="MIN"
+                                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                                   FontSize="10"
+                                                                   FontWeight="SemiBold"
+                                                                   Margin="0,0,5,0"
+                                                                   VerticalAlignment="Center" />
+                                                        <Border Grid.Column="1"
+                                                                Style="{StaticResource MonitorInputCell}"
+                                                                Height="26"
+                                                                Margin="0"
+                                                                Padding="6,0">
+                                                            <TextBox Text="{Binding CurrentScreen.Monitor.CoordinateOffsetPreviewMinimumText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                     Style="{StaticResource MonitorInputTextBox}"
+                                                                     FontSize="11"
+                                                                     TextAlignment="Center" />
+                                                        </Border>
+                                                        <TextBlock Grid.Column="3"
+                                                                   Text="MAX"
+                                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                                   FontSize="10"
+                                                                   FontWeight="SemiBold"
+                                                                   Margin="0,0,5,0"
+                                                                   VerticalAlignment="Center" />
+                                                        <Border Grid.Column="4"
+                                                                Style="{StaticResource MonitorInputCell}"
+                                                                Height="26"
+                                                                Margin="0"
+                                                                Padding="6,0">
+                                                            <TextBox Text="{Binding CurrentScreen.Monitor.CoordinateOffsetPreviewMaximumText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                     Style="{StaticResource MonitorInputTextBox}"
+                                                                     FontSize="11"
+                                                                     TextAlignment="Center" />
+                                                        </Border>
+                                                        <TextBlock Grid.Column="6"
+                                                                   Text="{Binding CurrentScreen.Monitor.CoordinateOffsetPreviewGridText}"
+                                                                   Foreground="{DynamicResource AccentTextBrush}"
+                                                                   FontSize="10"
+                                                                   FontWeight="SemiBold"
+                                                                   Margin="0,0,8,0"
+                                                                   HorizontalAlignment="Right"
+                                                                   VerticalAlignment="Center" />
+                                                        <Button Grid.Column="7"
+                                                                Content="APPLY"
+                                                                Height="26"
+                                                                Style="{StaticResource MonitorInputButton}"
+                                                                HorizontalContentAlignment="Center"
+                                                                Cursor="Hand"
+                                                                menu:CButtonCommandBehavior.Command="{Binding DataContext.CurrentScreen.Monitor.ApplyCoordinateOffsetPreviewRangeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                                                    </Grid>
+                                                    <Image Grid.Row="1"
+                                                           Source="{Binding CurrentScreen.Monitor.CoordinateOffsetPreviewImage}"
+                                                           Stretch="Uniform"
+                                                           HorizontalAlignment="Stretch"
+                                                           VerticalAlignment="Stretch" />
+                                                </Grid>
+                                            </Border>
+                                            <Border Background="{DynamicResource GridBackgroundBrush}"
+                                                    IsHitTestVisible="False">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Visibility" Value="Visible" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding CurrentScreen.Monitor.CoordinateHasCalculationRows}"
+                                                                         Value="True">
+                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <StackPanel HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center">
+                                                    <TextBlock Text="SELECT A SHOT"
+                                                               Foreground="{DynamicResource TextPrimaryBrush}"
+                                                               FontSize="18"
+                                                               FontWeight="SemiBold"
+                                                               HorizontalAlignment="Center" />
+                                                    <TextBlock Text="Select a cell, then choose a shot to view its coordinate calculation."
+                                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                                               FontSize="12"
+                                                               Margin="0,8,0,0"
+                                                               TextAlignment="Center" />
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+
+                                <Border Grid.Row="2"
+                                        Grid.Column="2"
+                                        Background="{DynamicResource GridBackgroundBrush}"
+                                        BorderBrush="{DynamicResource PanelBorderBrush}"
+                                        BorderThickness="1"
+                                        Padding="8">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="*" />
+                                        </Grid.RowDefinitions>
+                                        <Grid Margin="2,0,2,6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="ALL SHOT COORDINATES"
+                                                       Style="{StaticResource PanelTitle}"
+                                                       FontSize="15" />
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding CurrentScreen.Monitor.CoordinateShotCoordinateSummary}"
+                                                       Foreground="{DynamicResource AccentTextBrush}"
+                                                       FontSize="12"
+                                                       FontWeight="SemiBold"
+                                                       VerticalAlignment="Center" />
+                                        </Grid>
+                                        <Grid Grid.Row="1">
+                                            <DataGrid x:Name="CoordinateShotCoordinateGrid"
+                                                      ItemsSource="{Binding CurrentScreen.Monitor.CoordinateShotCoordinateRows}"
+                                                      SelectedItem="{Binding CurrentScreen.Monitor.CoordinateSelectedShotCoordinateRow, Mode=OneWay}"
+                                                      SelectionChanged="CoordinateShotCoordinateGrid_SelectionChanged"
+                                                      IsReadOnly="True"
+                                                      Style="{StaticResource PlainDataGrid}"
+                                                      FontSize="11"
+                                                      ColumnHeaderHeight="30"
+                                                      RowHeight="27"
+                                                      SelectionMode="Single"
+                                                      SelectionUnit="FullRow"
+                                                      EnableRowVirtualization="True"
+                                                      VirtualizingPanel.IsVirtualizing="True"
+                                                      VirtualizingPanel.VirtualizationMode="Recycling"
+                                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                                      ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                                <DataGrid.RowStyle>
+                                                    <Style TargetType="DataGridRow">
+                                                        <Setter Property="ToolTip" Value="{Binding Shot}" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                <Setter Property="Background" Value="#FFF6C453" />
+                                                                <Setter Property="Foreground" Value="#FF111827" />
+                                                                <Setter Property="FontWeight" Value="Bold" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </DataGrid.RowStyle>
+                                                <DataGrid.Columns>
+                                                    <DataGridTextColumn Header="SHOT" Binding="{Binding Shot}" Width="90" />
+                                                    <DataGridTextColumn Header="HEAD" Binding="{Binding Head}" Width="72" />
+                                                    <DataGridTextColumn Header="X (mm)" Binding="{Binding X}" Width="*" MinWidth="105" />
+                                                    <DataGridTextColumn Header="Y (mm)" Binding="{Binding Y}" Width="*" MinWidth="105" />
+                                                    <DataGridTemplateColumn Header="STATE" Width="92">
+                                                        <DataGridTemplateColumn.CellTemplate>
+                                                            <DataTemplate>
+                                                                <TextBlock Text="{Binding State}"
+                                                                           HorizontalAlignment="Center"
+                                                                           VerticalAlignment="Center"
+                                                                           FontWeight="SemiBold">
+                                                                    <TextBlock.Style>
+                                                                        <Style TargetType="TextBlock">
+                                                                            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding State}" Value="MASKING">
+                                                                                    <Setter Property="Foreground" Value="#FFD94F4F" />
+                                                                                </DataTrigger>
+                                                                                <DataTrigger Binding="{Binding State}" Value="CHESS">
+                                                                                    <Setter Property="Foreground" Value="#FF8B5CF6" />
+                                                                                </DataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </TextBlock.Style>
+                                                                </TextBlock>
+                                                            </DataTemplate>
+                                                        </DataGridTemplateColumn.CellTemplate>
+                                                    </DataGridTemplateColumn>
+                                                </DataGrid.Columns>
+                                            </DataGrid>
+                                            <Border Background="{DynamicResource GridBackgroundBrush}"
+                                                    IsHitTestVisible="False">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Visibility" Value="Visible" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding CurrentScreen.Monitor.CoordinateHasShotCoordinateRows}"
+                                                                         Value="True">
+                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <TextBlock Text="Select a cell to view all shot coordinates."
+                                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                                           FontSize="13"
+                                                           FontWeight="SemiBold"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center" />
+                                            </Border>
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+                            </Grid>
+                        </Grid>
                     </Border>
                 </Grid>
             </Grid>

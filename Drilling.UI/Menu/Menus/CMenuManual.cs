@@ -109,7 +109,6 @@
         private bool _isDioTargetReady;
         private bool _isDioControlBusy;
         private bool _isScannerWorkspace = true;
-        private bool _isReviewWorkspace;
         private ST_MANUAL_STAGE_AXIS _selectedStageAxis = null !;
         private ST_MANUAL_VISION_PROTOCOL_COMMAND _selectedVisionProtocolCommand = null !;
         private string _visionProtocolInspectionType = "0";
@@ -426,9 +425,6 @@
 
 #endregion
 #region 기본 처리
-        public CMenuReview? Review { get; private set; }
-        public bool IsReviewWorkspace => _isReviewWorkspace;
-
         public override EN_MENU Menu
         {
             get
@@ -866,7 +862,7 @@
         {
             get
             {
-                return !IsScannerWorkspace && !IsReviewWorkspace;
+                return !IsScannerWorkspace;
             }
         }
 
@@ -1072,12 +1068,6 @@
 
         public override async Task<CScreenViewModel> Build(CancellationToken cancellationToken = default)
         {
-            if (IsReviewWorkspace && Review is not null)
-            {
-                await Review.Build(cancellationToken);
-                return new CScreenViewModel(EN_MENU.Manual, "MANUAL / CONTROL", "Review inspection operation.", [], [], manual: this);
-            }
-
             var settingNames = await _scanFile.List(cancellationToken);
             var orderedSettingNames = OrderSettingNames(settingNames);
             _manualScanSettingNames = orderedSettingNames;
@@ -2095,8 +2085,6 @@
 
         public void RefreshScannerStatusSnapshot()
         {
-            if (IsReviewWorkspace)
-                return;
             if (IsScannerWorkspace && IsManualMofTab)
                 RefreshMofStageSnapshot();
             if (IsScannerWorkspace && (IsManualScanTab || IsManualMofTab))
@@ -6350,8 +6338,6 @@
                 }
             }
 
-            if (Review is not null)
-                await Attempt(Review.StopForHeavyAlarm);
             if (_manualStageMoveOperation is not null)
                 await Attempt(_manualStageMoveOperation.StopAsync);
             if (_powerMeasurePanel?.IsRunning == true)
@@ -6392,29 +6378,18 @@
                 throw new AggregateException("Manual 동작 정지 실패", failures);
         }
 
-        public void ConfigureReview(CMenuReview review) => Review = review;
         private void SelectManualWorkspace(object? parameter)
         {
             var workspace = parameter?.ToString()?.ToUpperInvariant();
-            if (workspace is not ("SCANNER" or "STAGE_VISION" or "REVIEW"))
+            if (workspace is not ("SCANNER" or "STAGE_VISION"))
                 return;
-            if (Review?.BlocksMenuNavigation == true && workspace != "REVIEW")
-            {
-                CRecipeConfirmDialog.ShowWarning("검사 진행 중", "검사를 중지한 후 이동해 주세요.");
-                return;
-            }
 
-            var wasReview = IsReviewWorkspace;
-            _isReviewWorkspace = workspace == "REVIEW";
             IsScannerWorkspace = workspace == "SCANNER";
-            OnPropertyChanged(nameof(IsReviewWorkspace));
             OnPropertyChanged(nameof(IsStageVisionWorkspace));
-            if (IsReviewWorkspace && !wasReview)
-                Review?.ResetForMenuOpen();
             if (!IsScannerWorkspace)
                 _powerMeasurePanel?.StageMotion.SetActive(false);
             _homeSpeedPanel?.SetActive(_homeSpeedController.HasValue && IsManualControllerTab && IsScannerWorkspace);
-            if (IsScannerWorkspace || IsReviewWorkspace)
+            if (IsScannerWorkspace)
             {
                 StopStageMotionPolling();
             }

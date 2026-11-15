@@ -5,6 +5,7 @@
     using System.Globalization;
     using Drilling.Common.Alarm;
     using Drilling.UI.Menu;
+    using System.Windows.Media;
 
     public partial class CAlarmPopupDialog : Window
     {
@@ -16,8 +17,32 @@
             Panel = panel;
             DataContext = panel;
             panel.Refresh();
+            ApplySeverityTheme(panel);
             Width = Math.Min(Width, SystemParameters.WorkArea.Width);
             Height = Math.Min(Height, SystemParameters.WorkArea.Height);
+        }
+
+        private void ApplySeverityTheme(CAlarmPopupPanel panel)
+        {
+            var lightOnly = panel.Rows.Any(row => row.Level == "LIGHT")
+                && panel.Rows.All(row => row.Level != "HEAVY");
+            if (!lightOnly)
+                return;
+
+            Resources["AlarmSurfaceBrush"] = Brush(0xFF, 0xF7, 0xED);
+            Resources["GridAltBackgroundBrush"] = Brush(0xFF, 0xFB, 0xF5);
+            Resources["GridHeaderBackgroundBrush"] = Brush(0xB4, 0x53, 0x09);
+            Resources["GridLineBrush"] = Brush(0xF0, 0xC8, 0x9D);
+            Resources["MenuItemSelectedBackgroundBrush"] = Brush(0xB4, 0x53, 0x09);
+            Resources["AccentBrush"] = Brush(0xD9, 0x77, 0x06);
+            Resources["AccentDarkBrush"] = Brush(0xB4, 0x53, 0x09);
+        }
+
+        private static SolidColorBrush Brush(byte red, byte green, byte blue)
+        {
+            var brush = new SolidColorBrush(Color.FromRgb(red, green, blue));
+            brush.Freeze();
+            return brush;
         }
 
         private void CloseClicked(object sender, RoutedEventArgs e) => Close();

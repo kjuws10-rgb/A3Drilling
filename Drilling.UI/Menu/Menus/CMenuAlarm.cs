@@ -11,9 +11,10 @@
     using Drilling.Common.Motion;
     using Drilling.Common.InterLock;
     using Drilling.Common.Station;
+    using Drilling.UI.Popup;
     using System.Windows.Media;
 
-    public sealed class CMenuAlarm(CAlarmManager alarmManager, CStationManager stationManager, Action<string> setStatusMessage, Action refreshShellStatus, Func<Task> refreshCurrentScreen) : CMenuBase
+    public sealed class CMenuAlarm(CAlarmManager alarmManager, CStationManager stationManager, Action<string> setStatusMessage, Action refreshShellStatus, Func<Task> refreshCurrentScreen, string logDirectory) : CMenuBase
     {
         private int _selectedTabIndex;
         public event EventHandler? SelectedTabIndexChanged;
@@ -32,7 +33,7 @@
         }
 
         public CAlarmListPanel ListPanel { get; } = new(alarmManager);
-        public CAlarmHistoryPanel HistoryPanel { get; } = new(alarmManager.ReadHistory);
+        public CAlarmHistoryPanel HistoryPanel { get; } = new(alarmManager.ReadHistory, logDirectory);
 
         public event EventHandler? LogErrorChanged;
         public string LogError => alarmManager.GetCurrentSnapshot().LogError;
@@ -213,6 +214,7 @@
     public sealed class CAlarmHistoryPanel : INotifyPropertyChanged
     {
         private readonly Func<DateTime, DateTime, CancellationToken, ST_ALARM_HISTORY_RESULT> _read;
+        private readonly string _logDirectory;
         private readonly Func<DateTime> _now;
         private DateTime? _from = DateTime.Today;
         private DateTime? _through = DateTime.Today;
@@ -223,15 +225,18 @@
         private IReadOnlyList<ST_ALARM_HISTORY_ENTRY> _loadedRows = [];
         private DateTime? _searchedFrom;
         private DateTime? _searchedThrough;
-        public CAlarmHistoryPanel(Func<DateTime, DateTime, CancellationToken, ST_ALARM_HISTORY_RESULT> read, Func<DateTime>? now = null)
+        private ST_ALARM_HISTORY_ROW? _selectedRow;
+        public CAlarmHistoryPanel(Func<DateTime, DateTime, CancellationToken, ST_ALARM_HISTORY_RESULT> read, string logDirectory, Func<DateTime>? now = null)
         {
             _read = read;
+            _logDirectory = logDirectory;
             _now = now ?? (() => DateTime.Now);
             SetDefaultRange();
             SearchCommand = new(async _ => await SearchAsync(), _ => !IsBusy);
             Last24HoursCommand = new(async _ => await SearchLast24HoursAsync(), _ => !IsBusy);
             HourViewCommand = new(_ => SelectTrendView(false));
             CodeViewCommand = new(_ => SelectTrendView(true));
+            CauseAnalysisCommand = new(_ => ShowCauseAnalysis(), _ => SelectedRow is not null && !IsBusy);
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -284,10 +289,33 @@
         public string EmptyMessage { get; private set; } = "조회한 알람 이력이 없습니다.";
         public IReadOnlyList<ST_ALARM_HISTORY_ROW> Rows { get; private set; } = [];
         public IReadOnlyList<ST_ALARM_TREND_COLUMN> Bars { get; private set; } = [];
+        public ST_ALARM_HISTORY_ROW? SelectedRow
+        {
+            get => _selectedRow;
+            set
+            {
+                if (ReferenceEquals(_selectedRow, value))
+                    return;
+                _selectedRow = value;
+                Notify();
+                CauseAnalysisCommand.NotifyCanExecuteChanged();
+            }
+        }
         public CButtonCommand SearchCommand { get; }
         public CButtonCommand Last24HoursCommand { get; }
         public CButtonCommand HourViewCommand { get; }
         public CButtonCommand CodeViewCommand { get; }
+        public CButtonCommand CauseAnalysisCommand { get; }
+
+        private void ShowCauseAnalysis()
+        {
+            if (SelectedRow is not { } row)
+                return;
+            var dialog = new CAlarmCauseAnalysisDialog(_logDirectory, row);
+            if (Application.Current?.MainWindow is { } owner)
+                dialog.Owner = owner;
+            dialog.ShowDialog();
+        }
 
         public void InitializeOnFirstOpen()
         {
@@ -390,7 +418,8 @@
                         Rows = loaded.Rows.Where(row => row.OccurredAt.LocalDateTime >= from && row.OccurredAt.LocalDateTime <= through).OrderByDescending(row => row.OccurredAt).ThenBy(row => row.Code).ToArray()
                     };
                 });
-                Rows = result.Rows.Select((row, index) => new ST_ALARM_HISTORY_ROW(index + 1, row.OccurredAt.LocalDateTime.ToString("yyyy-MM-dd HH:mm:ss.fff"), row.Code.ToString(), row.Level, row.Group, row.Cause, row.Solution)).ToArray();
+                Rows = result.Rows.Select((row, index) => new ST_ALARM_HISTORY_ROW(index + 1, row.OccurredAt.LocalDateTime.ToString("yyyy-MM-dd HH:mm:ss.fff"), row.Code.ToString(), row.Level, row.Group, row.Cause, row.Solution, row.OccurredAt)).ToArray();
+                SelectedRow = null;
                 _loadedRows = result.Rows;
                 _searchedFrom = from;
                 _searchedThrough = through;
@@ -401,6 +430,7 @@
             catch (Exception exception)when (exception is IOException or UnauthorizedAccessException or ArgumentException)
             {
                 Rows = [];
+                SelectedRow = null;
                 Bars = [];
                 _loadedRows = [];
                 _searchedFrom = _searchedThrough = null;
@@ -426,6 +456,7 @@
                     Notify(name);
                 SearchCommand.NotifyCanExecuteChanged();
                 Last24HoursCommand.NotifyCanExecuteChanged();
+                CauseAnalysisCommand.NotifyCanExecuteChanged();
             }
         }
 
@@ -549,7 +580,7 @@
         }
     }
 
-    public sealed record ST_ALARM_HISTORY_ROW(int No, string Time, string Code, string Level, string Group, string Cause, string Solution)
+    public sealed record ST_ALARM_HISTORY_ROW(int No, string Time, string Code, string Level, string Group, string Cause, string Solution, DateTimeOffset OccurredAt)
     {
         public Brush LevelBrush
         {

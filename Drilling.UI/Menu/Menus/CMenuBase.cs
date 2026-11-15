@@ -438,7 +438,7 @@ public sealed class CScreenViewModel(
     public CMenuSetting? Setting { get; } = setting;
     public CMenuAlarm? Alarm { get; } = alarm;
     public CMenuMonitor? Monitor { get; } = monitor;
-    public CMenuReview? Review { get; } = review ?? manual?.Review;
+    public CMenuReview? Review { get; } = review;
     public CMenuCorrection? Correction { get; } = correction;
     public CMenuPm? Pm { get; } = pm;
 

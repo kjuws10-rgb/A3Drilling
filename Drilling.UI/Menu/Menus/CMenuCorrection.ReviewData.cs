@@ -23,6 +23,8 @@ namespace Drilling.UI.Menu.Menus
             private readonly Func<Task> _rollbackReviewOffset;
             private readonly Func<string, IReadOnlyList<ST_REVIEW_OFFSET_ROW>, string, Task<ST_REVIEW_OFFSET_FILE_DATA?>> _saveReviewOffsetFromResult;
             private bool _isBusy;
+            private bool _isResultEditMode;
+            private int _skipNextVisibleReload;
             private ST_REVIEW_RESULT_TREE_NODE? _selectedNode;
 
             public CReviewDataPanel(
@@ -48,6 +50,9 @@ namespace Drilling.UI.Menu.Menus
                 RefreshCommand = new CButtonCommand(RefreshRequested, _ => !IsBusy);
                 LoadDataCommand = new CButtonCommand(LoadDataRequested, _ => CanLoadData);
                 SelectCellCommand = new CButtonCommand(SelectCell);
+                ApplyScatterPlotScaleCommand = new CButtonCommand(ApplyScatterPlotScale);
+                ToggleResultEditModeCommand = new CButtonCommand(ToggleResultEditMode, _ => CanToggleResultEditMode);
+                InitializeResultEditCommands();
                 OffsetApplyCommand = new CButtonCommand(OffsetApplyRequested, _ => CanApplyOffset);
                 OffsetRollbackCommand = new CButtonCommand(OffsetRollbackRequested, _ => CanEditOffsets);
                 OffsetInitCommand = new CButtonCommand(OffsetInitRequested, _ => CanEditOffsets);
@@ -61,6 +66,8 @@ namespace Drilling.UI.Menu.Menus
             public CButtonCommand RefreshCommand { get; }
             public CButtonCommand LoadDataCommand { get; }
             public CButtonCommand SelectCellCommand { get; }
+            public CButtonCommand ApplyScatterPlotScaleCommand { get; }
+            public CButtonCommand ToggleResultEditModeCommand { get; }
             public CButtonCommand OffsetApplyCommand { get; }
             public CButtonCommand OffsetRollbackCommand { get; }
             public CButtonCommand OffsetInitCommand { get; }
@@ -72,6 +79,12 @@ namespace Drilling.UI.Menu.Menus
             public string SelectedStatus { get; private set; } = "WAIT";
             public string SelectedPath { get; private set; } = "";
             public Brush SelectedStatusBrush => StatusBrush(SelectedStatus);
+            public bool IsResultEditMode => _isResultEditMode;
+            public bool CanToggleResultEditMode => _isResultEditMode
+                || (_hasLoadedData
+                    && !_isDataLoading
+                    && !IsBusy
+                    && !IsReinspectionMode);
 
             public bool IsBusy
             {
@@ -95,8 +108,41 @@ namespace Drilling.UI.Menu.Menus
                 return Refresh(cancellationToken);
             }
 
+            public Task ReloadWhenVisible(CancellationToken cancellationToken = default)
+            {
+                if (Interlocked.Exchange(ref _skipNextVisibleReload, 0) != 0)
+                {
+                    return Task.CompletedTask;
+                }
+
+                return Refresh(cancellationToken);
+            }
+
+            public async Task OpenResult(string resultPath, CancellationToken cancellationToken = default)
+            {
+                if (string.IsNullOrWhiteSpace(resultPath))
+                    throw new ArgumentException("검사 결과 경로가 없습니다.", nameof(resultPath));
+                if (!File.Exists(resultPath))
+                    throw new FileNotFoundException("방금 저장한 검사 결과 파일을 찾을 수 없습니다.", resultPath);
+
+                await Refresh(cancellationToken, resultPath);
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var selectedResult = _selectedNode?.Result;
+                if (selectedResult is null || !selectedResult.FilePath.Equals(resultPath, StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException("방금 저장한 검사 결과를 REVIEW DATA 목록에서 찾을 수 없습니다.");
+                if (IsBlockedStatus(selectedResult.ResultStatus))
+                    throw new InvalidOperationException($"검사 결과를 불러올 수 없습니다. 상태: {selectedResult.ResultStatus}");
+
+                await LoadSelectedData();
+                Interlocked.Exchange(ref _skipNextVisibleReload, 1);
+            }
+
             public void Select(ST_REVIEW_RESULT_TREE_NODE node)
             {
+                var preserveLoadedData = node.Result is { } selectedResult
+                    && _hasLoadedData
+                    && _loadedCatalog?.FilePath.Equals(selectedResult.FilePath, StringComparison.OrdinalIgnoreCase) == true;
                 SetSelectedTreeNode(node);
                 _selectedNode = node;
                 SelectedTitle = node.Name;
@@ -108,11 +154,37 @@ namespace Drilling.UI.Menu.Menus
                 Notify(nameof(SelectedStatusBrush));
                 Notify(nameof(SelectedPath));
                 Notify(nameof(SelectedDetails));
-                PrepareSelectedResult(node.Result);
+                if (!preserveLoadedData)
+                {
+                    PrepareSelectedResult(node.Result);
+                }
                 if (node.Result is not null)
                 {
                     _statusReporter($"Review Result selected: {node.Result.FileName}.");
                 }
+            }
+
+            private void ToggleResultEditMode(object? parameter)
+            {
+                if (!CanToggleResultEditMode)
+                {
+                    return;
+                }
+
+                _isResultEditMode = !_isResultEditMode;
+                Notify(nameof(IsResultEditMode));
+                Notify(nameof(CanToggleResultEditMode));
+                ToggleResultEditModeCommand.NotifyCanExecuteChanged();
+                if (!_isResultEditMode)
+                {
+                    ClearResultEditSelection();
+                }
+
+                NotifyResultEditState();
+                NotifyReinspectionCommandState();
+                _statusReporter(_isResultEditMode
+                    ? "RESULT EDIT MODE opened."
+                    : "RESULT EDIT MODE closed.");
             }
 
             private async void RefreshRequested(object? parameter)
@@ -207,7 +279,7 @@ namespace Drilling.UI.Menu.Menus
                         recipe.Key,
                         "RECIPE",
                         $"{recipe.Count():N0}",
-                        new[] { "ALL_SHOT", "ONE_SHOT", "BEAM_INSPECTION", "ROUGH", "FINE" }
+                        new[] { "ALL_SHOT", "ONE_SHOT", "ONE_LINE", "BEAM_INSPECTION", "ROUGH", "FINE" }
                             .Select(type =>
                             {
                                 var typeResults = recipe.Where(result => result.ResultType.Equals(type, StringComparison.OrdinalIgnoreCase)).OrderByDescending(result => result.SavedAt).ToArray();

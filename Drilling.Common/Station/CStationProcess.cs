@@ -132,7 +132,8 @@
             string stationName = "PROCESS", 
             string? scriptDirectory = null, 
             CRecipeManager? recipeManager = null, 
-            CReviewManager? zeroLineReview = null
+            CReviewManager? zeroLineReview = null,
+            Action<ST_PROTECT_WINDOW_RETRY_EXHAUSTED>? protectWindowRetryExhausted = null
         )
         {
             _interfaceManager = interfaceManager;
@@ -143,7 +144,7 @@
             _recipeManager = recipeManager;
             _zeroLineReview = zeroLineReview;
             if (recipeManager is not null)
-                _protectWindowUsageRequest = new(recipeManager, interfaceManager, message => AddProcessLog("INFO", "PROTECT_WINDOW", message));
+                _protectWindowUsageRequest = new(recipeManager, interfaceManager, message => AddProcessLog("INFO", "PROTECT_WINDOW", message), protectWindowRetryExhausted);
             _reviewOffsetFile = reviewOffsetFile;
             _automationScriptFile = automationScriptFile;
             _automationManager = automationManager;
@@ -4329,7 +4330,13 @@
         private static bool IsOff(ST_MELSEC_CACHED_VALUE value) => value.IsValid && value.Value is not null && Convert.ToDouble(value.Value, CultureInfo.InvariantCulture) == 0;
     }
 
-    public sealed partial class CProtectWindowUsageRequest(CRecipeManager recipes, CInterfaceManager interfaces, Action<string>? log = null)
+    public sealed record ST_PROTECT_WINDOW_RETRY_EXHAUSTED(string RecipeId, int TrayCount, int MaximumCount, int RetryCount);
+
+    public sealed partial class CProtectWindowUsageRequest(
+        CRecipeManager recipes,
+        CInterfaceManager interfaces,
+        Action<string>? log = null,
+        Action<ST_PROTECT_WINDOW_RETRY_EXHAUSTED>? retryExhausted = null)
     {
 #region 공유 상태·초기값
         public const string CompleteId = "PTW_EXCHANGE_SEQ_COMPLETE";
@@ -4343,6 +4350,10 @@
         private object? _acknowledgedCycle;
         private bool _completionArmed;
         private int? _committedHandoverCount;
+        private int _pendingMaximumCount;
+        private int _retryLimit;
+        private int _retryRequestsIssued;
+        private bool _retryWaitingForCompleteOff;
         private bool? _lastRequest;
         private bool? _lastCompletion;
         private string? _lastSignalTrace;
@@ -4361,12 +4372,19 @@
             {
                 // LoadRecipes returns the shared in-memory recipe snapshot once initialized.
                 var recipe = (await recipes.LoadRecipes(token).ConfigureAwait(false)).SingleOrDefault(item => item.Id.Equals(recipeId, StringComparison.OrdinalIgnoreCase)) ?? throw new InvalidOperationException($"Protect Window recipe not found: {recipeId}");
-                int Count(string key) => CProtectWindowRecipeData.ParseCount(recipe.Parameters.LastOrDefault(item => item.Use && item.Key.Equals(key, StringComparison.OrdinalIgnoreCase))?.Value, key);
+                string? Value(string key) => recipe.Parameters.LastOrDefault(item => item.Use && item.Key.Equals(key, StringComparison.OrdinalIgnoreCase))?.Value;
+                int Count(string key) => CProtectWindowRecipeData.ParseCount(Value(key), key);
                 var current = Count(CProtectWindowRecipeData.CurrentCountKey);
                 var maximum = Count(CProtectWindowRecipeData.MaximumCountKey);
-                WriteLog($"USAGE_CHECK Recipe={recipeId}; Current={current}; Maximum={maximum}; ThresholdReached={current >= maximum}; AlreadyAcknowledged={cycle is not null && ReferenceEquals(cycle, _acknowledgedCycle)}");
+                var retryLimit = CProtectWindowRecipeData.ParseRetryCount(Value(CProtectWindowRecipeData.RetryCountKey));
+                WriteLog($"USAGE_CHECK Recipe={recipeId}; Current={current}; Maximum={maximum}; RetryLimit={retryLimit}; ThresholdReached={current >= maximum}; AlreadyAcknowledged={cycle is not null && ReferenceEquals(cycle, _acknowledgedCycle)}");
                 await PublishIfChanged(CountId, current, token).ConfigureAwait(false);
                 _currentCycle = cycle;
+                if (_retryWaitingForCompleteOff)
+                {
+                    WriteLog($"EXCHANGE_RETRY_HANDSHAKE Recipe={_pendingRecipeId}; waiting for Request=OFF and Complete=OFF before retry {_retryRequestsIssued}/{_retryLimit}.");
+                    return;
+                }
                 // Max=0 is immediate, once per glass cycle. A completed exchange must not reassert
                 // from the later COMPLETE-boundary update of that same glass.
                 if (current >= maximum && !(cycle is not null && ReferenceEquals(cycle, _acknowledgedCycle)))
@@ -4377,10 +4395,13 @@
                         _pendingRecipeId = recipeId;
                         _pendingCycle = cycle;
                         _committedHandoverCount = null;
+                        _pendingMaximumCount = maximum;
+                        _retryLimit = retryLimit;
+                        _retryRequestsIssued = 0;
                         _completionArmed = Matches(values.GetValueOrDefault(CompleteId), 0) || (_lastRequest is null && Matches(values.GetValueOrDefault(RequestId), 1));
                     }
 
-                    WriteLog($"EXCHANGE_REQUEST Recipe={recipeId}; Current={current}; Maximum={maximum}; CompletionArmed={_completionArmed}");
+                    WriteLog($"EXCHANGE_REQUEST Recipe={recipeId}; Current={current}; Maximum={maximum}; RetryLimit={retryLimit}; CompletionArmed={_completionArmed}");
                     await PublishIfChanged(RequestId, 1, token).ConfigureAwait(false);
                 }
             }
@@ -4579,6 +4600,23 @@
                     WriteLog($"EXCHANGE_SIGNALS {signalTrace}; RequestAddress={requestRoute?.Address}; CompleteAddress={completionRow?.Address}; Recipe={_pendingRecipeId}");
                 }
 
+                if (_retryWaitingForCompleteOff)
+                {
+                    _lastRequest = request;
+                    if (complete is not null)
+                        _lastCompletion = complete;
+                    if (request != false || complete != false)
+                        return;
+
+                    await PublishIfChanged(RequestId, 1, token).ConfigureAwait(false);
+                    _retryWaitingForCompleteOff = false;
+                    _completionArmed = true;
+                    _lastRequest = true;
+                    _lastCompletion = false;
+                    WriteLog($"EXCHANGE_RETRY_REQUEST Recipe={_pendingRecipeId}; Attempt={_retryRequestsIssued}/{_retryLimit}; Request=ON after completion reset.");
+                    return;
+                }
+
                 if (request is null)
                     return;
                 if (request == false)
@@ -4595,9 +4633,13 @@
                     // Also handle requests issued from Monitor or left ON across restart.
                     _pendingRecipeId = selectedRecipe();
                     _pendingCycle = _currentCycle;
+                    var policy = await LoadPolicy(_pendingRecipeId, token).ConfigureAwait(false);
+                    _pendingMaximumCount = policy.MaximumCount;
+                    _retryLimit = policy.RetryCount;
+                    _retryRequestsIssued = 0;
                     _completionArmed = complete == false || _lastCompletion == false || _lastRequest is null;
                     _committedHandoverCount = null;
-                    WriteLog($"EXCHANGE_RECOVERY_REQUEST Recipe={_pendingRecipeId}; Complete={complete}; CompletionArmed={_completionArmed}; FirstObservation={_lastRequest is null}");
+                    WriteLog($"EXCHANGE_RECOVERY_REQUEST Recipe={_pendingRecipeId}; Maximum={_pendingMaximumCount}; RetryLimit={_retryLimit}; Complete={complete}; CompletionArmed={_completionArmed}; FirstObservation={_lastRequest is null}");
                 }
 
                 if (complete == false)
@@ -4623,12 +4665,36 @@
                 await PublishIfChanged(CountId, _committedHandoverCount.Value, token).ConfigureAwait(false);
                 await PublishIfChanged(RequestId, 0, token).ConfigureAwait(false);
                 var completedRecipe = _pendingRecipeId;
-                var completedCount = _committedHandoverCount;
+                var completedCount = _committedHandoverCount.Value;
+                var requiresAnotherExchange = completedCount >= _pendingMaximumCount;
+                if (requiresAnotherExchange && _retryRequestsIssued < _retryLimit)
+                {
+                    _retryRequestsIssued++;
+                    _retryWaitingForCompleteOff = true;
+                    _completionArmed = false;
+                    _committedHandoverCount = null;
+                    _lastRequest = false;
+                    _lastCompletion = true;
+                    WriteLog($"EXCHANGE_RETRY_PENDING Recipe={completedRecipe}; TrayCount={completedCount}; Maximum={_pendingMaximumCount}; Attempt={_retryRequestsIssued}/{_retryLimit}; request OFF, waiting for completion OFF.");
+                    return;
+                }
+
+                var exhausted = requiresAnotherExchange;
+                var exhaustedMaximum = _pendingMaximumCount;
+                var exhaustedRetryCount = _retryRequestsIssued;
                 _acknowledgedCycle = _pendingCycle;
                 ClearPending();
                 _lastRequest = false;
                 _lastCompletion = true;
-                WriteLog($"Stage replacement complete: Recipe={completedRecipe}; Stage Tray Count={completedCount}; usage persisted/reported; request OFF. TPM remains separate.");
+                if (exhausted)
+                {
+                    WriteLog($"EXCHANGE_RETRY_EXHAUSTED Recipe={completedRecipe}; TrayCount={completedCount}; Maximum={exhaustedMaximum}; RetryCount={exhaustedRetryCount}; LIGHT alarm requested; AUTO continues.");
+                    NotifyRetryExhausted(new(completedRecipe, completedCount, exhaustedMaximum, exhaustedRetryCount));
+                }
+                else
+                {
+                    WriteLog($"Stage replacement complete: Recipe={completedRecipe}; Stage Tray Count={completedCount}; usage persisted/reported; request OFF. TPM remains separate.");
+                }
             }
             finally
             {
@@ -4642,6 +4708,33 @@
             _pendingCycle = null;
             _completionArmed = false;
             _committedHandoverCount = null;
+            _pendingMaximumCount = 0;
+            _retryLimit = 0;
+            _retryRequestsIssued = 0;
+            _retryWaitingForCompleteOff = false;
+        }
+
+        private async Task<(int MaximumCount, int RetryCount)> LoadPolicy(string recipeId, CancellationToken token)
+        {
+            var recipe = (await recipes.LoadRecipes(token).ConfigureAwait(false))
+                .SingleOrDefault(item => item.Id.Equals(recipeId, StringComparison.OrdinalIgnoreCase))
+                ?? throw new InvalidOperationException($"Protect Window recipe not found: {recipeId}");
+            string? Value(string key) => recipe.Parameters.LastOrDefault(item => item.Use && item.Key.Equals(key, StringComparison.OrdinalIgnoreCase))?.Value;
+            return (
+                CProtectWindowRecipeData.ParseCount(Value(CProtectWindowRecipeData.MaximumCountKey), CProtectWindowRecipeData.MaximumCountKey),
+                CProtectWindowRecipeData.ParseRetryCount(Value(CProtectWindowRecipeData.RetryCountKey)));
+        }
+
+        private void NotifyRetryExhausted(ST_PROTECT_WINDOW_RETRY_EXHAUSTED exhausted)
+        {
+            try
+            {
+                retryExhausted?.Invoke(exhausted);
+            }
+            catch (Exception error)
+            {
+                WriteLog($"ERROR: Protect Window retry warning callback failed without stopping AUTO: {error}");
+            }
         }
 
         private async Task<int> ReadHandoverCount(IReadOnlyList<ST_MELSEC_MAP_DATA> map, CancellationToken token)

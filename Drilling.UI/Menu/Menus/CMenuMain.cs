@@ -2647,12 +2647,14 @@
 
         public event PropertyChangedEventHandler? PropertyChanged;
         private CProtectWindowDisplay _recipeCount = new("—", "현재 레시피의 MAX_PROCESS_COUNT", Blue);
+        private CProtectWindowDisplay _retryCount = new("0회", "현재 레시피의 PROTECT_WINDOW_RETRY_COUNT", Blue);
         private CProtectWindowDisplay _currentCount = Missing("현재 레시피의 가공 매수 읽기 대기");
         private CProtectWindowDisplay _trayCount = Missing("Stage Tray Count 수신 대기 · 교체완료 시 현재 매수로 인계");
         private CProtectWindowDisplay _request = Missing("교체요청 신호상태 수신 대기");
         private CProtectWindowDisplay _complete = Missing("교체완료 신호상태 수신 대기");
         private CProtectWindowDisplay _connection = new("OFFLINE", "MELSEC 연결 대기", Red);
         public CProtectWindowDisplay RecipeCount { get => _recipeCount; private set => Set(ref _recipeCount, value); }
+        public CProtectWindowDisplay RetryCount { get => _retryCount; private set => Set(ref _retryCount, value); }
         public CProtectWindowDisplay CurrentCount { get => _currentCount; private set => Set(ref _currentCount, value); }
         public CProtectWindowDisplay TrayCount { get => _trayCount; private set => Set(ref _trayCount, value); }
         public CProtectWindowDisplay Request { get => _request; private set => Set(ref _request, value); }
@@ -2671,6 +2673,15 @@
         {
             var text = parameters.GetValueOrDefault(CProtectWindowRecipeData.MaximumCountKey);
             RecipeCount = double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var count) && double.IsFinite(count) && count >= 0 && count <= int.MaxValue && count == Math.Truncate(count) ? new(count.ToString("N0", CultureInfo.InvariantCulture) + " 장", "현재 레시피의 MAX_PROCESS_COUNT", Blue) : new("미설정", "레시피 MAX_PROCESS_COUNT를 확인해 주세요.", Red);
+            try
+            {
+                var retryCount = CProtectWindowRecipeData.ParseRetryCount(parameters.GetValueOrDefault(CProtectWindowRecipeData.RetryCountKey));
+                RetryCount = new(retryCount.ToString(CultureInfo.InvariantCulture) + "회", "교체 완료 후에도 Tray Count가 Max 이상일 때 추가 요청하는 횟수", Blue);
+            }
+            catch (InvalidDataException)
+            {
+                RetryCount = new("설정 오류", "레시피 PROTECT_WINDOW_RETRY_COUNT는 0~3이어야 합니다.", Red);
+            }
             try
             {
                 var current = CProtectWindowRecipeData.ParseCount(parameters.GetValueOrDefault(CProtectWindowRecipeData.CurrentCountKey));
@@ -2958,6 +2969,7 @@
             _visible = visible;
             Refresh();
         }
+
 
         private static bool TryNumber(object? value, out int number) => int.TryParse(value?.ToString(), out number);
         private static IReadOnlyList<CMainRunOptionChoice> SwitchChoices(bool enabled) => [new(1, "ON", enabled, Brushes.SeaGreen), new(0, "OFF", !enabled, Brushes.Firebrick)];

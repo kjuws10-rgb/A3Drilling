@@ -1661,7 +1661,8 @@
                 var id = "HANDSHAKE_PRC_DISTORTION_" + signal;
                 yield return Row(id, "DISTORTION", id, 0, signal == "ABLE" ? "W8056" : "W8058", "DWORD", "OUT", "RW", "0.0001", "10000", "2", "100", "Spec 0.12; Stage ABLE/COMPLETE OFF 확인 후 우리 신호 OFF");
                 id = "HANDSHAKE_STG_DISTORTION_" + signal;
-                yield return Row(id, "DISTORTION", id, 0, "UNASSIGNED", "DWORD", "IN", "R", "0.0001", "10000", "2", "100", "Stage 수신 주소 미정; 확정 주소 입력 후 USE=1", use: false);
+                var address = signal == "ABLE" ? "WC0DB" : "WC0DD";
+                yield return Row(id, "DISTORTION", id, 0, address, "DWORD", "IN", "R", "0.0001", "10000", "2", "100", $"Spec 0.13; IPS_DISTORTION_{signal}; Int32 raw 0/10000; logical 0/1");
             }
             for (var position = 0; position <= 3; position++)
             foreach (var camera in position == 0 ? new[] { 1, 2, 3, 4 } : new[] { 2, 4 })

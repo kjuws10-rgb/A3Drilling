@@ -392,7 +392,7 @@
                 <MultiDataTrigger>
                     <MultiDataTrigger.Conditions>
                         <Condition Binding="{Binding IsSelected}" Value="True" />
-                        <Condition Binding="{Binding DataContext.CurrentScreen.Review.IsBeamInspectionMode, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True" />
+                        <Condition Binding="{Binding DataContext.CurrentScreen.Review.IsShotSelectionMode, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True" />
                     </MultiDataTrigger.Conditions>
                     <Setter Property="Background" Value="#1565C0" />
                     <Setter Property="BorderBrush" Value="#003C8F" />
@@ -471,30 +471,20 @@
             <RowDefinition Height="0" />
             <RowDefinition Height="0" />
             <RowDefinition Height="*" />
-            <RowDefinition>
-                <RowDefinition.Style>
-                    <Style TargetType="RowDefinition">
-                        <Setter Property="Height" Value="280" />
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding CurrentScreen.Review.IsOneShotReviewMode}" Value="True">
-                                <Setter Property="Height" Value="170" />
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </RowDefinition.Style>
-            </RowDefinition>
+            <RowDefinition Height="0" />
         </Grid.RowDefinitions>
 
         <Grid Grid.Row="2"
               Visibility="{Binding CurrentScreen.Review.IsRunTab, Converter={StaticResource BooleanToVisibilityConverter}}">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="320" />
+                <ColumnDefinition Width="0" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="400" />
             </Grid.ColumnDefinitions>
 
             <Border Grid.Column="0"
                     Style="{StaticResource PanelBorder}"
+                    Visibility="Collapsed"
                     Margin="0,0,12,12">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -658,7 +648,7 @@
                       </Grid>
                       <ItemsControl x:Name="ReviewHeadCards" ItemsSource="{Binding CurrentScreen.Review.InspectionHeadRows}"
                                     Margin="0,4,0,10"
-                                    Visibility="{Binding CurrentScreen.Review.IsShotSelectionMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    Visibility="{Binding CurrentScreen.Review.IsReviewHeadCardsVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                           <ItemsControl.ItemsPanel>
                               <ItemsPanelTemplate>
                                   <UniformGrid Rows="1" Columns="8" />
@@ -717,6 +707,7 @@
                                     <DataTemplate>
                                         <Button Width="{Binding Width}"
                                                 Height="{Binding Height}"
+                                                IsEnabled="{Binding DataContext.CurrentScreen.Review.IsShotSelectionMode, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 Command="{Binding DataContext.CurrentScreen.Review.SelectRunCellCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding CellNo}"
                                                 MouseMove="RunCellPreviewLabel_MouseMove"
@@ -863,7 +854,7 @@
                                                                                 <MultiDataTrigger>
                                                                                     <MultiDataTrigger.Conditions>
                                                                                         <Condition Binding="{Binding IsSelected}" Value="True" />
-                                                                                        <Condition Binding="{Binding DataContext.CurrentScreen.Review.IsBeamInspectionMode, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True" />
+                                                                                        <Condition Binding="{Binding DataContext.CurrentScreen.Review.IsShotSelectionMode, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True" />
                                                                                     </MultiDataTrigger.Conditions>
                                                                                     <Setter Property="Foreground" Value="White" />
                                                                                 </MultiDataTrigger>
@@ -941,6 +932,10 @@
                                         <Setter Property="Height" Value="*" />
                                         <Setter Property="MaxHeight" Value="{Binding ActualWidth, ElementName=ReviewBeamSelectionPanel}" />
                                     </DataTrigger>
+                                    <DataTrigger Binding="{Binding CurrentScreen.Review.IsOneLineReviewMode}" Value="True">
+                                        <Setter Property="Height" Value="*" />
+                                        <Setter Property="MaxHeight" Value="{Binding ActualWidth, ElementName=ReviewBeamSelectionPanel}" />
+                                    </DataTrigger>
                                     <DataTrigger Binding="{Binding CurrentScreen.Review.IsBeamInspectionMode}" Value="True">
                                         <Setter Property="Height" Value="*" />
                                     </DataTrigger>
@@ -960,6 +955,10 @@
                                 <Setter Property="MinHeight" Value="150" />
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding CurrentScreen.Review.IsAllShotReviewMode}" Value="True">
+                                        <Setter Property="Height" Value="Auto" />
+                                        <Setter Property="MinHeight" Value="0" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding CurrentScreen.Review.IsOneLineReviewMode}" Value="True">
                                         <Setter Property="Height" Value="Auto" />
                                         <Setter Property="MinHeight" Value="0" />
                                     </DataTrigger>
@@ -984,10 +983,43 @@
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
-                        <StackPanel>
+                        <Border Grid.Row="0"
+                                Margin="0,0,0,8"
+                                Padding="8,6"
+                                Background="{DynamicResource PanelAltBackgroundBrush}"
+                                BorderBrush="{DynamicResource PanelBorderBrush}"
+                                BorderThickness="1"
+                                Visibility="{Binding CurrentScreen.Review.IsRunStageStatusVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="Stage Y Cur (mm)" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                    <TextBlock Text="{Binding CurrentScreen.Review.Camera.StageY}"
+                                               FontSize="16" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="Review X Cur (mm)" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                    <TextBlock Text="{Binding CurrentScreen.Review.Camera.ReviewX}"
+                                               FontSize="16" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                </StackPanel>
+                                <TextBlock Grid.Column="2"
+                                           Text="{Binding CurrentScreen.Review.Camera.Mode}"
+                                           Margin="6,0,0,0"
+                                           VerticalAlignment="Center"
+                                           FontSize="10"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" />
+                            </Grid>
+                        </Border>
+                        <StackPanel Grid.Row="1">
                           <Grid>
                             <TextBlock Text="Beam Selection"
                                        Style="{StaticResource ReviewPanelTitle}"
@@ -1017,7 +1049,7 @@
                                        ToolTip="{Binding CurrentScreen.Review.InspectionProgressText}" />
                           </StackPanel>
                         </StackPanel>
-                        <Border Grid.Row="1"
+                        <Border Grid.Row="2"
                                 Background="{DynamicResource GridBackgroundBrush}"
                                 BorderBrush="{DynamicResource ButtonSecondaryBorderBrush}"
                                 BorderThickness="1"
@@ -1131,7 +1163,7 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                         </Border>
-                        <UniformGrid Grid.Row="2"
+                        <UniformGrid Grid.Row="3"
                                      Columns="2"
                                      Margin="0,12,0,0"
                                      IsEnabled="{Binding CurrentScreen.Review.CanSelectBeam}"
@@ -1195,7 +1227,7 @@
                         Style="{StaticResource PanelBorder}"
                         Margin="0,8,0,0"
                         Padding="10,7"
-                        Visibility="{Binding CurrentScreen.Review.IsAllShotReviewMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        Visibility="{Binding CurrentScreen.Review.IsAllShotStyleReviewMode, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -1287,7 +1319,7 @@
                         Style="{StaticResource PanelBorder}"
                         Margin="0,8,0,0"
                         Padding="10" VerticalAlignment="Top"
-                        Visibility="{Binding CurrentScreen.Review.IsAllShotReviewMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        Visibility="{Binding CurrentScreen.Review.IsAllShotStyleReviewMode, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <UniformGrid Columns="2">
                         <Button x:Name="AllShotStartButton" Content="START" Command="{Binding CurrentScreen.Review.StartCommand}"
                                 Style="{StaticResource ReviewCommandButton}" Height="40" MinWidth="0" Margin="0,0,4,0"
@@ -1302,7 +1334,7 @@
 
         <Border x:Name="ReviewResultsPanel" Grid.Row="3"
                 Style="{StaticResource PanelBorder}"
-                Visibility="{Binding CurrentScreen.Review.IsRunTab, Converter={StaticResource BooleanToVisibilityConverter}}">
+                Visibility="Collapsed">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />

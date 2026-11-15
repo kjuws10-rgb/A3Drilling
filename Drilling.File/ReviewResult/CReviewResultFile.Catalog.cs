@@ -7,7 +7,7 @@ namespace Drilling.File.ReviewResult
 
     public sealed partial class CReviewResultFile
     {
-        private static readonly string[] ManualResultTypes = ["ALL_SHOT", "ONE_SHOT", "BEAM_INSPECTION", "ROUGH", "FINE"];
+        private static readonly string[] ManualResultTypes = ["ALL_SHOT", "ONE_SHOT", "ONE_LINE", "BEAM_INSPECTION", "ROUGH", "FINE"];
 
         public override Task<IReadOnlyList<ST_REVIEW_RESULT_CATALOG_ITEM>> ListCorrectionResults(CancellationToken cancellationToken = default)
         {

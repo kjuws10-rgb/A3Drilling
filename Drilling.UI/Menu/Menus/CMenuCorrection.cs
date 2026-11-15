@@ -58,6 +58,7 @@
         private IReadOnlyDictionary<string, ST_RECIPE_SHOT_MASKING_RESULT> _outputViewerSelectedShotStates = new Dictionary<string, ST_RECIPE_SHOT_MASKING_RESULT>(StringComparer.OrdinalIgnoreCase);
         private string _outputViewerSelectedShotKey = "";
         private string _selectedTab = "ALIGN/DISTORTION";
+        private int _selectedReviewTabIndex;
         private string _simpleOffsetRecipeId = "";
         private Task<ST_REVIEW_OFFSET_FILE_DATA>? _simpleOffsetLoad;
         private bool _isReviewOperationRunning;
@@ -77,6 +78,7 @@
         public COutputOffsetViewerPanel OutputOffsets { get; } = new();
         public CDefaultOffsetPanel DefaultOffset { get; } = new();
         public CReviewDataPanel ReviewData { get; }
+        public CMenuReview? Review { get; private set; }
         public string OutputViewerSummary { get; private set; } = "0 Cells / 0 Shots";
         public ImageSource? OutputViewerCellShotMapImage { get; private set; }
         public event EventHandler? OutputViewerCellShotMapImageChanged;
@@ -92,7 +94,8 @@
             = CRecipeConfirmDialog.ShowDuplicateOffsetConfirmation;
 
         private CancellationTokenSource? _roughCancellation;
-        internal bool BlocksMenuNavigation => _fineCancellation is { IsCancellationRequested: false }
+        internal bool BlocksMenuNavigation => Review?.BlocksMenuNavigation == true
+            || _fineCancellation is { IsCancellationRequested: false }
             || _roughCancellation is { IsCancellationRequested: false }
             || _defaultCancellation is { IsCancellationRequested: false };
         private readonly CManager? _defaultManager;
@@ -242,6 +245,20 @@
             }
         }
 
+        public int SelectedReviewTabIndex
+        {
+            get => _selectedReviewTabIndex;
+            set
+            {
+                var normalized = Math.Clamp(value, 0, 7);
+                if (_selectedReviewTabIndex == normalized)
+                    return;
+
+                _selectedReviewTabIndex = normalized;
+                OnPropertyChanged(nameof(SelectedReviewTabIndex));
+            }
+        }
+
         public bool IsOtherCorrectionTab
         {
             get
@@ -367,6 +384,30 @@
         public CButtonCommand SelectOutputViewerShotCommand { get; }
         public CButtonCommand BackToOutputViewerGlassCommand { get; }
 
+        public void ConfigureReview(CMenuReview review)
+        {
+            Review = review ?? throw new ArgumentNullException(nameof(review));
+            Review.OpenSavedReviewResultAsync = OpenSavedReviewResult;
+        }
+
+        private async Task OpenSavedReviewResult(string resultPath)
+        {
+            if (string.IsNullOrWhiteSpace(resultPath))
+                throw new ArgumentException("저장된 검사 결과 경로가 없습니다.", nameof(resultPath));
+
+            await ReviewData.OpenResult(resultPath);
+            SelectedReviewTabIndex = 7;
+        }
+
+        public bool TrySelectReviewInspectionMode(string mode)
+        {
+            if (Review is null || Review.IsReviewExecutionActive)
+                return false;
+
+            Review.SelectModeCommand.Execute(mode);
+            return true;
+        }
+
         public override async Task<CScreenViewModel> Build(CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -405,6 +446,9 @@
             {
                 try
                 {
+                    if (Review is not null)
+                        await Review.Build(cancellationToken);
+
                     var recipe = await LoadSelectedOutputViewerRecipe(cancellationToken, fallbackToFirst: false);
                     var settings = _settingManager.LoadSection(EN_SETTING_TAB.Option, cancellationToken).Concat(_settingManager.LoadSection(EN_SETTING_TAB.Motor, cancellationToken)).ToArray();
                     ST_REVIEW_OFFSET_FILE_DATA? current = null;
@@ -456,6 +500,7 @@
                 Subtitle, 
                 [new("Selected", _selectedTab), new("Source", GetSourceName(_selectedTab)), new("State", GetStateName(_selectedTab))], 
                 [new("Correction Source", []), new("Correction Candidate", []), new("Apply Preview", [])], 
+                review: Review,
                 correction: this
             );
             return screen;
@@ -973,7 +1018,7 @@
             CReviewOffsetData.ApplyToParameters(parameters, reviewOffsetFile);
         }
 
-        private static ST_CORRECTION_OFFSET_VIEWER_PREVIEW BuildOutputViewerGlassPreview(IReadOnlyDictionary<string, string> parameters, int cellCount, int selectedCellNo)
+        internal static ST_CORRECTION_OFFSET_VIEWER_PREVIEW BuildOutputViewerGlassPreview(IReadOnlyDictionary<string, string> parameters, int cellCount, int selectedCellNo)
         {
             const double canvasWidth = 860.0;
             const double canvasHeight = 430.0;
@@ -2532,6 +2577,8 @@
 #region Alarm
         public override async Task StopForHeavyAlarm()
         {
+            if (Review is not null)
+                await Review.StopForHeavyAlarm();
             _roughCancellation?.Cancel();
             _fineCancellation?.Cancel();
             _defaultCancellation?.Cancel();
@@ -3133,15 +3180,19 @@
                 {
                     var defaults = CreateDefaultOptions(values, DefaultOffset.Options?.TestStageY);
                     if (DefaultOffset.Options is { } previous)
-                        defaults = defaults with { MachiningMode = previous.MachiningMode, CrossSize = previous.CrossSize };
+                        defaults = defaults with
+                        {
+                            AlignKey3ReviewX = previous.AlignKey3ReviewX,
+                            MachiningMode = previous.MachiningMode,
+                            CrossSize = previous.CrossSize
+                        };
                     var geometry = Enumerable.Range(1, 8).ToDictionary(head => head, head => CDefaultOffsetCalibration.HeadGeometry(values, head));
-                    var edited = Drilling.UI.Views.CDefaultOffsetView.EditConditions(defaults, DefaultOffset.ModelNumbers, DefaultOffset.SelectedModelNumber, geometry);
+                    var edited = Drilling.UI.Views.CDefaultOffsetView.EditConditions(defaults, DefaultOffset.ModelNumbers, DefaultOffset.SelectedModelNumber, geometry,
+                        CDefaultOffsetCalibration.DesignAlignKey3ReviewX(values));
                     if (edited is not { } condition) return;
                     var options = condition.Options;
                     ValidateDefaultOptions(options);
-                    var pitch = options.MachiningMode == EN_DEFAULT_MACHINING_MODE.Cross
-                        ? 0
-                        : CDefaultOffsetCalibration.Pitch(values, condition.Model);
+                    var pitch = CDefaultOffsetCalibration.Pitch(values, condition.Model);
                     var prepared = new CDefaultSetupRun(recipe, settings, values, options, condition.Model, pitch);
                     DefaultOffset.ApplyConditions(options, condition.Model);
                     _defaultRun = prepared;
@@ -3151,7 +3202,7 @@
                 await EnsureDefaultSource(run, token);
                 if (action == "RECOMMEND")
                 {
-                    run.Candidate = CDefaultOffsetCalibration.Recommend(run.Values, run.Results.Values.ToArray());
+                    run.Candidate = CDefaultOffsetCalibration.Recommend(run.Values, run.Options, run.Results.Values.ToArray());
                     // A Head Default is shared by every Shot assigned to that Head.
                     // Recipe Shot/MOF trajectory coordinates are not a limit check
                     // for storing this calibration. Check actual CENTER commands
@@ -3331,7 +3382,7 @@
                     catch { run.Results.Remove(head); throw; }
                     DefaultOffset.ShowResults(run.Results, run.Candidate, $"{label} 측정 중 · USE {run.Results.Count}/{heads.Length} Head 측정 완료", run.VerifiedResults.Keys.ToHashSet());
                 }
-                var changes = CDefaultOffsetCalibration.Recommend(run.Values, pair.Select(head => run.Results[head]).ToArray(), pair);
+                var changes = CDefaultOffsetCalibration.Recommend(run.Values, run.Options, pair.Select(head => run.Results[head]).ToArray(), pair);
                 var before = changes.Keys.ToDictionary(key => key, key => run.Values[key], StringComparer.OrdinalIgnoreCase);
                 var action = "PAIR_" + string.Join("_", pair.Select(h => h.ToString("00")));
                 try
@@ -3736,28 +3787,18 @@
             using var inspection = await _reviewManager.OpenDefaultInspection(token);
             var geometry = CDefaultOffsetCalibration.HeadGeometry(run.Values, head);
             var marks = new List<ST_DEFAULT_OFFSET_MARK>();
-            ST_DEFAULT_OFFSET_FIT fit;
-            if (run.Options.MachiningMode == EN_DEFAULT_MACHINING_MODE.Cross)
+            var beamCount = run.Options.InspectionPointCount;
+            for (var beam = 1; beam <= beamCount; beam++)
             {
                 await EnsureDefaultSource(run, token);
-                DefaultOffset.SetMessage($"HEAD {head:00} · 십자 중심 이동·측정 중", 3);
-                var mark = await inspection.Capture(head, 0, 0, 0, centerX, centerY, flip, token, referenceCell, run.Options.VisionMethod);
+                var slot = CDefaultOffsetCalibration.Slot(beam, run.Options.DoeBeamGridSize, run.Pitch, geometry.DoeAngle);
+                var targetName = run.Options.MachiningMode == EN_DEFAULT_MACHINING_MODE.Cross ? "십자" : "Beam";
+                DefaultOffset.SetMessage($"HEAD {head:00} · {targetName} {beam}/{beamCount} 이동·측정 중", 3);
+                var mark = await inspection.Capture(head, beam, slot.X, slot.Y, centerX + slot.X, centerY + direction * slot.Y, flip, token, referenceCell, run.Options.VisionMethod);
                 marks.Add(mark); DefaultOffset.ShowMarks(head, marks);
-                fit = CDefaultOffsetCalibration.FitCross(mark);
             }
-            else
-            {
-                for (var beam = 1; beam <= 16; beam++)
-                {
-                    await EnsureDefaultSource(run, token);
-                    var slot = CDefaultOffsetCalibration.Slot(beam, run.Pitch, geometry.DoeAngle);
-                    DefaultOffset.SetMessage($"HEAD {head:00} · Beam {beam}/16 이동·측정 중", 3);
-                    var mark = await inspection.Capture(head, beam, slot.X, slot.Y, centerX + slot.X, centerY + direction * slot.Y, flip, token, referenceCell, run.Options.VisionMethod);
-                    marks.Add(mark); DefaultOffset.ShowMarks(head, marks);
-                }
-                fit = CDefaultOffsetCalibration.Fit(marks, run.Pitch, geometry.DoeAngle, run.Options.Tolerance);
-            }
-            var result = CDefaultOffsetCalibration.WithHeadReference(run.Values,
+            var fit = CDefaultOffsetCalibration.Fit(marks, run.Options.DoeBeamGridSize, run.Pitch, geometry.DoeAngle, run.Options.Tolerance);
+            var result = CDefaultOffsetCalibration.WithHeadReference(run.Values, run.Options,
                 new(head, test.Id, test.Q, 0, test.Simulation, inspection.StageSimulation, inspection.VisionSimulation, marks.ToArray(), fit)
                 { Model = run.Model, ReferenceCell = referenceCell, Geometry = geometry });
             await inspection.Move(result.CenterReviewX, result.CenterStageY, token);
@@ -4351,8 +4392,9 @@
         public string ReviewX { get; private set; } = "-";
         public string Mode { get; private set; } = "OFFLINE";
         public Brush ModeBrush => Mode == "SIMULATION" ? CStatusBrush.Frozen(0xB8, 0x80, 0) : Mode == "ONLINE" ? CStatusBrush.CommandGreen : CStatusBrush.CommandRed;
-        public string BoardReference => Read("REVIEW_CAMERA_ALIGN_KEY_POS_X") is { } camera && Read("GLASS_SIZE_X") is { } width && Read("AK_MARGIN_X") is { } margin
-                ? (camera + width / 2 - margin).ToString("0.000", CultureInfo.InvariantCulture) : "미설정";
+        public string BoardReference => Options is null
+            ? "측정 조건 적용 전"
+            : Options.BoardCenterX.ToString("0.000", CultureInfo.InvariantCulture);
         public string State => IsBusy ? "진행 중" : IsApplied ? VerifiedHeadCount == ActiveHeadCount ? "검증 완료" : AppliedHeadCount < ActiveHeadCount ? $"부분 적용 {AppliedHeadCount}/{ActiveHeadCount}" : "적용됨" : _results.Count > 0 ? "측정됨" : "미측정";
         public string MeasuredCenter => _results.TryGetValue(SelectedHead.HeadNo, out var r) ? $"X {r.CenterReviewX:0.000} / Y {r.CenterStageY:0.000}" : "X -  /  Y -";
         public string CenterError => _results.TryGetValue(SelectedHead.HeadNo, out var r) ? $"X {r.CenterErrorX:0.000} / Y {r.CenterErrorY:0.000}" : "X -  /  Y -";
@@ -4362,7 +4404,7 @@
         public string BeamSummary { get; private set; } = "측정 0";
         public string GeometryText { get; private set; } = "레시피 설계값 대기";
         public string PatternCaption => Options?.MachiningMode == EN_DEFAULT_MACHINING_MODE.Cross
-            ? "십자 가공 형상"
+            ? "DOE 십자 배열"
             : "DOE 빔 배열";
         public string StatusText { get; private set; } = "Head를 선택해 현재 Default와 예상 빔 배열을 확인하세요.";
         public ImageSource? GlassImage { get; private set; }
@@ -4557,6 +4599,30 @@
                     var scale = Math.Min(208 / width.Value, 320 / height.Value);
                     bounds = new Rect((240 - width.Value * scale) / 2, (392 - height.Value * scale) / 2, width.Value * scale, height.Value * scale);
                     drawing.DrawRectangle(CStatusBrush.Frozen(0xEC, 0xF5, 0xFC), new Pen(CStatusBrush.CommandBlue, 2), bounds);
+                    var marginX = Read("AK_MARGIN_X");
+                    var marginY = Read("AK_MARGIN_Y");
+                    if (marginX is >= 0 && marginX <= width.Value / 2 && marginY is >= 0 && marginY <= height.Value / 2)
+                    {
+                        var ak1 = new Point(bounds.Left + marginX.Value * scale, bounds.Top + marginY.Value * scale);
+                        var ak3 = new Point(bounds.Right - marginX.Value * scale, bounds.Top + marginY.Value * scale);
+                        var keyBrush = CStatusBrush.Frozen(0xE6, 0xA4, 0x00);
+                        var keyPen = new Pen(keyBrush, 1.5);
+                        DrawCross(drawing, ak1, 4, keyPen);
+                        DrawCross(drawing, ak3, 4, keyPen);
+                        var ak1Text = Options is null ? "측정 조건 적용 전" : $"X {Options.AlignKey1ReviewX:0.000}";
+                        var ak3Text = Options is null ? "측정 조건 적용 전" : $"X {Options.AlignKey3ReviewX:0.000}";
+                        Label(drawing, "AK1", bounds.Left + 40, bounds.Top + 8, 9);
+                        Label(drawing, ak1Text, bounds.Left + 40, bounds.Top + 20, Options is null ? 7.5 : 8.5);
+                        Label(drawing, "AK3", bounds.Right - 40, bounds.Top + 8, 9);
+                        Label(drawing, ak3Text, bounds.Right - 40, bounds.Top + 20, Options is null ? 7.5 : 8.5);
+                        if (Options is not null)
+                        {
+                            var centerX = (ak1.X + ak3.X) / 2;
+                            var centerPen = new Pen(CStatusBrush.CommandGreen, 1.5) { DashStyle = DashStyles.Dash };
+                            drawing.DrawLine(centerPen, new Point(centerX, bounds.Top), new Point(centerX, bounds.Bottom));
+                            Label(drawing, $"CENTER X {Options.BoardCenterX:0.000}", centerX, bounds.Top + 42, 8.5);
+                        }
+                    }
                     if (Options is not null)
                     {
                         try
@@ -4591,36 +4657,69 @@
                     {
                         if (!double.IsFinite(Options.CrossSize) || Options.CrossSize <= 0)
                             throw new InvalidOperationException("십자 전체 길이를 확인해 주세요.");
-                        const double crossHalfLength = 115;
-                        var crossPen = new Pen(CStatusBrush.CommandBlue, 7);
-                        var targetCenter = new Point(250, 160);
-                        drawing.DrawLine(crossPen, new Point(targetCenter.X - crossHalfLength, targetCenter.Y), new Point(targetCenter.X + crossHalfLength, targetCenter.Y));
-                        drawing.DrawLine(crossPen, new Point(targetCenter.X, targetCenter.Y - crossHalfLength), new Point(targetCenter.X, targetCenter.Y + crossHalfLength));
-                        drawing.DrawEllipse(Brushes.White, new Pen(CStatusBrush.CommandBlue, 3), targetCenter, 11, 11);
-                        var displayScale = 230 / Options.CrossSize;
+                        var n = Options.DoeBeamGridSize;
+                        var count = Options.InspectionPointCount;
+                        var pitch = CDefaultOffsetCalibration.Pitch(_parameters, _selectedModelNumber);
+                        var angleDegrees = Read($"H{SelectedHead.HeadNo:00}_DOE_ROTATION_ANGLE") ?? 0;
+                        var targetSlots = Enumerable.Range(1, count)
+                            .Select(beam => (Beam: beam, Slot: CDefaultOffsetCalibration.Slot(beam, n, pitch, angleDegrees)))
+                            .ToArray();
+                        var halfSize = Options.CrossSize / 2;
+                        var extentX = targetSlots.Max(item => Math.Abs(item.Slot.X)) + halfSize;
+                        var extentY = targetSlots.Max(item => Math.Abs(item.Slot.Y)) + halfSize;
+                        if (!double.IsFinite(extentX) || !double.IsFinite(extentY) || extentX <= 0 || extentY <= 0)
+                            throw new InvalidOperationException("DOE 십자 배열 크기를 계산할 수 없습니다.");
+                        var displayScale = Math.Min(205 / extentX, 105 / extentY);
+                        if (!double.IsFinite(displayScale) || displayScale <= 0)
+                            throw new InvalidOperationException("DOE 십자 배열 배율을 계산할 수 없습니다.");
+                        var crossHalfLength = Math.Max(4, halfSize * displayScale);
+                        var targetCenter = new Point(250, 145);
+                        var axisPen = new Pen(CStatusBrush.Frozen(0xAC, 0xB8, 0xC4), 1) { DashStyle = DashStyles.Dash };
+                        drawing.DrawLine(axisPen, new Point(35, targetCenter.Y), new Point(465, targetCenter.Y));
+                        drawing.DrawLine(axisPen, new Point(targetCenter.X, 25), new Point(targetCenter.X, 265));
+                        var targetPen = new Pen(CStatusBrush.CommandBlue, 2);
+                        foreach (var item in targetSlots)
+                        {
+                            var target = new Point(targetCenter.X + item.Slot.X * displayScale, targetCenter.Y + item.Slot.Y * displayScale);
+                            DrawCross(drawing, target, crossHalfLength, targetPen);
+                            Label(drawing, item.Beam.ToString(CultureInfo.InvariantCulture), target.X, target.Y - 8, 9);
+                        }
                         foreach (var mark in marks)
                         {
                             var actual = new Point(
                                 targetCenter.X + mark.X * displayScale,
                                 targetCenter.Y + mark.Y * displayScale);
-                            if ((actual - targetCenter).Length > 1.5)
-                                drawing.DrawLine(new Pen(CStatusBrush.Frozen(0x80, 0x92, 0xA3), 1) { DashStyle = DashStyles.Dash }, targetCenter, actual);
                             var measuredBrush = mark.Judge == "OK" ? CStatusBrush.CommandGreen : CStatusBrush.CommandRed;
                             var measuredPen = new Pen(measuredBrush, 3);
-                            drawing.DrawLine(measuredPen, new Point(actual.X - crossHalfLength, actual.Y), new Point(actual.X + crossHalfLength, actual.Y));
-                            drawing.DrawLine(measuredPen, new Point(actual.X, actual.Y - crossHalfLength), new Point(actual.X, actual.Y + crossHalfLength));
-                            drawing.DrawEllipse(measuredBrush, new Pen(Brushes.White, 1), actual, 5, 5);
+                            DrawCross(drawing, actual, crossHalfLength, measuredPen);
+                            drawing.DrawEllipse(measuredBrush, new Pen(Brushes.White, 1), actual, 3, 3);
                         }
-                        Label(drawing, "목표 중심  X 0.00000 / Y 0.00000 mm", 250, 282, 12);
-                        if (marks.LastOrDefault() is { } measured)
+
+                        drawing.DrawEllipse(Brushes.White, new Pen(CStatusBrush.CommandBlue, 2), targetCenter, 6, 6);
+                        (double X, double Y)? measuredCenter = null;
+                        if (_results.GetValueOrDefault(SelectedHead.HeadNo)?.Fit is { } completedFit)
+                            measuredCenter = (completedFit.X, completedFit.Y);
+                        else if (marks.Count > 0)
                         {
+                            var centerOffsets = marks.Select(mark =>
+                            {
+                                var slot = CDefaultOffsetCalibration.Slot(mark.Beam, n, pitch, angleDegrees);
+                                return (X: mark.X - slot.X, Y: mark.Y - slot.Y);
+                            }).ToArray();
+                            measuredCenter = (centerOffsets.Average(value => value.X), centerOffsets.Average(value => value.Y));
+                        }
+                        if (measuredCenter is { } measured)
+                        {
+                            var actualCenter = new Point(targetCenter.X + measured.X * displayScale, targetCenter.Y + measured.Y * displayScale);
+                            drawing.DrawEllipse(marks.All(mark => mark.Judge == "OK") ? CStatusBrush.CommandGreen : CStatusBrush.CommandRed,
+                                new Pen(Brushes.White, 1), actualCenter, 5, 5);
                             var deltaX = measured.X.ToString("+0.00000;-0.00000;0.00000", CultureInfo.InvariantCulture);
                             var deltaY = measured.Y.ToString("+0.00000;-0.00000;0.00000", CultureInfo.InvariantCulture);
-                            Label(drawing, $"실측 중심  ΔX {deltaX} / ΔY {deltaY} mm  [{measured.Judge}]", 250, 302, 12);
+                            Label(drawing, $"실측 배열 중심  ΔX {deltaX} / ΔY {deltaY} mm", 250, 286, 11);
                         }
-                        else Label(drawing, "실측 중심 대기", 250, 302, 12);
-                        BeamSummary = $"측정 {marks.Count} / 1";
-                        GeometryText = $"십자 {Options.CrossSize:0.###} mm · Mark Find Setting Single";
+                        else Label(drawing, "실측 배열 중심 대기", 250, 286, 11);
+                        BeamSummary = $"측정 {marks.Count} / {count}";
+                        GeometryText = $"DOE {n}×{n} · 십자 {Options.CrossSize:0.###} mm × {count} · 빔 간격 {(n == 1 ? 0 : pitch):0.###} mm · Mark Find Setting Single";
                     }
                     else
                     {
@@ -4660,7 +4759,7 @@
                         {
                             var centerOffsets = marks.Select(mark =>
                             {
-                                var slot = CDefaultOffsetCalibration.Slot(mark.Beam, layout.BeamPitchMillimeters, angleDegrees);
+                                var slot = CDefaultOffsetCalibration.Slot(mark.Beam, n, n == 1 ? 0 : layout.BeamPitchMillimeters, angleDegrees);
                                 return (X: mark.X - slot.X, Y: mark.Y - slot.Y);
                             }).ToArray();
                             measuredCenter = (centerOffsets.Average(value => value.X), centerOffsets.Average(value => value.Y));
@@ -4698,6 +4797,11 @@
             double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var number) && double.IsFinite(number) ? number : null;
         private string ReadText(string key) => Read(key)?.ToString("0.000", CultureInfo.InvariantCulture) ?? "-";
         private static ImageSource Freeze(DrawingGroup group) { var image = new DrawingImage(group); image.Freeze(); return image; }
+        private static void DrawCross(DrawingContext drawing, Point center, double halfLength, Pen pen)
+        {
+            drawing.DrawLine(pen, new Point(center.X - halfLength, center.Y), new Point(center.X + halfLength, center.Y));
+            drawing.DrawLine(pen, new Point(center.X, center.Y - halfLength), new Point(center.X, center.Y + halfLength));
+        }
         private static void Label(DrawingContext drawing, string text, double centerX, double top, double size)
         {
             var formatted = new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
@@ -5852,13 +5956,14 @@
     public sealed partial class CFineCorrectionPanel : INotifyPropertyChanged
     {
 #region 공유 상태·초기값
+        private const int DefaultBeamNo = 11;
         private readonly Action<string>? _requestAction;
         private readonly Func<string, EN_REVIEW_RESUME_CHOICE>? _chooseRetry;
         private IReadOnlyDictionary<string, string> _parameters = new Dictionary<string, string>();
         private ST_REVIEW_PLAN? _source;
         private ST_GLASS_PREVIEW_FRAME _sourceFrame = new(44, 62, 772, 420);
         private IReadOnlyList<ST_CELL_PREVIEW_LABEL> _sourceCells = [];
-        private int _selectedBeam = 1;
+        private int _selectedBeam = DefaultBeamNo;
         private double _shiftOffsetX;
         private double _shiftOffsetY;
         private ST_RECIPE_DEFINITION? _recipe;
@@ -5986,7 +6091,7 @@
                 throw new InvalidOperationException("SPLITED_BEAM_COUNT를 확인해 주세요.");
             BeamNumbers = Enumerable.Range(1, split * split).ToArray();
             if (!BeamNumbers.Contains(_selectedBeam))
-                _selectedBeam = BeamNumbers[0];
+                _selectedBeam = BeamNumbers.Contains(DefaultBeamNo) ? DefaultBeamNo : BeamNumbers[0];
             var masking = CRecipeShotMaskingPlan.Build(parameters);
             var enabled = CHeadAssignmentPreviewBuilder.BuildEnabledHeadNumbers(parameters).ToHashSet();
             var points = shots.Select(shot => new ST_REVIEW_PLAN_POINT(
@@ -6057,7 +6162,6 @@
             IsRunning = false;
             Camera.Clear();
             BeamNumbers = [];
-            _selectedBeam = 1;
             Status = message;
             RetryStartLineNo = null;
             RefreshOffsetEligibility();
@@ -7087,7 +7191,8 @@
         private IReadOnlyDictionary<string, string> _parameters = new Dictionary<string, string>();
         private string _targetSignature = "";
         private int _sourceVersion;
-        private int _selectedBeam = 1;
+        private const int DefaultBeamNo = 11;
+        private int _selectedBeam = DefaultBeamNo;
         private double _shiftOffsetX;
         private double _shiftOffsetY;
         private ST_SIMPLE_CORRECTION_FIRST_SHOT[] _references = [];
@@ -7152,7 +7257,7 @@
             var split = int.TryParse(parameters.GetValueOrDefault("SPLITED_BEAM_COUNT"), out var count) ? count : 0;
             BeamNumbers = Enumerable.Range(1, Math.Max(0, split * split)).ToArray();
             if (!BeamNumbers.Contains(_selectedBeam))
-                _selectedBeam = BeamNumbers.FirstOrDefault();
+                _selectedBeam = BeamNumbers.Contains(DefaultBeamNo) ? DefaultBeamNo : BeamNumbers.FirstOrDefault();
             RefreshFeedback();
         }
 

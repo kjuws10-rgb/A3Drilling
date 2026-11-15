@@ -42,9 +42,11 @@
         private readonly Action _refreshScreen;
         private readonly Action _refreshNavigationAccess;
         private readonly Action? _openCorrectionReview;
+        public Func<string, Task>? OpenSavedReviewResultAsync { get; set; }
         private readonly HashSet<string> _selectedSampleShotKeys = new(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<int> _selectedInspectionBeamNos = [1];
         private readonly HashSet<string> _selectedInspectionShotKeys = new(StringComparer.OrdinalIgnoreCase);
+        private readonly HashSet<string> _selectedLineShotKeys = new(StringComparer.OrdinalIgnoreCase);
         private int _headCount = DefaultHeadCount;
         private int _cellCount = DefaultCellCount;
         private int _sampleRuleHeadNo = 1;
@@ -174,7 +176,7 @@
             TogglePointCommand = new CButtonCommand(ToggleShot, _ => IsSimpleSampleRuleUi && !IsReviewExecutionActive);
             SetSampleShotSelectionCommand = new CButtonCommand(SetSampleShotSelection, _ => IsSimpleSampleRuleUi && !IsReviewExecutionActive);
             QuickSelectCommand = new CButtonCommand(ApplyQuickSelect);
-            SelectRunCellCommand = new CButtonCommand(SelectRunCell);
+            SelectRunCellCommand = new CButtonCommand(SelectRunCell, _ => IsShotSelectionMode);
             SelectRunShotCommand = new CButtonCommand(SelectRunShot, _ => CanSelectBeam);
             SelectRunBeamCommand = new CButtonCommand(SelectRunBeam, _ => CanSelectBeam);
             SelectAllInspectionBeamsCommand = new CButtonCommand(SelectAllInspectionBeams, _ => IsBeamInspectionMode && CanSelectBeam);
@@ -189,7 +191,7 @@
             BackToRunGlassPreviewCommand = new CButtonCommand(BackToRunGlassPreview);
             SelectSampleCellCommand = new CButtonCommand(SelectSampleCell);
             BackToSampleGlassPreviewCommand = new CButtonCommand(BackToSampleGlassPreview);
-            StartCommand = new CButtonCommand(_ => _ = RequestReviewStart(), _ => string.IsNullOrWhiteSpace(_planBuildError) && !IsOneShotReviewMode && !IsSampleSelectTab && (!IsBeamInspectionMode || (_selectedInspectionShotKeys.Count > 0 && _selectedInspectionBeamNos.Count > 0)) && !IsReviewExecutionActive && _loadedBeamInspectionResult is null && !_isBeamInspectionResultLoading);
+            StartCommand = new CButtonCommand(_ => _ = RequestReviewStart(), _ => string.IsNullOrWhiteSpace(_planBuildError) && !IsOneShotReviewMode && !IsSampleSelectTab && (!IsOneLineReviewMode || _selectedLineShotKeys.Count > 0) && (!IsBeamInspectionMode || (_selectedInspectionShotKeys.Count > 0 && _selectedInspectionBeamNos.Count > 0)) && !IsReviewExecutionActive && _loadedBeamInspectionResult is null && !_isBeamInspectionResultLoading);
             PreviousInspectionShotCommand = new CButtonCommand(_ => BrowseInspectionShot(-1), _ => IsInspectionExecutionViewVisible && _beamInspectionBrowseIndex > 0);
             NextInspectionShotCommand = new CButtonCommand(_ => BrowseInspectionShot(1), _ => IsInspectionExecutionViewVisible && _beamInspectionBrowseIndex + 1 < GetInspectionDisplayShotCount());
             LoadLastBeamInspectionResultCommand = new CButtonCommand(_ => _ = LoadLastBeamInspectionResult(), _ => CanLoadBeamInspectionResult);
@@ -210,11 +212,15 @@
         public bool IsRunGlassPreviewVisible => IsRunTab && !_isRunCellDetailVisible;
         public bool IsRunCellDetailVisible => IsRunTab && _isRunCellDetailVisible;
         public bool IsAllShotReviewMode => _selectedMode.Equals("ALL SHOT", StringComparison.OrdinalIgnoreCase);
+        public bool IsOneLineReviewMode => _selectedMode.Equals("ONE LINE", StringComparison.OrdinalIgnoreCase);
+        public bool IsAllShotStyleReviewMode => IsAllShotReviewMode || IsOneLineReviewMode;
         public bool IsOneShotReviewMode => _selectedMode.Equals("ONE SHOT", StringComparison.OrdinalIgnoreCase);
+        public bool IsRunStageStatusVisible => IsAllShotStyleReviewMode || IsOneShotReviewMode;
         public bool IsRuleReviewMode => _selectedMode.Equals("SAMPLE SHOT", StringComparison.OrdinalIgnoreCase);
         public bool IsBeamInspectionMode => _selectedMode.Equals("BEAM INSPECTION", StringComparison.OrdinalIgnoreCase);
-        public bool IsBeamSelectionVisible => IsAllShotReviewMode || IsBeamInspectionMode || IsOneShotReviewMode;
-        public bool IsLastMeasurementVisible => IsAllShotReviewMode;
+        public bool IsReviewHeadCardsVisible => IsShotSelectionMode && !IsOneLineReviewMode;
+        public bool IsBeamSelectionVisible => IsAllShotStyleReviewMode || IsBeamInspectionMode || IsOneShotReviewMode;
+        public bool IsLastMeasurementVisible => IsAllShotStyleReviewMode;
         public bool IsRunShotMapVisible => IsRunCellDetailVisible;
         public bool IsRunBeamDetailVisible => false;
         public string RunWorkspaceTitle => _isRunCellDetailVisible ? $"Cell{_selectedRunCellNo} / Shot Selection" : "Glass / Cell Preview";
@@ -333,7 +339,9 @@
                     _selectedRunShotKey
                 }
 
-                : _selectedInspectionShotKeys.AsEnumerable()).Select(key => FindPointByShotKey(_lastAllPlan, key)).OfType<ST_REVIEW_PLAN_POINT>().GroupBy(point => point.HeadNo).ToDictionary(group => group.Key, group => group.Count());
+                : IsOneLineReviewMode
+                    ? _selectedLineShotKeys.AsEnumerable()
+                    : _selectedInspectionShotKeys.AsEnumerable()).Select(key => FindPointByShotKey(_lastAllPlan, key)).OfType<ST_REVIEW_PLAN_POINT>().GroupBy(point => point.HeadNo).ToDictionary(group => group.Key, group => group.Count());
                 return Enumerable.Range(1, _headCount).Select(headNo => new ST_REVIEW_INSPECTION_HEAD_ROW(headNo, counts.GetValueOrDefault(headNo))).ToArray();
             }
         }
@@ -435,10 +443,11 @@
         private void ResetPlanDisplayAfterBuildFailure()
         {
             _lastAllPlan = null;
+            _selectedLineShotKeys.Clear();
             _activePlanPointCount = 0;
             _totalReviewPointCount = 0;
             Tabs = [new("RUN", IsRunTab, SelectTabCommand)];
-            Modes = [Mode("ALL SHOT", ""), Mode("ONE SHOT", ""), Mode("BEAM INSPECTION", "")];
+            Modes = [Mode("ALL SHOT", ""), Mode("ONE SHOT", ""), Mode("ONE LINE", ""), Mode("BEAM INSPECTION", "")];
             TargetItems = [new("Recipe Name", _selectedRecipeIdProvider()), new("Glass ID", _productManager.Current?.GlassId ?? "-"), new("Tolerance", "-")];
             SelectionSummaryItems = [new("Status", "Configuration Error"), new("Reason", _planBuildError)];
             SelectedPointItems = [];
@@ -506,9 +515,10 @@
             if (isSampleSelectionRecipeChanged)
             {
                 _oneShotResult = null;
-                if (IsOneShotReviewMode)
+                if (IsOneShotReviewMode || IsOneLineReviewMode)
                 {
                     _selectedRunShotKey = "";
+                    _selectedLineShotKeys.Clear();
                     OneShotStatus = "Shot을 선택해 주세요.";
                     NotifyOneShot();
                 }
@@ -533,6 +543,8 @@
             {
                 _selectedRunShotKey = "";
             }
+
+            RefreshSelectedLineKeys(allPlan);
         }
 
         private static string ReadRecipeString(ST_RECIPE_DEFINITION? recipe, params string[] keys)
@@ -664,7 +676,7 @@
             }
 
             mode = mode.Trim().ToUpperInvariant();
-            if (mode is not ("ALL SHOT" or "ONE SHOT" or "BEAM INSPECTION"))
+            if (mode is not ("ALL SHOT" or "ONE SHOT" or "ONE LINE" or "BEAM INSPECTION"))
                 return;
             InvalidateBeamInspectionResultLoad(clearLoaded: true);
             _selectedMode = mode;
@@ -678,22 +690,29 @@
             {
                 EN_REVIEW_RULE_TYPE.AllPoint => "All Shot",
                 EN_REVIEW_RULE_TYPE.ZeroLine => "0-Line",
-                _ => _selectionRuleText is "All Shot" or "0-Line" ? "Manual Sample" : _selectionRuleText
+                _ when mode == "ONE LINE" => "Selected Glass Line",
+                _ => _selectionRuleText is "All Shot" or "0-Line" or "Selected Glass Line" ? "Manual Sample" : _selectionRuleText
             };
             _isRunCellDetailVisible = false;
             _selectedRunShotKey = "";
+            _selectedLineShotKeys.Clear();
             RefreshOneShotSelection(clearResult: true);
             OnPropertyChanged(nameof(IsShotSelectionMode));
+            OnPropertyChanged(nameof(IsReviewHeadCardsVisible));
             OnPropertyChanged(nameof(InspectionHeadRows));
             _statusReporter($"Review mode selected: {_selectedMode}");
             OnPropertyChanged(nameof(IsAllShotReviewMode));
+            OnPropertyChanged(nameof(IsOneLineReviewMode));
+            OnPropertyChanged(nameof(IsAllShotStyleReviewMode));
             OnPropertyChanged(nameof(IsOneShotReviewMode));
+            OnPropertyChanged(nameof(IsRunStageStatusVisible));
             OnPropertyChanged(nameof(IsRunCommandsVisible));
             OnPropertyChanged(nameof(IsRuleReviewMode));
             OnPropertyChanged(nameof(IsBeamInspectionMode));
             OnPropertyChanged(nameof(IsBeamSelectionVisible));
             OnPropertyChanged(nameof(IsLastMeasurementVisible));
             OnPropertyChanged(nameof(BeamSelectionSummary));
+            SelectRunCellCommand.NotifyCanExecuteChanged();
             NotifyReviewExecutionCommandStates();
             RefreshRunDisplayFromCachedContext();
         }
@@ -1071,6 +1090,8 @@
 
         private void SelectRunCell(object? parameter)
         {
+            if (!IsShotSelectionMode)
+                return;
             if (IsOneShotReviewMode && IsReviewExecutionActive)
                 return;
             if (!int.TryParse(parameter?.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var cellNo))
@@ -1080,10 +1101,12 @@
 
             _selectedRunCellNo = Math.Clamp(cellNo, 1, _cellCount);
             _selectedRunShotKey = "";
+            _selectedLineShotKeys.Clear();
             _isRunCellDetailVisible = true;
             _statusReporter($"Review Cell selected: Cell{_selectedRunCellNo}");
             RefreshRunCellDetail();
             RefreshOneShotSelection(clearResult: true);
+            StartCommand.NotifyCanExecuteChanged();
         }
 
         private void SelectRunShot(object? parameter)
@@ -1137,6 +1160,38 @@
                 RefreshInspectionCellSelection();
                 OnPropertyChanged(nameof(SelectedRunShotName));
                 _statusReporter($"Cell{point.CellNo} / {ToMatrixShotName(point)}: {recipePoint.ExclusionReason} 제외 Shot은 선택할 수 없습니다.");
+                return;
+            }
+
+            if (IsOneLineReviewMode)
+            {
+                foreach (var selectedKey in _selectedLineShotKeys)
+                {
+                    if (_runShotRowsByKey.TryGetValue(selectedKey, out var previousLineRow))
+                    {
+                        previousLineRow.SetSelected(false);
+                    }
+                }
+
+                _selectedRunCellNo = point.CellNo;
+                _selectedRunShotKey = point.ShotKey;
+                _isRunCellDetailVisible = true;
+                RefreshSelectedLineKeys(_lastAllPlan ?? displayPlan);
+                foreach (var selectedKey in _selectedLineShotKeys)
+                {
+                    if (_runShotRowsByKey.TryGetValue(selectedKey, out var selectedLineRow))
+                    {
+                        selectedLineRow.SetSelected(true);
+                    }
+                }
+
+                SelectedPointItems = BuildSelectedPointItems(point);
+                RefreshInspectionCellSelection();
+                OnPropertyChanged(nameof(SelectedRunShotName));
+                OnPropertyChanged(nameof(SelectedPointItems));
+                OnPropertyChanged(nameof(InspectionHeadRows));
+                StartCommand.NotifyCanExecuteChanged();
+                _statusReporter($"ONE LINE selected: Glass Y {point.DesignY:0.0000} mm / {_selectedLineShotKeys.Count:N0} Shots / Beam{_selectedRunBeamNo}");
                 return;
             }
 
@@ -1348,6 +1403,7 @@
             RunCellShotMatrixRows = [];
             _runShotRowsByKey = new Dictionary<string, ST_REVIEW_RUN_SHOT_ROW>(StringComparer.OrdinalIgnoreCase);
             _statusReporter("Review Glass preview opened.");
+            RefreshInspectionCellSelection();
             OnPropertyChanged(nameof(IsRunGlassPreviewVisible));
             OnPropertyChanged(nameof(IsRunCellDetailVisible));
             OnPropertyChanged(nameof(IsRunShotMapVisible));
@@ -1740,7 +1796,47 @@
                 return "0-Line";
             }
 
+            if (IsOneLineReviewMode)
+            {
+                return "Selected Glass Line";
+            }
+
             return _selectionRuleText;
+        }
+
+        private void RefreshSelectedLineKeys(ST_REVIEW_PLAN? plan)
+        {
+            _selectedLineShotKeys.Clear();
+            if (!IsOneLineReviewMode || plan is null || string.IsNullOrWhiteSpace(_selectedRunShotKey))
+            {
+                return;
+            }
+
+            foreach (var key in CReviewManager.SelectGlassLineShotKeys(plan, _selectedRunShotKey))
+            {
+                _selectedLineShotKeys.Add(key);
+            }
+
+            if (_selectedLineShotKeys.Count == 0)
+            {
+                _selectedRunShotKey = "";
+            }
+        }
+
+        private IReadOnlyList<ST_REVIEW_PLAN_POINT> GetSelectedLinePoints(ST_REVIEW_PLAN? plan)
+        {
+            if (!IsOneLineReviewMode || plan is null || _selectedLineShotKeys.Count == 0)
+            {
+                return [];
+            }
+
+            return _selectedLineShotKeys
+                .Select(key => FindPointByShotKey(plan, key))
+                .OfType<ST_REVIEW_PLAN_POINT>()
+                .OrderBy(point => point.DesignX)
+                .ThenBy(point => point.CellNo)
+                .ThenBy(point => point.ShotNo)
+                .ToArray();
         }
 
         private IReadOnlyCollection<string> GetPlanShotKeys(ST_REVIEW_PLAN? allPlan)
@@ -1753,6 +1849,11 @@
             if (_selectedMode.Equals("ALL SHOT", StringComparison.OrdinalIgnoreCase))
             {
                 return allPlan.Points.Where(point => point.HeadNo > 0).Select(point => point.ShotKey).ToArray();
+            }
+
+            if (IsOneLineReviewMode)
+            {
+                return CReviewManager.SelectGlassLineShotKeys(allPlan, _selectedRunShotKey);
             }
 
             if (_selectedMode.Equals("ZERO DEFENSE", StringComparison.OrdinalIgnoreCase))
@@ -1940,6 +2041,11 @@
                 return "ALL";
             }
 
+            if (IsOneLineReviewMode)
+            {
+                return "LINE";
+            }
+
             return _selectionRuleText.Equals("None", StringComparison.OrdinalIgnoreCase) ? "MANUAL" : _selectionRuleText.ToUpperInvariant();
         }
 
@@ -2030,7 +2136,11 @@
                 return;
             if (!StartCommand.CanExecute(null))
                 return;
-            var detail = IsBeamInspectionMode ? $"선택 Shot {_selectedInspectionShotKeys.Count:N0}개 / Beam {_selectedInspectionBeamNos.Count}개" : $"{_selectedInspectionMethod} / Beam{_selectedRunBeamNo}";
+            var detail = IsBeamInspectionMode
+                ? $"선택 Shot {_selectedInspectionShotKeys.Count:N0}개 / Beam {_selectedInspectionBeamNos.Count}개"
+                : IsOneLineReviewMode
+                    ? $"선택 Glass Line {_selectedLineShotKeys.Count:N0} Shots / {_selectedInspectionMethod} / Beam{_selectedRunBeamNo}"
+                    : $"{_selectedInspectionMethod} / Beam{_selectedRunBeamNo}";
             var shiftOffset = (X: 0.0, Y: 0.0);
             if (confirm is not null)
             {
@@ -2060,7 +2170,7 @@
         {
             if (!StopCommand.CanExecute(null))
                 return;
-            if (IsAllShotReviewMode || IsBeamInspectionMode)
+            if (IsAllShotStyleReviewMode || IsBeamInspectionMode)
             {
                 confirm ??= (title, message) => CRecipeConfirmDialog.ShowConfirmation(title, message, "중지", useDangerStyle: true);
                 if (!confirm($"{_selectedMode} 검사 중지", $"{_selectedMode} 검사를 중지하시겠습니까?"))
@@ -2313,7 +2423,16 @@
                 return;
             }
 
-            var preview = CReviewGlassPreviewBuilder.Build(_lastRecipe, _lastAllPlan.CellCount, showShotPoints: false, expandSmallCellBounds: false, filledCellNos: GetSelectedInspectionCellNos(), settings: _cameraSettings?.LoadSection(EN_SETTING_TAB.Motor));
+            var linePoints = GetSelectedLinePoints(_lastAllPlan);
+            var preview = CReviewGlassPreviewBuilder.Build(
+                _lastRecipe,
+                _lastAllPlan.CellCount,
+                showShotPoints: false,
+                inspectionPoints: linePoints,
+                inspectionRule: IsOneLineReviewMode ? EN_REVIEW_CORRECTION_RULE.Fine : null,
+                expandSmallCellBounds: false,
+                filledCellNos: GetSelectedInspectionCellNos(),
+                settings: _cameraSettings?.LoadSection(EN_SETTING_TAB.Motor));
             RunGlassPreviewImage = preview.Image;
             SetCameraPreviewGeometry(preview);
             RunGlassPreviewInspectionOverlayImage = preview.InspectionOverlayImage;
@@ -2328,7 +2447,9 @@
             _selectedRunShotKey
         }
 
-        : _selectedInspectionShotKeys.AsEnumerable()).Select(key => FindPointByShotKey(_lastAllPlan, key)).OfType<ST_REVIEW_PLAN_POINT>().Select(point => point.CellNo).ToHashSet();
+        : IsOneLineReviewMode
+            ? _selectedLineShotKeys.AsEnumerable()
+            : _selectedInspectionShotKeys.AsEnumerable()).Select(key => FindPointByShotKey(_lastAllPlan, key)).OfType<ST_REVIEW_PLAN_POINT>().Select(point => point.CellNo).ToHashSet();
         private void ShowShotBeamPositions(object? parameter)
         {
             if (!IsBeamInspectionMode || IsReviewExecutionActive)
@@ -2509,7 +2630,7 @@
             }
         }
 
-        public bool IsShotSelectionMode => IsOneShotReviewMode || IsBeamInspectionMode;
+        public bool IsShotSelectionMode => IsOneShotReviewMode || IsOneLineReviewMode || IsBeamInspectionMode;
         private ST_REVIEW_PLAN_POINT? SelectedOneShotPoint => FindPointByShotKey(_lastAllPlan, _selectedRunShotKey);
 
         private void InitializeOneShot()
@@ -2627,6 +2748,7 @@
             NotifyReviewExecutionCommandStates();
             _oneShotCancellation = new CancellationTokenSource();
             var token = _oneShotCancellation.Token;
+            var completedResultPath = "";
             try
             {
                 var recipe = await LoadSelectedRecipe(token) ?? throw new InvalidOperationException("현재 레시피가 없습니다.");
@@ -2677,6 +2799,8 @@
                 _statusReporter($"{OneShotSelection} · {OneShotStatus}");
                 if (!string.IsNullOrWhiteSpace(result.ResultSaveError))
                     warn("One Shot 결과 저장", result.ResultSaveError);
+                else if (operation != EN_ONE_SHOT_ACTION.Move)
+                    completedResultPath = result.ResultFilePath;
             }
             catch (OperationCanceledException)
             {
@@ -2695,6 +2819,36 @@
                 _oneShotRunning = false;
                 NotifyReviewExecutionCommandStates();
                 NotifyOneShot();
+            }
+
+            if (!string.IsNullOrWhiteSpace(completedResultPath))
+                await OfferOpenSavedReviewResult(completedResultPath);
+        }
+
+        private async Task OfferOpenSavedReviewResult(string resultPath)
+        {
+            var fileName = Path.GetFileName(resultPath);
+            if (!CRecipeConfirmDialog.ShowSavedResultLoadConfirmation(
+                    "검사 완료",
+                    $"검사가 완료되었습니다.\n저장 파일: {fileName}\n\n검사 결과 화면으로 이동하시겠습니까?"))
+            {
+                return;
+            }
+
+            if (OpenSavedReviewResultAsync is null)
+            {
+                CRecipeConfirmDialog.ShowWarning("검사 결과 이동", "REVIEW DATA 화면을 열 수 없습니다.");
+                return;
+            }
+
+            try
+            {
+                await OpenSavedReviewResultAsync(resultPath);
+            }
+            catch (Exception exception)
+            {
+                _statusReporter($"Review Result auto load failed: {exception.Message}");
+                CRecipeConfirmDialog.ShowWarning("검사 결과 불러오기 실패", exception.Message);
             }
         }
 
@@ -2867,7 +3021,9 @@
                 showShotPoints: false, 
                 expandSmallCellBounds: false, 
                 emphasizeCurrentCell: active, 
-                currentCellNos: cells
+                currentCellNos: cells,
+                inspectionPoints: GetSelectedLinePoints(_lastAllPlan),
+                inspectionRule: IsOneLineReviewMode ? EN_REVIEW_CORRECTION_RULE.Fine : null
             , settings: _cameraSettings?.LoadSection(EN_SETTING_TAB.Motor));
             // Cell geometry and the base image are static for the run. Only change
             // the highlight overlay/labels when its Cell set actually changes.
@@ -2893,7 +3049,11 @@
             if (_lastRecipe is not null && _lastAllPlan is not null)
             {
                 var runtimePlan = _reviewManager.CurrentPlan;
-                var reviewPlan = IsReviewExecutionActive && runtimePlan is not null && runtimePlan.RecipeId.Equals(_lastRecipe.Id, StringComparison.OrdinalIgnoreCase) && (runtimePlan.ReviewPoints.FirstOrDefault()?.BeamNo ?? _selectedRunBeamNo) == _selectedRunBeamNo ? runtimePlan : ResolveReviewPlan(_lastRecipe, _lastAllPlan);
+                var reviewPlan = IsOneLineReviewMode
+                    ? _lastAllPlan
+                    : IsReviewExecutionActive && runtimePlan is not null && runtimePlan.RecipeId.Equals(_lastRecipe.Id, StringComparison.OrdinalIgnoreCase) && (runtimePlan.ReviewPoints.FirstOrDefault()?.BeamNo ?? _selectedRunBeamNo) == _selectedRunBeamNo
+                        ? runtimePlan
+                        : ResolveReviewPlan(_lastRecipe, _lastAllPlan);
                 RunCellShotMatrixRows = BuildRunCellShotMatrixRows(reviewPlan, _selectedRunCellNo);
                 RunCellShotRows = [];
             }
@@ -2971,6 +3131,7 @@
             _isStartRequestPending = true;
             _reviewCancellation = new CancellationTokenSource();
             var token = _reviewCancellation.Token;
+            var completedResultPath = "";
             NotifyReviewExecutionCommandStates();
             _refreshScreen();
             try
@@ -3002,7 +3163,11 @@
                 var planShotKeys = _selectedMode.Equals("ALL SHOT", StringComparison.OrdinalIgnoreCase) ? null : GetPlanShotKeys(allPlan);
                 if (planShotKeys is { Count: 0 })
                 {
-                    _statusReporter(IsSimpleSampleRuleUi ? "Select one processed Shot for SIMPLE Review before starting." : $"{_selectedSampleRuleUi} has no executable Review points.");
+                    _statusReporter(IsOneLineReviewMode
+                        ? "Select one executable Shot to define the Glass line before starting ONE LINE Review."
+                        : IsSimpleSampleRuleUi
+                            ? "Select one processed Shot for SIMPLE Review before starting."
+                            : $"{_selectedSampleRuleUi} has no executable Review points.");
                     return;
                 }
 
@@ -3012,12 +3177,17 @@
                 reviewPlan = ConfigureReviewCorrectionPlan(reviewPlan, allPlan);
                 reviewPlan = reviewPlan with
                 {
-                    InspectionMethod = _selectedInspectionMethod
+                    InspectionMethod = _selectedInspectionMethod,
+                    ResultType = IsOneLineReviewMode ? "ONE_LINE" : "ALL_SHOT"
                 };
-                _selectedRunShotKey = "";
                 foreach (var row in _runShotRowsByKey.Values)
                 {
-                    row.SetSelected(false);
+                    row.SetSelected(IsOneLineReviewMode && _selectedLineShotKeys.Contains(row.ShotKey));
+                }
+
+                if (!IsOneLineReviewMode)
+                {
+                    _selectedRunShotKey = "";
                 }
 
                 OnPropertyChanged(nameof(SelectedRunShotName));
@@ -3056,6 +3226,8 @@
                 else
                 {
                     _statusReporter($"{status.Message} ({status.CompletedCount}/{status.TotalCount}, NG={status.NgCount}) " + $"[{productLink.Message}]");
+                    if (status.State == EN_REVIEW_SEQUENCE_STATE.Completed)
+                        completedResultPath = _reviewManager.LastSavedResultPath ?? "";
                 }
 
                 _refreshScreen();
@@ -3078,6 +3250,9 @@
                 NotifyReviewExecutionCommandStates();
                 _refreshScreen();
             }
+
+            if (!string.IsNullOrWhiteSpace(completedResultPath))
+                await OfferOpenSavedReviewResult(completedResultPath);
         }
 
         private Task<(string? ProductId, string Message)> ResolveReviewProduct(ST_REVIEW_PLAN reviewPlan, CancellationToken cancellationToken)
@@ -3253,6 +3428,9 @@
                 OnPropertyChanged(nameof(SelectedBeam));
                 OnPropertyChanged(nameof(BeamSelectionSummary));
                 OnPropertyChanged(nameof(IsAllShotReviewMode));
+                OnPropertyChanged(nameof(IsOneLineReviewMode));
+                OnPropertyChanged(nameof(IsAllShotStyleReviewMode));
+                OnPropertyChanged(nameof(IsRunStageStatusVisible));
                 OnPropertyChanged(nameof(IsRuleReviewMode));
                 OnPropertyChanged(nameof(IsBeamInspectionMode));
                 OnPropertyChanged(nameof(IsBeamSelectionVisible));
@@ -3279,6 +3457,7 @@
             {
                 _selectedRunShotKey = "";
             }
+            RefreshSelectedLineKeys(allPlan);
 
             // Sample Select only edits Shot keys. Building an executable plan here would
             // materialize every selected point (over one million with a single DOE beam).
@@ -3299,6 +3478,7 @@
             var currentCellNos = hasRuntimePlan && IsReviewExecutionActive ? GetCurrentCellNos(reviewPlan) : null;
             _selectedRunCellNo = Math.Clamp(_selectedRunCellNo, 1, Math.Max(1, allPlan.CellCount));
             IReadOnlySet<int>? visibleRunCellNos = _selectedMode.Equals("SAMPLE SHOT", StringComparison.OrdinalIgnoreCase) ? reviewPlan.ReviewPoints.Select(point => point.CellNo).ToHashSet() : null;
+            var selectedLinePoints = GetSelectedLinePoints(allPlan);
             var emptyPreview = new ST_REVIEW_GLASS_PREVIEW(null, null, [], "");
             var glassPreview = IsRunTab ? CReviewGlassPreviewBuilder.Build(
                 recipe, 
@@ -3312,7 +3492,9 @@
                 expandSmallCellBounds: false, 
                 emphasizeCurrentCell: IsReviewExecutionActive, 
                 currentCellNos: currentCellNos, 
-                filledCellNos: IsShotSelectionMode ? GetSelectedInspectionCellNos() : null
+                filledCellNos: IsShotSelectionMode ? GetSelectedInspectionCellNos() : null,
+                inspectionPoints: selectedLinePoints,
+                inspectionRule: IsOneLineReviewMode ? EN_REVIEW_CORRECTION_RULE.Fine : null
             , settings: _cameraSettings?.LoadSection(EN_SETTING_TAB.Motor)) : emptyPreview;
             _selectedSampleCellNo = Math.Clamp(_selectedSampleCellNo, 1, Math.Max(1, allPlan.CellCount));
             SetSampleMapColumnCount(CalculateShotMapColumnCount(allPlan, _selectedSampleCellNo));
@@ -3337,7 +3519,7 @@
             , settings: _cameraSettings?.LoadSection(EN_SETTING_TAB.Motor)) : emptyPreview;
             _activePlanPointCount = activePointCount;
             Tabs = [new("RUN", IsRunTab, SelectTabCommand)];
-            Modes = [Mode("ALL SHOT", ""), Mode("ONE SHOT", ""), Mode("BEAM INSPECTION", "")];
+            Modes = [Mode("ALL SHOT", ""), Mode("ONE SHOT", ""), Mode("ONE LINE", ""), Mode("BEAM INSPECTION", "")];
             TargetItems = [
                 new("Recipe Name", reviewPlan.RecipeId), 
                 new("Glass ID", _productManager.Current?.GlassId ?? "-"), 
@@ -3381,7 +3563,7 @@
             }
             else
             {
-                RunCellShotMatrixRows = BuildRunCellShotMatrixRows(reviewPlan, _selectedRunCellNo);
+                RunCellShotMatrixRows = BuildRunCellShotMatrixRows(IsOneLineReviewMode ? allPlan : reviewPlan, _selectedRunCellNo);
             }
 
             RunCellShotRows = [];
@@ -3489,7 +3671,11 @@
                     ToRunShotDetail(point), 
                     ToRunShotState(point), 
                     point.State == EN_REVIEW_POINT_STATE.Current, 
-                    IsBeamInspectionMode ? _selectedInspectionShotKeys.Contains(point.ShotKey) : point.ShotKey.Equals(_selectedRunShotKey, StringComparison.OrdinalIgnoreCase), 
+                    IsBeamInspectionMode
+                        ? _selectedInspectionShotKeys.Contains(point.ShotKey)
+                        : IsOneLineReviewMode
+                            ? _selectedLineShotKeys.Contains(point.ShotKey)
+                            : point.ShotKey.Equals(_selectedRunShotKey, StringComparison.OrdinalIgnoreCase), 
                     point.ExclusionReason, 
                     SelectRunShotCommand
                 ) { ShowBeamPositionsCommand = ShowShotBeamPositionsCommand }).ToArray();
@@ -3679,7 +3865,7 @@
         /// <summary>Refreshes presentation from shared memory only. No device reads or file polling.</summary>
         public void RefreshCameraFeedback(double viewportWidth, double viewportHeight)
         {
-            if (_cameraInterfaces is null || _lastRecipe is null || _cameraGlassBounds.IsEmpty || _cameraCanvasSize.Width <= 0 || _cameraCanvasSize.Height <= 0 || viewportWidth <= 0 || viewportHeight <= 0)
+            if (_cameraInterfaces is null || _lastRecipe is null || _cameraGlassBounds.IsEmpty || _cameraCanvasSize.Width <= 0 || _cameraCanvasSize.Height <= 0)
             {
                 Camera.Clear();
                 return;
@@ -3708,14 +3894,25 @@
                 _cameraParameters = parameters;
             }
 
-            // Match Image.Stretch=Uniform, including the cropped preview's padding and letterboxing.
-            var scale = Math.Min(viewportWidth / _cameraCanvasSize.Width, viewportHeight / _cameraCanvasSize.Height);
-            var left = (viewportWidth - _cameraCanvasSize.Width * scale) / 2;
-            var top = (viewportHeight - _cameraCanvasSize.Height * scale) / 2;
-            Camera.Configure(_cameraParameters, new Rect(left + _cameraGlassBounds.Left * scale, top + _cameraGlassBounds.Top * scale, _cameraGlassBounds.Width * scale, _cameraGlassBounds.Height * scale));
             var values = CMotorStatusPollingService.ReadCachedSnapshot(_cameraInterfaces);
             var state = CMotorStatusPollingService.ReadStageConnectionState(_cameraInterfaces);
-            Camera.UpdateFeedback(values.FirstOrDefault(row => row.Name == "Stage Y")?.Position ?? "-", values.FirstOrDefault(row => row.Name == "Review X")?.Position ?? "-", state == EN_COMM_STATE.Simulation ? "SIMULATION" : state == EN_COMM_STATE.Online ? "ONLINE" : "OFFLINE");
+            var stageY = values.FirstOrDefault(row => row.Name == "Stage Y")?.Position ?? "-";
+            var reviewX = values.FirstOrDefault(row => row.Name == "Review X")?.Position ?? "-";
+            var mode = state == EN_COMM_STATE.Simulation ? "SIMULATION" : state == EN_COMM_STATE.Online ? "ONLINE" : "OFFLINE";
+
+            if (viewportWidth > 0 && viewportHeight > 0)
+            {
+                // Match Image.Stretch=Uniform, including the cropped preview's padding and letterboxing.
+                var scale = Math.Min(viewportWidth / _cameraCanvasSize.Width, viewportHeight / _cameraCanvasSize.Height);
+                var left = (viewportWidth - _cameraCanvasSize.Width * scale) / 2;
+                var top = (viewportHeight - _cameraCanvasSize.Height * scale) / 2;
+                Camera.Configure(_cameraParameters, new Rect(left + _cameraGlassBounds.Left * scale, top + _cameraGlassBounds.Top * scale, _cameraGlassBounds.Width * scale, _cameraGlassBounds.Height * scale));
+                Camera.UpdateFeedback(stageY, reviewX, mode);
+            }
+            else
+            {
+                Camera.Clear();
+            }
         }
 #endregion
     }
@@ -4014,8 +4211,12 @@
         public event PropertyChangedEventHandler? PropertyChanged;
         public bool IsVisible { get; private set; }
         public Point Center { get; private set; }
+        public Rect Bounds { get; private set; } = Rect.Empty;
         public double? DesignX { get; private set; }
         public double? DesignY { get; private set; }
+        public string StageY { get; private set; } = "-";
+        public string ReviewX { get; private set; } = "-";
+        public string Mode { get; private set; } = "OFFLINE";
         public int ProjectionVersion { get; private set; }
 
         public void Configure(IReadOnlyDictionary<string, string> parameters, Rect glassBounds)
@@ -4046,6 +4247,7 @@
             if (_projection == next)
                 return;
             _projection = next;
+            Bounds = next?.Bounds ?? Rect.Empty;
             ProjectionVersion++;
             Project(forceNotify: true);
         }
@@ -4053,13 +4255,23 @@
         public void UpdateFeedback(string stageY, string reviewX, string mode)
         {
             _hasFeedback = mode is "ONLINE" or "SIMULATION" && double.TryParse(stageY, NumberStyles.Float, CultureInfo.InvariantCulture, out _stageY) && double.IsFinite(_stageY) && double.TryParse(reviewX, NumberStyles.Float, CultureInfo.InvariantCulture, out _reviewX) && double.IsFinite(_reviewX);
-            Project();
+            var nextStageY = _hasFeedback ? _stageY.ToString("0.000", CultureInfo.InvariantCulture) : "-";
+            var nextReviewX = _hasFeedback ? _reviewX.ToString("0.000", CultureInfo.InvariantCulture) : "-";
+            var displayChanged = StageY != nextStageY || ReviewX != nextReviewX || Mode != mode;
+            StageY = nextStageY;
+            ReviewX = nextReviewX;
+            Mode = mode;
+            Project(forceNotify: displayChanged);
         }
 
         public void Clear()
         {
             _projection = null;
             _hasFeedback = false;
+            Bounds = Rect.Empty;
+            StageY = "-";
+            ReviewX = "-";
+            Mode = "OFFLINE";
             ProjectionVersion++;
             Project(forceNotify: true);
         }

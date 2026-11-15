@@ -995,7 +995,11 @@ public enum EN_PRODUCT_PROCESS_STATE
 
 public sealed record ST_PRODUCT_ALIGN_DATA(EN_PRODUCT_PROCESS_STATE State, string Result, double? OffsetX, double? OffsetY, double? Rotation);
 public sealed record ST_PRODUCT_DISTORTION_DATA(EN_PRODUCT_PROCESS_STATE State, string Result, double? MaxDa);
-public sealed record ST_PRODUCT_REVIEW_RESULT(string ShotKey, int HeadNo, int CellNo, int BeamNo, double ErrorX, double ErrorY, string Judge);
+public sealed record ST_PRODUCT_REVIEW_RESULT(string ShotKey, int HeadNo, int CellNo, int BeamNo, double ErrorX, double ErrorY, string Judge)
+{
+    public int? VisionResultCode { get; init; }
+    public string NgReason { get; init; } = "";
+}
 public sealed record ST_PRODUCT_REVIEW_DATA(EN_PRODUCT_PROCESS_STATE State, DateTimeOffset? SavedAt, IReadOnlyList<ST_PRODUCT_REVIEW_RESULT> Results)
 {
     public string InspectionMethod { get; init; } = "";

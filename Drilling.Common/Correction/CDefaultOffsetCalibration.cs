@@ -26,16 +26,33 @@ public static class CDefaultOffsetCalibration
         return number;
     }
 
-    // Only TestStageY is entered for a measurement session. Equipment geometry
-    // belongs to Setting, and the camera reference belongs to the current Recipe.
+    // AK1 starts from the taught Recipe position. AK3 defaults to its design
+    // position, but the measurement session may replace it with the actual
+    // Review-X encoder position. The glass center is always their midpoint.
     public static ST_DEFAULT_OFFSET_OPTIONS Conditions(IReadOnlyDictionary<string, string> values, double? testStageY = null)
     {
-        var center = Number(values, "REVIEW_CAMERA_ALIGN_KEY_POS_X") + Number(values, "GLASS_SIZE_X") / 2 - Number(values, "AK_MARGIN_X");
+        var alignKey1ReviewX = Number(values, "REVIEW_CAMERA_ALIGN_KEY_POS_X");
+        var alignKey3ReviewX = DesignAlignKey3ReviewX(values);
         var stageY = testStageY ?? Number(values, "STAGE_START_POS_Y");
         var tolerance = Math.Min(Number(values, "REVIEW_TOLERANCE_X"), Number(values, "REVIEW_TOLERANCE_Y"));
-        if (!double.IsFinite(center) || !double.IsFinite(stageY) || !double.IsFinite(tolerance) || tolerance <= 0)
+        if (!double.IsFinite(stageY) || !double.IsFinite(tolerance) || tolerance <= 0)
             throw new InvalidOperationException("Recipe의 Review 허용오차와 Stage Y 위치를 확인해 주세요.");
-        return new(center, stageY, tolerance);
+        return new(alignKey1ReviewX, alignKey3ReviewX, stageY, tolerance)
+        {
+            DoeBeamGridSize = BeamGridSize(values)
+        };
+    }
+
+    public static double DesignAlignKey3ReviewX(IReadOnlyDictionary<string, string> values)
+    {
+        var alignKey1ReviewX = Number(values, "REVIEW_CAMERA_ALIGN_KEY_POS_X");
+        var glassWidth = Number(values, "GLASS_SIZE_X");
+        var marginX = Number(values, "AK_MARGIN_X");
+        var alignKeySpan = glassWidth - 2 * marginX;
+        var alignKey3ReviewX = alignKey1ReviewX + alignKeySpan;
+        if (!double.IsFinite(alignKey3ReviewX) || alignKeySpan <= 0)
+            throw new InvalidOperationException("Glass Size X와 AK Margin X로 AK3 설계 Review X를 계산할 수 없습니다.");
+        return alignKey3ReviewX;
     }
 
     public static ST_DEFAULT_HEAD_GEOMETRY HeadGeometry(IReadOnlyDictionary<string, string> values, int head)
@@ -79,16 +96,21 @@ public static class CDefaultOffsetCalibration
 
     public static void ValidateOptions(ST_DEFAULT_OFFSET_OPTIONS options)
     {
-        if (new[] { options.BoardCenterX, options.TestStageY, options.Tolerance }.Any(v => !double.IsFinite(v)) || options.Tolerance <= 0)
-            throw new InvalidOperationException("가공할 Stage Y 위치와 Recipe Review 허용오차를 확인해 주세요.");
+        if (new[] { options.AlignKey1ReviewX, options.AlignKey3ReviewX, options.BoardCenterX, options.TestStageY, options.Tolerance }.Any(v => !double.IsFinite(v)) || options.Tolerance <= 0)
+            throw new InvalidOperationException("AK1·AK3 Review X, 가공할 Stage Y 위치와 Recipe Review 허용오차를 확인해 주세요.");
+        if (Math.Abs(options.AlignKey3ReviewX - options.AlignKey1ReviewX) <= double.Epsilon)
+            throw new InvalidOperationException("AK1과 AK3 Review X 위치는 서로 달라야 합니다.");
         if (!Enum.IsDefined(options.MachiningMode))
             throw new InvalidOperationException("Default 가공 방식을 확인해 주세요.");
+        if (options.DoeBeamGridSize is not (1 or 4))
+            throw new InvalidOperationException("Default 측정의 DOE Beam Count는 1 또는 4여야 합니다.");
         if (options.MachiningMode == EN_DEFAULT_MACHINING_MODE.Cross && (!double.IsFinite(options.CrossSize) || options.CrossSize <= 0))
             throw new InvalidOperationException("십자 전체 길이는 0보다 큰 유한한 mm 값이어야 합니다.");
     }
 
     // Four cross endpoints are stored in design mm and transformed with the Head
-    // at script generation. CrossSize is the full length of each stroke.
+    // at script generation. The scanner traces one center cross; the DOE optically
+    // duplicates that trace at every beam slot. CrossSize is the full stroke length.
     public static IReadOnlyList<(double X, double Y)> CenterScannerTargets(IReadOnlyDictionary<string, string> values, int head, ST_DEFAULT_OFFSET_OPTIONS options)
     {
         ValidateOptions(options);
@@ -104,38 +126,58 @@ public static class CDefaultOffsetCalibration
         return targets;
     }
 
+    public static int BeamGridSize(IReadOnlyDictionary<string, string> values)
+    {
+        var value = Number(values, "SPLITED_BEAM_COUNT");
+        if (value != Math.Truncate(value) || value is not (1 or 4))
+            throw new InvalidOperationException("Default 측정의 DOE Beam Count는 1 또는 4여야 합니다.");
+        return (int)value;
+    }
+
     public static double Pitch(IReadOnlyDictionary<string, string> values, int model)
     {
-        if (Number(values, "SPLITED_BEAM_COUNT") != 4) throw new InvalidOperationException("Default 측정은 현재 4×4, 총 16빔만 지원합니다.");
+        var gridSize = BeamGridSize(values);
+        if (gridSize == 1) return 0;
         var pattern = CRecipeModelPixelCountReader.ReadPatternForModel(values, model);
-        var pitch = Number(values, "PIXEL_SIZE") * pattern.ProcessPitch / 4;
+        var pitch = Number(values, "PIXEL_SIZE") * pattern.ProcessPitch / gridSize;
         if (!double.IsFinite(pitch) || pitch <= 0) throw new InvalidOperationException("DOE 빔 간격은 0보다 커야 합니다.");
         return pitch;
     }
 
-    public static (double X, double Y) Slot(int beam, double pitch, double angle)
+    public static (double X, double Y) Slot(int beam, int gridSize, double pitch, double angle)
     {
-        if (beam is < 1 or > 16 || !double.IsFinite(pitch) || pitch <= 0 || !double.IsFinite(angle)) throw new ArgumentException("16빔 슬롯 설정 오류");
-        var x = ((beam - 1) % 4 - 1.5) * pitch;
-        var y = ((beam - 1) / 4 - 1.5) * pitch;
+        if (gridSize is not (1 or 4) || beam < 1 || beam > gridSize * gridSize || !double.IsFinite(pitch) ||
+            (gridSize == 4 && pitch <= 0) || (gridSize == 1 && pitch != 0) || !double.IsFinite(angle))
+            throw new ArgumentException("DOE 빔 슬롯 설정 오류");
+        if (gridSize == 1) return (0, 0);
+        var center = (gridSize - 1) / 2.0;
+        var x = ((beam - 1) % gridSize - center) * pitch;
+        var y = ((beam - 1) / gridSize - center) * pitch;
         var radians = angle * Math.PI / 180;
         return (x * Math.Cos(radians) - y * Math.Sin(radians), x * Math.Sin(radians) + y * Math.Cos(radians));
     }
 
-    public static ST_DEFAULT_OFFSET_FIT Fit(IReadOnlyList<ST_DEFAULT_OFFSET_MARK> marks, double pitch, double angle, double residualTolerance)
+    public static ST_DEFAULT_OFFSET_FIT Fit(IReadOnlyList<ST_DEFAULT_OFFSET_MARK> marks, int gridSize, double pitch, double angle, double residualTolerance)
     {
         if (!double.IsFinite(residualTolerance) || residualTolerance <= 0)
             throw new ArgumentException("중심 위치·Beam 간격 허용오차를 확인해 주세요.");
-        if (marks.Count != 16 || !marks.Select(m => m.Beam).Order().SequenceEqual(Enumerable.Range(1, 16)))
-            throw new InvalidOperationException("서로 다른 16개 빔이 모두 측정되어야 합니다.");
+        if (gridSize is not (1 or 4)) throw new ArgumentException("DOE Beam Count는 1 또는 4여야 합니다.");
+        if (!double.IsFinite(pitch) || (gridSize == 4 && pitch <= 0) || (gridSize == 1 && pitch != 0) || !double.IsFinite(angle))
+            throw new ArgumentException("DOE 빔 간격 또는 회전 각도를 확인해 주세요.");
+        var beamCount = gridSize * gridSize;
+        if (marks.Count != beamCount || !marks.Select(m => m.Beam).Order().SequenceEqual(Enumerable.Range(1, beamCount)))
+            throw new InvalidOperationException($"서로 다른 {beamCount}개 DOE 빔이 모두 측정되어야 합니다.");
         if (marks.Any(m => m.Judge != "OK" || new[] { m.X, m.Y, m.RawX, m.RawY, m.CorrectionX, m.CorrectionY, m.EncoderX, m.EncoderY }.Any(v => !double.IsFinite(v))))
             throw new InvalidOperationException("NG 또는 유효하지 않은 빔 측정값이 있습니다. 해당 Head를 다시 측정해 주세요.");
+        if (gridSize == 1)
+            return new(marks[0].X, marks[0].Y, 0, 0, 0);
         // The complete symmetric 4x4 grid has orthogonal design columns: the affine
         // least-squares solution is well-conditioned and can be evaluated directly.
         var cx = marks.Average(m => m.X); var cy = marks.Average(m => m.Y);
-        var square = Enumerable.Range(1, 16).Sum(b => Math.Pow(((b - 1) % 4 - 1.5) * pitch, 2));
+        var center = (gridSize - 1) / 2.0;
+        var square = Enumerable.Range(1, beamCount).Sum(beam => Math.Pow(((beam - 1) % gridSize - center) * pitch, 2));
         if (!double.IsFinite(square) || square <= 0) throw new InvalidOperationException("DOE 격자 크기를 확인해 주세요.");
-        double Coefficient(bool x, bool column) => marks.Sum(m => ((column ? (m.Beam - 1) % 4 : (m.Beam - 1) / 4) - 1.5) * pitch * (x ? m.X - cx : m.Y - cy)) / square;
+        double Coefficient(bool x, bool column) => marks.Sum(m => ((column ? (m.Beam - 1) % gridSize : (m.Beam - 1) / gridSize) - center) * pitch * (x ? m.X - cx : m.Y - cy)) / square;
         var a = Coefficient(true, true); var b = Coefficient(true, false);
         var c = Coefficient(false, true); var d = Coefficient(false, false);
         var px = pitch * Math.Sqrt(a * a + c * c); var py = pitch * Math.Sqrt(b * b + d * d);
@@ -143,46 +185,35 @@ public static class CDefaultOffsetCalibration
         var expected = new[] { Math.Cos(radians), -Math.Sin(radians), Math.Sin(radians), Math.Cos(radians) };
         // Compare the centered fitted grid with the configured DOE grid in mm.
         // Reuse Recipe Review tolerance instead of a separate arbitrary ratio.
-        var gridError = Enumerable.Range(1, 16).Max(beam =>
+        var gridError = Enumerable.Range(1, beamCount).Max(beam =>
         {
-            var u = ((beam - 1) % 4 - 1.5) * pitch; var v = ((beam - 1) / 4 - 1.5) * pitch;
+            var u = ((beam - 1) % gridSize - center) * pitch; var v = ((beam - 1) / gridSize - center) * pitch;
             return Math.Sqrt(Math.Pow((a - expected[0]) * u + (b - expected[1]) * v, 2) + Math.Pow((c - expected[2]) * u + (d - expected[3]) * v, 2));
         });
         if (!double.IsFinite(px) || !double.IsFinite(py) || !double.IsFinite(gridError) || gridError > residualTolerance)
             throw new InvalidOperationException("실측 Pitch/방향이 예상 DOE 배열과 다릅니다. 슬롯·DOE 각도·Vision Flip을 확인해 주세요.");
         var residual = marks.Max(m =>
         {
-            var u = ((m.Beam - 1) % 4 - 1.5) * pitch; var v = ((m.Beam - 1) / 4 - 1.5) * pitch;
+            var u = ((m.Beam - 1) % gridSize - center) * pitch; var v = ((m.Beam - 1) / gridSize - center) * pitch;
             return Math.Sqrt(Math.Pow(m.X - cx - a * u - b * v, 2) + Math.Pow(m.Y - cy - c * u - d * v, 2));
         });
-        if (!double.IsFinite(residual) || residual > residualTolerance) throw new InvalidOperationException($"16빔 위치 오차 {residual:0.0000} mm가 허용값을 초과했습니다.");
+        if (!double.IsFinite(residual) || residual > residualTolerance) throw new InvalidOperationException($"{beamCount}빔 위치 오차 {residual:0.0000} mm가 허용값을 초과했습니다.");
         return new(cx, cy, residual, px, py);
-    }
-
-    public static ST_DEFAULT_OFFSET_FIT FitCross(ST_DEFAULT_OFFSET_MARK mark)
-    {
-        if (mark.Beam != 0 || mark.Judge != "OK" ||
-            new[] { mark.X, mark.Y, mark.RawX, mark.RawY, mark.CorrectionX, mark.CorrectionY, mark.EncoderX, mark.EncoderY }.Any(v => !double.IsFinite(v)))
-            throw new InvalidOperationException("유효한 십자 중심 측정값이 필요합니다.");
-        // FIND SETTING returns the center of the machined cross directly. There is
-        // no DOE grid to fit, so pitch and residual are intentionally zero.
-        return new(mark.X, mark.Y, 0, 0, 0);
     }
 
     // The global reference never comes from a previously measured Head. H4/H5
     // straddle the glass center; the configured pitch locates every other Head.
     // Stage Y targets preserve the machine's odd/even Head row separation.
-    public static ST_DEFAULT_OFFSET_HEAD_RESULT WithHeadReference(IReadOnlyDictionary<string, string> values, ST_DEFAULT_OFFSET_HEAD_RESULT result)
+    public static ST_DEFAULT_OFFSET_HEAD_RESULT WithHeadReference(IReadOnlyDictionary<string, string> values, ST_DEFAULT_OFFSET_OPTIONS options, ST_DEFAULT_OFFSET_HEAD_RESULT result)
     {
-        var isCrossMeasurement = result.Marks.Count == 1 && result.Marks[0].Beam == 0;
-        var isShotMeasurement = result.Marks.Count == 16 &&
-            result.Marks.Select(m => m.Beam).Order().SequenceEqual(Enumerable.Range(1, 16));
-        if (result.Head is < 1 or > 8 || !double.IsFinite(result.Q) || !(isCrossMeasurement || isShotMeasurement) ||
+        ValidateOptions(options);
+        var hasCompleteDoeMeasurement = result.Marks.Count is 1 or 16 &&
+            result.Marks.Select(m => m.Beam).Order().SequenceEqual(Enumerable.Range(1, result.Marks.Count));
+        if (result.Head is < 1 or > 8 || !double.IsFinite(result.Q) || !hasCompleteDoeMeasurement ||
             result.Marks.Any(m => !double.IsFinite(m.EncoderX) || !double.IsFinite(m.EncoderY) ||
                 !double.IsFinite(m.CorrectionX) || !double.IsFinite(m.CorrectionY)))
-            throw new InvalidOperationException("Head 중심 계산에 유효한 십자 중심 또는 16빔 측정 좌표가 필요합니다.");
-        var boardCenter = Number(values, "REVIEW_CAMERA_ALIGN_KEY_POS_X") + Number(values, "GLASS_SIZE_X") / 2 - Number(values, "AK_MARGIN_X");
-        var targetX = boardCenter + (result.Head - 4.5) * Number(values, "HeadGapX");
+            throw new InvalidOperationException("Head 중심 계산에 완전한 DOE 1빔 또는 16빔 측정 좌표가 필요합니다.");
+        var targetX = options.BoardCenterX + (result.Head - 4.5) * Number(values, "HeadGapX");
         var direction = CScannerAxisTransform.ReadStageDirection(values);
         var gapY = values.ContainsKey($"H{result.Head:00}_AK_POSITION_Y") ? Number(values, $"H{result.Head:00}_AK_POSITION_Y")
             : Number(values, "REVIEW_TO_HEAD1_GAP_Y") + (result.Head % 2 == 0 ? Number(values, "HeadGapY") : 0);
@@ -203,8 +234,9 @@ public static class CDefaultOffsetCalibration
     public static int[] ActiveHeads(IReadOnlyDictionary<string, string> values) =>
         Enumerable.Range(1, 8).Where(h => CScannerAxisConfiguration.IsHeadEnabled(values, h)).ToArray();
 
-    public static IReadOnlyDictionary<string, string> Recommend(IReadOnlyDictionary<string, string> values, IReadOnlyCollection<ST_DEFAULT_OFFSET_HEAD_RESULT> results, IReadOnlyCollection<int>? targetHeads = null)
+    public static IReadOnlyDictionary<string, string> Recommend(IReadOnlyDictionary<string, string> values, ST_DEFAULT_OFFSET_OPTIONS options, IReadOnlyCollection<ST_DEFAULT_OFFSET_HEAD_RESULT> results, IReadOnlyCollection<int>? targetHeads = null)
     {
+        ValidateOptions(options);
         var active = ActiveHeads(values).ToHashSet();
         var targets = (targetHeads ?? active).Order().ToArray();
         if (targets.Length == 0 || targets.Distinct().Count() != targets.Length || targets.Any(h => !active.Contains(h)))
@@ -214,7 +246,7 @@ public static class CDefaultOffsetCalibration
         var changes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var r in results)
         {
-            var center = WithHeadReference(values, r);
+            var center = WithHeadReference(values, options, r);
             // Add the needed correction to the currently used Head Default.
             // Head axis flips are applied later by the scanner/script planner.
             foreach (var (axis, error) in new[] { ("X", center.CenterErrorX), ("Y", center.CenterErrorY) })
@@ -230,22 +262,25 @@ public static class CDefaultOffsetCalibration
 }
 
 public enum EN_DEFAULT_MACHINING_MODE { Shot, Cross }
-public sealed record ST_DEFAULT_OFFSET_OPTIONS(double BoardCenterX, double TestStageY, double Tolerance)
+public sealed record ST_DEFAULT_OFFSET_OPTIONS(double AlignKey1ReviewX, double AlignKey3ReviewX, double TestStageY, double Tolerance)
 {
+    public double BoardCenterX => (AlignKey1ReviewX + AlignKey3ReviewX) / 2;
     public EN_DEFAULT_MACHINING_MODE MachiningMode { get; init; } = EN_DEFAULT_MACHINING_MODE.Shot;
     public double CrossSize { get; init; } = 0.1;
+    public int DoeBeamGridSize { get; init; } = 4;
+    public int InspectionPointCount => DoeBeamGridSize * DoeBeamGridSize;
     // The inspection command is part of the machining contract, not an independent
-    // operator option: a cross is found once as a setting mark, while a shot checks
-    // every DOE beam with the normal mark command.
+    // operator option. Both modes inspect every DOE beam slot; a cross uses the
+    // registered setting mark while a shot uses the normal single-mark command.
     public EN_ONE_SHOT_METHOD VisionMethod => MachiningMode == EN_DEFAULT_MACHINING_MODE.Cross
         ? EN_ONE_SHOT_METHOD.MarkFindSettingSingle
         : EN_ONE_SHOT_METHOD.MarkFindSingle;
-    public int InspectionPointCount => MachiningMode == EN_DEFAULT_MACHINING_MODE.Cross ? 1 : 16;
     public string InspectionDescription => MachiningMode == EN_DEFAULT_MACHINING_MODE.Cross
-        ? "십자 중심 1회 측정"
-        : "DOE 16빔 측정";
+        ? $"DOE {InspectionPointCount}개 십자 측정"
+        : $"DOE {InspectionPointCount}빔 측정";
     public string MachiningDescription => MachiningMode == EN_DEFAULT_MACHINING_MODE.Cross
-        ? $"십자 가공 · 전체 길이 {CrossSize.ToString("0.#####", CultureInfo.InvariantCulture)} mm · Head Jump Speed 사용" : "샷 가공 · Head Shot Count 사용";
+        ? $"십자 가공 · DOE {DoeBeamGridSize}×{DoeBeamGridSize}, 총 {InspectionPointCount}개 형상 · 전체 길이 {CrossSize.ToString("0.#####", CultureInfo.InvariantCulture)} mm · Head Jump Speed 사용"
+        : $"샷 가공 · DOE {DoeBeamGridSize}×{DoeBeamGridSize}, 총 {InspectionPointCount}빔 · Head Shot Count 사용";
     public string VisionDescription => VisionMethod == EN_ONE_SHOT_METHOD.MarkFindSettingSingle ? "Mark Find Setting Single" : "Mark Find Single";
 }
 public sealed record ST_DEFAULT_HEAD_GEOMETRY(double FieldHalfX, double FieldHalfY, double DoeAngle);

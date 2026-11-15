@@ -41,7 +41,8 @@
             CLogManager? logManager = null, 
             string? scriptDirectory = null, 
             CRecipeManager? recipeManager = null, 
-            Review.CReviewManager? zeroLineReview = null
+            Review.CReviewManager? zeroLineReview = null,
+            Action<ST_PROTECT_WINDOW_RETRY_EXHAUSTED>? protectWindowRetryExhausted = null
         )
         {
             _processStation = new CStationProcess(
@@ -56,7 +57,8 @@
                 logManager, 
                 scriptDirectory: scriptDirectory, 
                 recipeManager: recipeManager, 
-                zeroLineReview: zeroLineReview
+                zeroLineReview: zeroLineReview,
+                protectWindowRetryExhausted: protectWindowRetryExhausted
             );
         }
 

@@ -191,8 +191,13 @@
                     <Border Style="{StaticResource PanelBorder}" Margin="0,0,12,0">
                         <Grid>
                             <Grid.RowDefinitions><RowDefinition Height="42" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-                            <TextBlock Text="ALARM HISTORY" Style="{StaticResource PanelTitle}" FontSize="18" />
-                            <DataGrid x:Name="AlarmHistoryGrid" Grid.Row="1" Style="{StaticResource AlarmGrid}" ItemsSource="{Binding Rows}">
+                            <DockPanel Margin="0,0,0,8">
+                                <Button DockPanel.Dock="Right" Content="CAUSE ANALYSIS" Command="{Binding CauseAnalysisCommand}"
+                                        Style="{StaticResource AlarmActionButton}" Height="34" MinWidth="176" Margin="8,0,0,0" />
+                                <TextBlock Text="ALARM HISTORY" Style="{StaticResource PanelTitle}" FontSize="18" VerticalAlignment="Center" />
+                            </DockPanel>
+                            <DataGrid x:Name="AlarmHistoryGrid" Grid.Row="1" Style="{StaticResource AlarmGrid}" ItemsSource="{Binding Rows}"
+                                      SelectedItem="{Binding SelectedRow, Mode=TwoWay}">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="NO" Binding="{Binding No}" Width="55" ElementStyle="{StaticResource AlarmCenterCell}" />
                                     <DataGridTextColumn Header="OCCURRED AT" Binding="{Binding Time}" Width="200" ElementStyle="{StaticResource AlarmCenterCell}" />

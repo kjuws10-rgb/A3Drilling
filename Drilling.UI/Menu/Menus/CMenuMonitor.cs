@@ -36,6 +36,7 @@
         private readonly CProductManager _productManager;
         private readonly CRecipeManager _recipeManager;
         private readonly CSettingManager _settingManager;
+        private readonly CReviewOffsetFileBase _reviewOffsetFile;
         private readonly Func<string> _selectedRecipeIdProvider;
         private readonly Func<string> _selectedTabAccessor;
         private readonly Action<string> _selectedTabSetter;
@@ -59,6 +60,19 @@
         private int _coordinateSelectedCellNo;
         private string _coordinateSelectedShotKey = "";
         private bool _coordinateIsCellDetailVisible;
+        private double _coordinateOffsetPreviewMinimum = -5.0;
+        private double _coordinateOffsetPreviewMaximum = 5.0;
+        private string _coordinateOffsetPreviewMinimumText = "-5";
+        private string _coordinateOffsetPreviewMaximumText = "5";
+        private readonly HashSet<string> _coordinateSelectedOffsetKeys = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "RECIPE",
+            "HEAD_DEFAULT",
+            "FIRST_BEAM",
+            "REVIEW",
+            "ALIGN",
+            "SHIFT"
+        };
         private readonly HashSet<int> _picoAllMoveMotorNos = [1];
         private readonly SemaphoreSlim _xpsJogCommandLock = new(1, 1);
         private readonly SemaphoreSlim _picoJogCommandLock = new(1, 1);
@@ -127,7 +141,28 @@
         public string CoordinateBasisDescription { get; private set; } = "Recipe design coordinate from Align Key / Glass";
         public IReadOnlyList<ST_CELL_PREVIEW_LABEL> CoordinateCellPreviewLabels { get; private set; } = [];
         public IReadOnlyList<ST_MONITOR_COORDINATE_SHOT_MATRIX_ROW> CoordinateShotMatrixRows { get; private set; } = [];
+        public ImageSource? CoordinateShotMapImage { get; private set; }
+        public double CoordinateShotMapSurfaceWidth { get; private set; } = 680.0;
+        public double CoordinateShotMapSurfaceHeight { get; private set; } = 420.0;
+        public IReadOnlyList<ST_MONITOR_COORDINATE_CALCULATION_ROW> CoordinateCalculationRows { get; private set; } = [];
+        public IReadOnlyList<ST_MONITOR_COORDINATE_SHOT_COORDINATE_ROW> CoordinateShotCoordinateRows { get; private set; } = [];
+        public ST_MONITOR_COORDINATE_SHOT_COORDINATE_ROW? CoordinateSelectedShotCoordinateRow { get; private set; }
+        public string CoordinateShotCoordinateSummary { get; private set; } = "Select a cell to view all shot coordinates.";
         public string CoordinateGlassPreviewSummary { get; private set; } = "0 Cells / 0 Shot Centers";
+        public string CoordinateCalculationSummary { get; private set; } = "Select a cell and shot.";
+        public ImageSource? CoordinateOffsetPreviewImage { get; private set; }
+        public string CoordinateOffsetPreviewSummary { get; private set; } = "Select a shot to compare its basis position.";
+        public string CoordinateOffsetPreviewMinimumText
+        {
+            get => _coordinateOffsetPreviewMinimumText;
+            set => _coordinateOffsetPreviewMinimumText = value ?? "";
+        }
+        public string CoordinateOffsetPreviewMaximumText
+        {
+            get => _coordinateOffsetPreviewMaximumText;
+            set => _coordinateOffsetPreviewMaximumText = value ?? "";
+        }
+        public string CoordinateOffsetPreviewGridText => $"{((_coordinateOffsetPreviewMaximum - _coordinateOffsetPreviewMinimum) / CCoordinateOffsetPreviewDrawing.GridDivisionCount):0.###} mm / DIV";
         public IReadOnlyList<ST_PWM_SETTING_ROW> PwmSettingRows { get; private set; } = [];
         public IReadOnlyList<ST_PWM_DEVICE_ROW> PwmDeviceRows { get; private set; } = [];
         public IReadOnlyList<ST_MONITOR_OPERATION_BUTTON> PwmRunButtons { get; private set; } = [];
@@ -148,6 +183,7 @@
             CProductManager productManager, 
             CRecipeManager recipeManager, 
             CSettingManager settingManager, 
+            CReviewOffsetFileBase reviewOffsetFile,
             Func<string> selectedRecipeIdProvider, 
             Func<string> selectedTabAccessor, 
             Action<string> selectedTabSetter, 
@@ -165,6 +201,7 @@
             _productManager = productManager;
             _recipeManager = recipeManager;
             _settingManager = settingManager;
+            _reviewOffsetFile = reviewOffsetFile;
             _selectedRecipeIdProvider = selectedRecipeIdProvider;
             _selectedTabAccessor = selectedTabAccessor;
             _selectedTabSetter = selectedTabSetter;
@@ -244,6 +281,18 @@
             }
 
             SelectCoordinateShotCommand = new CButtonCommand(SelectCoordinateShotCallback);
+            async void ToggleCoordinateOffsetCallback(object? parameter)
+            {
+                await ToggleCoordinateOffset(parameter);
+            }
+
+            ToggleCoordinateOffsetCommand = new CButtonCommand(ToggleCoordinateOffsetCallback);
+            async void ApplyCoordinateOffsetPreviewRangeCallback(object? arg0)
+            {
+                await ApplyCoordinateOffsetPreviewRange();
+            }
+
+            ApplyCoordinateOffsetPreviewRangeCommand = new CButtonCommand(ApplyCoordinateOffsetPreviewRangeCallback);
             async void BackToCoordinateGlassPreviewCallback(object? arg0)
             {
                 await BackToCoordinateGlassPreview();
@@ -308,6 +357,30 @@
             }
         }
 
+        public bool CoordinateHasCalculationRows
+        {
+            get
+            {
+                return CoordinateCalculationRows.Count > 0;
+            }
+        }
+
+        public bool CoordinateHasShotCoordinateRows
+        {
+            get
+            {
+                return CoordinateShotCoordinateRows.Count > 0;
+            }
+        }
+
+        public bool CoordinateHasShotMap
+        {
+            get
+            {
+                return CoordinateShotMapImage is not null;
+            }
+        }
+
         public string PowerMeterTuneState
         {
             get
@@ -343,6 +416,8 @@
         public CButtonCommand SelectCoordinateBasisCommand { get; }
         public CButtonCommand SelectCoordinateCellCommand { get; }
         public CButtonCommand SelectCoordinateShotCommand { get; }
+        public CButtonCommand ToggleCoordinateOffsetCommand { get; }
+        public CButtonCommand ApplyCoordinateOffsetPreviewRangeCommand { get; }
         public CButtonCommand BackToCoordinateGlassPreviewCommand { get; }
         public CButtonCommand CreateGlassCommand { get; }
         public CButtonCommand DeleteGlassCommand { get; }
@@ -2665,7 +2740,6 @@
             }
 
             _coordinateBasis = normalized;
-            _coordinateSelectedShotKey = "";
             _setStatusMessage($"Coordinate viewer basis {GetCoordinateBasisName(normalized)} selected.");
             await _refreshCurrentScreen();
         }
@@ -2687,12 +2761,6 @@
 
         private async Task SelectCoordinateShot(object? parameter)
         {
-            if (NormalizeCoordinateBasis(_coordinateBasis) == "SCANNER")
-            {
-                _coordinateSelectedShotKey = "";
-                return;
-            }
-
             var shotKey = parameter switch
             {
                 ST_MONITOR_COORDINATE_SHOT_BUTTON row => row.ShotKey,
@@ -2707,6 +2775,112 @@
             _coordinateSelectedShotKey = shotKey.Trim();
             _setStatusMessage($"Coordinate viewer {_coordinateSelectedShotKey} selected.");
             await _refreshCurrentScreen();
+        }
+
+        public async Task SelectCoordinateShotFromGrid(string shotKey)
+        {
+            try
+            {
+                await SelectCoordinateShot(shotKey);
+            }
+            catch (Exception ex)
+            {
+                _setStatusMessage($"Coordinate shot selection failed. {ex.Message}");
+            }
+        }
+
+        public async Task SelectCoordinateShotAt(double x, double y)
+        {
+            ST_MONITOR_COORDINATE_SHOT_BUTTON? firstShot = null;
+            foreach (var row in CoordinateShotMatrixRows)
+            {
+                if (row.Shots.Count > 0)
+                {
+                    firstShot = row.Shots[0];
+                    break;
+                }
+            }
+
+            if (firstShot is null
+                || !CCoordinateShotMapPreviewDrawing.TryResolveShot(x, y, firstShot.GroupCountX, firstShot.GroupCountY, out var groupColumn, out var groupRow))
+            {
+                return;
+            }
+
+            foreach (var row in CoordinateShotMatrixRows)
+            {
+                foreach (var shot in row.Shots)
+                {
+                    if (shot.GroupColumn != groupColumn || shot.GroupRow != groupRow)
+                    {
+                        continue;
+                    }
+
+                    try
+                    {
+                        await SelectCoordinateShot(shot.ShotKey);
+                    }
+                    catch (Exception ex)
+                    {
+                        _setStatusMessage($"Coordinate shot selection failed. {ex.Message}");
+                    }
+
+                    return;
+                }
+            }
+        }
+
+        private async Task ToggleCoordinateOffset(object? parameter)
+        {
+            var key = parameter switch
+            {
+                ST_MONITOR_COORDINATE_CALCULATION_ROW row when row.IsSelectable => row.Key,
+                string text => text,
+                _ => ""
+            };
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                return;
+            }
+
+            if (!_coordinateSelectedOffsetKeys.Add(key))
+            {
+                _coordinateSelectedOffsetKeys.Remove(key);
+            }
+
+            _setStatusMessage($"Coordinate offset {key} {(_coordinateSelectedOffsetKeys.Contains(key) ? "included" : "excluded")}.");
+            await _refreshCurrentScreen();
+        }
+
+        private async Task ApplyCoordinateOffsetPreviewRange()
+        {
+            if (!TryParseCoordinatePreviewRangeValue(_coordinateOffsetPreviewMinimumText, out var minimum)
+                || !TryParseCoordinatePreviewRangeValue(_coordinateOffsetPreviewMaximumText, out var maximum)
+                || !double.IsFinite(minimum)
+                || !double.IsFinite(maximum)
+                || minimum >= 0.0
+                || maximum <= 0.0
+                || minimum >= maximum)
+            {
+                _setStatusMessage("Coordinate preview range는 MIN < 0 < MAX인 유한한 mm 값으로 입력해 주세요.");
+                return;
+            }
+
+            _coordinateOffsetPreviewMinimum = minimum;
+            _coordinateOffsetPreviewMaximum = maximum;
+            _coordinateOffsetPreviewMinimumText = minimum.ToString("0.###", CultureInfo.InvariantCulture);
+            _coordinateOffsetPreviewMaximumText = maximum.ToString("0.###", CultureInfo.InvariantCulture);
+            OnPropertyChanged(nameof(CoordinateOffsetPreviewMinimumText));
+            OnPropertyChanged(nameof(CoordinateOffsetPreviewMaximumText));
+            OnPropertyChanged(nameof(CoordinateOffsetPreviewGridText));
+            _setStatusMessage($"Coordinate preview range {_coordinateOffsetPreviewMinimumText} ~ {_coordinateOffsetPreviewMaximumText} mm / {CoordinateOffsetPreviewGridText}.");
+            await _refreshCurrentScreen();
+        }
+
+        private static bool TryParseCoordinatePreviewRangeValue(string text, out double value)
+        {
+            return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value)
+                || double.TryParse(text, NumberStyles.Float, CultureInfo.CurrentCulture, out value);
         }
 
         private async Task BackToCoordinateGlassPreview()
@@ -2916,7 +3090,16 @@
                     null, 
                     [], 
                     [], 
+                    null, 
+                    680.0, 
+                    420.0, 
+                    [], 
+                    [],
+                    null,
                     "0 Cells / 0 Shot Centers", 
+                    "Select a cell and shot.", 
+                    "Select a cell to view all shot coordinates.",
+                    "Select a shot to compare its basis position.",
                     "-", 
                     GetCoordinateBasisName(_coordinateBasis), 
                     GetCoordinateBasisDescription(_coordinateBasis)
@@ -2924,15 +3107,12 @@
             }
 
             var parameterMap = BuildCoordinateParameterMap(recipe, settings);
+            var reviewOffsetFile = await _reviewOffsetFile.LoadLatest(recipe.Id, cancellationToken);
+            CMenuCorrection.ApplyReviewOffsetsToOutputViewerParameters(parameterMap, reviewOffsetFile);
             var recipeCellCount = Math.Max(CCellPatternCalculator.MinCellCount, ReadCoordinateInt(parameterMap, CCellPatternCalculator.MinCellCount, "MAX_CELL_NUMBER"));
-            var canSelectCoordinateShot = _coordinateBasis != "SCANNER";
             if (_coordinateIsCellDetailVisible)
             {
                 _coordinateSelectedCellNo = Math.Clamp(Math.Max(1, _coordinateSelectedCellNo), 1, recipeCellCount);
-                if (!canSelectCoordinateShot)
-                {
-                    _coordinateSelectedShotKey = "";
-                }
             }
             else
             {
@@ -2958,10 +3138,6 @@
             if (_coordinateIsCellDetailVisible)
             {
                 _coordinateSelectedCellNo = Math.Clamp(Math.Max(1, _coordinateSelectedCellNo), 1, cellCount);
-                if (!canSelectCoordinateShot)
-                {
-                    _coordinateSelectedShotKey = "";
-                }
             }
             else
             {
@@ -2991,54 +3167,130 @@
 
             ST_HEAD_SHOT_POINT? selectedShot = null;
             IReadOnlyList<ST_MONITOR_COORDINATE_SHOT_MATRIX_ROW> shotMatrixRows = [];
+            var shotMap = new ST_COORDINATE_SHOT_MAP_RENDER(null, 680.0, 420.0);
+            IReadOnlyList<ST_MONITOR_COORDINATE_CALCULATION_ROW> calculationRows = [];
+            IReadOnlyList<ST_MONITOR_COORDINATE_SHOT_COORDINATE_ROW> shotCoordinateRows = [];
+            var calculationSummary = "Select a cell and shot.";
+            var shotCoordinateSummary = "Select a cell to view all shot coordinates.";
+            ImageSource? offsetPreviewImage = null;
+            var offsetPreviewSummary = "Select a shot to compare its basis position.";
             if (_coordinateIsCellDetailVisible && coordinatePlan is not null)
             {
                 var selectedCellShots = coordinatePlan.Shots.Where(MatchesCellNo).OrderBy(SelectGroupRow).ThenBy(SelectGroupColumn).ThenBy(SelectCellShotNo).ToArray();
-                if (canSelectCoordinateShot)
+                bool MatchesItem(global::Drilling.Common.Recipe.ST_HEAD_SHOT_POINT shot)
                 {
-                    bool MatchesItem(global::Drilling.Common.Recipe.ST_HEAD_SHOT_POINT shot)
-                    {
-                        return shot.ShotKey.Equals(_coordinateSelectedShotKey, StringComparison.OrdinalIgnoreCase);
-                    }
-
-                    if (selectedCellShots.Length == 0)
-                    {
-                        _coordinateSelectedShotKey = "";
-                    }
-                    else if (!string.IsNullOrWhiteSpace(_coordinateSelectedShotKey) && !selectedCellShots.Any(MatchesItem))
-                    {
-                        _coordinateSelectedShotKey = "";
-                    }
-
-                    bool MatchesItem2(global::Drilling.Common.Recipe.ST_HEAD_SHOT_POINT shot)
-                    {
-                        return shot.ShotKey.Equals(_coordinateSelectedShotKey, StringComparison.OrdinalIgnoreCase);
-                    }
-
-                    selectedShot = coordinatePlan.Shots.FirstOrDefault(MatchesItem2);
-                    if (selectedShot is not null)
-                    {
-                        InsertCoordinateSelectedShotRows(valueRows, BuildCoordinateSelectedShotRows(selectedShot, parameterMap));
-                    }
+                    return shot.ShotKey.Equals(_coordinateSelectedShotKey, StringComparison.OrdinalIgnoreCase);
                 }
-                else
+
+                if (selectedCellShots.Length == 0)
+                {
+                    _coordinateSelectedShotKey = "";
+                }
+                else if (!string.IsNullOrWhiteSpace(_coordinateSelectedShotKey) && !selectedCellShots.Any(MatchesItem))
                 {
                     _coordinateSelectedShotKey = "";
                 }
 
+                selectedShot = selectedCellShots.FirstOrDefault(MatchesItem);
                 shotMatrixRows = BuildCoordinateShotMatrixRows(coordinatePlan, parameterMap);
+                var shotStates = shotMatrixRows
+                    .SelectMany(row => row.Shots)
+                    .ToDictionary(shot => shot.ShotKey, StringComparer.OrdinalIgnoreCase);
+                var coordinateRows = new List<ST_MONITOR_COORDINATE_SHOT_COORDINATE_ROW>(selectedCellShots.Length);
+                ST_MONITOR_COORDINATE_CALCULATION_RESULT? selectedCalculation = null;
+                string? xAxisLabel = null;
+                string? yAxisLabel = null;
+                foreach (var shot in selectedCellShots)
+                {
+                    var calculation = BuildCoordinateCalculationRows(shot, parameterMap);
+                    xAxisLabel ??= calculation.XAxisLabel;
+                    yAxisLabel ??= calculation.YAxisLabel;
+                    shotStates.TryGetValue(shot.ShotKey, out var shotState);
+                    var state = shotState?.IsMasked == true
+                        ? "MASKING"
+                        : shotState?.IsChessSkipped == true
+                            ? "CHESS"
+                            : "SHOT";
+                    var isSelected = shot.ShotKey.Equals(_coordinateSelectedShotKey, StringComparison.OrdinalIgnoreCase);
+                    coordinateRows.Add(new ST_MONITOR_COORDINATE_SHOT_COORDINATE_ROW(
+                        shot.ShotKey,
+                        CReviewShotNameFormatter.ToMatrixName(shot.CellShotNo, shot.GroupCountX),
+                        $"H{shot.HeadNo:00}",
+                        FormatCoordinateValue(calculation.AppliedX),
+                        FormatCoordinateValue(calculation.AppliedY),
+                        state,
+                        isSelected));
+                    if (isSelected)
+                    {
+                        selectedCalculation = calculation;
+                    }
+                }
+
+                shotCoordinateRows = coordinateRows;
+                if (coordinateRows.Count > 0)
+                {
+                    shotCoordinateSummary = $"{coordinateRows.Count:N0} SHOTS / {xAxisLabel} / {yAxisLabel}";
+                }
+
+                if (selectedShot is not null && selectedCalculation is not null)
+                {
+                    InsertCoordinateSelectedShotRows(valueRows, BuildCoordinateSelectedShotRows(selectedShot, parameterMap));
+                    calculationRows = selectedCalculation.Rows;
+                    if (selectedCalculation.IsReviewCamera)
+                    {
+                        offsetPreviewImage = CCoordinateOffsetPreviewDrawing.CreateReviewCamera(
+                            selectedCalculation.XAxisLabel,
+                            selectedCalculation.YAxisLabel,
+                            selectedCalculation.MachiningDeltaX,
+                            selectedCalculation.MachiningDeltaY,
+                            selectedCalculation.DeltaX,
+                            selectedCalculation.DeltaY,
+                            selectedCalculation.XPositiveDirection,
+                            selectedCalculation.YPositiveDirection,
+                            _coordinateOffsetPreviewMinimum,
+                            _coordinateOffsetPreviewMaximum);
+                        offsetPreviewSummary = $"MACHINING {selectedCalculation.XAxisLabel} {FormatCoordinateValue(selectedCalculation.BaseX + selectedCalculation.MachiningDeltaX)} / {selectedCalculation.YAxisLabel} {FormatCoordinateValue(selectedCalculation.BaseY + selectedCalculation.MachiningDeltaY)}  |  INSPECTION {selectedCalculation.XAxisLabel} {FormatCoordinateValue(selectedCalculation.AppliedX)} / {selectedCalculation.YAxisLabel} {FormatCoordinateValue(selectedCalculation.AppliedY)}";
+                    }
+                    else
+                    {
+                        offsetPreviewImage = CCoordinateOffsetPreviewDrawing.Create(
+                            selectedCalculation.XAxisLabel,
+                            selectedCalculation.YAxisLabel,
+                            selectedCalculation.DeltaX,
+                            selectedCalculation.DeltaY,
+                            selectedCalculation.XPositiveDirection,
+                            selectedCalculation.YPositiveDirection,
+                            _coordinateOffsetPreviewMinimum,
+                            _coordinateOffsetPreviewMaximum);
+                        offsetPreviewSummary = $"BASE {selectedCalculation.XAxisLabel} {FormatCoordinateValue(selectedCalculation.BaseX)} / {selectedCalculation.YAxisLabel} {FormatCoordinateValue(selectedCalculation.BaseY)}  ->  APPLIED {selectedCalculation.XAxisLabel} {FormatCoordinateValue(selectedCalculation.AppliedX)} / {selectedCalculation.YAxisLabel} {FormatCoordinateValue(selectedCalculation.AppliedY)}";
+                    }
+                    calculationSummary = $"CELL{selectedShot.CellNo:000} / {CReviewShotNameFormatter.ToMatrixName(selectedShot.CellShotNo, selectedShot.GroupCountX)} / H{selectedShot.HeadNo:00}";
+                }
+
+                shotMap = BuildCoordinateShotMap(shotMatrixRows, _coordinateSelectedShotKey);
             }
 
-            var previewPoints = Array.Empty<ST_REVIEW_PLAN_POINT>();
             var currentCellNo = _coordinateIsCellDetailVisible ? _coordinateSelectedCellNo : 0;
-            var glassPreview = CReviewGlassPreviewBuilder.Build(recipe, cellCount, currentCellNo, previewPoints, axisIndicators: CreateCoordinateAxisIndicators(_coordinateBasis, parameterMap), expandSmallCellBounds: false, settings: _settingManager.LoadSection(EN_SETTING_TAB.Motor));
+            var glassPreview = CMenuCorrection.BuildOutputViewerGlassPreview(
+                parameterMap,
+                cellCount,
+                currentCellNo);
             return new ST_MONITOR_COORDINATE_VIEWER_DATA(
                 CreateCoordinateBasisOptions(_coordinateBasis), 
                 valueRows, 
                 glassPreview.Image, 
                 glassPreview.CellLabels, 
                 shotMatrixRows, 
+                shotMap.Image, 
+                shotMap.Width, 
+                shotMap.Height, 
+                calculationRows, 
+                shotCoordinateRows,
+                offsetPreviewImage,
                 glassPreview.Summary, 
+                calculationSummary, 
+                shotCoordinateSummary,
+                offsetPreviewSummary,
                 $"{recipe.Id} / {recipe.Name}", 
                 GetCoordinateBasisName(_coordinateBasis), 
                 GetCoordinateBasisDescription(_coordinateBasis)
@@ -3192,6 +3444,174 @@
             return[new("CALC", "SELECTED SHOT", "Design X", FormatCoordinateValue(GetOffsetAppliedDesignPosition(point).X), "mm", "CALC_DESIGN_X"), new("CALC", "SELECTED SHOT", "Design Y", FormatCoordinateValue(GetOffsetAppliedDesignPosition(point).Y), "mm", "CALC_DESIGN_Y")];
         }
 
+        private ST_MONITOR_COORDINATE_CALCULATION_RESULT BuildCoordinateCalculationRows(
+            ST_HEAD_SHOT_POINT point,
+            IReadOnlyDictionary<string, string> parameters)
+        {
+            var basis = NormalizeCoordinateBasis(_coordinateBasis);
+            var scannerTransform = CScannerAxisTransform.Read(parameters, point.HeadNo);
+            var stageScanDirectionY = ReadCoordinateDirection(parameters, -1.0, "STAGE_SCAN_DIRECTION_Y");
+            var headDefaultScannerOffset = scannerTransform.Apply(point.HeadDefaultOffsetX, -point.HeadDefaultOffsetY);
+            var firstBeamScannerOffset = scannerTransform.Apply(point.FirstBeamOffsetX, -point.FirstBeamOffsetY);
+            var recipeDesignOffset = CScannerAxisTransform.ScannerOffsetToDesign(
+                parameters,
+                point.HeadNo,
+                point.RecipeOffsetX,
+                point.RecipeOffsetY);
+            var reviewDesignOffset = CScannerAxisTransform.ScannerOffsetToDesign(
+                parameters,
+                point.HeadNo,
+                point.ReviewOffsetX,
+                point.ReviewOffsetY);
+            var scannerBaseX = point.ScannerGx - point.FinalScannerOffsetX - point.ShiftScannerOffsetX;
+            var scannerBaseY = point.ScannerGy - point.FinalScannerOffsetY - point.ShiftScannerOffsetY;
+
+            var components = new (string Key, string Name, double DesignX, double DesignY, double ScannerX, double ScannerY, string Description)[]
+            {
+                ("RECIPE", "RECIPE OFFSET", recipeDesignOffset.X, recipeDesignOffset.Y, point.RecipeOffsetX, point.RecipeOffsetY, "Per-shot recipe offset"),
+                ("HEAD_DEFAULT", "HEAD DEFAULT OFFSET", point.HeadDefaultOffsetX, point.HeadDefaultOffsetY, headDefaultScannerOffset.X, headDefaultScannerOffset.Y, "Head installation correction"),
+                ("FIRST_BEAM", "FIRST BEAM OFFSET", point.FirstBeamOffsetX, point.FirstBeamOffsetY, firstBeamScannerOffset.X, firstBeamScannerOffset.Y, "DOE first-beam correction"),
+                ("REVIEW", "REVIEW OFFSET", reviewDesignOffset.X, reviewDesignOffset.Y, point.ReviewOffsetX, point.ReviewOffsetY, "Saved review correction"),
+                ("ALIGN", "ALIGN OFFSET", point.AlignOffsetX, point.AlignOffsetY, point.AlignScannerOffsetX, point.AlignScannerOffsetY, "Align / distortion correction"),
+                ("SHIFT", "SHIFT OFFSET", point.ShiftOffsetX, point.ShiftOffsetY, point.ShiftScannerOffsetX, point.ShiftScannerOffsetY, "Current manual process shift")
+            };
+
+            (double X, double Y) ConvertOffset(double designX, double designY, double scannerX, double scannerY)
+            {
+                return basis switch
+                {
+                    "SCANNER" => (scannerX, scannerY),
+                    "REVIEW_CAMERA" => (designX, stageScanDirectionY * designY),
+                    _ => (designX, designY)
+                };
+            }
+
+            double baseX;
+            double baseY;
+            string xAxisLabel;
+            string yAxisLabel;
+            var xPositiveDirection = new Vector(1.0, 0.0);
+            var yPositiveDirection = new Vector(0.0, 1.0);
+            if (basis == "SCANNER")
+            {
+                baseX = scannerBaseX;
+                baseY = scannerBaseY;
+                xAxisLabel = $"H{point.HeadNo:00} GX";
+                yAxisLabel = $"H{point.HeadNo:00} GY";
+                var scannerXDesignDirection = CScannerAxisTransform.ScannerOffsetToDesign(
+                    parameters,
+                    point.HeadNo,
+                    1.0,
+                    0.0);
+                var scannerYDesignDirection = CScannerAxisTransform.ScannerOffsetToDesign(
+                    parameters,
+                    point.HeadNo,
+                    0.0,
+                    1.0);
+                xPositiveDirection = new Vector(scannerXDesignDirection.X, scannerXDesignDirection.Y);
+                yPositiveDirection = new Vector(scannerYDesignDirection.X, scannerYDesignDirection.Y);
+            }
+            else if (basis == "REVIEW_CAMERA")
+            {
+                var reviewPosition = GetReviewCameraPosition(point, parameters);
+                baseX = reviewPosition.CameraX;
+                baseY = reviewPosition.StageY;
+                xAxisLabel = "REVIEW X";
+                yAxisLabel = "STAGE Y";
+                yPositiveDirection = new Vector(0.0, stageScanDirectionY);
+            }
+            else
+            {
+                baseX = point.DesignX;
+                baseY = point.DesignY;
+                xAxisLabel = "DESIGN X";
+                yAxisLabel = "DESIGN Y";
+            }
+
+            var rows = new List<ST_MONITOR_COORDINATE_CALCULATION_ROW>(components.Length + 2)
+            {
+                new("BASE", "BASE POSITION", FormatCoordinateValue(baseX), FormatCoordinateValue(baseY), "mm", $"{GetCoordinateBasisName(basis)} position before selectable offsets", false, false)
+            };
+            var isReviewCamera = basis == "REVIEW_CAMERA";
+            var deltaX = 0.0;
+            var deltaY = 0.0;
+            var machiningDeltaX = 0.0;
+            var machiningDeltaY = 0.0;
+            foreach (var component in components)
+            {
+                var converted = ConvertOffset(component.DesignX, component.DesignY, component.ScannerX, component.ScannerY);
+                if (isReviewCamera)
+                {
+                    machiningDeltaX += converted.X;
+                    machiningDeltaY += converted.Y;
+                }
+
+                var selectable = !isReviewCamera || component.Key == "SHIFT";
+                var selected = selectable && _coordinateSelectedOffsetKeys.Contains(component.Key);
+                if (selected)
+                {
+                    deltaX += converted.X;
+                    deltaY += converted.Y;
+                }
+
+                rows.Add(new ST_MONITOR_COORDINATE_CALCULATION_ROW(
+                    component.Key,
+                    component.Name,
+                    FormatCoordinateValue(converted.X),
+                    FormatCoordinateValue(converted.Y),
+                    "mm",
+                    isReviewCamera && component.Key != "SHIFT"
+                        ? $"{component.Description}; machining point only, Review Camera position unchanged"
+                        : component.Description,
+                    selectable,
+                    selected));
+            }
+
+            if (isReviewCamera)
+            {
+                rows.Add(new ST_MONITOR_COORDINATE_CALCULATION_ROW(
+                    "MACHINING_RESULT",
+                    "MACHINING POINT",
+                    FormatCoordinateValue(baseX + machiningDeltaX),
+                    FormatCoordinateValue(baseY + machiningDeltaY),
+                    "mm",
+                    "Machining point including process offsets; does not change the Review Camera target",
+                    false,
+                    false,
+                    true));
+            }
+
+            var appliedX = baseX + deltaX;
+            var appliedY = baseY + deltaY;
+            rows.Add(new ST_MONITOR_COORDINATE_CALCULATION_ROW(
+                "RESULT",
+                isReviewCamera ? "INSPECTION POSITION" : "APPLIED POSITION",
+                FormatCoordinateValue(appliedX),
+                FormatCoordinateValue(appliedY),
+                "mm",
+                isReviewCamera ? "Review Camera target: base position + selected Shift Offset only" : "Base position + selected offsets",
+                false,
+                false,
+                true));
+            return new ST_MONITOR_COORDINATE_CALCULATION_RESULT(
+                rows,
+                xAxisLabel,
+                yAxisLabel,
+                baseX,
+                baseY,
+                appliedX,
+                appliedY,
+                deltaX,
+                deltaY,
+                xPositiveDirection,
+                yPositiveDirection)
+            {
+                IsReviewCamera = isReviewCamera,
+                MachiningDeltaX = machiningDeltaX,
+                MachiningDeltaY = machiningDeltaY
+            };
+        }
+
         private IReadOnlyList<ST_MONITOR_COORDINATE_VALUE_ROW> BuildCoordinateCalculatedRows(IReadOnlyDictionary<string, string> parameters)
         {
             if (NormalizeCoordinateBasis(_coordinateBasis) != "STAGE")
@@ -3253,6 +3673,10 @@
                     shot.ShotKey.Equals(_coordinateSelectedShotKey, StringComparison.OrdinalIgnoreCase), 
                     maskingState.IsChessSkipped, 
                     maskingState.IsMasked, 
+                    shot.GroupColumn, 
+                    shot.GroupRow, 
+                    shot.GroupCountX, 
+                    shot.GroupCountY, 
                     SelectCoordinateShotCommand
                 );
             }
@@ -3263,6 +3687,29 @@
             }
 
             return coordinatePlan.Shots.Where(MatchesCellNo).GroupBy(SelectGroupRow).OrderBy(SelectKey).Select(BuildMonitor2).ToArray();
+        }
+
+        private static ST_COORDINATE_SHOT_MAP_RENDER BuildCoordinateShotMap(
+            IReadOnlyList<ST_MONITOR_COORDINATE_SHOT_MATRIX_ROW> shotMatrixRows,
+            string selectedShotKey)
+        {
+            var points = new List<ST_COORDINATE_SHOT_MAP_POINT>();
+            foreach (var row in shotMatrixRows)
+            {
+                foreach (var shot in row.Shots)
+                {
+                    points.Add(new ST_COORDINATE_SHOT_MAP_POINT(
+                        shot.ShotKey,
+                        shot.GroupColumn,
+                        shot.GroupRow,
+                        shot.GroupCountX,
+                        shot.GroupCountY,
+                        shot.IsMasked,
+                        shot.IsChessSkipped));
+                }
+            }
+
+            return CCoordinateShotMapPreviewDrawing.Create(points, selectedShotKey);
         }
 
         private string CreateCoordinateShotButtonDetail(ST_HEAD_SHOT_POINT point, IReadOnlyDictionary<string, string> parameters)
@@ -3297,7 +3744,17 @@
             CoordinateGlassPreviewImage = data.GlassPreviewImage;
             CoordinateCellPreviewLabels = data.CellPreviewLabels;
             CoordinateShotMatrixRows = data.ShotMatrixRows;
+            CoordinateShotMapImage = data.ShotMapImage;
+            CoordinateShotMapSurfaceWidth = data.ShotMapSurfaceWidth;
+            CoordinateShotMapSurfaceHeight = data.ShotMapSurfaceHeight;
+            CoordinateCalculationRows = data.CalculationRows;
+            CoordinateShotCoordinateRows = data.ShotCoordinateRows;
+            CoordinateSelectedShotCoordinateRow = data.ShotCoordinateRows.FirstOrDefault(row => row.IsSelected);
+            CoordinateShotCoordinateSummary = data.ShotCoordinateSummary;
+            CoordinateOffsetPreviewImage = data.OffsetPreviewImage;
             CoordinateGlassPreviewSummary = data.GlassPreviewSummary;
+            CoordinateCalculationSummary = data.CalculationSummary;
+            CoordinateOffsetPreviewSummary = data.OffsetPreviewSummary;
             CoordinateSelectedRecipeName = data.RecipeName;
             CoordinateSelectedBasisName = data.BasisName;
             CoordinateBasisDescription = data.BasisDescription;
@@ -3315,7 +3772,23 @@
                 nameof(CoordinateGlassPreviewImage), 
                 nameof(CoordinateCellPreviewLabels), 
                 nameof(CoordinateShotMatrixRows), 
+                nameof(CoordinateShotMapImage), 
+                nameof(CoordinateShotMapSurfaceWidth), 
+                nameof(CoordinateShotMapSurfaceHeight), 
+                nameof(CoordinateHasShotMap), 
+                nameof(CoordinateCalculationRows), 
+                nameof(CoordinateShotCoordinateRows),
+                nameof(CoordinateSelectedShotCoordinateRow),
+                nameof(CoordinateShotCoordinateSummary),
+                nameof(CoordinateHasShotCoordinateRows),
+                nameof(CoordinateOffsetPreviewImage),
+                nameof(CoordinateOffsetPreviewMinimumText),
+                nameof(CoordinateOffsetPreviewMaximumText),
+                nameof(CoordinateOffsetPreviewGridText),
                 nameof(CoordinateGlassPreviewSummary), 
+                nameof(CoordinateCalculationSummary), 
+                nameof(CoordinateOffsetPreviewSummary),
+                nameof(CoordinateHasCalculationRows), 
                 nameof(CoordinateIsGlassPreviewVisible), 
                 nameof(CoordinateIsCellDetailVisible), 
                 nameof(CoordinateSelectedRecipeName), 
@@ -3330,7 +3803,6 @@
         {
             return[
                 CreateCoordinateBasisOption("DESIGN", selectedBasis), 
-                CreateCoordinateBasisOption("STAGE", selectedBasis), 
                 CreateCoordinateBasisOption("SCANNER", selectedBasis), 
                 CreateCoordinateBasisOption("REVIEW_CAMERA", selectedBasis)
             ];
@@ -3672,7 +4144,6 @@
             return normalized switch
             {
                 "DESIGN" => "DESIGN",
-                "STAGE" => "STAGE",
                 "HEAD" or "SCANNER" => "SCANNER",
                 "CAMERA" or "VISION" or "REVIEW CAMERA" or "REVIEWCAMERA" => "REVIEW_CAMERA",
                 _ => ""
@@ -6245,13 +6716,22 @@
         ImageSource? GlassPreviewImage, 
         IReadOnlyList<ST_CELL_PREVIEW_LABEL> CellPreviewLabels, 
         IReadOnlyList<ST_MONITOR_COORDINATE_SHOT_MATRIX_ROW> ShotMatrixRows, 
+        ImageSource? ShotMapImage, 
+        double ShotMapSurfaceWidth, 
+        double ShotMapSurfaceHeight, 
+        IReadOnlyList<ST_MONITOR_COORDINATE_CALCULATION_ROW> CalculationRows,
+        IReadOnlyList<ST_MONITOR_COORDINATE_SHOT_COORDINATE_ROW> ShotCoordinateRows,
+        ImageSource? OffsetPreviewImage,
         string GlassPreviewSummary, 
+        string CalculationSummary,
+        string ShotCoordinateSummary,
+        string OffsetPreviewSummary,
         string RecipeName, 
         string BasisName, 
         string BasisDescription
     )
     {
-        public static ST_MONITOR_COORDINATE_VIEWER_DATA Empty { get; } = new([], [], null, [], [], "0 Cells / 0 Shot Centers", "-", "Design", "Recipe design coordinate from Align Key / Glass");
+        public static ST_MONITOR_COORDINATE_VIEWER_DATA Empty { get; } = new([], [], null, [], [], null, 680.0, 420.0, [], [], null, "0 Cells / 0 Shot Centers", "Select a cell and shot.", "Select a cell to view all shot coordinates.", "Select a shot to compare its basis position.", "-", "Design", "Recipe design coordinate from Align Key / Glass");
     }
 
     public sealed record ST_MONITOR_COORDINATE_BASIS_OPTION(string Key, string Name, string Description, bool IsSelected)
@@ -6283,7 +6763,54 @@
 
     public sealed record ST_MONITOR_COORDINATE_VALUE_ROW(string Source, string Group, string Parameter, string Value, string Unit, string Key);
     public sealed record ST_MONITOR_COORDINATE_SHOT_MATRIX_ROW(int RowNo, IReadOnlyList<ST_MONITOR_COORDINATE_SHOT_BUTTON> Shots);
-    public sealed record ST_MONITOR_COORDINATE_SHOT_BUTTON(string ShotKey, string ShotName, string Head, string Detail, bool IsSelected, bool IsChessSkipped, bool IsMasked, CButtonCommand SelectCommand)
+    public sealed record ST_MONITOR_COORDINATE_SHOT_COORDINATE_ROW(
+        string ShotKey,
+        string Shot,
+        string Head,
+        string X,
+        string Y,
+        string State,
+        bool IsSelected);
+    public sealed record ST_MONITOR_COORDINATE_CALCULATION_ROW(
+        string Key,
+        string Step,
+        string X,
+        string Y,
+        string Unit,
+        string Description,
+        bool IsSelectable,
+        bool IsSelected,
+        bool IsResult = false);
+    internal sealed record ST_MONITOR_COORDINATE_CALCULATION_RESULT(
+        IReadOnlyList<ST_MONITOR_COORDINATE_CALCULATION_ROW> Rows,
+        string XAxisLabel,
+        string YAxisLabel,
+        double BaseX,
+        double BaseY,
+        double AppliedX,
+        double AppliedY,
+        double DeltaX,
+        double DeltaY,
+        Vector XPositiveDirection,
+        Vector YPositiveDirection)
+    {
+        public bool IsReviewCamera { get; init; }
+        public double MachiningDeltaX { get; init; }
+        public double MachiningDeltaY { get; init; }
+    }
+    public sealed record ST_MONITOR_COORDINATE_SHOT_BUTTON(
+        string ShotKey,
+        string ShotName,
+        string Head,
+        string Detail,
+        bool IsSelected,
+        bool IsChessSkipped,
+        bool IsMasked,
+        int GroupColumn,
+        int GroupRow,
+        int GroupCountX,
+        int GroupCountY,
+        CButtonCommand SelectCommand)
     {
         public Brush BorderBrush
         {

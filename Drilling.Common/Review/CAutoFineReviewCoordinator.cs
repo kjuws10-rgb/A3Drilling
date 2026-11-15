@@ -54,8 +54,9 @@
                 throw new IOException($"AUTO Review 결과 저장을 확인할 수 없습니다: {result.ResultSaveError}");
             var measured = ValidateMeasurements(plan, result);
             var ng = measured.Count(point => point.State == EN_REVIEW_POINT_STATE.Ng);
+            var ngSummary = CReviewManager.SummarizeReviewResults(measured);
             var method = plan.Request.Method == EN_FINE_INSPECTION_METHOD.Flying ? "IOF" : "PtoP";
-            review.RecordAutoFineLog("AUTO_REVIEW_RESULT", $"FINE {method} 검사 결과 · {measured.Length:N0}개 검사 / OK {measured.Length - ng:N0} / NG {ng:N0} · Beam {ST_AUTO_REVIEW_OPTIONS.BeamNo}");
+            review.RecordAutoFineLog("AUTO_REVIEW_RESULT", $"FINE {method} 검사 결과 · {measured.Length:N0}개 검사 / OK {measured.Length - ng:N0} / NG {ng:N0} · Beam {ST_AUTO_REVIEW_OPTIONS.BeamNo} · {ngSummary.ToDisplayText()} · Vision Result Code {ngSummary.ResultCodeText}");
             if (plan.ZeroLineFollowUp)
             {
                 Outcome = $"0선 FollowUp IOF 1 Line · 검사 {measured.Length:N0}개 완료 / OK {measured.Length - ng:N0} / NG {ng:N0}개 · 결과 저장 완료 / 보정 미적용";
@@ -67,7 +68,7 @@
             if (ng > 0)
             {
                 if (!plan.ZeroLineFollowUp)
-                    Outcome = $"검사 {measured.Length:N0}개 완료 / NG {ng:N0}개 · 보정 전체 미적용 · 기존 Review Offset 유지";
+                    Outcome = $"검사 {measured.Length:N0}개 완료 / NG {ng:N0}개 · {ngSummary.ToDisplayText()} · Vision Result Code {ngSummary.ResultCodeText} · 보정 전체 미적용 · 기존 Review Offset 유지";
                 review.RecordAutoFineLog("AUTO_REVIEW_NG", Outcome);
                 // Immediate retries are completed by StartFineCorrection. Any remaining NG,
                 // including when retry is OFF, fails REVIEW_MEASURE and triggers its CSV HEAVY.
@@ -103,7 +104,8 @@
             if (ng > 0)
             {
                 // Inspection completion is different from a quality OK. Keep every old offset when any Shot is NG.
-                Outcome = $"검사 {measured.Length:N0}개 완료 / NG {ng:N0}개 · 보정 전체 미적용 · 기존 Review Offset 유지";
+                var ngSummary = CReviewManager.SummarizeReviewResults(measured);
+                Outcome = $"검사 {measured.Length:N0}개 완료 / NG {ng:N0}개 · {ngSummary.ToDisplayText()} · Vision Result Code {ngSummary.ResultCodeText} · 보정 전체 미적용 · 기존 Review Offset 유지";
                 review.RecordAutoFineLog("AUTO_REVIEW_NG", Outcome);
                 throw new InvalidDataException(Outcome);
             }

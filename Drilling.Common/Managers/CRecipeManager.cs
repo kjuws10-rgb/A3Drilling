@@ -427,12 +427,24 @@ namespace Drilling.Common.Recipe
         public const string Tab = "PROCESS";
         public const string Group = "ProtectWindow";
         public const string MaximumCountKey = "MAX_PROCESS_COUNT";
+        public const string RetryCountKey = "PROTECT_WINDOW_RETRY_COUNT";
         public const string CurrentCountKey = "CURRENT_PROCESS_COUNT";
+        public const int MaximumRetryCount = 3;
         public static int ParseCount(string? text, string key = CurrentCountKey)
         {
             if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var count) || !double.IsFinite(count) || count < 0 || count > int.MaxValue || count != Math.Truncate(count))
                 throw new InvalidDataException($"{key} must be a nonnegative integer: {text}");
             return (int)count;
+        }
+
+        public static int ParseRetryCount(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return 0;
+            var count = ParseCount(text, RetryCountKey);
+            if (count > MaximumRetryCount)
+                throw new InvalidDataException($"{RetryCountKey} must be between 0 and {MaximumRetryCount}: {text}");
+            return count;
         }
     }
 }

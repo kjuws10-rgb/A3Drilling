@@ -104,7 +104,7 @@ namespace Drilling.Common.Review
                     continue;
                 }
 
-                selectedPoints.Add(point with { Use = true, State = EN_REVIEW_POINT_STATE.Ready, Judge = "WAIT" });
+                selectedPoints.Add(point with { Use = true, State = EN_REVIEW_POINT_STATE.Ready, Judge = "WAIT", VisionResultCode = null, NgReason = "" });
             }
 
             return allPlan with
@@ -206,6 +206,43 @@ namespace Drilling.Common.Review
             ValidateShiftOffset(shiftOffsetX, shiftOffsetY);
             ValidateBeamNo(selectedBeamNo, ReadInt(recipe, 0, "SPLITED_BEAM_COUNT"));
             return CreatePlanCore(recipe, _ => true, selectedBeamNo, selectAllAssignedPoints: true, shiftOffsetX, shiftOffsetY);
+        }
+
+        public static IReadOnlyList<string> SelectGlassLineShotKeys(
+            ST_REVIEW_PLAN plan,
+            string anchorShotKey)
+        {
+            ArgumentNullException.ThrowIfNull(plan);
+            var normalizedAnchorKey = NormalizeShotKey(anchorShotKey);
+            var executablePoints = plan.Points
+                .Where(point =>
+                    point.Use &&
+                    point.HeadNo > 0 &&
+                    double.IsFinite(point.DesignX) &&
+                    double.IsFinite(point.DesignY))
+                .ToArray();
+            if (!executablePoints.Any(point => point.ShotKey.Equals(normalizedAnchorKey, StringComparison.OrdinalIgnoreCase)))
+            {
+                return [];
+            }
+
+            foreach (var line in CreateIofLines(executablePoints))
+            {
+                if (!line.Any(point => point.ShotKey.Equals(normalizedAnchorKey, StringComparison.OrdinalIgnoreCase)))
+                {
+                    continue;
+                }
+
+                return line
+                    .OrderBy(point => point.DesignX)
+                    .ThenBy(point => point.CellNo)
+                    .ThenBy(point => point.ShotNo)
+                    .Select(point => point.ShotKey)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+            }
+
+            return [];
         }
 
         public static ST_REVIEW_PLAN ApplyShiftOffset(ST_REVIEW_PLAN plan, double shiftOffsetX, double shiftOffsetY)
@@ -325,7 +362,9 @@ namespace Drilling.Common.Review
                     var currentPoint = point with
                     {
                         State = EN_REVIEW_POINT_STATE.Current,
-                        Judge = "WAIT"
+                        Judge = "WAIT",
+                        VisionResultCode = null,
+                        NgReason = ""
                     };
                     SetActivePoints(currentPoint, LastMeasuredPoint);
                     workingPlan = UpdatePoint(workingPlan, currentPoint);
@@ -364,6 +403,7 @@ namespace Drilling.Common.Review
                     await SaveProgressToProduct(workingPlan, reviewProductId, cancellationToken);
                 }
 
+                WriteReviewNgSummary("P2P_RUN", workingPlan.ReviewPoints);
                 SequenceState = EN_REVIEW_SEQUENCE_STATE.Completed;
                 SetCurrentPlan(workingPlan, progress);
                 await SaveResultForProduct(workingPlan, workingPlan.ReviewPoints, reviewProductId, cancellationToken);
@@ -1042,7 +1082,7 @@ namespace Drilling.Common.Review
             var firstShotKey = OrderByReviewSequence(plan.ReviewPoints).Select(point => point.ShotKey).FirstOrDefault();
             return plan with
             {
-                Points = plan.Points.Select(point => point.Use ? point with { ErrorX = 0.0, ErrorY = 0.0, State = point.ShotKey.Equals(firstShotKey, StringComparison.OrdinalIgnoreCase) ? EN_REVIEW_POINT_STATE.Current : EN_REVIEW_POINT_STATE.Ready, Judge = "WAIT" } : point with { State = EN_REVIEW_POINT_STATE.Skip, Judge = "-" }).ToArray()
+                Points = plan.Points.Select(point => point.Use ? point with { ErrorX = 0.0, ErrorY = 0.0, State = point.ShotKey.Equals(firstShotKey, StringComparison.OrdinalIgnoreCase) ? EN_REVIEW_POINT_STATE.Current : EN_REVIEW_POINT_STATE.Ready, Judge = "WAIT", VisionResultCode = null, NgReason = "" } : point with { State = EN_REVIEW_POINT_STATE.Skip, Judge = "-", VisionResultCode = null, NgReason = "" }).ToArray()
             };
         }
 
@@ -1080,12 +1120,45 @@ namespace Drilling.Common.Review
             return new ST_REVIEW_SEQUENCE_STATUS(state, reviewPoints.Count, completedCount, ngCount, message);
         }
 
+        public static ST_REVIEW_NG_SUMMARY SummarizeReviewResults(IEnumerable<ST_REVIEW_PLAN_POINT> points)
+        {
+            ArgumentNullException.ThrowIfNull(points);
+            var measured = points.Where(point => point.State is EN_REVIEW_POINT_STATE.Ok or EN_REVIEW_POINT_STATE.Ng).ToArray();
+            var resultCodes = measured
+                .Where(point => point.VisionResultCode.HasValue)
+                .GroupBy(point => point.VisionResultCode!.Value)
+                .OrderBy(group => group.Key)
+                .ToDictionary(group => group.Key, group => group.Count());
+            var ng = measured.Where(point => point.State == EN_REVIEW_POINT_STATE.Ng).ToArray();
+            var firstNg = ng.FirstOrDefault();
+            return new ST_REVIEW_NG_SUMMARY(
+                measured.Length,
+                measured.Length - ng.Length,
+                ng.Length,
+                ng.Count(point => point.NgReason == CReviewNgReasons.VisionFind),
+                ng.Count(point => point.NgReason == CReviewNgReasons.ToleranceX),
+                ng.Count(point => point.NgReason == CReviewNgReasons.ToleranceY),
+                ng.Count(point => point.NgReason == CReviewNgReasons.ToleranceXy),
+                ng.Count(point => point.NgReason is not (CReviewNgReasons.VisionFind or CReviewNgReasons.ToleranceX or CReviewNgReasons.ToleranceY or CReviewNgReasons.ToleranceXy)),
+                resultCodes,
+                firstNg is null ? "" : $"H{firstNg.HeadNo:00}/CELL{firstNg.CellNo:00}/{firstNg.ShotKey}/B{firstNg.BeamNo}");
+        }
+
+        private void WriteReviewNgSummary(string scope, IEnumerable<ST_REVIEW_PLAN_POINT> points)
+        {
+            var summary = SummarizeReviewResults(points);
+            if (summary.TotalCount > 0)
+                WriteReviewLog("NG_SUMMARY", summary.ToLogText(scope));
+        }
+
         private sealed record ST_REVIEW_MEASURE_RESULT(double X, double Y, string Judge, string RawResponse)
         {
             public ST_VISION_MARK_FIND? MarkFind { get; init; }
             public int Resolution { get; init; } = 1;
             public double CameraResolution { get; init; } = CSettingManager.DefaultVisionCameraResolution;
             public ST_REVIEW_COORDINATE_OFFSET? ErrorMillimeters { get; init; }
+            public int? VisionResultCode { get; init; }
+            public string NgReason { get; init; } = "";
         }
 
         private enum EN_PRODUCT_REVIEW_UPDATE_OUTCOME
@@ -1304,7 +1377,7 @@ namespace Drilling.Common.Review
                 foreach (var beam in beams)
                 {
                     var position = positions[beam];
-                    targets.Add(shot with { PointNo = targets.Count + 1, BeamNo = beam, Use = true, ReviewTargetX = position.ReviewX, ReviewTargetY = position.StageY, State = EN_REVIEW_POINT_STATE.Ready, Judge = "WAIT", ErrorX = 0, ErrorY = 0 });
+                    targets.Add(shot with { PointNo = targets.Count + 1, BeamNo = beam, Use = true, ReviewTargetX = position.ReviewX, ReviewTargetY = position.StageY, State = EN_REVIEW_POINT_STATE.Ready, Judge = "WAIT", ErrorX = 0, ErrorY = 0, VisionResultCode = null, NgReason = "" });
                 }
             }
 
@@ -1523,7 +1596,11 @@ namespace Drilling.Common.Review
                     continue;
                 }
 
-                productResults.Add(new ST_PRODUCT_REVIEW_RESULT($"CELL{point.CellNo}_{FormatShotName(point)}", point.HeadNo, point.CellNo, point.BeamNo, point.ErrorX, point.ErrorY, point.Judge));
+                productResults.Add(new ST_PRODUCT_REVIEW_RESULT($"CELL{point.CellNo}_{FormatShotName(point)}", point.HeadNo, point.CellNo, point.BeamNo, point.ErrorX, point.ErrorY, point.Judge)
+                {
+                    VisionResultCode = point.VisionResultCode,
+                    NgReason = point.NgReason
+                });
             }
 
             return productResults;
@@ -1614,7 +1691,9 @@ namespace Drilling.Common.Review
                         ErrorX = 0.0,
                         ErrorY = 0.0,
                         State = point.Use ? EN_REVIEW_POINT_STATE.Ready : EN_REVIEW_POINT_STATE.Skip,
-                        Judge = point.Use ? "WAIT" : "SKIP"
+                        Judge = point.Use ? "WAIT" : "SKIP",
+                        VisionResultCode = null,
+                        NgReason = ""
                     };
                     continue;
                 }
@@ -1625,7 +1704,9 @@ namespace Drilling.Common.Review
                     ErrorX = measured.ErrorX,
                     ErrorY = measured.ErrorY,
                     State = state,
-                    Judge = state == EN_REVIEW_POINT_STATE.Ng ? "NG" : "OK"
+                    Judge = state == EN_REVIEW_POINT_STATE.Ng ? "NG" : "OK",
+                    VisionResultCode = measured.VisionResultCode,
+                    NgReason = measured.NgReason
                 };
             }
 
@@ -1871,6 +1952,7 @@ namespace Drilling.Common.Review
                 await SaveProgressToProduct(workingPlan, reviewProductId, cancellationToken);
             }
 
+            WriteReviewNgSummary(runPoints is null ? "IOF_RUN" : "IOF_RETRY", workingPlan.ReviewPoints);
             SequenceState = EN_REVIEW_SEQUENCE_STATE.Completed;
             SetCurrentPlan(workingPlan, progress);
             await SaveResultForProduct(workingPlan, workingPlan.ReviewPoints, reviewProductId, cancellationToken);
@@ -2062,7 +2144,13 @@ namespace Drilling.Common.Review
 
         private static ST_REVIEW_PLAN SetIofLineCurrent(ST_REVIEW_PLAN plan, IReadOnlyList<ST_REVIEW_PLAN_POINT> line)
         {
-            return UpdatePoints(plan, line.Select(point => GetPlanPoint(plan, point.ShotKey)with { State = EN_REVIEW_POINT_STATE.Current, Judge = "WAIT" }).ToArray());
+            return UpdatePoints(plan, line.Select(point => GetPlanPoint(plan, point.ShotKey) with
+            {
+                State = EN_REVIEW_POINT_STATE.Current,
+                Judge = "WAIT",
+                VisionResultCode = null,
+                NgReason = ""
+            }).ToArray());
         }
 
         private static ST_REVIEW_PLAN_POINT GetPlanPoint(ST_REVIEW_PLAN plan, string shotKey)
@@ -2141,21 +2229,41 @@ namespace Drilling.Common.Review
         private static ST_REVIEW_PLAN_POINT ApplyMeasurement(ST_REVIEW_PLAN plan, ST_REVIEW_PLAN_POINT point, ST_REVIEW_MEASURE_RESULT measurement)
         {
             var error = measurement.ErrorMillimeters ?? new ST_REVIEW_COORDINATE_OFFSET(measurement.X - point.ReviewTargetX, measurement.Y - point.ReviewTargetY);
-            return ApplyMeasurementError(plan, point, error.X, error.Y, measurement.Judge);
+            return ApplyMeasurementError(plan, point, error.X, error.Y, measurement.Judge, measurement.VisionResultCode, measurement.NgReason);
         }
 
-        private static ST_REVIEW_PLAN_POINT ApplyMeasurementError(ST_REVIEW_PLAN plan, ST_REVIEW_PLAN_POINT point, double errorX, double errorY, string measurementJudge)
+        private static ST_REVIEW_PLAN_POINT ApplyMeasurementError(
+            ST_REVIEW_PLAN plan,
+            ST_REVIEW_PLAN_POINT point,
+            double errorX,
+            double errorY,
+            string measurementJudge,
+            int? visionResultCode = null,
+            string measurementNgReason = "")
         {
             var converted = VisionErrorToStageOffset(errorX, errorY, plan.VisionFlipType);
             var findOk = string.IsNullOrWhiteSpace(measurementJudge) || measurementJudge.Trim().Equals("WAIT", StringComparison.OrdinalIgnoreCase) || measurementJudge.Trim().Equals("OK", StringComparison.OrdinalIgnoreCase);
-            var judge = findOk && Math.Abs(converted.X) <= plan.ToleranceX && Math.Abs(converted.Y) <= plan.ToleranceY ? "OK" : "NG";
+            var xExceeded = Math.Abs(converted.X) > plan.ToleranceX;
+            var yExceeded = Math.Abs(converted.Y) > plan.ToleranceY;
+            var judge = findOk && !xExceeded && !yExceeded ? "OK" : "NG";
+            var ngReason = judge == "OK"
+                ? ""
+                : !findOk
+                    ? string.IsNullOrWhiteSpace(measurementNgReason) ? CReviewNgReasons.VisionFind : measurementNgReason
+                    : xExceeded && yExceeded
+                        ? CReviewNgReasons.ToleranceXy
+                        : xExceeded
+                            ? CReviewNgReasons.ToleranceX
+                            : CReviewNgReasons.ToleranceY;
             var state = judge.Equals("OK", StringComparison.OrdinalIgnoreCase) ? EN_REVIEW_POINT_STATE.Ok : EN_REVIEW_POINT_STATE.Ng;
             return point with
             {
                 ErrorX = errorX,
                 ErrorY = errorY,
                 State = state,
-                Judge = judge
+                Judge = judge,
+                VisionResultCode = visionResultCode,
+                NgReason = ngReason
             };
         }
 
@@ -2180,7 +2288,9 @@ namespace Drilling.Common.Review
                 MarkFind = mark,
                 Resolution = resolution,
                 CameraResolution = camera,
-                ErrorMillimeters = error
+                ErrorMillimeters = error,
+                VisionResultCode = mark.Result,
+                NgReason = mark.Result == 0 ? "" : CReviewNgReasons.VisionFind
             };
         }
 
@@ -2271,7 +2381,9 @@ namespace Drilling.Common.Review
                     var currentPoint = point with
                     {
                         State = EN_REVIEW_POINT_STATE.Current,
-                        Judge = "WAIT"
+                        Judge = "WAIT",
+                        VisionResultCode = null,
+                        NgReason = ""
                     };
                     SetActivePoints(currentPoint, LastMeasuredPoint);
                     workingPlan = UpdatePoint(workingPlan, currentPoint);
@@ -2893,6 +3005,7 @@ namespace Drilling.Common.Review
                 var snapshot = Publish(message);
                 if (!started)
                     return snapshot;
+                WriteReviewNgSummary("FINE_RUN", snapshot.Lines.SelectMany(line => line.Points));
                 try
                 {
                     var data = new ST_FINE_REVIEW_RESULT_DATA(request, snapshot, DateTimeOffset.Now, attempted, visionSimulation)
@@ -2930,7 +3043,9 @@ namespace Drilling.Common.Review
             State = EN_REVIEW_POINT_STATE.Ready,
             Judge = "WAIT",
             ErrorX = 0,
-            ErrorY = 0
+            ErrorY = 0,
+            VisionResultCode = null,
+            NgReason = ""
         };
         private static void ValidateFineRequest(ST_FINE_REVIEW_REQUEST request)
         {
@@ -2958,7 +3073,7 @@ namespace Drilling.Common.Review
         // Default CENTER has its own test identity and nominal beam slots, rather than
         // pretending that a production Cell/Shot was processed. It shares the Review
         // execution lock and Process Move owner. Shot CENTER uses Mark Find Single;
-        // cross CENTER uses Mark Find Setting Single exactly once.
+        // cross CENTER uses Mark Find Setting Single at every active DOE beam slot.
         public async Task<DefaultInspectionSession> OpenDefaultInspection(CancellationToken token)
         {
             if (IsReviewSimulation()) throw new InvalidOperationException("Default 측정은 수신한 Vision 결과만 사용합니다. Vision Simulation을 OFF하고 비전 또는 외부 테스트 클라이언트를 연결해 주세요.");
@@ -3196,7 +3311,9 @@ namespace Drilling.Common.Review
                             State = EN_REVIEW_POINT_STATE.Ready,
                             Judge = "WAIT",
                             ErrorX = 0,
-                            ErrorY = 0
+                            ErrorY = 0,
+                            VisionResultCode = null,
+                            NgReason = ""
                         };
                 Publish(retryNg ? "NG 재검사 시작" : "ROUGH 검사 시작");
                 foreach (var target in targets)
@@ -3211,7 +3328,9 @@ namespace Drilling.Common.Review
                         State = EN_REVIEW_POINT_STATE.Current,
                         Judge = "WAIT",
                         ErrorX = 0,
-                        ErrorY = 0
+                        ErrorY = 0,
+                        VisionResultCode = null,
+                        NgReason = ""
                     };
                     Publish("이동 / 측정 중");
                     await motion.MoveAndWait(target, cancellationToken);
@@ -3272,7 +3391,9 @@ namespace Drilling.Common.Review
                         State = EN_REVIEW_POINT_STATE.Ready,
                         Judge = "WAIT",
                         ErrorX = 0,
-                        ErrorY = 0
+                        ErrorY = 0,
+                        VisionResultCode = null,
+                        NgReason = ""
                     };
                 ReleaseMotion();
                 var snapshot = Publish(message);
@@ -3882,6 +4003,45 @@ namespace Drilling.Common.Review
         public double BeamOffsetGx { get; init; }
         public double BeamOffsetGy { get; init; }
         public string ExclusionReason { get; init; } = "";
+        public int? VisionResultCode { get; init; }
+        public string NgReason { get; init; } = "";
+    }
+
+    public static class CReviewNgReasons
+    {
+        public const string VisionFind = "VISION_FIND_NG";
+        public const string ToleranceX = "TOLERANCE_X_NG";
+        public const string ToleranceY = "TOLERANCE_Y_NG";
+        public const string ToleranceXy = "TOLERANCE_XY_NG";
+        public const string Reinspection = "REINSPECTION_NG";
+    }
+
+    public sealed record ST_REVIEW_NG_SUMMARY(
+        int TotalCount,
+        int OkCount,
+        int NgCount,
+        int VisionFindNgCount,
+        int ToleranceXNgCount,
+        int ToleranceYNgCount,
+        int ToleranceXyNgCount,
+        int OtherNgCount,
+        IReadOnlyDictionary<int, int> VisionResultCodes,
+        string FirstNg)
+    {
+        public string ResultCodeText => VisionResultCodes.Count == 0
+            ? "-"
+            : string.Join(",", VisionResultCodes.Select(pair => $"{pair.Key}:{pair.Value}"));
+
+        public string ToLogText(string scope)
+        {
+            return FormattableString.Invariant(
+                $"NG_SUMMARY | Scope={scope};Total={TotalCount};OK={OkCount};NG={NgCount};VisionFindNG={VisionFindNgCount};ToleranceXNG={ToleranceXNgCount};ToleranceYNG={ToleranceYNgCount};ToleranceXYNG={ToleranceXyNgCount};OtherNG={OtherNgCount};ResultCodes={ResultCodeText};FirstNG={FirstNg}");
+        }
+
+        public string ToDisplayText()
+        {
+            return $"Vision Find NG {VisionFindNgCount:N0} / X 허용오차 NG {ToleranceXNgCount:N0} / Y 허용오차 NG {ToleranceYNgCount:N0} / XY 허용오차 NG {ToleranceXyNgCount:N0} / 기타 NG {OtherNgCount:N0}";
+        }
     }
 
     public sealed record ST_REVIEW_BEAM_POSITION(int BeamNo, double StageY, double ReviewX);
@@ -3979,6 +4139,7 @@ namespace Drilling.Common.Review
 
         public ST_REVIEW_CORRECTION_PLAN? CorrectionPlan { get; init; }
         public string InspectionMethod { get; init; } = "P2P";
+        public string ResultType { get; init; } = "ALL_SHOT";
         public double StageScanDirectionY { get; init; } = -1.0;
         public double? StageSpeed { get; init; }
         public double ShiftOffsetX { get; init; }
@@ -4020,11 +4181,14 @@ namespace Drilling.Common.Review
         public double? DesignX { get; init; }
         public double? DesignY { get; init; }
         public string ResultSource { get; init; } = "";
+        public int? VisionResultCode { get; init; }
+        public string NgReason { get; init; } = "";
     }
     public sealed record ST_REVIEW_RESULT_FILE_DATA(string FilePath, string FileName, string RecipeId, DateTimeOffset SavedAt, IReadOnlyList<ST_REVIEW_RESULT_FILE_ROW> Rows)
     {
         public string GlassId { get; init; } = "";
         public string InspectionMethod { get; init; } = "";
+        public string RunType { get; init; } = "";
         public string Rule { get; init; } = "";
         public string RuleScope { get; init; } = "";
         public int BeamNo { get; init; } = 1;
@@ -4048,6 +4212,15 @@ namespace Drilling.Common.Review
         int BeamNo,
         double RawResultX,
         double RawResultY,
+        double ResultX,
+        double ResultY,
+        string Judge);
+
+    public sealed record ST_REVIEW_RESULT_EDIT_UPDATE(
+        int CellNo,
+        string ShotKey,
+        string ShotName,
+        int SourceBeamNo,
         double ResultX,
         double ResultY,
         string Judge);
@@ -4086,6 +4259,7 @@ namespace Drilling.Common.Review
         public virtual Task<ST_BEAM_INSPECTION_RESULT_FILE_DATA?> LoadLastBeamInspection(CancellationToken cancellationToken = default) => throw new NotSupportedException("Beam Inspection 결과 불러오기가 구현되지 않았습니다.");
         public virtual Task<string> SaveBeamInspection(ST_BEAM_INSPECTION_SNAPSHOT result, string glassId, DateTimeOffset savedAt, CancellationToken cancellationToken = default) => throw new NotSupportedException("Beam Inspection 결과 저장이 구현되지 않았습니다.");
         public virtual Task<string> SaveReinspectionRevision(ST_REVIEW_RESULT_FILE_DATA source, IReadOnlyList<ST_REVIEW_REINSPECTION_UPDATE> updates, DateTimeOffset savedAt, CancellationToken cancellationToken = default) => throw new NotSupportedException("재검사 결과 저장이 구현되지 않았습니다.");
+        public virtual Task<string> SaveEditedRevision(ST_REVIEW_RESULT_FILE_DATA source, IReadOnlyList<ST_REVIEW_RESULT_EDIT_UPDATE> updates, DateTimeOffset savedAt, CancellationToken cancellationToken = default) => throw new NotSupportedException("검사 결과 수정 저장이 구현되지 않았습니다.");
         public abstract string RootPath { get; }
         public virtual IReadOnlyList<string> SearchRootPaths => [RootPath];
         public virtual string? LastSavedPath => null;

@@ -544,9 +544,12 @@
             if (selectedMenu == EN_MENU.Manual && previousMenu != EN_MENU.Manual)
             {
                 ResetSelectedManualHead();
-                if (_menus.TryGetValue(EN_MENU.Manual, out var manual) && manual is CMenuManual manualMenu)
-                    manualMenu.Review?.ResetForMenuOpen();
             }
+
+            if (selectedMenu == EN_MENU.Correction && previousMenu != EN_MENU.Correction
+                && _menus.TryGetValue(EN_MENU.Correction, out var correction)
+                && correction is CMenuCorrection correctionMenu)
+                correctionMenu.Review?.ResetForMenuOpen();
         }
 
         private void ResetSelectedManualHead()
@@ -698,8 +701,6 @@
             // cancelled. Its execution gate stays held until cleanup finishes.
             return _selectedMenu.Menu switch
             {
-                EN_MENU.Manual => _menus.TryGetValue(EN_MENU.Manual, out var manual)
-                    && manual is CMenuManual { Review: { BlocksMenuNavigation: true } },
                 EN_MENU.Correction => _menus.TryGetValue(EN_MENU.Correction, out var correction)
                     && correction is CMenuCorrection { BlocksMenuNavigation: true },
                 _ => false
@@ -2178,7 +2179,7 @@
                     correctionMenu.SelectTabCommand.Execute("REVIEW");
             }
 
-            var manualReview = new CMenuReview(
+            var reviewMenu = new CMenuReview(
                 reviewManager, 
                 recipeManager, 
                 stationManager, 
@@ -2234,7 +2235,7 @@
                 RefreshShellStatusItems, 
                 RefreshCurrentScreen
             ), 
-                new CMenuAlarm(alarmManager, stationManager, SetAlarmStatusMessage, RefreshShellStatusItems, RefreshCurrentScreen), 
+                new CMenuAlarm(alarmManager, stationManager, SetAlarmStatusMessage, RefreshShellStatusItems, RefreshCurrentScreen, _manager.Log().LogDirectory), 
                 new CMenuMonitor(
                 interfaceManager, 
                 motionManager, 
@@ -2242,6 +2243,7 @@
                 productManager, 
                 recipeManager, 
                 settingManager, 
+                _manager.ReviewOffsetFile(),
                 SelectSelectedRecipeId3, 
                 SelectSelectedMonitorTab, 
                 SetSelectedMonitorTab, 
@@ -2259,10 +2261,10 @@
                 return menu.Menu;
             }
 
-            menus.OfType<CMenuManual>().Single().ConfigureReview(manualReview);
+            correctionMenu.ConfigureReview(reviewMenu);
             foreach (var menu in menus)
                 menu.OperationAllowed = CheckHeavyAlarmForOperation;
-            manualReview.OperationAllowed = CheckHeavyAlarmForOperation;
+            reviewMenu.OperationAllowed = CheckHeavyAlarmForOperation;
             var mainStatus = menus.OfType<CMenuMain>().Single();
             menus.OfType<CMenuManual>().Single().ConfigureAutomationStatusReader(mainStatus.ReadAutomationControllerStatusSnapshot);
             return menus.ToDictionary(SelectMenu);

@@ -32,6 +32,13 @@ namespace Drilling.UI.Menu.Menus
             private int _loadedCellCount;
             private int _selectedCellNo;
             private string _selectedShotKey = "";
+            private IReadOnlyList<ST_REVIEW_DATA_SCATTER_HIT> _scatterPlotHits = [];
+            private double _scatterPlotMinimum = -5.0;
+            private double _scatterPlotMaximum = 5.0;
+            private double _scatterPlotGridUnit = 0.5;
+            private string _scatterPlotMinimumText = "-5";
+            private string _scatterPlotMaximumText = "5";
+            private string _scatterPlotGridUnitText = "0.5";
 
             public bool IsDataLoading => _isDataLoading;
             public bool HasLoadedData => _hasLoadedData;
@@ -43,6 +50,7 @@ namespace Drilling.UI.Menu.Menus
             public Brush DataLoadHintBrush => _dataLoadHintBrush;
             public ImageSource? GlassPreviewImage { get; private set; }
             public ImageSource? ShotMapImage { get; private set; }
+            public ImageSource? ScatterPlotImage { get; private set; }
             public CReviewCameraPreview Camera { get; } = new();
             public IReadOnlyList<ST_REVIEW_DATA_CELL_LABEL> CellLabels { get; private set; } = [];
             public IReadOnlyList<ST_REVIEW_DATA_GRID_ROW> Rows { get; private set; } = [];
@@ -55,6 +63,53 @@ namespace Drilling.UI.Menu.Menus
             public double GlassSurfaceHeight { get; private set; } = 500.0;
             public double ShotMapSurfaceWidth { get; private set; } = 680.0;
             public double ShotMapSurfaceHeight { get; private set; } = 420.0;
+            public double ScatterPlotSurfaceWidth { get; } = 920.0;
+            public double ScatterPlotSurfaceHeight { get; } = 230.0;
+            public string ScatterPlotSummary { get; private set; } = "NO RESULT DATA";
+            public string ScatterPlotMinimumText
+            {
+                get => _scatterPlotMinimumText;
+                set
+                {
+                    if (_scatterPlotMinimumText == value)
+                    {
+                        return;
+                    }
+
+                    _scatterPlotMinimumText = value;
+                    Notify(nameof(ScatterPlotMinimumText));
+                }
+            }
+
+            public string ScatterPlotMaximumText
+            {
+                get => _scatterPlotMaximumText;
+                set
+                {
+                    if (_scatterPlotMaximumText == value)
+                    {
+                        return;
+                    }
+
+                    _scatterPlotMaximumText = value;
+                    Notify(nameof(ScatterPlotMaximumText));
+                }
+            }
+
+            public string ScatterPlotGridUnitText
+            {
+                get => _scatterPlotGridUnitText;
+                set
+                {
+                    if (_scatterPlotGridUnitText == value)
+                    {
+                        return;
+                    }
+
+                    _scatterPlotGridUnitText = value;
+                    Notify(nameof(ScatterPlotGridUnitText));
+                }
+            }
 
             private void PrepareSelectedResult(ST_REVIEW_RESULT_CATALOG_ITEM? result)
             {
@@ -468,6 +523,7 @@ namespace Drilling.UI.Menu.Menus
                 var firstResolved = Rows.FirstOrDefault(row => row.IsResolved);
                 SelectedRow = firstResolved ?? Rows.FirstOrDefault();
                 _selectedShotKey = SelectedRow?.ShotKey ?? "";
+                RefreshScatterPlot();
                 if (GlassPreviewImage is null)
                 {
                     RefreshGlassPreview();
@@ -536,11 +592,13 @@ namespace Drilling.UI.Menu.Menus
                 _selectedShotKey = shotKey;
                 SelectedRow = preferredRow ?? Rows.FirstOrDefault(row => row.ShotKey.Equals(shotKey, StringComparison.OrdinalIgnoreCase));
                 QueueShotMapRender(_selectedCellNo, _selectedShotKey);
+                RefreshScatterPlot();
                 RefreshSelectionText();
                 Notify(nameof(SelectedRow));
                 Notify(nameof(SelectedShotTitle));
                 Notify(nameof(SelectedShotDetail));
                 NotifyReinspectionCommandState();
+                NotifyResultEditCommandState();
             }
 
             private void RefreshGlassPreview()
@@ -579,7 +637,273 @@ namespace Drilling.UI.Menu.Menus
                 var size = GetReviewDataShotMapSize(shots);
                 ShotMapSurfaceWidth = size.Width;
                 ShotMapSurfaceHeight = size.Height;
-                ShotMapImage = BuildReviewDataShotMap(shots, _selectedShotKey);
+                ShotMapImage = BuildReviewDataShotMap(shots, _selectedShotKey, GetResultEditSelectedShotKeys(_selectedCellNo));
+            }
+
+            public void SelectScatterPointAt(double x, double y)
+            {
+                if (!_hasLoadedData || _scatterPlotHits.Count == 0 || !double.IsFinite(x) || !double.IsFinite(y))
+                {
+                    return;
+                }
+
+                ST_REVIEW_DATA_SCATTER_HIT? nearest = null;
+                var nearestDistanceSquared = 100.0;
+                foreach (var hit in _scatterPlotHits)
+                {
+                    var deltaX = hit.Point.X - x;
+                    var deltaY = hit.Point.Y - y;
+                    var distanceSquared = deltaX * deltaX + deltaY * deltaY;
+                    if (distanceSquared <= nearestDistanceSquared)
+                    {
+                        nearestDistanceSquared = distanceSquared;
+                        nearest = hit;
+                    }
+                }
+
+                if (nearest is not null)
+                {
+                    ApplyShotSelection(nearest.Row.ShotKey, nearest.Row);
+                }
+            }
+
+            private void ApplyScatterPlotScale(object? parameter)
+            {
+                if (!TryParseScatterScale(_scatterPlotMinimumText, out var minimum)
+                    || !TryParseScatterScale(_scatterPlotMaximumText, out var maximum)
+                    || !TryParseScatterScale(_scatterPlotGridUnitText, out var gridUnit)
+                    || !double.IsFinite(minimum)
+                    || !double.IsFinite(maximum)
+                    || !double.IsFinite(gridUnit)
+                    || minimum >= maximum
+                    || gridUnit <= 0.0
+                    || gridUnit > maximum - minimum)
+                {
+                    _statusReporter("산포도 범위는 MIN < MAX, UNIT > 0인 유한한 mm 값으로 입력해 주세요.");
+                    return;
+                }
+
+                var gridIntervalCount = (maximum - minimum) / gridUnit;
+                if (!double.IsFinite(gridIntervalCount) || gridIntervalCount > 40.0)
+                {
+                    _statusReporter("산포도 눈금은 40칸 이하가 되도록 MIN, MAX, UNIT을 입력해 주세요.");
+                    return;
+                }
+
+                _scatterPlotMinimum = minimum;
+                _scatterPlotMaximum = maximum;
+                _scatterPlotGridUnit = gridUnit;
+                _scatterPlotMinimumText = FormatScatterScaleInput(minimum);
+                _scatterPlotMaximumText = FormatScatterScaleInput(maximum);
+                _scatterPlotGridUnitText = FormatScatterScaleInput(gridUnit);
+                Notify(nameof(ScatterPlotMinimumText));
+                Notify(nameof(ScatterPlotMaximumText));
+                Notify(nameof(ScatterPlotGridUnitText));
+                RefreshScatterPlot();
+                _statusReporter($"Result scatter range {minimum:0.###} ~ {maximum:0.###} mm / grid {gridUnit:0.###} mm applied.");
+            }
+
+            private static bool TryParseScatterScale(string text, out double value)
+            {
+                return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value)
+                    || double.TryParse(text, NumberStyles.Float, CultureInfo.CurrentCulture, out value);
+            }
+
+            private static string FormatScatterScaleInput(double value)
+            {
+                return value.ToString("0.###", CultureInfo.InvariantCulture);
+            }
+
+            private void RefreshScatterPlot()
+            {
+                const double left = 62.0;
+                const double top = 14.0;
+                const double right = 18.0;
+                const double bottom = 40.0;
+                var plotRect = new Rect(
+                    left,
+                    top,
+                    ScatterPlotSurfaceWidth - left - right,
+                    ScatterPlotSurfaceHeight - top - bottom);
+                var finiteRows = Rows
+                    .Where(row => double.IsFinite(row.ResultX) && double.IsFinite(row.ResultY))
+                    .ToArray();
+                var drawing = new DrawingGroup();
+                var hits = new List<ST_REVIEW_DATA_SCATTER_HIT>(finiteRows.Length);
+                using (var context = drawing.Open())
+                {
+                    context.DrawRectangle(Brushes.Transparent, null, new Rect(0, 0, ScatterPlotSurfaceWidth, ScatterPlotSurfaceHeight));
+                    DrawScatterGrid(context, plotRect, _scatterPlotMinimum, _scatterPlotMaximum, _scatterPlotGridUnit);
+                    DrawScatterAxes(context, plotRect, _scatterPlotMinimum, _scatterPlotMaximum);
+
+                    if (finiteRows.Length == 0)
+                    {
+                        DrawScatterText(context, "NO RESULT DATA", new Point(plotRect.Left + plotRect.Width / 2.0, plotRect.Top + plotRect.Height / 2.0), 14.0, CStatusBrush.Frozen(0x64, 0x74, 0x8B), true);
+                    }
+                    else
+                    {
+                        var radius = finiteRows.Length >= 10000 ? 1.4 : finiteRows.Length >= 3000 ? 1.8 : 2.5;
+                        foreach (var row in finiteRows)
+                        {
+                            if (!IsInsideScatterRange(row.ResultX, row.ResultY, _scatterPlotMinimum, _scatterPlotMaximum))
+                            {
+                                continue;
+                            }
+
+                            var point = ScatterPoint(row.ResultX, row.ResultY, plotRect, _scatterPlotMinimum, _scatterPlotMaximum);
+                            var brush = ScatterBrush(row.Judge);
+                            context.DrawEllipse(brush, null, point, radius, radius);
+                            if (_isResultEditMode && row.IsResultEditSelected)
+                            {
+                                context.DrawEllipse(null, new Pen(CStatusBrush.Frozen(0xF5, 0x9E, 0x0B), 1.8), point, radius + 4.0, radius + 4.0);
+                            }
+
+                            hits.Add(new ST_REVIEW_DATA_SCATTER_HIT(row, point));
+                        }
+
+                        if (SelectedRow is { } selected
+                            && double.IsFinite(selected.ResultX)
+                            && double.IsFinite(selected.ResultY)
+                            && IsInsideScatterRange(selected.ResultX, selected.ResultY, _scatterPlotMinimum, _scatterPlotMaximum))
+                        {
+                            var point = ScatterPoint(selected.ResultX, selected.ResultY, plotRect, _scatterPlotMinimum, _scatterPlotMaximum);
+                            context.DrawEllipse(CStatusBrush.Frozen(0xF6, 0xC4, 0x53), new Pen(Brushes.White, 1.2), point, 6.0, 6.0);
+                            context.DrawEllipse(ScatterBrush(selected.Judge), null, point, 2.6, 2.6);
+                        }
+                    }
+                }
+
+                drawing.Freeze();
+                var image = new DrawingImage(drawing);
+                image.Freeze();
+                ScatterPlotImage = image;
+                _scatterPlotHits = hits;
+                ScatterPlotSummary = BuildScatterPlotSummary(finiteRows, hits.Count);
+                Notify(nameof(ScatterPlotImage));
+                Notify(nameof(ScatterPlotSummary));
+            }
+
+            private string BuildScatterPlotSummary(IReadOnlyList<ST_REVIEW_DATA_GRID_ROW> rows, int visibleCount)
+            {
+                if (rows.Count == 0)
+                {
+                    return _selectedCellNo > 0 ? $"CELL{_selectedCellNo:00} · NO RESULT DATA" : "NO RESULT DATA";
+                }
+
+                var minX = rows.Min(row => row.ResultX);
+                var maxX = rows.Max(row => row.ResultX);
+                var minY = rows.Min(row => row.ResultY);
+                var maxY = rows.Max(row => row.ResultY);
+                var visible = visibleCount == rows.Count ? "" : $" · {visibleCount:N0} VISIBLE";
+                return $"CELL{_selectedCellNo:00} · {rows.Count:N0} POINTS{visible} · X {minX:0.###} ~ {maxX:0.###} / Y {minY:0.###} ~ {maxY:0.###} mm";
+            }
+
+            private static void DrawScatterGrid(DrawingContext context, Rect plotRect, double minimum, double maximum, double gridUnit)
+            {
+                var gridPen = new Pen(CStatusBrush.Frozen(0x94, 0xA3, 0xB8), 0.55);
+                var firstIndex = (int)Math.Ceiling(minimum / gridUnit - 1e-9);
+                var lastIndex = (int)Math.Floor(maximum / gridUnit + 1e-9);
+                var lineCount = Math.Max(1, lastIndex - firstIndex + 1);
+                var labelStride = Math.Max(1, (int)Math.Ceiling(lineCount / 10.0));
+                var labelBrush = CStatusBrush.Frozen(0x55, 0x70, 0x86);
+                for (var index = firstIndex; index <= lastIndex; index++)
+                {
+                    var value = index * gridUnit;
+                    var ratio = (value - minimum) / (maximum - minimum);
+                    var x = plotRect.Left + plotRect.Width * ratio;
+                    var y = plotRect.Bottom - plotRect.Height * ratio;
+                    context.DrawLine(gridPen, new Point(x, plotRect.Top), new Point(x, plotRect.Bottom));
+                    context.DrawLine(gridPen, new Point(plotRect.Left, y), new Point(plotRect.Right, y));
+
+                    if ((index - firstIndex) % labelStride == 0 || Math.Abs(value) <= gridUnit * 1e-9 || index == lastIndex)
+                    {
+                        var text = FormatScatterAxisValue(value, gridUnit);
+                        DrawScatterText(context, text, new Point(x, plotRect.Bottom + 13.0), 9.0, labelBrush, true);
+                        DrawScatterText(context, text, new Point(plotRect.Left - 8.0, y), 9.0, labelBrush, false, true);
+                    }
+                }
+
+                context.DrawRectangle(null, new Pen(CStatusBrush.Frozen(0x64, 0x74, 0x8B), 1.0), plotRect);
+            }
+
+            private static void DrawScatterAxes(DrawingContext context, Rect plotRect, double minimum, double maximum)
+            {
+                var axisPen = new Pen(CStatusBrush.Frozen(0x38, 0x7D, 0xA8), 1.5);
+                if (minimum <= 0.0 && maximum >= 0.0)
+                {
+                    var zeroRatio = (0.0 - minimum) / (maximum - minimum);
+                    var zeroX = plotRect.Left + plotRect.Width * zeroRatio;
+                    var zeroY = plotRect.Bottom - plotRect.Height * zeroRatio;
+                    context.DrawLine(axisPen, new Point(zeroX, plotRect.Top), new Point(zeroX, plotRect.Bottom));
+                    context.DrawLine(axisPen, new Point(plotRect.Left, zeroY), new Point(plotRect.Right, zeroY));
+                }
+
+                var labelBrush = CStatusBrush.Frozen(0x55, 0x70, 0x86);
+                DrawScatterText(context, "RESULT X (mm)", new Point(plotRect.Right, ScatterPlotHeightForLabel(plotRect)), 9.5, labelBrush, false, true);
+                DrawScatterText(context, "RESULT Y (mm)", new Point(plotRect.Left, 1.0), 9.5, labelBrush);
+            }
+
+            private static double ScatterPlotHeightForLabel(Rect plotRect)
+            {
+                return plotRect.Bottom + 27.0;
+            }
+
+            private static void DrawScatterText(
+                DrawingContext context,
+                string text,
+                Point anchor,
+                double fontSize,
+                Brush brush,
+                bool center = false,
+                bool right = false)
+            {
+                var formatted = new FormattedText(
+                    text,
+                    CultureInfo.InvariantCulture,
+                    FlowDirection.LeftToRight,
+                    new Typeface("Segoe UI"),
+                    fontSize,
+                    brush,
+                    1.0);
+                var x = center ? anchor.X - formatted.Width / 2.0 : right ? anchor.X - formatted.Width : anchor.X;
+                var y = center ? anchor.Y - formatted.Height / 2.0 : anchor.Y - formatted.Height / 2.0;
+                context.DrawText(formatted, new Point(x, y));
+            }
+
+            private static Point ScatterPoint(double x, double y, Rect plotRect, double minimum, double maximum)
+            {
+                return new Point(
+                    plotRect.Left + (x - minimum) / (maximum - minimum) * plotRect.Width,
+                    plotRect.Top + (maximum - y) / (maximum - minimum) * plotRect.Height);
+            }
+
+            private static bool IsInsideScatterRange(double x, double y, double minimum, double maximum)
+            {
+                return x >= minimum && x <= maximum && y >= minimum && y <= maximum;
+            }
+
+            private static string FormatScatterAxisValue(double value, double gridUnit)
+            {
+                var format = gridUnit >= 1.0 ? "0.##" : gridUnit >= 0.1 ? "0.0#" : "0.###";
+                return value.ToString(format, CultureInfo.InvariantCulture);
+            }
+
+            private static Brush ScatterBrush(string judge)
+            {
+                if (judge.Equals("OK", StringComparison.OrdinalIgnoreCase)
+                    || judge.Equals("PASS", StringComparison.OrdinalIgnoreCase))
+                {
+                    return CStatusBrush.Frozen(0x22, 0xC5, 0x5E);
+                }
+
+                if (judge.Equals("NG", StringComparison.OrdinalIgnoreCase)
+                    || judge.Equals("FAIL", StringComparison.OrdinalIgnoreCase)
+                    || judge.Equals("ERROR", StringComparison.OrdinalIgnoreCase))
+                {
+                    return CStatusBrush.Frozen(0xEF, 0x44, 0x44);
+                }
+
+                return CStatusBrush.Frozen(0x94, 0xA3, 0xB8);
             }
 
             private void RefreshCellSelectionOverlay()
@@ -596,12 +920,13 @@ namespace Drilling.UI.Menu.Menus
             {
                 var version = Interlocked.Increment(ref _shotMapRenderVersion);
                 var shots = _shotsByCell.GetValueOrDefault(cellNo, []);
+                var editSelectedShotKeys = GetResultEditSelectedShotKeys(cellNo);
                 try
                 {
                     var render = await Task.Run(() =>
                     {
                         var size = GetReviewDataShotMapSize(shots);
-                        var image = BuildReviewDataShotMap(shots, selectedShotKey);
+                        var image = BuildReviewDataShotMap(shots, selectedShotKey, editSelectedShotKeys);
                         return (Size: size, Image: image);
                     });
                     if (version != Volatile.Read(ref _shotMapRenderVersion)
@@ -748,7 +1073,8 @@ namespace Drilling.UI.Menu.Menus
 
             private static ImageSource? BuildReviewDataShotMap(
                 IReadOnlyList<ST_REVIEW_DATA_SHOT_POSITION> shots,
-                string selectedShotKey)
+                string selectedShotKey,
+                IReadOnlySet<string>? editSelectedShotKeys = null)
             {
                 if (shots.Count == 0)
                 {
@@ -834,6 +1160,18 @@ namespace Drilling.UI.Menu.Menus
                     context.DrawGeometry(resultBrush, null, resultGeometry);
                     context.DrawGeometry(null, maskingPen, maskingGeometry);
                     context.DrawGeometry(new SolidColorBrush(Color.FromArgb(55, 168, 85, 247)), chessPen, chessGeometry);
+                    if (editSelectedShotKeys is { Count: > 0 })
+                    {
+                        var editPen = new Pen(new SolidColorBrush(Color.FromRgb(245, 158, 11)), 2.0);
+                        editPen.Freeze();
+                        foreach (var editShot in shots.Where(shot => editSelectedShotKeys.Contains(shot.ShotKey)))
+                        {
+                            var x = mapRect.Left + (editShot.GroupColumn + 0.5) * cellWidth;
+                            var y = mapRect.Top + (editShot.GroupRow + 0.5) * cellHeight;
+                            context.DrawEllipse(null, editPen, new Point(x, y), Math.Max(5.0, pointRadius + 3.0), Math.Max(5.0, pointRadius + 3.0));
+                        }
+                    }
+
                     var selected = shots.FirstOrDefault(shot => shot.ShotKey.Equals(selectedShotKey, StringComparison.OrdinalIgnoreCase));
                     if (selected is not null)
                     {
@@ -886,6 +1224,7 @@ namespace Drilling.UI.Menu.Menus
             private void ClearLoadedDisplay()
             {
                 ResetReinspectionState();
+                ResetResultEditState();
                 Interlocked.Increment(ref _shotMapRenderVersion);
                 _hasLoadedData = false;
                 _loadedParameters = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -900,6 +1239,9 @@ namespace Drilling.UI.Menu.Menus
                 _selectedShotKey = "";
                 GlassPreviewImage = null;
                 ShotMapImage = null;
+                ScatterPlotImage = null;
+                ScatterPlotSummary = "NO RESULT DATA";
+                _scatterPlotHits = [];
                 Camera.Clear();
                 CellLabels = [];
                 Rows = [];
@@ -960,6 +1302,10 @@ namespace Drilling.UI.Menu.Menus
                 Notify(nameof(ShowDataPlaceholder));
                 Notify(nameof(GlassPreviewImage));
                 Notify(nameof(ShotMapImage));
+                Notify(nameof(ScatterPlotImage));
+                Notify(nameof(ScatterPlotSummary));
+                Notify(nameof(IsResultEditMode));
+                Notify(nameof(CanToggleResultEditMode));
                 Notify(nameof(CellLabels));
                 Notify(nameof(Rows));
                 Notify(nameof(SelectedRow));
@@ -973,6 +1319,8 @@ namespace Drilling.UI.Menu.Menus
                 Notify(nameof(ShotMapSurfaceHeight));
                 NotifyLoadCommandState();
                 NotifyReinspectionCommandState();
+                NotifyResultEditCommandState();
+                ToggleResultEditModeCommand.NotifyCanExecuteChanged();
             }
         }
 
@@ -982,6 +1330,10 @@ namespace Drilling.UI.Menu.Menus
             IReadOnlySet<int> ResultCellNos,
             IReadOnlyDictionary<int, IReadOnlyList<ST_REVIEW_DATA_SHOT_POSITION>> ShotsByCell,
             IReadOnlyList<ST_REVIEW_DATA_GRID_ROW> Rows);
+
+        private sealed record ST_REVIEW_DATA_SCATTER_HIT(
+            ST_REVIEW_DATA_GRID_ROW Row,
+            Point Point);
 
         private sealed record ST_REVIEW_DATA_GLASS_PREVIEW(
             ImageSource Image,
@@ -1035,6 +1387,7 @@ namespace Drilling.UI.Menu.Menus
             bool IsResolved)
         {
             public bool IsReinspectionSelected { get; set; }
+            public bool IsResultEditSelected { get; set; }
             public string Head => $"H{HeadNo:00}";
             public string Cell => $"CELL{CellNo:00}";
             public string Beam => BeamNo > 0 ? BeamNo.ToString(CultureInfo.InvariantCulture) : "-";

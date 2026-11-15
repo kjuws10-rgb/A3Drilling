@@ -281,6 +281,7 @@ public abstract class CBindingBase
     public event EventHandler? IsRecipeLayoutChanged;
     public event EventHandler? IsReviewLayoutChanged;
     public event EventHandler? IsAllShotReviewModeChanged;
+    public event EventHandler? IsAllShotStyleReviewModeChanged;
     public event EventHandler? IsRuleReviewModeChanged;
     public event EventHandler? IsBeamInspectionModeChanged;
     public event EventHandler? IsBeamSelectionVisibleChanged;
@@ -311,7 +312,6 @@ public abstract class CBindingBase
     public event EventHandler? IsScannerStatusSelectedChanged;
     public event EventHandler? IsScannerWorkspaceChanged;
     public event EventHandler? IsManualMofTabChanged;
-    public event EventHandler? IsReviewWorkspaceChanged;
     public event EventHandler? IsManualControllerTabChanged;
     public event EventHandler? ManualControllerHeadsChanged;
     public event EventHandler? IsManualMotionTabChanged;
@@ -521,6 +521,7 @@ public abstract class CBindingBase
     public event EventHandler? RunCellPreviewLabelsChanged;
     public event EventHandler? InspectionHeadRowsChanged;
     public event EventHandler? IsOneShotReviewModeChanged;
+    public event EventHandler? IsOneLineReviewModeChanged;
     public event EventHandler? IsShotSelectionModeChanged;
     public event EventHandler? IsRunCommandsVisibleChanged;
     public event EventHandler? OneShotSelectionChanged;
@@ -610,6 +611,7 @@ public abstract class CBindingBase
     public event EventHandler? SelectedShotGroupPixelWindowTextChanged;
     public event EventHandler? SelectedShotGroupStateTextChanged;
     public event EventHandler? SelectedTabChanged;
+    public event EventHandler? SelectedReviewTabIndexChanged;
     public event EventHandler? SelectedVisionProtocolCommandChanged;
     public event EventHandler? SelectGroupCommandChanged;
     public event EventHandler? SelectHeadCommandChanged;
@@ -1594,6 +1596,9 @@ public abstract class CBindingBase
             case "IsAllShotReviewMode":
                 IsAllShotReviewModeChanged?.Invoke(this, EventArgs.Empty);
                 break;
+            case "IsAllShotStyleReviewMode":
+                IsAllShotStyleReviewModeChanged?.Invoke(this, EventArgs.Empty);
+                break;
             case "IsRuleReviewMode":
                 IsRuleReviewModeChanged?.Invoke(this, EventArgs.Empty);
                 break;
@@ -1683,9 +1688,6 @@ public abstract class CBindingBase
                 break;
             case "IsManualMofTab":
                 IsManualMofTabChanged?.Invoke(this, EventArgs.Empty);
-                break;
-            case "IsReviewWorkspace":
-                IsReviewWorkspaceChanged?.Invoke(this, EventArgs.Empty);
                 break;
             case "IsManualControllerTab":
                 IsManualControllerTabChanged?.Invoke(this, EventArgs.Empty);
@@ -2311,6 +2313,9 @@ public abstract class CBindingBase
             case "IsOneShotReviewMode":
                 IsOneShotReviewModeChanged?.Invoke(this, EventArgs.Empty);
                 break;
+            case "IsOneLineReviewMode":
+                IsOneLineReviewModeChanged?.Invoke(this, EventArgs.Empty);
+                break;
             case "IsShotSelectionMode":
                 IsShotSelectionModeChanged?.Invoke(this, EventArgs.Empty);
                 break;
@@ -2580,6 +2585,9 @@ public abstract class CBindingBase
                 break;
             case "SelectedTab":
                 SelectedTabChanged?.Invoke(this, EventArgs.Empty);
+                break;
+            case "SelectedReviewTabIndex":
+                SelectedReviewTabIndexChanged?.Invoke(this, EventArgs.Empty);
                 break;
             case "SelectedVisionProtocolCommand":
                 SelectedVisionProtocolCommandChanged?.Invoke(this, EventArgs.Empty);

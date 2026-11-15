@@ -329,7 +329,6 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="220" />
                 <ColumnDefinition Width="220" />
-                <ColumnDefinition Width="220" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
@@ -368,22 +367,7 @@
                 </Button.Style>
             </Button>
 
-            <Button x:Name="ManualReviewTab" Grid.Column="2" Content="REVIEW" Margin="8,0,0,0"
-                    Command="{Binding CurrentScreen.Manual.SelectManualWorkspaceCommand}" CommandParameter="REVIEW">
-                <Button.Style>
-                    <Style TargetType="Button" BasedOn="{StaticResource ManualWorkspaceButton}">
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding CurrentScreen.Manual.IsReviewWorkspace}" Value="True">
-                                <Setter Property="Background" Value="{DynamicResource MenuItemSelectedBackgroundBrush}" />
-                                <Setter Property="BorderBrush" Value="{DynamicResource MenuItemSelectedBorderBrush}" />
-                                <Setter Property="Foreground" Value="{DynamicResource MenuItemSelectedTextBrush}" />
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </Button.Style>
-            </Button>
-
-            <Button Grid.Column="3"
+            <Button Grid.Column="2"
                     Content="RESET SEQUENCE"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Center"
@@ -1454,8 +1438,6 @@
                                             DataContext="{Binding CurrentScreen.Manual.PowerMeasurePanel.StageMotion}" />
             </Grid>
         </Grid>
-        <views:CReviewView x:Name="ManualReviewWorkspace" Grid.Row="2" Grid.RowSpan="2" Margin="0,6,0,0"
-                          Visibility="{Binding CurrentScreen.Manual.IsReviewWorkspace, Converter={StaticResource BooleanToVisibilityConverter}}" />
         <Grid Grid.Row="2"
               Grid.RowSpan="2"
               Margin="0,6,0,0"

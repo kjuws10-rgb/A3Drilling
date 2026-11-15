@@ -37,11 +37,13 @@ namespace Drilling.UI.Menu.Menus
                 : _hasLoadedData
                     ? "선택한 BASE 검사 결과의 분류와 형식을 유지한 채 Shot을 재검사합니다."
                     : "먼저 검사 결과를 DATA LOAD 하세요.";
-            public bool CanToggleReinspection => _hasLoadedData
-                && !_isDataLoading
-                && !_isReinspectionRunning
-                && !_isReinspectionSaving
-                && !IsBeamInspectionResult;
+            public bool CanToggleReinspection => (_isReinspectionMode && !_isReinspectionRunning && !_isReinspectionSaving)
+                || (_hasLoadedData
+                    && !_isDataLoading
+                    && !_isReinspectionRunning
+                    && !_isReinspectionSaving
+                    && !_isResultEditMode
+                    && !IsBeamInspectionResult);
             public bool CanAddReinspectionShot => _isReinspectionMode
                 && _hasLoadedData
                 && !_isReinspectionRunning
@@ -698,6 +700,7 @@ namespace Drilling.UI.Menu.Menus
             private void NotifyReinspectionCommandState()
             {
                 Notify(nameof(CanToggleReinspection));
+                Notify(nameof(CanToggleResultEditMode));
                 Notify(nameof(CanAddReinspectionShot));
                 Notify(nameof(CanAddSelectedReinspectionShots));
                 Notify(nameof(CanAddNgReinspectionShots));
@@ -711,6 +714,7 @@ namespace Drilling.UI.Menu.Menus
                 Notify(nameof(IsBeamInspectionResult));
                 Notify(nameof(ReinspectionAvailabilityText));
                 ToggleReinspectionCommand?.NotifyCanExecuteChanged();
+                ToggleResultEditModeCommand?.NotifyCanExecuteChanged();
                 AddReinspectionShotCommand?.NotifyCanExecuteChanged();
                 AddSelectedReinspectionShotsCommand?.NotifyCanExecuteChanged();
                 AddNgReinspectionShotsCommand?.NotifyCanExecuteChanged();
