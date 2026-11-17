@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:local="clr-namespace:Drilling.UI"
              xmlns:views="clr-namespace:Drilling.UI.Views"
              mc:Ignorable="d"
              FontFamily="Segoe UI"
@@ -124,6 +125,26 @@
             <Setter Property="Padding" Value="4,0" />
         </Style>
 
+        <Style x:Key="ReviewModeChoiceButton" TargetType="Button" BasedOn="{StaticResource ReviewRuleChoiceButton}">
+            <Setter Property="Height" Value="40" />
+            <Setter Property="MinWidth" Value="132" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="FontSize" Value="13" />
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.55" />
+                    <Setter Property="Cursor" Value="Arrow" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="ReviewDiagnosticModeChoiceButton" TargetType="Button" BasedOn="{StaticResource ReviewModeChoiceButton}">
+            <Setter Property="MinWidth" Value="164" />
+            <Setter Property="Margin" Value="10,0,0,0" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ButtonWarningBorderBrush}" />
+        </Style>
+
         <Style x:Key="ReviewInlineCommandButton" TargetType="Button">
             <Setter Property="Width" Value="116" />
             <Setter Property="Height" Value="30" />
@@ -174,17 +195,43 @@
 
         <Style x:Key="ReviewCellPreviewHitButton" TargetType="Button">
             <Setter Property="Padding" Value="0" />
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Background" Value="#F4F7FA" />
+            <Setter Property="BorderBrush" Value="#3F6F98" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="#203446" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Focusable" Value="False" />
+            <Setter Property="FontSize" Value="9" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" />
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="2"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding HasSelectedShots}" Value="True">
+                    <Setter Property="Background" Value="#2563EB" />
+                    <Setter Property="Foreground" Value="White" />
+                    <Setter Property="BorderBrush" Value="#1E3A8A" />
+                    <Setter Property="BorderThickness" Value="2" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                    <Setter Property="Background" Value="#F6C453" />
+                    <Setter Property="Foreground" Value="#17212B" />
+                    <Setter Property="BorderBrush" Value="#FFF4D6" />
+                    <Setter Property="BorderThickness" Value="2" />
+                </DataTrigger>
+            </Style.Triggers>
         </Style>
 
         <Style x:Key="ReviewBackButton" TargetType="Button">
@@ -469,17 +516,93 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="0" />
-            <RowDefinition Height="0" />
+            <RowDefinition Height="58" />
             <RowDefinition Height="*" />
             <RowDefinition Height="0" />
         </Grid.RowDefinitions>
+
+        <Border Grid.Row="1"
+                BorderBrush="{DynamicResource PanelBorderBrush}"
+                BorderThickness="1"
+                Background="{DynamicResource PanelAltBackgroundBrush}"
+                Padding="12,4"
+                Margin="0,0,0,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Text="INSPECTION MODE"
+                           Style="{StaticResource ReviewLabelText}"
+                           VerticalAlignment="Center"
+                           Margin="0,0,14,0" />
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="ALL SHOT"
+                            Style="{StaticResource ReviewModeChoiceButton}"
+                            Command="{Binding CurrentScreen.Review.SelectModeCommand}"
+                            CommandParameter="ALL SHOT"
+                            Tag="{Binding CurrentScreen.Review.IsAllShotReviewMode}" />
+                    <Button Content="ONE SHOT"
+                            Style="{StaticResource ReviewModeChoiceButton}"
+                            Command="{Binding CurrentScreen.Review.SelectModeCommand}"
+                            CommandParameter="ONE SHOT"
+                            Tag="{Binding CurrentScreen.Review.IsOneShotReviewMode}" />
+                    <Button Content="ONE LINE"
+                            Style="{StaticResource ReviewModeChoiceButton}"
+                            Command="{Binding CurrentScreen.Review.SelectModeCommand}"
+                            CommandParameter="ONE LINE"
+                            Tag="{Binding CurrentScreen.Review.IsOneLineReviewMode}" />
+                </StackPanel>
+
+                <Border Grid.Column="2"
+                        Width="1"
+                        Height="30"
+                        Margin="12,0,2,0"
+                        VerticalAlignment="Center"
+                        Background="{DynamicResource PanelBorderBrush}" />
+
+                <Button Grid.Column="3"
+                        Content="BEAM INSPECTION"
+                        Style="{StaticResource ReviewDiagnosticModeChoiceButton}"
+                        Command="{Binding CurrentScreen.Review.SelectModeCommand}"
+                        CommandParameter="BEAM INSPECTION"
+                        Tag="{Binding CurrentScreen.Review.IsBeamInspectionMode}" />
+            </Grid>
+        </Border>
 
         <Grid Grid.Row="2"
               Visibility="{Binding CurrentScreen.Review.IsRunTab, Converter={StaticResource BooleanToVisibilityConverter}}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="0" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="400" />
+                <ColumnDefinition>
+                    <ColumnDefinition.Style>
+                        <Style TargetType="ColumnDefinition">
+                            <Setter Property="Width" Value="*" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CurrentScreen.Review.IsBeamInspectionMode}" Value="True">
+                                    <Setter Property="Width" Value="2*" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ColumnDefinition.Style>
+                </ColumnDefinition>
+                <ColumnDefinition>
+                    <ColumnDefinition.Style>
+                        <Style TargetType="ColumnDefinition">
+                            <Setter Property="Width" Value="400" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CurrentScreen.Review.IsBeamInspectionMode}" Value="True">
+                                    <Setter Property="Width" Value="*" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ColumnDefinition.Style>
+                </ColumnDefinition>
             </Grid.ColumnDefinitions>
 
             <Border Grid.Column="0"
@@ -591,110 +714,168 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
-                        <RowDefinition Height="252" />
-                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition>
+                            <RowDefinition.Style>
+                                <Style TargetType="RowDefinition">
+                                    <Setter Property="Height" Value="*" />
+                                    <Setter Property="MinHeight" Value="460" />
+                                </Style>
+                            </RowDefinition.Style>
+                        </RowDefinition>
+                        <RowDefinition>
+                            <RowDefinition.Style>
+                                <Style TargetType="RowDefinition">
+                                    <Setter Property="Height" Value="Auto" />
+                                </Style>
+                            </RowDefinition.Style>
+                        </RowDefinition>
+                        <RowDefinition Height="0" MinHeight="0" />
                     </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
 
-                    <StackPanel>
-                      <Grid>
+                    <Grid Grid.Row="0" Grid.Column="0">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="{Binding CurrentScreen.Review.RunWorkspaceTitle}"
                                    Style="{StaticResource ReviewPanelTitle}" />
                         <TextBlock Grid.Column="1"
-                                   Text="{Binding CurrentScreen.Review.RunWorkspaceSummary}"
-                                   HorizontalAlignment="Right"
+                                   Text="{Binding CurrentScreen.Review.RunGlassPreviewSummary}"
+                                   Margin="18,0,0,0"
+                                   HorizontalAlignment="Left"
+                                   VerticalAlignment="Center"
                                    Foreground="{DynamicResource AccentTextBrush}"
                                    FontSize="14"
-                                   FontWeight="SemiBold">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding CurrentScreen.Review.IsBeamInspectionMode}" Value="True">
-                                            <Setter Property="Visibility" Value="Collapsed" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
-                        <Grid Grid.Column="1"
-                              Width="368"
-                              HorizontalAlignment="Right"
-                              Margin="12,0,0,8"
-                              Visibility="{Binding CurrentScreen.Review.IsInspectionSelectionControlsVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="8" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <Button Content="Cur Selected Shot"
-                                    Command="{Binding CurrentScreen.Review.ShowSelectedInspectionShotsCommand}"
-                                    Style="{StaticResource ReviewRuleChoiceButton}"
-                                    MinWidth="0"
-                                    Margin="0"
-                                    Height="36"
-                                    FontSize="14" />
-                            <Button Grid.Column="2"
-                                    Content="Shot Select Clear"
-                                    Command="{Binding CurrentScreen.Review.ClearInspectionShotsCommand}"
-                                    Style="{StaticResource ReviewRuleChoiceButton}"
-                                    MinWidth="0"
-                                    Margin="0"
-                                    Height="36"
-                                    FontSize="14" />
-                        </Grid>
-                      </Grid>
-                      <ItemsControl x:Name="ReviewHeadCards" ItemsSource="{Binding CurrentScreen.Review.InspectionHeadRows}"
-                                    Margin="0,4,0,10"
-                                    Visibility="{Binding CurrentScreen.Review.IsReviewHeadCardsVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
-                          <ItemsControl.ItemsPanel>
-                              <ItemsPanelTemplate>
-                                  <UniformGrid Rows="1" Columns="8" />
-                              </ItemsPanelTemplate>
-                          </ItemsControl.ItemsPanel>
-                          <ItemsControl.ItemTemplate>
-                              <DataTemplate>
-                                  <Border Height="34" Margin="3,0" CornerRadius="3"
-                                          BorderThickness="1" ToolTip="{Binding Summary}">
-                                      <Border.Style>
-                                          <Style TargetType="Border">
-                                              <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}" />
-                                              <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}" />
-                                              <Style.Triggers>
-                                                  <DataTrigger Binding="{Binding HasSelectedShots}" Value="True">
-                                                      <Setter Property="Background" Value="#90B8D6" />
-                                                  </DataTrigger>
-                                              </Style.Triggers>
-                                          </Style>
-                                      </Border.Style>
-                                      <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="SemiBold"
-                                                 HorizontalAlignment="Center" VerticalAlignment="Center">
-                                          <TextBlock.Style>
-                                              <Style TargetType="TextBlock">
-                                                  <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
-                                                  <Style.Triggers>
-                                                      <DataTrigger Binding="{Binding HasSelectedShots}" Value="True">
-                                                          <Setter Property="Foreground" Value="#17324D" />
-                                                      </DataTrigger>
-                                                  </Style.Triggers>
-                                              </Style>
-                                          </TextBlock.Style>
-                                      </TextBlock>
-                                  </Border>
-                              </DataTemplate>
-                          </ItemsControl.ItemTemplate>
-                      </ItemsControl>
-                    </StackPanel>
+                                   FontWeight="SemiBold" />
+                    </Grid>
 
-                    <Border Grid.Row="1"
-                            Grid.RowSpan="2"
-                            Visibility="{Binding CurrentScreen.Review.IsRunGlassPreviewVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    <Grid Grid.Row="0" Grid.Column="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="SHOT VIEW"
+                                   Style="{StaticResource ReviewPanelTitle}"
+                                   Margin="0"
+                                   VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Border Width="11" Height="11" Background="#64748B" BorderBrush="#D7E0E8" BorderThickness="1" />
+                            <TextBlock Text="SHOT" Margin="3,0,10,0" FontSize="9" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,0">
+                                <StackPanel.Style>
+                                    <Style TargetType="StackPanel">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CurrentScreen.Review.IsShotInspectionOngoing}" Value="True">
+                                                <DataTrigger.EnterActions>
+                                                    <BeginStoryboard x:Name="ShotHeaderOngoingBlink">
+                                                        <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                             From="1"
+                                                                             To="0.32"
+                                                                             Duration="0:0:0.4" />
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </DataTrigger.EnterActions>
+                                                <DataTrigger.ExitActions>
+                                                    <StopStoryboard BeginStoryboardName="ShotHeaderOngoingBlink" />
+                                                </DataTrigger.ExitActions>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
+                                <Border Width="11" Height="11" Background="#35C77A" BorderBrush="#137A47" BorderThickness="1" />
+                                <TextBlock Text="ON GOING" Margin="3,0,0,0" FontSize="9" FontWeight="Bold" Foreground="#168A47" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <Border Width="11" Height="11" Background="#69A855F7" BorderBrush="#A855F7" BorderThickness="1" />
+                            <TextBlock Text="CHESS" Margin="3,0,10,0" FontSize="9" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                            <Border Width="11" Height="11" Background="#66EF4444" BorderBrush="#EF4444" BorderThickness="1">
+                                <TextBlock Text="×" Foreground="#EF4444" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <TextBlock Text="MASKING" Margin="3,0,10,0" FontSize="9" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                            <StackPanel Orientation="Horizontal"
+                                        VerticalAlignment="Center"
+                                        Margin="0,0,10,0"
+                                        Visibility="{Binding CurrentScreen.Review.IsBeamInspectionMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <Border Width="11" Height="11" Background="#2563EB" BorderBrush="#1E3A8A" BorderThickness="1" />
+                                <TextBlock Text="IN LIST" Margin="3,0,0,0" FontSize="9" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <Border Width="12" Height="12" Background="White" BorderBrush="#F59E0B" BorderThickness="2">
+                                <TextBlock Text="V" FontSize="8" FontWeight="Bold" Foreground="#92400E" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <TextBlock Text="SELECTED" Margin="3,0,0,0" FontSize="9" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Grid>
+
+                    <ItemsControl x:Name="ReviewHeadCards"
+                                  Grid.Row="1"
+                                  Grid.ColumnSpan="3"
+                                  ItemsSource="{Binding CurrentScreen.Review.InspectionHeadRows}"
+                                  Margin="0,4,0,10"
+                                  Visibility="{Binding CurrentScreen.Review.IsReviewHeadCardsVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Rows="1" Columns="8" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Height="34" Margin="3,0" CornerRadius="3"
+                                        BorderThickness="1" ToolTip="{Binding Summary}">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}" />
+                                            <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasSelectedShots}" Value="True">
+                                                    <Setter Property="Background" Value="#90B8D6" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="SemiBold"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding HasSelectedShots}" Value="True">
+                                                        <Setter Property="Foreground" Value="#17324D" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Border Visibility="{Binding CurrentScreen.Review.IsRunGlassPreviewVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
                             Background="{DynamicResource GridBackgroundBrush}"
                             BorderBrush="{DynamicResource PanelBorderBrush}"
                             BorderThickness="1"
                             Padding="10">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Grid.Row" Value="2" />
+                                <Setter Property="Grid.Column" Value="0" />
+                                <Setter Property="Grid.ColumnSpan" Value="1" />
+                                <Setter Property="Margin" Value="0" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CurrentScreen.Review.IsRunStageStatusVisible}" Value="True">
+                                        <Setter Property="Margin" Value="0,0,0,66" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
                         <Grid x:Name="RunGlassPreviewViewport" ClipToBounds="True" SizeChanged="ReviewPreview_SizeChanged">
                             <Image Source="{Binding CurrentScreen.Review.RunGlassPreviewImage}"
                                    Stretch="Uniform"
@@ -703,11 +884,23 @@
                             <ItemsControl ItemsSource="{Binding CurrentScreen.Review.RunCellPreviewLabels}"
                                           Style="{StaticResource CellPreviewLabelItemsControl}"
                                           IsHitTestVisible="True">
+                                <ItemsControl.ItemContainerStyle>
+                                    <Style TargetType="ContentPresenter">
+                                        <Setter Property="local:CPreviewCoordinateBehavior.PositionX" Value="{Binding CanvasCenterX}" />
+                                        <Setter Property="local:CPreviewCoordinateBehavior.PositionY" Value="{Binding CanvasCenterY}" />
+                                        <Setter Property="local:CPreviewCoordinateBehavior.ContainerWidth" Value="{Binding RelativeSource={RelativeSource AncestorType=ItemsControl}, Path=ActualWidth}" />
+                                        <Setter Property="local:CPreviewCoordinateBehavior.ContainerHeight" Value="{Binding RelativeSource={RelativeSource AncestorType=ItemsControl}, Path=ActualHeight}" />
+                                        <Setter Property="local:CPreviewCoordinateBehavior.DesignWidth" Value="{Binding DesignWidth}" />
+                                        <Setter Property="local:CPreviewCoordinateBehavior.DesignHeight" Value="{Binding DesignHeight}" />
+                                        <Setter Property="local:CPreviewCoordinateBehavior.ElementWidth" Value="20" />
+                                        <Setter Property="local:CPreviewCoordinateBehavior.ElementHeight" Value="{Binding Height}" />
+                                    </Style>
+                                </ItemsControl.ItemContainerStyle>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Button Width="{Binding Width}"
+                                        <Button Content="{Binding CellNo}"
+                                                Width="20"
                                                 Height="{Binding Height}"
-                                                IsEnabled="{Binding DataContext.CurrentScreen.Review.IsShotSelectionMode, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 Command="{Binding DataContext.CurrentScreen.Review.SelectRunCellCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding CellNo}"
                                                 MouseMove="RunCellPreviewLabel_MouseMove"
@@ -746,177 +939,447 @@
                         </Grid>
                     </Border>
 
-                    <Border Grid.Row="1"
-                            Grid.RowSpan="2"
-                            Visibility="{Binding CurrentScreen.Review.IsRunCellDetailVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
-                            Background="{DynamicResource GridBackgroundBrush}"
+                    <Border Grid.Row="2"
+                            Grid.Column="0"
+                            Height="58"
+                            Margin="0,8,0,0"
+                            Padding="10,6"
+                            VerticalAlignment="Bottom"
+                            Background="{DynamicResource PanelAltBackgroundBrush}"
                             BorderBrush="{DynamicResource PanelBorderBrush}"
                             BorderThickness="1"
-                            Padding="10">
+                            Visibility="{Binding CurrentScreen.Review.IsRunStageStatusVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" />
-                            </Grid.RowDefinitions>
-
-                            <Button Content="← BACK TO GLASS"
-                                    Command="{Binding CurrentScreen.Review.BackToRunGlassPreviewCommand}"
-                                    Style="{StaticResource ReviewBackButton}"
-                                    Visibility="{Binding CurrentScreen.Review.IsRunShotMapVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                    HorizontalAlignment="Left"
-                                    MinWidth="132"
-                                    Height="34"
-                                    Padding="12,0"
-                                    Margin="0,0,0,8"
-                                    />
-
-                            <Button Content="BACK TO SHOTS"
-                                    Command="{Binding CurrentScreen.Review.BackToRunShotMapCommand}"
-                                    Style="{StaticResource ReviewBackButton}"
-                                    Visibility="{Binding CurrentScreen.Review.IsRunBeamDetailVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                    HorizontalAlignment="Left"
-                                    MinWidth="132"
-                                    Height="34"
-                                    Padding="12,0"
-                                    Margin="0,0,0,8"
-                                    />
-
-                            <ListBox Grid.Row="1"
-                                     ItemsSource="{Binding CurrentScreen.Review.RunCellShotMatrixRows}"
-                                     Visibility="{Binding CurrentScreen.Review.IsRunShotMapVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                     Background="Transparent"
-                                     BorderThickness="0"
-                                     Padding="0"
-                                     HorizontalContentAlignment="Left"
-                                     ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                     ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                                     ScrollViewer.CanContentScroll="True"
-                                     VirtualizingPanel.IsVirtualizing="True"
-                                     VirtualizingPanel.VirtualizationMode="Recycling">
-                                <ListBox.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <VirtualizingStackPanel />
-                                    </ItemsPanelTemplate>
-                                </ListBox.ItemsPanel>
-                                <ListBox.ItemContainerStyle>
-                                    <Style TargetType="ListBoxItem">
-                                        <Setter Property="Padding" Value="0" />
-                                        <Setter Property="Margin" Value="0" />
-                                        <Setter Property="Focusable" Value="False" />
-                                        <Setter Property="HorizontalContentAlignment" Value="Left" />
-                                    </Style>
-                                </ListBox.ItemContainerStyle>
-                                <ListBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <ItemsControl ItemsSource="{Binding Shots}"
-                                                          HorizontalAlignment="Stretch"
-                                                          Margin="0,0,0,4">
-                                                <ItemsControl.ItemsPanel>
-                                                    <ItemsPanelTemplate>
-                                                        <StackPanel Orientation="Horizontal" />
-                                                    </ItemsPanelTemplate>
-                                                </ItemsControl.ItemsPanel>
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <Button Command="{Binding SelectCommand}"
-                                                                CommandParameter="{Binding ShotKey}"
-                                                                Margin="3"
-                                                                Padding="5"
-                                                                Style="{StaticResource ReviewShotButton}"
-                                                                Cursor="Hand">
-                                                            <Button.InputBindings>
-                                                                <MouseBinding MouseAction="RightClick"
-                                                                              Command="{Binding ShowBeamPositionsCommand}"
-                                                                              CommandParameter="{Binding ShotKey}" />
-                                                            </Button.InputBindings>
-                                                            <Grid>
-                                                                <Grid.RowDefinitions>
-                                                                    <RowDefinition Height="Auto" />
-                                                                    <RowDefinition Height="*" />
-                                                                </Grid.RowDefinitions>
-                                                                <TextBlock Text="{Binding ShotName}"
-                                                                           Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                                                                           FontSize="12"
-                                                                           FontWeight="Bold"
-                                                                           HorizontalAlignment="Center" />
-                                                                <TextBlock Grid.Row="1"
-                                                                           Text="{Binding Detail}"
-                                                                           FontSize="9"
-                                                                           FontWeight="SemiBold"
-                                                                           TextAlignment="Center"
-                                                                           TextWrapping="Wrap"
-                                                                           HorizontalAlignment="Center"
-                                                                           VerticalAlignment="Center">
-                                                                    <TextBlock.Style>
-                                                                        <Style TargetType="TextBlock">
-                                                                            <Setter Property="Foreground" Value="{Binding StateBrush}" />
-                                                                            <Style.Triggers>
-                                                                                <MultiDataTrigger>
-                                                                                    <MultiDataTrigger.Conditions>
-                                                                                        <Condition Binding="{Binding IsSelected}" Value="True" />
-                                                                                        <Condition Binding="{Binding DataContext.CurrentScreen.Review.IsShotSelectionMode, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True" />
-                                                                                    </MultiDataTrigger.Conditions>
-                                                                                    <Setter Property="Foreground" Value="White" />
-                                                                                </MultiDataTrigger>
-                                                                            </Style.Triggers>
-                                                                        </Style>
-                                                                    </TextBlock.Style>
-                                                                </TextBlock>
-                                                            </Grid>
-                                                        </Button>
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
-                                        </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
-
-                            <ScrollViewer Grid.Row="1"
-                                          Visibility="{Binding CurrentScreen.Review.IsRunBeamDetailVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                          VerticalScrollBarVisibility="Auto"
-                                          HorizontalScrollBarVisibility="Auto">
-                                <ItemsControl ItemsSource="{Binding CurrentScreen.Review.RunBeamRows}"
-                                              HorizontalAlignment="Center">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <ItemsControl ItemsSource="{Binding Beams}"
-                                                          HorizontalAlignment="Center">
-                                                <ItemsControl.ItemsPanel>
-                                                    <ItemsPanelTemplate>
-                                                        <StackPanel Orientation="Horizontal" />
-                                                    </ItemsPanelTemplate>
-                                                </ItemsControl.ItemsPanel>
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <Button Command="{Binding SelectCommand}"
-                                                                CommandParameter="{Binding BeamNo}"
-                                                                Margin="4"
-                                                                Padding="6"
-                                                                Style="{StaticResource ReviewShotButton}"
-                                                                Cursor="Hand">
-                                                            <StackPanel VerticalAlignment="Center">
-                                                                <TextBlock Text="{Binding BeamName}"
-                                                                           HorizontalAlignment="Center"
-                                                                           FontSize="12"
-                                                                           FontWeight="Bold" />
-                                                                <TextBlock Text="{Binding Detail}"
-                                                                           HorizontalAlignment="Center"
-                                                                           Margin="0,4,0,0"
-                                                                           Foreground="{Binding StateBrush}"
-                                                                           FontWeight="SemiBold"
-                                                                           FontSize="9" />
-                                                            </StackPanel>
-                                                        </Button>
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </ScrollViewer>
-
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="STAGE Y POS (mm)" FontSize="9" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                <TextBlock Text="{Binding CurrentScreen.Review.Camera.StageY}" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="STAGE Y SPEED (mm/s)" FontSize="9" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                <TextBlock Text="{Binding CurrentScreen.Review.Camera.StageYSpeed}" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                <TextBlock Text="REVIEW X POS (mm)" FontSize="9" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                <TextBlock Text="{Binding CurrentScreen.Review.Camera.ReviewX}" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="3" VerticalAlignment="Center">
+                                <TextBlock Text="REVIEW X SPEED (mm/s)" FontSize="9" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                <TextBlock Text="{Binding CurrentScreen.Review.Camera.ReviewXSpeed}" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                            </StackPanel>
+                            <TextBlock Grid.Column="4"
+                                       Text="{Binding CurrentScreen.Review.Camera.Mode}"
+                                       Margin="8,0,0,0"
+                                       VerticalAlignment="Center"
+                                       FontSize="9"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" />
                         </Grid>
                     </Border>
+
+                    <Grid Grid.Row="2"
+                          Grid.Column="2"
+                          Visibility="{Binding CurrentScreen.Review.IsRunCellDetailVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition>
+                                <RowDefinition.Style>
+                                    <Style TargetType="RowDefinition">
+                                        <Setter Property="Height" Value="10" />
+                                        <Style.Triggers>
+                                        <DataTrigger Binding="{Binding CurrentScreen.Review.IsBeamInspectionMode}" Value="True">
+                                            <Setter Property="Height" Value="10" />
+                                        </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </RowDefinition.Style>
+                            </RowDefinition>
+                            <RowDefinition>
+                                <RowDefinition.Style>
+                                    <Style TargetType="RowDefinition">
+                                        <Setter Property="Height" Value="150" />
+                                        <Style.Triggers>
+                                        <DataTrigger Binding="{Binding CurrentScreen.Review.IsBeamInspectionMode}" Value="True">
+                                            <Setter Property="Height" Value="430" />
+                                            <Setter Property="MinHeight" Value="420" />
+                                        </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </RowDefinition.Style>
+                            </RowDefinition>
+                        </Grid.RowDefinitions>
+
+                        <Border Grid.Row="0"
+                                Background="{DynamicResource GridBackgroundBrush}"
+                                BorderBrush="{DynamicResource PanelBorderBrush}"
+                                BorderThickness="1"
+                                Padding="10">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition>
+                                        <RowDefinition.Style>
+                                            <Style TargetType="RowDefinition">
+                                                <Setter Property="Height" Value="56" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding CurrentScreen.Review.IsBeamInspectionMode}" Value="True">
+                                                        <Setter Property="Height" Value="0" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </RowDefinition.Style>
+                                    </RowDefinition>
+                                </Grid.RowDefinitions>
+                                <Viewbox Grid.Row="0"
+                                         Stretch="Uniform"
+                                         StretchDirection="DownOnly"
+                                         HorizontalAlignment="Center"
+                                         VerticalAlignment="Center"
+                                         Visibility="{Binding CurrentScreen.Review.IsRunShotMapVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <views:CReviewShotMapControl
+                                        Rows="{Binding CurrentScreen.Review.RunCellShotMatrixRows}"
+                                        IsBeamInspectionMode="{Binding CurrentScreen.Review.IsBeamInspectionMode}" />
+                                </Viewbox>
+
+                                <Grid Grid.Row="1" Margin="0,8,0,0">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="1" />
+                                        <RowDefinition Height="23" />
+                                        <RowDefinition Height="*" />
+                                    </Grid.RowDefinitions>
+                                    <Border Background="{DynamicResource PanelBorderBrush}" />
+                                    <StackPanel Grid.Row="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="REVIEW LEVEL"
+                                                   FontSize="11"
+                                                   FontWeight="Bold"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}" />
+                                        <TextBlock Text="X/Y 중 큰 절댓값 기준 · + / - 동일"
+                                                   Margin="10,0,0,0"
+                                                   FontSize="9"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                                    </StackPanel>
+                                    <ItemsControl Grid.Row="2"
+                                                  ItemsSource="{Binding CurrentScreen.Review.ReviewLevelLegendItems}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <UniformGrid Rows="1" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Margin="0,0,4,0"
+                                                        Background="{DynamicResource PanelAltBackgroundBrush}"
+                                                        BorderBrush="{DynamicResource PanelBorderBrush}"
+                                                        BorderThickness="1">
+                                                    <StackPanel Margin="6,2"
+                                                                Orientation="Horizontal"
+                                                                HorizontalAlignment="Center"
+                                                                VerticalAlignment="Center">
+                                                            <Border Width="11"
+                                                                    Height="11"
+                                                                    Margin="0,0,5,0"
+                                                                    VerticalAlignment="Center"
+                                                                    Background="{Binding ColorBrush}"
+                                                                    BorderBrush="{DynamicResource PanelBorderBrush}"
+                                                                    BorderThickness="1" />
+                                                            <TextBlock Text="{Binding Name}"
+                                                                       VerticalAlignment="Center"
+                                                                       FontSize="10"
+                                                                       FontWeight="Bold"
+                                                                       Foreground="{DynamicResource TextPrimaryBrush}" />
+                                                            <TextBlock Text="{Binding RangeText}"
+                                                                       ToolTip="{Binding RangeText}"
+                                                                       Margin="7,0,0,0"
+                                                                       VerticalAlignment="Center"
+                                                                       FontSize="8.5"
+                                                                       FontWeight="SemiBold"
+                                                                       Foreground="{DynamicResource TextSecondaryBrush}" />
+                                                    </StackPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Grid>
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Row="2"
+                                Background="{DynamicResource GridBackgroundBrush}"
+                                BorderBrush="{DynamicResource PanelBorderBrush}"
+                                BorderThickness="1"
+                                Padding="8">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding CurrentScreen.Review.IsBeamInspectionMode}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="44" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <Grid Margin="0,0,0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="130" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="140" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Background="{DynamicResource PanelAltBackgroundBrush}"
+                                            BorderBrush="{DynamicResource PanelBorderBrush}"
+                                            BorderThickness="1" />
+                                    <Border Grid.Column="1"
+                                            Background="{DynamicResource GridBackgroundBrush}"
+                                            BorderBrush="{DynamicResource PanelBorderBrush}"
+                                            BorderThickness="0,1,1,1" />
+                                    <Border Grid.Column="2"
+                                            Background="{DynamicResource GridBackgroundBrush}"
+                                            BorderBrush="{DynamicResource PanelBorderBrush}"
+                                            BorderThickness="0,1,1,1" />
+                                    <TextBlock Text="{Binding CurrentScreen.Review.SelectedShotInspection.Caption}"
+                                               Margin="12,0"
+                                               VerticalAlignment="Center"
+                                               FontSize="11"
+                                               FontWeight="Bold"
+                                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding CurrentScreen.Review.SelectedShotInspection.ShotText}"
+                                               ToolTip="{Binding CurrentScreen.Review.SelectedShotInspection.ShotText}"
+                                               Margin="12,0"
+                                               VerticalAlignment="Center"
+                                               FontSize="13"
+                                               FontWeight="Bold"
+                                               TextTrimming="CharacterEllipsis"
+                                               Foreground="{DynamicResource TextPrimaryBrush}" />
+                                    <TextBlock Grid.Column="2"
+                                               Text="{Binding CurrentScreen.Review.SelectedShotInspection.StatusText}"
+                                               Foreground="{Binding CurrentScreen.Review.SelectedShotInspection.StatusBrush}"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               FontSize="14"
+                                               FontWeight="Bold">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding CurrentScreen.Review.SelectedShotInspection.IsInspecting}" Value="True">
+                                                        <DataTrigger.EnterActions>
+                                                            <BeginStoryboard x:Name="SelectedShotStatusBlink">
+                                                                <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                                     From="1"
+                                                                                     To="0.35"
+                                                                                     Duration="0:0:0.4" />
+                                                                </Storyboard>
+                                                            </BeginStoryboard>
+                                                        </DataTrigger.EnterActions>
+                                                        <DataTrigger.ExitActions>
+                                                            <StopStoryboard BeginStoryboardName="SelectedShotStatusBlink" />
+                                                        </DataTrigger.ExitActions>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Grid>
+
+                                <Grid Grid.Row="1">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="28" />
+                                        <RowDefinition Height="*" />
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="1.08*" />
+                                        <ColumnDefinition Width="1.08*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="0.9*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <Border Grid.Row="0" Grid.Column="0" Background="{DynamicResource PanelAltBackgroundBrush}" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1,1,1,0" />
+                                    <Border Grid.Row="0" Grid.Column="1" Background="{DynamicResource PanelAltBackgroundBrush}" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0,1,1,0" />
+                                    <Border Grid.Row="0" Grid.Column="2" Background="{DynamicResource PanelAltBackgroundBrush}" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0,1,1,0" />
+                                    <Border Grid.Row="0" Grid.Column="3" Background="{DynamicResource PanelAltBackgroundBrush}" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0,1,1,0" />
+                                    <Border Grid.Row="0" Grid.Column="4" Background="{DynamicResource PanelAltBackgroundBrush}" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0,1,1,0" />
+                                    <Border Grid.Row="1" Grid.Column="0" Background="{DynamicResource GridBackgroundBrush}" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1" />
+                                    <Border Grid.Row="1" Grid.Column="1" Background="{DynamicResource GridBackgroundBrush}" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0,1,1,1" />
+                                    <Border Grid.Row="1" Grid.Column="2" Background="{DynamicResource GridBackgroundBrush}" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0,1,1,1" />
+                                    <Border Grid.Row="1" Grid.Column="3" Background="{DynamicResource GridBackgroundBrush}" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0,1,1,1" />
+                                    <Border Grid.Row="1" Grid.Column="4" Background="{DynamicResource GridBackgroundBrush}" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0,1,1,1" />
+
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="POSITION X" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="POSITION Y" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                    <TextBlock Grid.Row="0" Grid.Column="2" Text="RESULT X" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                    <TextBlock Grid.Row="0" Grid.Column="3" Text="RESULT Y" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                    <TextBlock Grid.Row="0" Grid.Column="4" Text="JUDGE" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}" />
+
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="{Binding CurrentScreen.Review.SelectedShotInspection.PositionXText}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding CurrentScreen.Review.SelectedShotInspection.PositionYText}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                    <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding CurrentScreen.Review.SelectedShotInspection.ResultXText}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12" FontWeight="Bold" Foreground="{Binding CurrentScreen.Review.SelectedShotInspection.StatusBrush}" />
+                                    <TextBlock Grid.Row="1" Grid.Column="3" Text="{Binding CurrentScreen.Review.SelectedShotInspection.ResultYText}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12" FontWeight="Bold" Foreground="{Binding CurrentScreen.Review.SelectedShotInspection.StatusBrush}" />
+                                    <StackPanel Grid.Row="1" Grid.Column="4" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding CurrentScreen.Review.SelectedShotInspection.JudgeText}" Foreground="{Binding CurrentScreen.Review.SelectedShotInspection.StatusBrush}" FontSize="13" FontWeight="Bold" />
+                                        <TextBlock Text="{Binding CurrentScreen.Review.SelectedShotInspection.LevelText}" Margin="8,0,0,0" Foreground="{Binding CurrentScreen.Review.SelectedShotInspection.LevelBrush}" FontSize="13" FontWeight="Bold" />
+                                    </StackPanel>
+                                </Grid>
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Row="2"
+                                Background="{DynamicResource GridBackgroundBrush}"
+                                BorderBrush="{DynamicResource PanelBorderBrush}"
+                                BorderThickness="1"
+                                Padding="6"
+                                Visibility="{Binding CurrentScreen.Review.IsBeamInspectionMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <StackPanel Margin="0,0,0,4">
+                                    <Grid>
+                                        <TextBlock Text="BEAM ASSIGN"
+                                                   Style="{StaticResource ReviewPanelTitle}"
+                                                   FontSize="15" />
+                                        <TextBlock Text="{Binding CurrentScreen.Review.BeamSelectionSummary}"
+                                                   HorizontalAlignment="Right"
+                                                   Foreground="{DynamicResource AccentTextBrush}"
+                                                   FontSize="12"
+                                                   FontWeight="SemiBold" />
+                                    </Grid>
+                                    <TextBlock Text="{Binding CurrentScreen.Review.ActiveInspectionShotText}"
+                                               Margin="0,2,0,0"
+                                               Foreground="{DynamicResource TextPrimaryBrush}"
+                                               FontSize="12"
+                                               FontWeight="Bold"
+                                               TextTrimming="CharacterEllipsis"
+                                               ToolTip="{Binding CurrentScreen.Review.ActiveInspectionShotText}" />
+                                </StackPanel>
+                                <Border Grid.Row="1"
+                                        Background="{DynamicResource PanelAltBackgroundBrush}"
+                                        BorderBrush="{DynamicResource ButtonSecondaryBorderBrush}"
+                                        BorderThickness="1"
+                                        Padding="0">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="23" />
+                                            <RowDefinition Height="*" />
+                                        </Grid.RowDefinitions>
+                                        <Grid Background="{DynamicResource GridHeaderBackgroundBrush}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="44" />
+                                                <ColumnDefinition Width="0.8*" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="USE" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                       FontSize="9" FontWeight="Bold" Foreground="{DynamicResource TextInvertedBrush}" />
+                                            <TextBlock Grid.Column="1" Text="BEAM NO" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                       FontSize="9" FontWeight="Bold" Foreground="{DynamicResource TextInvertedBrush}" />
+                                            <TextBlock Grid.Column="2" Text="TARGET X" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                       FontSize="9" FontWeight="Bold" Foreground="{DynamicResource TextInvertedBrush}" />
+                                            <TextBlock Grid.Column="3" Text="TARGET Y" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                       FontSize="9" FontWeight="Bold" Foreground="{DynamicResource TextInvertedBrush}" />
+                                        </Grid>
+                                        <ScrollViewer Grid.Row="1"
+                                                      VerticalScrollBarVisibility="Disabled"
+                                                      HorizontalScrollBarVisibility="Disabled">
+                                            <ItemsControl ItemsSource="{Binding CurrentScreen.Review.RunBeamRows}"
+                                                          HorizontalAlignment="Stretch">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <ItemsControl ItemsSource="{Binding Beams}"
+                                                                      HorizontalAlignment="Stretch">
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <Button Command="{Binding SelectCommand}"
+                                                                            CommandParameter="{Binding BeamNo}"
+                                                                            Height="18"
+                                                                            Padding="0"
+                                                                            HorizontalContentAlignment="Stretch"
+                                                                            Background="{Binding BackgroundBrush}"
+                                                                            BorderBrush="{DynamicResource PanelBorderBrush}"
+                                                                            BorderThickness="0,0,0,1"
+                                                                            Cursor="Hand">
+                                                                        <Button.Template>
+                                                                            <ControlTemplate TargetType="Button">
+                                                                                <Border Background="{TemplateBinding Background}"
+                                                                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                                                                        BorderThickness="{TemplateBinding BorderThickness}">
+                                                                                    <ContentPresenter HorizontalAlignment="Stretch"
+                                                                                                      VerticalAlignment="Stretch" />
+                                                                                </Border>
+                                                                            </ControlTemplate>
+                                                                        </Button.Template>
+                                                                        <Grid>
+                                                                            <Grid.ColumnDefinitions>
+                                                                                <ColumnDefinition Width="44" />
+                                                                                <ColumnDefinition Width="0.8*" />
+                                                                                <ColumnDefinition Width="*" />
+                                                                                <ColumnDefinition Width="*" />
+                                                                            </Grid.ColumnDefinitions>
+                                                                            <CheckBox IsChecked="{Binding IsSelected, Mode=OneWay}"
+                                                                                      IsHitTestVisible="False"
+                                                                                      Focusable="False"
+                                                                                      HorizontalAlignment="Center"
+                                                                                      VerticalAlignment="Center" />
+                                                                            <TextBlock Grid.Column="1" Text="{Binding BeamNo}"
+                                                                                       Foreground="{Binding TextBrush}"
+                                                                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                                       FontSize="10" FontWeight="Bold" />
+                                                                            <TextBlock Grid.Column="2" Text="{Binding TargetX}"
+                                                                                       Foreground="{Binding TextBrush}"
+                                                                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                                       FontSize="10" FontWeight="SemiBold" />
+                                                                            <TextBlock Grid.Column="3" Text="{Binding TargetY}"
+                                                                                       Foreground="{Binding TextBrush}"
+                                                                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                                       FontSize="10" FontWeight="SemiBold" />
+                                                                        </Grid>
+                                                                    </Button>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </ScrollViewer>
+                                    </Grid>
+                                </Border>
+                                <UniformGrid Grid.Row="2" Columns="3" Margin="0,5,0,0">
+                                    <Button Content="ALL"
+                                            Command="{Binding CurrentScreen.Review.SelectAllInspectionBeamsCommand}"
+                                            Style="{StaticResource ReviewRuleChoiceButton}"
+                                            Height="28" MinWidth="0" Margin="0,0,4,0" FontSize="11" />
+                                    <Button Content="CLEAR"
+                                            Command="{Binding CurrentScreen.Review.ClearInspectionBeamsCommand}"
+                                            Style="{StaticResource ReviewRuleChoiceButton}"
+                                            Height="28" MinWidth="0" Margin="2,0" FontSize="11" />
+                                    <Button Content="{Binding CurrentScreen.Review.InspectionListCommitText}"
+                                            Command="{Binding CurrentScreen.Review.AddInspectionShotCommand}"
+                                            Style="{StaticResource ReviewCommandButton}"
+                                            Height="28"
+                                            MinWidth="0"
+                                            Margin="4,0,0,0"
+                                            FontSize="11"
+                                            FontWeight="Bold"
+                                            Background="{DynamicResource ButtonSuccessBrush}"
+                                            BorderBrush="{DynamicResource StatusReadyBrush}" />
+                                </UniformGrid>
+                            </Grid>
+                        </Border>
+                    </Grid>
                 </Grid>
             </Border>
 
@@ -928,20 +1391,8 @@
                             <Style TargetType="RowDefinition">
                                 <Setter Property="Height" Value="Auto" />
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding CurrentScreen.Review.IsAllShotReviewMode}" Value="True">
-                                        <Setter Property="Height" Value="*" />
-                                        <Setter Property="MaxHeight" Value="{Binding ActualWidth, ElementName=ReviewBeamSelectionPanel}" />
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding CurrentScreen.Review.IsOneLineReviewMode}" Value="True">
-                                        <Setter Property="Height" Value="*" />
-                                        <Setter Property="MaxHeight" Value="{Binding ActualWidth, ElementName=ReviewBeamSelectionPanel}" />
-                                    </DataTrigger>
                                     <DataTrigger Binding="{Binding CurrentScreen.Review.IsBeamInspectionMode}" Value="True">
                                         <Setter Property="Height" Value="*" />
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding CurrentScreen.Review.IsOneShotReviewMode}" Value="True">
-                                        <Setter Property="Height" Value="*" />
-                                        <Setter Property="MaxHeight" Value="{Binding ActualWidth, ElementName=ReviewBeamSelectionPanel}" />
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
@@ -979,47 +1430,14 @@
                 <Border x:Name="ReviewBeamSelectionPanel" Grid.Row="0"
                         Style="{StaticResource PanelBorder}"
                         Padding="10"
-                        Visibility="{Binding CurrentScreen.Review.IsBeamSelectionVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        Visibility="{Binding CurrentScreen.Review.IsSingleBeamSelectionMode, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <Grid>
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
-                        <Border Grid.Row="0"
-                                Margin="0,0,0,8"
-                                Padding="8,6"
-                                Background="{DynamicResource PanelAltBackgroundBrush}"
-                                BorderBrush="{DynamicResource PanelBorderBrush}"
-                                BorderThickness="1"
-                                Visibility="{Binding CurrentScreen.Review.IsRunStageStatusVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <StackPanel VerticalAlignment="Center">
-                                    <TextBlock Text="Stage Y Cur (mm)" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" />
-                                    <TextBlock Text="{Binding CurrentScreen.Review.Camera.StageY}"
-                                               FontSize="16" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" />
-                                </StackPanel>
-                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                    <TextBlock Text="Review X Cur (mm)" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" />
-                                    <TextBlock Text="{Binding CurrentScreen.Review.Camera.ReviewX}"
-                                               FontSize="16" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" />
-                                </StackPanel>
-                                <TextBlock Grid.Column="2"
-                                           Text="{Binding CurrentScreen.Review.Camera.Mode}"
-                                           Margin="6,0,0,0"
-                                           VerticalAlignment="Center"
-                                           FontSize="10"
-                                           FontWeight="SemiBold"
-                                           Foreground="{DynamicResource TextSecondaryBrush}" />
-                            </Grid>
-                        </Border>
-                        <StackPanel Grid.Row="1">
+                        <StackPanel Grid.Row="0">
                           <Grid>
                             <TextBlock Text="Beam Selection"
                                        Style="{StaticResource ReviewPanelTitle}"
@@ -1049,11 +1467,20 @@
                                        ToolTip="{Binding CurrentScreen.Review.InspectionProgressText}" />
                           </StackPanel>
                         </StackPanel>
-                        <Border Grid.Row="2"
+                        <ComboBox Grid.Row="1"
+                                  Height="44"
+                                  Margin="0,2,0,0"
+                                  ItemsSource="{Binding CurrentScreen.Review.BeamOptions}"
+                                  SelectedItem="{Binding CurrentScreen.Review.SelectedBeam, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                  IsEnabled="{Binding CurrentScreen.Review.CanSelectBeam}"
+                                  Style="{StaticResource ReviewComboBox}"
+                                  Visibility="{Binding CurrentScreen.Review.IsSingleBeamSelectionMode, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                        <Border Grid.Row="1"
                                 Background="{DynamicResource GridBackgroundBrush}"
                                 BorderBrush="{DynamicResource ButtonSecondaryBorderBrush}"
                                 BorderThickness="1"
-                                Padding="6">
+                                Padding="6"
+                                Visibility="{Binding CurrentScreen.Review.IsBeamInspectionMode, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <Border.Style>
                                 <Style TargetType="Border">
                                     <Style.Triggers>
@@ -1163,7 +1590,7 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                         </Border>
-                        <UniformGrid Grid.Row="3"
+                        <UniformGrid Grid.Row="2"
                                      Columns="2"
                                      Margin="0,12,0,0"
                                      IsEnabled="{Binding CurrentScreen.Review.CanSelectBeam}"
@@ -1185,6 +1612,262 @@
                         </UniformGrid>
                     </Grid>
                 </Border>
+
+                <Grid x:Name="BeamInspectionSelectionPanel"
+                      Grid.Row="0"
+                      Visibility="{Binding CurrentScreen.Review.IsBeamInspectionMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="8" />
+                        <RowDefinition Height="320" />
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0"
+                            Style="{StaticResource PanelBorder}"
+                            Padding="10">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0" Margin="0,0,0,8">
+                            <Grid>
+                                <TextBlock Text="INSPECTION SHOT LIST"
+                                           Style="{StaticResource ReviewPanelTitle}"
+                                           FontSize="16" />
+                                <TextBlock Text="{Binding CurrentScreen.Review.BeamInspectionAssignmentSummary}"
+                                           HorizontalAlignment="Right"
+                                           Foreground="{DynamicResource AccentTextBrush}"
+                                           FontSize="13"
+                                           FontWeight="SemiBold" />
+                            </Grid>
+                        </StackPanel>
+
+                        <DataGrid Grid.Row="1"
+                                  ItemsSource="{Binding CurrentScreen.Review.BeamInspectionShotAssignments}"
+                                  SelectedItem="{Binding CurrentScreen.Review.SelectedBeamInspectionAssignment, Mode=TwoWay}"
+                                  Style="{StaticResource PlainDataGrid}"
+                                  IsReadOnly="True"
+                                  SelectionMode="Single"
+                                  SelectionUnit="FullRow"
+                                  RowHeight="30"
+                                  ColumnHeaderHeight="28"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  VerticalScrollBarVisibility="Auto">
+                            <DataGrid.CellStyle>
+                                <Style TargetType="DataGridCell" BasedOn="{StaticResource PlainDataGridCell}">
+                                    <Setter Property="Padding" Value="4,2" />
+                                </Style>
+                            </DataGrid.CellStyle>
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="#" Binding="{Binding IndexText}" Width="34" />
+                                <DataGridTextColumn Header="CELL" Binding="{Binding CellText}" Width="70" />
+                                <DataGridTextColumn Header="HEAD" Binding="{Binding HeadText}" Width="58" />
+                                <DataGridTextColumn Header="SHOT" Binding="{Binding ShotName}" Width="68" />
+                                <DataGridTemplateColumn Header="BEAMS" Width="*">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding BeamText}"
+                                                       ToolTip="{Binding BeamText}"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       VerticalAlignment="Center" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="STATE" Width="86">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding State}"
+                                                       Foreground="{Binding StateBrush}"
+                                                       FontWeight="Bold"
+                                                       TextAlignment="Center"
+                                                       VerticalAlignment="Center" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <UniformGrid Grid.Row="2" Columns="2" Margin="0,8,0,0">
+                            <Button Content="DELETE"
+                                    Command="{Binding CurrentScreen.Review.DeleteInspectionShotCommand}"
+                                    Style="{StaticResource ReviewRuleChoiceButton}"
+                                    Height="36"
+                                    MinWidth="0"
+                                    Margin="0,0,4,0"
+                                    FontSize="13" />
+                            <Button Content="CLEAR ALL"
+                                    Command="{Binding CurrentScreen.Review.ClearInspectionShotsCommand}"
+                                    Style="{StaticResource ReviewRuleChoiceButton}"
+                                    Height="36"
+                                    MinWidth="0"
+                                    Margin="4,0,0,0"
+                                    FontSize="13" />
+                        </UniformGrid>
+                        </Grid>
+                    </Border>
+
+                        <Border Grid.Row="2"
+                                Background="{DynamicResource GridBackgroundBrush}"
+                                BorderBrush="{DynamicResource PanelBorderBrush}"
+                                BorderThickness="1"
+                                Padding="7">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <Grid>
+                                    <TextBlock Text="BEAM RESULTS"
+                                               Style="{StaticResource ReviewPanelTitle}"
+                                               FontSize="14" />
+                                    <TextBlock Text="{Binding CurrentScreen.Review.InspectionShotSummary}"
+                                               HorizontalAlignment="Right"
+                                               MaxWidth="360"
+                                               TextTrimming="CharacterEllipsis"
+                                               ToolTip="{Binding CurrentScreen.Review.InspectionShotSummary}"
+                                               Foreground="{DynamicResource AccentTextBrush}"
+                                               FontSize="11"
+                                               FontWeight="SemiBold" />
+                                </Grid>
+                                <TextBlock Grid.Row="1"
+                                           Text="{Binding CurrentScreen.Review.InspectionProgressText}"
+                                           Margin="0,2,0,5"
+                                           FontSize="9"
+                                           Foreground="{DynamicResource TextMutedBrush}"
+                                           TextTrimming="CharacterEllipsis"
+                                           ToolTip="{Binding CurrentScreen.Review.InspectionProgressText}" />
+                                <ItemsControl Grid.Row="2"
+                                              ItemsSource="{Binding CurrentScreen.Review.InspectionBeamResultRows}"
+                                              HorizontalAlignment="Stretch"
+                                              VerticalAlignment="Stretch">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <UniformGrid Columns="1" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <ItemsControl ItemsSource="{Binding Beams}"
+                                                          HorizontalAlignment="Stretch"
+                                                          VerticalAlignment="Stretch">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <UniformGrid Columns="4" />
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Margin="2"
+                                                                Padding="4,2"
+                                                                CornerRadius="2">
+                                                            <Border.Style>
+                                                                <Style TargetType="Border">
+                                                                    <Setter Property="Background" Value="{Binding BackgroundBrush}" />
+                                                                    <Setter Property="BorderBrush" Value="{Binding BorderBrush}" />
+                                                                    <Setter Property="BorderThickness" Value="2" />
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                                                                            <DataTrigger.EnterActions>
+                                                                                <BeginStoryboard x:Name="BeamResultOngoingBlink">
+                                                                                    <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                                                                        <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                                                         From="1"
+                                                                                                         To="0.40"
+                                                                                                         Duration="0:0:0.4" />
+                                                                                    </Storyboard>
+                                                                                </BeginStoryboard>
+                                                                            </DataTrigger.EnterActions>
+                                                                            <DataTrigger.ExitActions>
+                                                                                <StopStoryboard BeginStoryboardName="BeamResultOngoingBlink" />
+                                                                            </DataTrigger.ExitActions>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Border.Style>
+                                                            <Grid>
+                                                                <Grid.RowDefinitions>
+                                                                    <RowDefinition Height="Auto" />
+                                                                    <RowDefinition Height="*" />
+                                                                </Grid.RowDefinitions>
+                                                                <Grid>
+                                                                    <TextBlock Text="{Binding BeamName}"
+                                                                               Foreground="{Binding TextBrush}"
+                                                                               FontSize="10"
+                                                                               FontWeight="Bold" />
+                                                                    <TextBlock Text="{Binding InspectionStatus}"
+                                                                               HorizontalAlignment="Right"
+                                                                               Foreground="{Binding StateBrush}"
+                                                                               FontSize="9"
+                                                                               FontWeight="Bold" />
+                                                                </Grid>
+                                                                <TextBlock Grid.Row="1"
+                                                                           Text="{Binding InspectionResultText}"
+                                                                           Foreground="{Binding TextBrush}"
+                                                                           FontSize="9"
+                                                                           FontWeight="SemiBold"
+                                                                           LineHeight="11"
+                                                                           LineStackingStrategy="BlockLineHeight"
+                                                                           HorizontalAlignment="Center"
+                                                                           VerticalAlignment="Center"
+                                                                           TextAlignment="Center">
+                                                                    <TextBlock.Style>
+                                                                        <Style TargetType="TextBlock">
+                                                                            <Setter Property="Visibility" Value="Visible" />
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding InspectionStatus}" Value="NOT SELECTED">
+                                                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                                                </DataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </TextBlock.Style>
+                                                                </TextBlock>
+                                                                <Grid Grid.RowSpan="2"
+                                                                      Margin="8"
+                                                                      Panel.ZIndex="2"
+                                                                      IsHitTestVisible="False">
+                                                                    <Grid.Style>
+                                                                        <Style TargetType="Grid">
+                                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding InspectionStatus}" Value="NOT SELECTED">
+                                                                                    <Setter Property="Visibility" Value="Visible" />
+                                                                                </DataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </Grid.Style>
+                                                                    <Border Height="3"
+                                                                            Background="#B05B6F84"
+                                                                            VerticalAlignment="Center"
+                                                                            RenderTransformOrigin="0.5,0.5">
+                                                                        <Border.RenderTransform>
+                                                                            <RotateTransform Angle="24" />
+                                                                        </Border.RenderTransform>
+                                                                    </Border>
+                                                                    <Border Height="3"
+                                                                            Background="#B05B6F84"
+                                                                            VerticalAlignment="Center"
+                                                                            RenderTransformOrigin="0.5,0.5">
+                                                                        <Border.RenderTransform>
+                                                                            <RotateTransform Angle="-24" />
+                                                                        </Border.RenderTransform>
+                                                                    </Border>
+                                                                </Grid>
+                                                            </Grid>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Grid>
+                        </Border>
+
+                    </Grid>
 
                 <StackPanel x:Name="BeamInspectionRunCommands" Grid.Row="1"
                       Margin="0,8,0,0"
@@ -1312,6 +1995,44 @@
                                 IsEnabled="{Binding CurrentScreen.Review.CanStopOneShot}" Style="{StaticResource ReviewCommandButton}"
                                 Height="32" MinWidth="0" Margin="0,4,0,0"
                                 Background="{DynamicResource ButtonDangerBrush}" BorderBrush="{DynamicResource ButtonDangerBorderBrush}" />
+                        <Grid Margin="0,7,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Button Content="LAST RESULT LOAD"
+                                    Command="{Binding CurrentScreen.Review.LoadLastRunReviewResultCommand}"
+                                    Style="{StaticResource ReviewRuleChoiceButton}"
+                                    Height="32"
+                                    MinWidth="0"
+                                    Margin="0"
+                                    FontSize="11" />
+                            <Button Grid.Column="2"
+                                    Content="LOAD CLEAR"
+                                    Command="{Binding CurrentScreen.Review.ClearLoadedRunReviewResultCommand}"
+                                    Style="{StaticResource ReviewRuleChoiceButton}"
+                                    Height="32"
+                                    MinWidth="0"
+                                    Margin="0"
+                                    FontSize="11" />
+                        </Grid>
+                        <StackPanel Margin="0,6,0,0"
+                                    Visibility="{Binding CurrentScreen.Review.IsRunReviewResultLoading, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <TextBlock Text="LAST RESULT LOAD 중..."
+                                       FontSize="11"
+                                       FontWeight="Bold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}" />
+                            <ProgressBar Height="8"
+                                         Margin="0,4,0,0"
+                                         IsIndeterminate="True" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding CurrentScreen.Review.RunResultLoadStatus}"
+                                   ToolTip="{Binding CurrentScreen.Review.RunResultLoadStatus}"
+                                   Margin="0,4,0,0"
+                                   FontSize="10"
+                                   TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" />
                     </StackPanel>
                 </Border>
 
@@ -1320,14 +2041,54 @@
                         Margin="0,8,0,0"
                         Padding="10" VerticalAlignment="Top"
                         Visibility="{Binding CurrentScreen.Review.IsAllShotStyleReviewMode, Converter={StaticResource BooleanToVisibilityConverter}}">
-                    <UniformGrid Columns="2">
-                        <Button x:Name="AllShotStartButton" Content="START" Command="{Binding CurrentScreen.Review.StartCommand}"
-                                Style="{StaticResource ReviewCommandButton}" Height="40" MinWidth="0" Margin="0,0,4,0"
-                                Background="{DynamicResource ButtonSuccessBrush}" BorderBrush="{DynamicResource StatusReadyBrush}" />
-                        <Button x:Name="AllShotStopButton" Content="STOP" Command="{Binding CurrentScreen.Review.StopCommand}"
-                                Style="{StaticResource ReviewCommandButton}" Height="40" MinWidth="0" Margin="4,0,0,0"
-                                Background="{DynamicResource ButtonDangerBrush}" BorderBrush="{DynamicResource ButtonDangerBorderBrush}" />
-                    </UniformGrid>
+                    <StackPanel>
+                        <UniformGrid Columns="2">
+                            <Button x:Name="AllShotStartButton" Content="START" Command="{Binding CurrentScreen.Review.StartCommand}"
+                                    Style="{StaticResource ReviewCommandButton}" Height="40" MinWidth="0" Margin="0,0,4,0"
+                                    Background="{DynamicResource ButtonSuccessBrush}" BorderBrush="{DynamicResource StatusReadyBrush}" />
+                            <Button x:Name="AllShotStopButton" Content="STOP" Command="{Binding CurrentScreen.Review.StopCommand}"
+                                    Style="{StaticResource ReviewCommandButton}" Height="40" MinWidth="0" Margin="4,0,0,0"
+                                    Background="{DynamicResource ButtonDangerBrush}" BorderBrush="{DynamicResource ButtonDangerBorderBrush}" />
+                        </UniformGrid>
+                        <Grid Margin="0,8,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Button Content="LAST RESULT LOAD"
+                                    Command="{Binding CurrentScreen.Review.LoadLastRunReviewResultCommand}"
+                                    Style="{StaticResource ReviewRuleChoiceButton}"
+                                    Height="36"
+                                    MinWidth="0"
+                                    Margin="0"
+                                    FontSize="12" />
+                            <Button Grid.Column="2"
+                                    Content="LOAD CLEAR"
+                                    Command="{Binding CurrentScreen.Review.ClearLoadedRunReviewResultCommand}"
+                                    Style="{StaticResource ReviewRuleChoiceButton}"
+                                    Height="36"
+                                    MinWidth="0"
+                                    Margin="0"
+                                    FontSize="12" />
+                        </Grid>
+                        <StackPanel Margin="0,7,0,0"
+                                    Visibility="{Binding CurrentScreen.Review.IsRunReviewResultLoading, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <TextBlock Text="LAST RESULT LOAD 중..."
+                                       FontSize="12"
+                                       FontWeight="Bold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}" />
+                            <ProgressBar Height="9"
+                                         Margin="0,4,0,0"
+                                         IsIndeterminate="True" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding CurrentScreen.Review.RunResultLoadStatus}"
+                                   ToolTip="{Binding CurrentScreen.Review.RunResultLoadStatus}"
+                                   Margin="0,5,0,0"
+                                   FontSize="10"
+                                   TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                    </StackPanel>
                 </Border>
             </Grid>
         </Grid>

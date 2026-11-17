@@ -7,6 +7,7 @@ using Drilling.Common.Motion;
 using Drilling.Common.Alarm;
 using Drilling.Common.InterLock;
 using Drilling.Common.Station;
+using Drilling.Common.Review;
 using System.Windows.Media;
 using Drilling.UI.Popup;
 
@@ -446,6 +447,9 @@ public sealed class CMenuSetting : CMenuBase
         catch (InvalidDataException exception)
         {
             _setStatusMessage(exception.Message);
+            CRecipeConfirmDialog.ShowWarning(
+                "설정 저장 불가",
+                $"입력값이 올바르지 않아 설정을 저장하지 않았습니다.\n\n{exception.Message}");
             return;
         }
         catch (IOException exception)
@@ -1145,6 +1149,7 @@ public sealed class ST_SYSTEM_PARAMETER_ROW : CBindingBase
             OnPropertyChanged(nameof(IsModified));
             OnPropertyChanged(nameof(ModifiedText));
             OnPropertyChanged(nameof(ModifiedBrush));
+            OnPropertyChanged(nameof(ColorBrush));
         }
     }
 
@@ -1169,6 +1174,31 @@ public sealed class ST_SYSTEM_PARAMETER_ROW : CBindingBase
         get
         {
             return DataType == EN_RECIPE_DATA_TYPE.Bool;
+        }
+    }
+
+    public bool IsColorSetting => CReviewResultLevelSettings.IsColorKey(Key);
+
+    public Brush ColorBrush
+    {
+        get
+        {
+            if (!IsColorSetting)
+            {
+                return Brushes.Transparent;
+            }
+
+            try
+            {
+                var color = (Color)ColorConverter.ConvertFromString(CReviewResultLevelSettings.NormalizeColor(Value));
+                var brush = new SolidColorBrush(color);
+                brush.Freeze();
+                return brush;
+            }
+            catch (Exception)
+            {
+                return Brushes.Transparent;
+            }
         }
     }
 

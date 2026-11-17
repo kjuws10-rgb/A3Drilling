@@ -134,6 +134,7 @@ namespace Drilling.Common.Managers
                     var tolerance = parameters.FirstOrDefault(p => p.Key.Equals(WapageAlignBaseToleranceKey, StringComparison.OrdinalIgnoreCase));
                     if (tolerance is not null && (!double.TryParse(tolerance.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var toleranceValue) || !double.IsFinite(toleranceValue) || toleranceValue < 0))
                         throw new InvalidDataException("Setting-Align Wapage_AlignBase_Tolerance는 0 이상의 유한한 mm 값이어야 합니다.");
+                    _ = CReviewResultLevelSettings.Read(parameters);
                     var edited = CRunOptionSettings.Read(parameters);
                     var current = CRunOptionSettings.Read(LoadSection(section, cancellationToken));
                     var able = interfaceManager?.Melsec.GetCachedValue("HANDSHAKE_PRC_REVIEW_ABLE");

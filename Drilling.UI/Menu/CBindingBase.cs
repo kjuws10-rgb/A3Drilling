@@ -3,6 +3,24 @@
 namespace Drilling.UI.Menu;
 public abstract class CBindingBase
 {
+    public event EventHandler? ActiveInspectionShotTextChanged;
+    public event EventHandler? IsActiveSelectionChanged;
+    public event EventHandler? BeamInspectionAssignmentSummaryChanged;
+    public event EventHandler? BeamInspectionShotAssignmentsChanged;
+    public event EventHandler? CanBrowseRunShotsChanged;
+    public event EventHandler? CanClearLoadedRunReviewResultChanged;
+    public event EventHandler? CanCommitInspectionShotChanged;
+    public event EventHandler? CanDeleteInspectionShotChanged;
+    public event EventHandler? CanEditActiveInspectionBeamsChanged;
+    public event EventHandler? CanLoadRunReviewResultChanged;
+    public event EventHandler? CanStopOneShotChanged;
+    public event EventHandler? InspectionListCommitTextChanged;
+    public event EventHandler? IsReviewHeadCardsVisibleChanged;
+    public event EventHandler? IsRunStageStatusVisibleChanged;
+    public event EventHandler? IsShotInspectionOngoingChanged;
+    public event EventHandler? IsSingleBeamSelectionModeChanged;
+    public event EventHandler? ReviewLevelLegendItemsChanged;
+    public event EventHandler? SelectedBeamInspectionAssignmentChanged;
     public event EventHandler? AbleBrushChanged;
     public event EventHandler? AccentBrushChanged;
     public event EventHandler? AccessChanged;
@@ -198,6 +216,7 @@ public abstract class CBindingBase
     public event EventHandler? GroupItemsChanged;
     public event EventHandler? GroupTabsChanged;
     public event EventHandler? HasCommandChanged;
+    public event EventHandler? HasResultChanged;
     public event EventHandler? HeadAssignmentAreasChanged;
     public event EventHandler? HeadCardsChanged;
     public event EventHandler? HeadGroupsChanged;
@@ -289,6 +308,7 @@ public abstract class CBindingBase
     public event EventHandler? IsRunBeamDetailVisibleChanged;
     public event EventHandler? IsRunCellDetailVisibleChanged;
     public event EventHandler? IsRunGlassPreviewVisibleChanged;
+    public event EventHandler? IsRunReviewResultLoadingChanged;
     public event EventHandler? IsRunShotMapVisibleChanged;
     public event EventHandler? IsZPositionMoveEnabledChanged;
     public event EventHandler? IsRunTabChanged;
@@ -516,6 +536,7 @@ public abstract class CBindingBase
     public event EventHandler? RowChanged;
     public event EventHandler? RowBrushChanged;
     public event EventHandler? RunBeamRowsChanged;
+    public event EventHandler? InspectionBeamResultRowsChanged;
     public event EventHandler? RunCellShotMatrixRowsChanged;
     public event EventHandler? RunCellShotRowsChanged;
     public event EventHandler? RunCellPreviewLabelsChanged;
@@ -536,6 +557,7 @@ public abstract class CBindingBase
     public event EventHandler? RunGlassPreviewImageChanged;
     public event EventHandler? RunGlassPreviewInspectionOverlayImageChanged;
     public event EventHandler? RunGlassPreviewSummaryChanged;
+    public event EventHandler? RunResultLoadStatusChanged;
     public event EventHandler? RunWorkspaceSummaryChanged;
     public event EventHandler? RunWorkspaceTitleChanged;
     public event EventHandler? SampleCorrectionTargetChanged;
@@ -602,6 +624,7 @@ public abstract class CBindingBase
     public event EventHandler? SelectedSampleCellChanged;
     public event EventHandler? SelectedSampleHeadChanged;
     public event EventHandler? SelectedShotDetailImageChanged;
+    public event EventHandler? SelectedShotInspectionChanged;
     public event EventHandler? SelectedShotGroupChanged;
     public event EventHandler? SelectedShotGroupBeamTextChanged;
     public event EventHandler? SelectedShotGroupCenterTextChanged;
@@ -762,6 +785,60 @@ public abstract class CBindingBase
     {
         switch (propertyName)
         {
+            case "ActiveInspectionShotText":
+                ActiveInspectionShotTextChanged?.Invoke(this, EventArgs.Empty);
+                break;
+            case "IsActiveSelection":
+                IsActiveSelectionChanged?.Invoke(this, EventArgs.Empty);
+                break;
+            case "BeamInspectionAssignmentSummary":
+                BeamInspectionAssignmentSummaryChanged?.Invoke(this, EventArgs.Empty);
+                break;
+            case "BeamInspectionShotAssignments":
+                BeamInspectionShotAssignmentsChanged?.Invoke(this, EventArgs.Empty);
+                break;
+            case "CanBrowseRunShots":
+                CanBrowseRunShotsChanged?.Invoke(this, EventArgs.Empty);
+                break;
+            case "CanClearLoadedRunReviewResult":
+                CanClearLoadedRunReviewResultChanged?.Invoke(this, EventArgs.Empty);
+                break;
+            case "CanCommitInspectionShot":
+                CanCommitInspectionShotChanged?.Invoke(this, EventArgs.Empty);
+                break;
+            case "CanDeleteInspectionShot":
+                CanDeleteInspectionShotChanged?.Invoke(this, EventArgs.Empty);
+                break;
+            case "CanEditActiveInspectionBeams":
+                CanEditActiveInspectionBeamsChanged?.Invoke(this, EventArgs.Empty);
+                break;
+            case "CanLoadRunReviewResult":
+                CanLoadRunReviewResultChanged?.Invoke(this, EventArgs.Empty);
+                break;
+            case "CanStopOneShot":
+                CanStopOneShotChanged?.Invoke(this, EventArgs.Empty);
+                break;
+            case "InspectionListCommitText":
+                InspectionListCommitTextChanged?.Invoke(this, EventArgs.Empty);
+                break;
+            case "IsReviewHeadCardsVisible":
+                IsReviewHeadCardsVisibleChanged?.Invoke(this, EventArgs.Empty);
+                break;
+            case "IsRunStageStatusVisible":
+                IsRunStageStatusVisibleChanged?.Invoke(this, EventArgs.Empty);
+                break;
+            case "IsShotInspectionOngoing":
+                IsShotInspectionOngoingChanged?.Invoke(this, EventArgs.Empty);
+                break;
+            case "IsSingleBeamSelectionMode":
+                IsSingleBeamSelectionModeChanged?.Invoke(this, EventArgs.Empty);
+                break;
+            case "ReviewLevelLegendItems":
+                ReviewLevelLegendItemsChanged?.Invoke(this, EventArgs.Empty);
+                break;
+            case "SelectedBeamInspectionAssignment":
+                SelectedBeamInspectionAssignmentChanged?.Invoke(this, EventArgs.Empty);
+                break;
             case "AbleBrush":
                 AbleBrushChanged?.Invoke(this, EventArgs.Empty);
                 break;
@@ -1347,6 +1424,9 @@ public abstract class CBindingBase
             case "HasCommand":
                 HasCommandChanged?.Invoke(this, EventArgs.Empty);
                 break;
+            case "HasResult":
+                HasResultChanged?.Invoke(this, EventArgs.Empty);
+                break;
             case "HeadAssignmentAreas":
                 HeadAssignmentAreasChanged?.Invoke(this, EventArgs.Empty);
                 break;
@@ -1619,6 +1699,9 @@ public abstract class CBindingBase
                 break;
             case "IsRunGlassPreviewVisible":
                 IsRunGlassPreviewVisibleChanged?.Invoke(this, EventArgs.Empty);
+                break;
+            case "IsRunReviewResultLoading":
+                IsRunReviewResultLoadingChanged?.Invoke(this, EventArgs.Empty);
                 break;
             case "IsRunShotMapVisible":
                 IsRunShotMapVisibleChanged?.Invoke(this, EventArgs.Empty);
@@ -2301,6 +2384,9 @@ public abstract class CBindingBase
             case "RunBeamRows":
                 RunBeamRowsChanged?.Invoke(this, EventArgs.Empty);
                 break;
+            case "InspectionBeamResultRows":
+                InspectionBeamResultRowsChanged?.Invoke(this, EventArgs.Empty);
+                break;
             case "RunCellShotMatrixRows":
                 RunCellShotMatrixRowsChanged?.Invoke(this, EventArgs.Empty);
                 break;
@@ -2360,6 +2446,9 @@ public abstract class CBindingBase
                 break;
             case "RunGlassPreviewSummary":
                 RunGlassPreviewSummaryChanged?.Invoke(this, EventArgs.Empty);
+                break;
+            case "RunResultLoadStatus":
+                RunResultLoadStatusChanged?.Invoke(this, EventArgs.Empty);
                 break;
             case "RunWorkspaceSummary":
                 RunWorkspaceSummaryChanged?.Invoke(this, EventArgs.Empty);
@@ -2558,6 +2647,9 @@ public abstract class CBindingBase
                 break;
             case "SelectedShotDetailImage":
                 SelectedShotDetailImageChanged?.Invoke(this, EventArgs.Empty);
+                break;
+            case "SelectedShotInspection":
+                SelectedShotInspectionChanged?.Invoke(this, EventArgs.Empty);
                 break;
             case "SelectedShotGroup":
                 SelectedShotGroupChanged?.Invoke(this, EventArgs.Empty);

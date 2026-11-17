@@ -1420,20 +1420,17 @@
         private static IReadOnlyList<ST_SHIFT_OFFSET_HEAD_ROW> BuildShiftOffsetHeadRows(IReadOnlyDictionary<string, string> parameters, double shiftOffsetX, double shiftOffsetY)
         {
             var headCount = Math.Clamp(ReadShiftOffsetPreviewInt(parameters, 8, "HEAD_COUNT"), 1, 8);
-            var basePlan = CShotCoordinatePlanBuilder.Build(CreateShiftOffsetParameters(parameters, 0.0, 0.0));
-            var shiftedPlan = CShotCoordinatePlanBuilder.Build(CreateShiftOffsetParameters(parameters, shiftOffsetX, shiftOffsetY));
-            var baseShots = basePlan.Shots.ToDictionary(CreateShiftOffsetShotKey, StringComparer.OrdinalIgnoreCase);
             var rows = new List<ST_SHIFT_OFFSET_HEAD_ROW>(headCount);
             for (var headNo = 1; headNo <= headCount; headNo++)
             {
-                var shiftedShot = shiftedPlan.Shots.FirstOrDefault(shot => shot.HeadNo == headNo);
-                if (shiftedShot is null || !baseShots.TryGetValue(CreateShiftOffsetShotKey(shiftedShot), out var baseShot))
-                {
-                    rows.Add(new ST_SHIFT_OFFSET_HEAD_ROW(headNo, $"H{headNo:00}", "-", "-"));
-                    continue;
-                }
-
-                rows.Add(new ST_SHIFT_OFFSET_HEAD_ROW(headNo, $"H{headNo:00}", FormatShiftOffsetPreviewValue(shiftedShot.ScannerGx - baseShot.ScannerGx), FormatShiftOffsetPreviewValue(shiftedShot.ScannerGy - baseShot.ScannerGy)));
+                // The full coordinate builder applies Shift Offset through this exact
+                // transform. Avoid rebuilding every Shot twice on each key stroke.
+                var scannerShift = CScannerAxisTransform.DesignOffsetToScanner(parameters, headNo, shiftOffsetX, shiftOffsetY);
+                rows.Add(new ST_SHIFT_OFFSET_HEAD_ROW(
+                    headNo,
+                    $"H{headNo:00}",
+                    FormatShiftOffsetPreviewValue(scannerShift.X),
+                    FormatShiftOffsetPreviewValue(scannerShift.Y)));
             }
 
             return rows;
@@ -1446,11 +1443,6 @@
                 [ShiftOffsetXKey] = shiftOffsetX.ToString("0.000000", CultureInfo.InvariantCulture),
                 [ShiftOffsetYKey] = shiftOffsetY.ToString("0.000000", CultureInfo.InvariantCulture)
             };
-        }
-
-        private static string CreateShiftOffsetShotKey(ST_HEAD_SHOT_POINT shot)
-        {
-            return $"{shot.HeadNo}|{shot.CellNo}|{shot.ShotKey}";
         }
 
         private static string? ValidateShiftOffsetApply(IReadOnlyDictionary<string, string> baseParameters, double shiftOffsetX, double shiftOffsetY)

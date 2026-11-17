@@ -635,11 +635,11 @@ internal static class CReviewGlassPreviewBuilder
 
                         CanvasHeight,
 
-                        filledCellNos is null ? isSelectedCell : hasSelectedShots
+                        isSelectedCell
                     );
                     if (label is not null)
                     {
-                        labels.Add(label);
+                        labels.Add(label with { HasSelectedShots = hasSelectedShots });
                     }
                 }
             }

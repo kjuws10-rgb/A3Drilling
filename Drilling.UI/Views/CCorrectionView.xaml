@@ -231,9 +231,6 @@
                     Background="Transparent" BorderThickness="0" Padding="0"
                     Visibility="{Binding CurrentScreen.Correction.IsReviewCorrectionTab, Converter={StaticResource BooleanToVisibilityConverter}}">
             <TabControl.Resources>
-                <DataTemplate x:Key="ReviewInspectionTabContent">
-                    <views:CReviewView Margin="0,8,0,0" />
-                </DataTemplate>
                 <Style TargetType="TabItem">
                     <Setter Property="FontSize" Value="14" />
                     <Setter Property="FontWeight" Value="SemiBold" />
@@ -259,14 +256,9 @@
                     </Trigger></Style.Triggers>
                 </Style>
             </TabControl.Resources>
-            <TabItem Header="ALL SHOT" Tag="ALL SHOT" IsSelected="True"
-                     Content="{Binding}" ContentTemplate="{StaticResource ReviewInspectionTabContent}" />
-            <TabItem Header="ONE SHOT" Tag="ONE SHOT"
-                     Content="{Binding}" ContentTemplate="{StaticResource ReviewInspectionTabContent}" />
-            <TabItem Header="ONE LINE" Tag="ONE LINE"
-                     Content="{Binding}" ContentTemplate="{StaticResource ReviewInspectionTabContent}" />
-            <TabItem Header="BEAM INSP" Tag="BEAM INSPECTION"
-                     Content="{Binding}" ContentTemplate="{StaticResource ReviewInspectionTabContent}" />
+            <TabItem Header="INSPECTION" IsSelected="True">
+                <views:CReviewView Margin="0,8,0,0" />
+            </TabItem>
             <TabItem Header="SIMPLE">
                 <views:CSimpleCorrectionView Margin="0,8,0,0" DataContext="{Binding CurrentScreen.Correction.Simple}" />
             </TabItem>

@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Drilling.Common.Managers;
+using Drilling.Common.Review;
 using Drilling.UI.Menu.Menus;
 using Drilling.UI.Popup;
 
@@ -50,6 +51,21 @@ public partial class CSettingView : UserControl
         if (sender is not FrameworkElement { DataContext: ST_SYSTEM_PARAMETER_ROW row })
             return;
         e.Handled = true;
+        if (row.IsColorSetting)
+        {
+            var colorDialog = new CColorPickerDialog(row.Parameter, row.Value)
+            {
+                Owner = Window.GetWindow(this)
+            };
+            if (colorDialog.ShowDialog() == true)
+            {
+                row.Value = colorDialog.ResultColor;
+                CommitGridEdit(ParameterGrid);
+            }
+
+            return;
+        }
+
         var dialog = new CValueInputDialog(row.Parameter, row.Value, row.DataType, row.Min, row.Max)
         {
             Owner = Window.GetWindow(this)

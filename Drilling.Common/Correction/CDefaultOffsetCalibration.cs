@@ -26,6 +26,42 @@ public static class CDefaultOffsetCalibration
         return number;
     }
 
+    public static bool DoeExists(IReadOnlyDictionary<string, string> values, int head)
+    {
+        if (head is < 1 or > 8) throw new ArgumentOutOfRangeException(nameof(head));
+        var key = $"H{head:00}_DOE_EXIST";
+        if (!values.TryGetValue(key, out var text))
+            throw new InvalidOperationException($"Default 측정 설정을 확인해 주세요: {key}");
+        return text.Trim().ToUpperInvariant() switch
+        {
+            "ON" or "1" or "TRUE" => true,
+            "OFF" or "0" or "FALSE" => false,
+            _ => throw new InvalidOperationException($"Default 측정 설정은 ON 또는 OFF여야 합니다: {key}")
+        };
+    }
+
+    // DOE_EXIST changes only Default Offset inspection. Production and every
+    // other Review mode continue to use the operator-selected beam number.
+    public static int DefaultInspectionGridSize(IReadOnlyDictionary<string, string> values, int head, ST_DEFAULT_OFFSET_OPTIONS options)
+    {
+        ValidateOptions(options);
+        return DoeExists(values, head) ? options.DoeBeamGridSize : 1;
+    }
+
+    public static int DefaultInspectionPointCount(IReadOnlyDictionary<string, string> values, int head, ST_DEFAULT_OFFSET_OPTIONS options)
+    {
+        var gridSize = DefaultInspectionGridSize(values, head, options);
+        return gridSize * gridSize;
+    }
+
+    public static string DefaultInspectionDescription(IReadOnlyDictionary<string, string> values, int head, ST_DEFAULT_OFFSET_OPTIONS options)
+    {
+        if (DoeExists(values, head)) return options.InspectionDescription;
+        return options.MachiningMode == EN_DEFAULT_MACHINING_MODE.Cross
+            ? "DOE OFF · 중앙 십자 1점 측정"
+            : "DOE OFF · 중앙 1점 측정";
+    }
+
     // AK1 starts from the taught Recipe position. AK3 defaults to its design
     // position, but the measurement session may replace it with the actual
     // Review-X encoder position. The glass center is always their midpoint.
@@ -212,7 +248,7 @@ public static class CDefaultOffsetCalibration
         if (result.Head is < 1 or > 8 || !double.IsFinite(result.Q) || !hasCompleteDoeMeasurement ||
             result.Marks.Any(m => !double.IsFinite(m.EncoderX) || !double.IsFinite(m.EncoderY) ||
                 !double.IsFinite(m.CorrectionX) || !double.IsFinite(m.CorrectionY)))
-            throw new InvalidOperationException("Head 중심 계산에 완전한 DOE 1빔 또는 16빔 측정 좌표가 필요합니다.");
+            throw new InvalidOperationException("Head 중심 계산에 중앙 1점 또는 완전한 DOE 16점 측정 좌표가 필요합니다.");
         var targetX = options.BoardCenterX + (result.Head - 4.5) * Number(values, "HeadGapX");
         var direction = CScannerAxisTransform.ReadStageDirection(values);
         var gapY = values.ContainsKey($"H{result.Head:00}_AK_POSITION_Y") ? Number(values, $"H{result.Head:00}_AK_POSITION_Y")
@@ -268,19 +304,22 @@ public sealed record ST_DEFAULT_OFFSET_OPTIONS(double AlignKey1ReviewX, double A
     public EN_DEFAULT_MACHINING_MODE MachiningMode { get; init; } = EN_DEFAULT_MACHINING_MODE.Shot;
     public double CrossSize { get; init; } = 0.1;
     public int DoeBeamGridSize { get; init; } = 4;
+    // Nominal point count for a Head with DOE. DOE_EXIST=OFF is overridden to
+    // one center point by DefaultInspectionGridSize.
     public int InspectionPointCount => DoeBeamGridSize * DoeBeamGridSize;
     // The inspection command is part of the machining contract, not an independent
-    // operator option. Both modes inspect every DOE beam slot; a cross uses the
-    // registered setting mark while a shot uses the normal single-mark command.
+    // operator option. A DOE Head inspects every optical slot; a no-DOE Head
+    // inspects its center once. Cross uses the registered setting mark while Shot
+    // uses the normal single-mark command.
     public EN_ONE_SHOT_METHOD VisionMethod => MachiningMode == EN_DEFAULT_MACHINING_MODE.Cross
         ? EN_ONE_SHOT_METHOD.MarkFindSettingSingle
         : EN_ONE_SHOT_METHOD.MarkFindSingle;
     public string InspectionDescription => MachiningMode == EN_DEFAULT_MACHINING_MODE.Cross
-        ? $"DOE {InspectionPointCount}개 십자 측정"
-        : $"DOE {InspectionPointCount}빔 측정";
+        ? $"DOE ON {InspectionPointCount}개 십자 / DOE OFF 중앙 십자 1점 측정"
+        : $"DOE ON {InspectionPointCount}빔 / DOE OFF 중앙 1점 측정";
     public string MachiningDescription => MachiningMode == EN_DEFAULT_MACHINING_MODE.Cross
-        ? $"십자 가공 · DOE {DoeBeamGridSize}×{DoeBeamGridSize}, 총 {InspectionPointCount}개 형상 · 전체 길이 {CrossSize.ToString("0.#####", CultureInfo.InvariantCulture)} mm · Head Jump Speed 사용"
-        : $"샷 가공 · DOE {DoeBeamGridSize}×{DoeBeamGridSize}, 총 {InspectionPointCount}빔 · Head Shot Count 사용";
+        ? $"십자 가공 · DOE ON {DoeBeamGridSize}×{DoeBeamGridSize} / DOE OFF 중앙 1개 형상 · 전체 길이 {CrossSize.ToString("0.#####", CultureInfo.InvariantCulture)} mm · Head Jump Speed 사용"
+        : $"샷 가공 · DOE ON {DoeBeamGridSize}×{DoeBeamGridSize} / DOE OFF 중앙 1점 · Head Shot Count 사용";
     public string VisionDescription => VisionMethod == EN_ONE_SHOT_METHOD.MarkFindSettingSingle ? "Mark Find Setting Single" : "Mark Find Single";
 }
 public sealed record ST_DEFAULT_HEAD_GEOMETRY(double FieldHalfX, double FieldHalfY, double DoeAngle);
@@ -289,6 +328,7 @@ public sealed record ST_DEFAULT_OFFSET_MARK(int Beam, double X, double Y, double
 public sealed record ST_DEFAULT_OFFSET_FIT(double X, double Y, double Residual, double PitchX, double PitchY);
 public sealed record ST_DEFAULT_OFFSET_HEAD_RESULT(int Head, Guid TestId, double Q, double R, bool AutomationSimulation, bool StageSimulation, bool VisionSimulation, IReadOnlyList<ST_DEFAULT_OFFSET_MARK> Marks, ST_DEFAULT_OFFSET_FIT Fit)
 {
+    public bool DoeExists { get; init; } = true;
     public int Model { get; init; } = 1;
     public int ReferenceCell { get; init; } = 1;
     public ST_DEFAULT_HEAD_GEOMETRY? Geometry { get; init; }

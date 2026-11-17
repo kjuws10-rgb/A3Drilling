@@ -1359,22 +1359,50 @@ namespace Drilling.Common.Review
             if (shotKeys.Count == 0 || beamNos.Count == 0)
                 throw new InvalidOperationException("Shot과 Beam을 각각 하나 이상 선택해 주세요.");
             var beams = beamNos.Distinct().Order().ToArray();
+            var assignments = shotKeys
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Select(shotKey => new ST_BEAM_INSPECTION_ASSIGNMENT(shotKey, beams))
+                .ToArray();
+            return BuildBeamInspectionTargets(recipe, allPlan, assignments);
+        }
+
+        public static IReadOnlyList<ST_REVIEW_PLAN_POINT> BuildBeamInspectionTargets(
+            ST_RECIPE_DEFINITION recipe,
+            ST_REVIEW_PLAN allPlan,
+            IReadOnlyCollection<ST_BEAM_INSPECTION_ASSIGNMENT> assignments)
+        {
+            if (assignments.Count == 0)
+                throw new InvalidOperationException("검사할 Shot을 하나 이상 선택해 주세요.");
+            if (assignments.Any(assignment => string.IsNullOrWhiteSpace(assignment.ShotKey) || assignment.BeamNos.Count == 0))
+                throw new InvalidOperationException("선택한 모든 Shot에 Beam을 하나 이상 지정해 주세요.");
+
             var splitCount = ReadInt(recipe, 0, "SPLITED_BEAM_COUNT");
-            foreach (var beam in beams)
+            var normalizedAssignments = assignments
+                .GroupBy(assignment => NormalizeShotKey(assignment.ShotKey), StringComparer.OrdinalIgnoreCase)
+                .Select(group => new ST_BEAM_INSPECTION_ASSIGNMENT(
+                    group.Key,
+                    group.SelectMany(assignment => assignment.BeamNos).Distinct().Order().ToArray()))
+                .ToArray();
+            foreach (var beam in normalizedAssignments.SelectMany(assignment => assignment.BeamNos).Distinct())
                 ValidateBeamNo(beam, splitCount);
-            var shots = shotKeys.Distinct(StringComparer.OrdinalIgnoreCase).Select(key => TryParseShotKey(key, out var cell, out var shot) ? allPlan.FindPoint(cell, shot) : null).ToArray();
-            if (shots.Any(point => point is null || point.HeadNo <= 0 || !string.IsNullOrWhiteSpace(point.ExclusionReason)))
+            var shots = normalizedAssignments
+                .Select(assignment => (
+                    Assignment: assignment,
+                    Point: TryParseShotKey(assignment.ShotKey, out var cell, out var shot) ? allPlan.FindPoint(cell, shot) : null))
+                .ToArray();
+            if (shots.Any(item => item.Point is null || item.Point.HeadNo <= 0 || !string.IsNullOrWhiteSpace(item.Point.ExclusionReason)))
                 throw new InvalidOperationException("선택한 Shot에 미할당 또는 MASKING/CHESS 제외 항목이 있습니다. 선택을 확인해 주세요.");
             var targets = new List<ST_REVIEW_PLAN_POINT>();
-            foreach (var shot in shots.OfType<ST_REVIEW_PLAN_POINT>().OrderBy(p => p.CellNo).ThenBy(p => p.ShotNo))
+            foreach (var item in shots.OrderBy(item => item.Point!.CellNo).ThenBy(item => item.Point!.ShotNo))
             {
+                var shot = item.Point!;
                 var positions = GetShotBeamPositions(
                     recipe,
                     shot,
                     allPlan.StageScanDirectionY,
                     allPlan.ShiftOffsetX,
                     allPlan.ShiftOffsetY).ToDictionary(p => p.BeamNo);
-                foreach (var beam in beams)
+                foreach (var beam in item.Assignment.BeamNos)
                 {
                     var position = positions[beam];
                     targets.Add(shot with { PointNo = targets.Count + 1, BeamNo = beam, Use = true, ReviewTargetX = position.ReviewX, ReviewTargetY = position.StageY, State = EN_REVIEW_POINT_STATE.Ready, Judge = "WAIT", ErrorX = 0, ErrorY = 0, VisionResultCode = null, NgReason = "" });
@@ -1393,7 +1421,23 @@ namespace Drilling.Common.Review
             CancellationToken cancellationToken = default
         )
         {
-            var targets = BuildBeamInspectionTargets(recipe, allPlan, shotKeys, beamNos).ToArray();
+            var beams = beamNos.Distinct().Order().ToArray();
+            var assignments = shotKeys
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Select(shotKey => new ST_BEAM_INSPECTION_ASSIGNMENT(shotKey, beams))
+                .ToArray();
+            return await StartBeamInspection(recipe, allPlan, assignments, progress, cancellationToken);
+        }
+
+        public async Task<ST_BEAM_INSPECTION_SNAPSHOT> StartBeamInspection(
+            ST_RECIPE_DEFINITION recipe,
+            ST_REVIEW_PLAN allPlan,
+            IReadOnlyCollection<ST_BEAM_INSPECTION_ASSIGNMENT> assignments,
+            Action<ST_BEAM_INSPECTION_SNAPSHOT> progress,
+            CancellationToken cancellationToken = default
+        )
+        {
+            var targets = BuildBeamInspectionTargets(recipe, allPlan, assignments).ToArray();
             var stageSimulation = IsReviewDeviceSimulation(EN_EQP_MODULE.Melsec, GetReviewStageDeviceNo());
             var visionSimulation = IsReviewSimulation();
             if (!await _sequenceLock.WaitAsync(0, cancellationToken))
@@ -1513,6 +1557,23 @@ namespace Drilling.Common.Review
         }
 
         public Task<ST_BEAM_INSPECTION_RESULT_FILE_DATA?> LoadLastBeamInspection(CancellationToken cancellationToken = default) => reviewResultFile.LoadLastBeamInspection(cancellationToken);
+
+        public async Task<ST_REVIEW_RESULT_FILE_DATA?> LoadLastManualReviewResult(
+            string recipeId,
+            string resultType,
+            CancellationToken cancellationToken = default)
+        {
+            var normalizedRecipe = recipeId.Trim();
+            var normalizedType = resultType.Trim().ToUpperInvariant();
+            var catalog = await reviewResultFile.ListCorrectionResults(cancellationToken).ConfigureAwait(false);
+            var latest = catalog.FirstOrDefault(item =>
+                item.Source.Equals("MANUAL", StringComparison.OrdinalIgnoreCase)
+                && item.RecipeId.Equals(normalizedRecipe, StringComparison.OrdinalIgnoreCase)
+                && item.ResultType.Equals(normalizedType, StringComparison.OrdinalIgnoreCase));
+            return latest is null
+                ? null
+                : await reviewResultFile.Load(latest.FilePath, cancellationToken).ConfigureAwait(false);
+        }
 #endregion
 #region Execution
         private string? ResolveReviewProductId(ST_REVIEW_PLAN plan, string? productId)
@@ -3905,6 +3966,8 @@ namespace Drilling.Common.Review
 
         private sealed record ST_REVIEW_FAILURE_PART(string Stage, string Cause, string Action);
     }
+
+    public sealed record ST_BEAM_INSPECTION_ASSIGNMENT(string ShotKey, IReadOnlyCollection<int> BeamNos);
 
     public sealed record ST_BEAM_INSPECTION_SNAPSHOT(string RecipeId, IReadOnlyList<ST_REVIEW_PLAN_POINT> Points, EN_REVIEW_SEQUENCE_STATE State, int ActiveIndex, string Message, bool IsSimulation)
     {

@@ -23,6 +23,12 @@ namespace Drilling.UI.Menu.Menus
             private string _dataLoadHint = "DATA LOAD 불가능. 사유 : 검사 결과 파일을 선택하세요.";
             private Brush _dataLoadHintBrush = CStatusBrush.ForDisplayState("WAIT");
             private IReadOnlyDictionary<string, string> _loadedParameters = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            private ST_REVIEW_RESULT_LEVEL_SETTINGS _reviewLevelSettings = CReviewResultLevelSettings.Default;
+            private IReadOnlyDictionary<int, EN_REVIEW_RESULT_LEVEL> _cellLevels = new Dictionary<int, EN_REVIEW_RESULT_LEVEL>();
+            private Brush _reviewLevel1Brush = CreateReviewLevelBrush(CReviewResultLevelSettings.DefaultLevel1Color);
+            private Brush _reviewLevel2Brush = CreateReviewLevelBrush(CReviewResultLevelSettings.DefaultLevel2Color);
+            private Brush _reviewLevel3Brush = CreateReviewLevelBrush(CReviewResultLevelSettings.DefaultLevel3Color);
+            private Brush _reviewLevel4Brush = CreateReviewLevelBrush(CReviewResultLevelSettings.DefaultLevel4Color);
             private IReadOnlySet<int> _resultCellNos = new HashSet<int>();
             private IReadOnlyDictionary<int, IReadOnlyList<ST_REVIEW_DATA_SHOT_POSITION>> _shotsByCell = new Dictionary<int, IReadOnlyList<ST_REVIEW_DATA_SHOT_POSITION>>();
             private IReadOnlyList<ST_REVIEW_DATA_GRID_ROW> _allRows = [];
@@ -48,6 +54,10 @@ namespace Drilling.UI.Menu.Menus
             public string LoadProgressText => _loadProgressText;
             public string DataLoadHint => _dataLoadHint;
             public Brush DataLoadHintBrush => _dataLoadHintBrush;
+            public Brush ReviewLevel1Brush => _reviewLevel1Brush;
+            public Brush ReviewLevel2Brush => _reviewLevel2Brush;
+            public Brush ReviewLevel3Brush => _reviewLevel3Brush;
+            public Brush ReviewLevel4Brush => _reviewLevel4Brush;
             public ImageSource? GlassPreviewImage { get; private set; }
             public ImageSource? ShotMapImage { get; private set; }
             public ImageSource? ScatterPlotImage { get; private set; }
@@ -239,6 +249,8 @@ namespace Drilling.UI.Menu.Menus
                     throw new InvalidDataException($"MAX_CELL_NUMBER must be between 1 and 100. Current={cellCount}");
                 }
 
+                var levelSettings = CReviewResultLevelSettings.Read(parameters);
+
                 var resultCells = resultFile.Rows.Select(row => row.CellNo).Distinct().Order().ToArray();
                 var resultCellSet = resultCells.ToHashSet();
                 if (resultCells.Any(cellNo => cellNo < 1 || cellNo > cellCount))
@@ -269,6 +281,7 @@ namespace Drilling.UI.Menu.Menus
                     var shotName = position.IsResolved
                         ? CReviewShotNameFormatter.ToMatrixName(position.ShotNo, position.GroupCountX)
                         : string.IsNullOrWhiteSpace(source.ShotName) ? "-" : source.ShotName;
+                    var level = levelSettings.Resolve(source.ErrorX, source.ErrorY);
                     var row = new ST_REVIEW_DATA_GRID_ROW(
                         source.HeadNo,
                         source.CellNo,
@@ -282,7 +295,9 @@ namespace Drilling.UI.Menu.Menus
                         position.GroupRow,
                         position.GroupCountX,
                         position.GroupCountY,
-                        position.IsResolved);
+                        position.IsResolved,
+                        level,
+                        CreateReviewLevelBrush(levelSettings.ColorFor(level)));
                     displayRows.Add(row);
 
                     if (position.IsResolved)
@@ -303,6 +318,18 @@ namespace Drilling.UI.Menu.Menus
                     .ThenBy(row => row.GroupColumn < 0 ? int.MaxValue : row.GroupColumn)
                     .ThenBy(row => row.BeamNo)
                     .ToArray();
+                var cellLevels = orderedRows
+                    .GroupBy(row => row.CellNo)
+                    .ToDictionary(
+                        group => group.Key,
+                        group => (EN_REVIEW_RESULT_LEVEL)group.Max(row => row.LevelNo));
+                var resultRowsByShot = orderedRows
+                    .Where(row => row.IsResolved)
+                    .GroupBy(row => row.ShotKey, StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(
+                        group => group.Key,
+                        group => group.OrderByDescending(row => row.LevelNo).First(),
+                        StringComparer.OrdinalIgnoreCase);
                 var coordinateParameters = new Dictionary<string, string>(parameters, StringComparer.OrdinalIgnoreCase);
                 for (var headNo = 1; headNo <= 8; headNo++)
                 {
@@ -332,6 +359,7 @@ namespace Drilling.UI.Menu.Menus
                                 var state = assigned is null
                                     ? ST_RECIPE_SHOT_MASKING_RESULT.Empty
                                     : maskingPlan.EvaluateShot(assigned);
+                                var resultRow = resultRowsByShot.GetValueOrDefault(shot.ShotKey);
                                 return new ST_REVIEW_DATA_SHOT_POSITION(
                                     shot.ShotKey,
                                     shot.CellNo,
@@ -345,7 +373,9 @@ namespace Drilling.UI.Menu.Menus
                                     HeadNo = assigned?.HeadNo ?? 0,
                                     IsResult = resultShotKeys.GetValueOrDefault(shot.CellNo)?.Contains(shot.ShotKey) == true,
                                     IsMasked = state.IsMasked,
-                                    IsChessSkipped = state.IsChessSkipped
+                                     IsChessSkipped = state.IsChessSkipped,
+                                     ResultLevel = resultRow?.Level,
+                                     ResultLevelBrush = resultRow?.LevelBrush
                                 };
                             })
                             .ToArray());
@@ -354,7 +384,9 @@ namespace Drilling.UI.Menu.Menus
                     cellCount,
                     resultCellSet,
                     shotsByCell,
-                    orderedRows);
+                    orderedRows,
+                    levelSettings,
+                    cellLevels);
             }
 
             private static ST_CELL_PATTERN_LAYOUT CalculateReviewDataCellLayout(
@@ -474,6 +506,12 @@ namespace Drilling.UI.Menu.Menus
                 ST_RECIPE_DEFINITION recipe)
             {
                 _loadedParameters = model.Parameters;
+                _reviewLevelSettings = model.LevelSettings;
+                _cellLevels = model.CellLevels;
+                _reviewLevel1Brush = CreateReviewLevelBrush(model.LevelSettings.Level1Color);
+                _reviewLevel2Brush = CreateReviewLevelBrush(model.LevelSettings.Level2Color);
+                _reviewLevel3Brush = CreateReviewLevelBrush(model.LevelSettings.Level3Color);
+                _reviewLevel4Brush = CreateReviewLevelBrush(model.LevelSettings.Level4Color);
                 _loadedResultFile = resultFile;
                 _loadedCatalog = catalog;
                 _loadedRecipe = recipe;
@@ -611,7 +649,13 @@ namespace Drilling.UI.Menu.Menus
                     return;
                 }
 
-                var preview = BuildReviewDataGlassPreview(_loadedParameters, _loadedCellCount, _resultCellNos, _selectedCellNo);
+                var preview = BuildReviewDataGlassPreview(
+                    _loadedParameters,
+                    _loadedCellCount,
+                    _resultCellNos,
+                    _selectedCellNo,
+                    _cellLevels,
+                    _reviewLevelSettings);
                 GlassPreviewImage = preview.Image;
                 CellLabels = preview.CellLabels;
                 GlassSurfaceWidth = preview.Width;
@@ -751,7 +795,7 @@ namespace Drilling.UI.Menu.Menus
                             }
 
                             var point = ScatterPoint(row.ResultX, row.ResultY, plotRect, _scatterPlotMinimum, _scatterPlotMaximum);
-                            var brush = ScatterBrush(row.Judge);
+                            var brush = row.LevelBrush;
                             context.DrawEllipse(brush, null, point, radius, radius);
                             if (_isResultEditMode && row.IsResultEditSelected)
                             {
@@ -768,7 +812,7 @@ namespace Drilling.UI.Menu.Menus
                         {
                             var point = ScatterPoint(selected.ResultX, selected.ResultY, plotRect, _scatterPlotMinimum, _scatterPlotMaximum);
                             context.DrawEllipse(CStatusBrush.Frozen(0xF6, 0xC4, 0x53), new Pen(Brushes.White, 1.2), point, 6.0, 6.0);
-                            context.DrawEllipse(ScatterBrush(selected.Judge), null, point, 2.6, 2.6);
+                            context.DrawEllipse(selected.LevelBrush, null, point, 2.6, 2.6);
                         }
                     }
                 }
@@ -888,22 +932,18 @@ namespace Drilling.UI.Menu.Menus
                 return value.ToString(format, CultureInfo.InvariantCulture);
             }
 
-            private static Brush ScatterBrush(string judge)
+            private static Brush CreateReviewLevelBrush(string colorHex, byte? alpha = null)
             {
-                if (judge.Equals("OK", StringComparison.OrdinalIgnoreCase)
-                    || judge.Equals("PASS", StringComparison.OrdinalIgnoreCase))
+                var normalized = CReviewResultLevelSettings.NormalizeColor(colorHex);
+                var color = (Color)ColorConverter.ConvertFromString(normalized);
+                if (alpha.HasValue)
                 {
-                    return CStatusBrush.Frozen(0x22, 0xC5, 0x5E);
+                    color = Color.FromArgb(alpha.Value, color.R, color.G, color.B);
                 }
 
-                if (judge.Equals("NG", StringComparison.OrdinalIgnoreCase)
-                    || judge.Equals("FAIL", StringComparison.OrdinalIgnoreCase)
-                    || judge.Equals("ERROR", StringComparison.OrdinalIgnoreCase))
-                {
-                    return CStatusBrush.Frozen(0xEF, 0x44, 0x44);
-                }
-
-                return CStatusBrush.Frozen(0x94, 0xA3, 0xB8);
+                var brush = new SolidColorBrush(color);
+                brush.Freeze();
+                return brush;
             }
 
             private void RefreshCellSelectionOverlay()
@@ -971,14 +1011,16 @@ namespace Drilling.UI.Menu.Menus
                 SelectedShotDetail = selectedShot is null
                     ? "-"
                     : $"ROW {selectedShot.GroupRow + 1:N0} / COL {selectedShot.GroupColumn + 1:N0}"
-                        + (SelectedRow is null ? " / NO RESULT" : "");
+                        + (SelectedRow is null ? " / NO RESULT" : $" / LEVEL {SelectedRow.LevelNo}");
             }
 
             private static ST_REVIEW_DATA_GLASS_PREVIEW BuildReviewDataGlassPreview(
                 IReadOnlyDictionary<string, string> parameters,
                 int cellCount,
                 IReadOnlySet<int> resultCellNos,
-                int selectedCellNo)
+                int selectedCellNo,
+                IReadOnlyDictionary<int, EN_REVIEW_RESULT_LEVEL>? cellLevels = null,
+                ST_REVIEW_RESULT_LEVEL_SETTINGS? levelSettings = null)
             {
                 var glassWidth = ReadOutputViewerDouble(parameters, 500.0, "GLASS_SIZE_X");
                 var glassHeight = ReadOutputViewerDouble(parameters, 300.0, "GLASS_SIZE_Y");
@@ -1035,14 +1077,17 @@ namespace Drilling.UI.Menu.Menus
 
                         var isIncluded = resultCellNos.Contains(cellNo);
                         var isSelected = isIncluded && cellNo == selectedCellNo;
+                        var level = EN_REVIEW_RESULT_LEVEL.Level4;
+                        var hasLevel = cellLevels?.TryGetValue(cellNo, out level) == true && levelSettings is not null;
+                        var levelColor = hasLevel
+                            ? levelSettings!.ColorFor(level)
+                            : "#4ADE80";
                         var fill = isIncluded
-                            ? new SolidColorBrush(Color.FromArgb(92, 74, 222, 128))
-                            : new SolidColorBrush(Color.FromArgb(20, 139, 157, 174));
+                            ? CreateReviewLevelBrush(levelColor, 92)
+                            : CreateReviewLevelBrush("#8B9DAE", 20);
                         var border = isIncluded
-                            ? new SolidColorBrush(Color.FromRgb(74, 222, 128))
-                            : new SolidColorBrush(Color.FromArgb(110, 139, 157, 174));
-                        fill.Freeze();
-                        border.Freeze();
+                            ? CreateReviewLevelBrush(levelColor)
+                            : CreateReviewLevelBrush("#8B9DAE", 110);
                         var pen = new Pen(border, isIncluded ? 2.0 : 1.0);
                         pen.Freeze();
                         context.DrawGeometry(fill, pen, boundary);
@@ -1086,7 +1131,8 @@ namespace Drilling.UI.Menu.Menus
                 var mapRect = GetReviewDataShotMapRect(first.GroupCountX, first.GroupCountY);
                 var cellWidth = mapRect.Width / first.GroupCountX;
                 var cellHeight = mapRect.Height / first.GroupCountY;
-                var pointRadius = Math.Clamp(Math.Min(cellWidth, cellHeight) * 0.30, 1.5, 4.2);
+                var cellExtent = Math.Min(cellWidth, cellHeight);
+                var cellInset = Math.Clamp(cellExtent * 0.07, 0.15, 1.1);
                 var drawing = new DrawingGroup();
                 using (var context = drawing.Open())
                 {
@@ -1094,8 +1140,8 @@ namespace Drilling.UI.Menu.Menus
                     context.DrawRectangle(new SolidColorBrush(Color.FromArgb(12, 102, 136, 164)), null, mapRect);
                     var gridPen = new Pen(new SolidColorBrush(Color.FromArgb(55, 100, 116, 139)), 0.8);
                     gridPen.Freeze();
-                    var columnStep = Math.Max(1, first.GroupCountX / 6);
-                    var rowStep = Math.Max(1, first.GroupCountY / 8);
+                    var columnStep = cellWidth >= 1.25 ? 1 : Math.Max(1, first.GroupCountX / 40);
+                    var rowStep = cellHeight >= 1.25 ? 1 : Math.Max(1, first.GroupCountY / 60);
                     for (var column = columnStep; column < first.GroupCountX; column += columnStep)
                     {
                         var x = mapRect.Left + mapRect.Width * column / first.GroupCountX;
@@ -1109,11 +1155,12 @@ namespace Drilling.UI.Menu.Menus
                     }
 
                     var normalGeometry = new StreamGeometry();
-                    var resultGeometry = new StreamGeometry();
+                    var maskingCellGeometry = new StreamGeometry();
                     var maskingGeometry = new StreamGeometry();
                     var chessGeometry = new StreamGeometry();
+                    var resultCells = new List<(Rect Bounds, Brush Brush)>();
                     using (var normalContext = normalGeometry.Open())
-                    using (var resultContext = resultGeometry.Open())
+                    using (var maskingCellContext = maskingCellGeometry.Open())
                     using (var maskingContext = maskingGeometry.Open())
                     using (var chessContext = chessGeometry.Open())
                     {
@@ -1121,54 +1168,69 @@ namespace Drilling.UI.Menu.Menus
                         {
                             var x = mapRect.Left + (shot.GroupColumn + 0.5) * cellWidth;
                             var y = mapRect.Top + (shot.GroupRow + 0.5) * cellHeight;
+                            var cellBounds = GetReviewDataShotCellBounds(
+                                mapRect,
+                                shot.GroupColumn,
+                                shot.GroupRow,
+                                cellWidth,
+                                cellHeight,
+                                cellInset);
                             if (shot.IsMasked)
                             {
-                                AddOutputViewerMaskCross(maskingContext, x, y, Math.Max(2.2, pointRadius * 1.8));
+                                AddReviewDataShotCell(maskingCellContext, cellBounds);
+                                AddOutputViewerMaskCross(maskingContext, x, y, Math.Max(1.8, cellExtent * 0.28));
                             }
                             else if (shot.IsChessSkipped)
                             {
-                                AddOutputViewerChessDiamond(chessContext, x, y, Math.Max(2.2, pointRadius * 1.8));
+                                AddReviewDataShotCell(chessContext, cellBounds);
                             }
                             else if (shot.IsResult)
                             {
-                                AddOutputViewerShotCircle(resultContext, x, y, pointRadius);
+                                resultCells.Add((
+                                    cellBounds,
+                                    shot.ResultLevelBrush ?? CreateReviewLevelBrush(CReviewResultLevelSettings.DefaultLevel4Color)));
                             }
                             else
                             {
-                                AddOutputViewerShotCircle(normalContext, x, y, pointRadius);
+                                AddReviewDataShotCell(normalContext, cellBounds);
                             }
                         }
                     }
 
                     normalGeometry.Freeze();
-                    resultGeometry.Freeze();
+                    maskingCellGeometry.Freeze();
                     maskingGeometry.Freeze();
                     chessGeometry.Freeze();
-                    var normalBrush = new SolidColorBrush(Color.FromRgb(100, 116, 139));
-                    var resultBrush = new SolidColorBrush(Color.FromRgb(34, 197, 94));
                     var maskingBrush = new SolidColorBrush(Color.FromRgb(239, 68, 68));
                     var chessBrush = new SolidColorBrush(Color.FromRgb(168, 85, 247));
-                    normalBrush.Freeze();
-                    resultBrush.Freeze();
                     maskingBrush.Freeze();
                     chessBrush.Freeze();
                     var maskingPen = new Pen(maskingBrush, 1.8);
                     var chessPen = new Pen(chessBrush, 1.5);
                     maskingPen.Freeze();
                     chessPen.Freeze();
-                    context.DrawGeometry(normalBrush, null, normalGeometry);
-                    context.DrawGeometry(resultBrush, null, resultGeometry);
+                    context.DrawGeometry(new SolidColorBrush(Color.FromArgb(78, 100, 116, 139)), null, normalGeometry);
+                    foreach (var resultCell in resultCells)
+                    {
+                        context.DrawRectangle(resultCell.Brush, null, resultCell.Bounds);
+                    }
+                    context.DrawGeometry(new SolidColorBrush(Color.FromArgb(90, 239, 68, 68)), null, maskingCellGeometry);
                     context.DrawGeometry(null, maskingPen, maskingGeometry);
-                    context.DrawGeometry(new SolidColorBrush(Color.FromArgb(55, 168, 85, 247)), chessPen, chessGeometry);
+                    context.DrawGeometry(new SolidColorBrush(Color.FromArgb(105, 168, 85, 247)), chessPen, chessGeometry);
                     if (editSelectedShotKeys is { Count: > 0 })
                     {
                         var editPen = new Pen(new SolidColorBrush(Color.FromRgb(245, 158, 11)), 2.0);
                         editPen.Freeze();
                         foreach (var editShot in shots.Where(shot => editSelectedShotKeys.Contains(shot.ShotKey)))
                         {
-                            var x = mapRect.Left + (editShot.GroupColumn + 0.5) * cellWidth;
-                            var y = mapRect.Top + (editShot.GroupRow + 0.5) * cellHeight;
-                            context.DrawEllipse(null, editPen, new Point(x, y), Math.Max(5.0, pointRadius + 3.0), Math.Max(5.0, pointRadius + 3.0));
+                            var cellBounds = GetReviewDataShotCellBounds(
+                                mapRect,
+                                editShot.GroupColumn,
+                                editShot.GroupRow,
+                                cellWidth,
+                                cellHeight,
+                                Math.Min(0.6, cellInset));
+                            context.DrawRectangle(null, editPen, cellBounds);
                         }
                     }
 
@@ -1181,9 +1243,17 @@ namespace Drilling.UI.Menu.Menus
                         selectedBrush.Freeze();
                         var selectedPen = new Pen(selectedBrush, 2.2);
                         selectedPen.Freeze();
-                        context.DrawEllipse(new SolidColorBrush(Color.FromArgb(52, 246, 196, 83)), selectedPen, new Point(x, y), 8.0, 8.0);
-                        context.DrawLine(selectedPen, new Point(x - 12.0, y), new Point(x + 12.0, y));
-                        context.DrawLine(selectedPen, new Point(x, y - 12.0), new Point(x, y + 12.0));
+                        var selectedBounds = GetReviewDataShotCellBounds(
+                            mapRect,
+                            selected.GroupColumn,
+                            selected.GroupRow,
+                            cellWidth,
+                            cellHeight,
+                            Math.Min(0.6, cellInset));
+                        context.DrawRectangle(new SolidColorBrush(Color.FromArgb(92, 246, 196, 83)), selectedPen, selectedBounds);
+                        var crossRadius = Math.Clamp(cellExtent * 0.28, 1.5, 6.0);
+                        context.DrawLine(selectedPen, new Point(x - crossRadius, y), new Point(x + crossRadius, y));
+                        context.DrawLine(selectedPen, new Point(x, y - crossRadius), new Point(x, y + crossRadius));
                     }
 
                     var framePen = new Pen(new SolidColorBrush(Color.FromRgb(102, 136, 164)), 1.4);
@@ -1195,6 +1265,29 @@ namespace Drilling.UI.Menu.Menus
                 var image = new DrawingImage(drawing);
                 image.Freeze();
                 return image;
+            }
+
+            private static Rect GetReviewDataShotCellBounds(
+                Rect mapRect,
+                int groupColumn,
+                int groupRow,
+                double cellWidth,
+                double cellHeight,
+                double inset)
+            {
+                return new Rect(
+                    mapRect.Left + (groupColumn * cellWidth) + inset,
+                    mapRect.Top + (groupRow * cellHeight) + inset,
+                    Math.Max(0.1, cellWidth - (inset * 2.0)),
+                    Math.Max(0.1, cellHeight - (inset * 2.0)));
+            }
+
+            private static void AddReviewDataShotCell(StreamGeometryContext context, Rect bounds)
+            {
+                context.BeginFigure(bounds.TopLeft, true, true);
+                context.LineTo(bounds.TopRight, true, false);
+                context.LineTo(bounds.BottomRight, true, false);
+                context.LineTo(bounds.BottomLeft, true, false);
             }
 
             private static Size GetReviewDataShotMapSize(IReadOnlyList<ST_REVIEW_DATA_SHOT_POSITION> shots)
@@ -1228,6 +1321,12 @@ namespace Drilling.UI.Menu.Menus
                 Interlocked.Increment(ref _shotMapRenderVersion);
                 _hasLoadedData = false;
                 _loadedParameters = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                _reviewLevelSettings = CReviewResultLevelSettings.Default;
+                _cellLevels = new Dictionary<int, EN_REVIEW_RESULT_LEVEL>();
+                _reviewLevel1Brush = CreateReviewLevelBrush(CReviewResultLevelSettings.DefaultLevel1Color);
+                _reviewLevel2Brush = CreateReviewLevelBrush(CReviewResultLevelSettings.DefaultLevel2Color);
+                _reviewLevel3Brush = CreateReviewLevelBrush(CReviewResultLevelSettings.DefaultLevel3Color);
+                _reviewLevel4Brush = CreateReviewLevelBrush(CReviewResultLevelSettings.DefaultLevel4Color);
                 _resultCellNos = new HashSet<int>();
                 _shotsByCell = new Dictionary<int, IReadOnlyList<ST_REVIEW_DATA_SHOT_POSITION>>();
                 _allRows = [];
@@ -1304,6 +1403,10 @@ namespace Drilling.UI.Menu.Menus
                 Notify(nameof(ShotMapImage));
                 Notify(nameof(ScatterPlotImage));
                 Notify(nameof(ScatterPlotSummary));
+                Notify(nameof(ReviewLevel1Brush));
+                Notify(nameof(ReviewLevel2Brush));
+                Notify(nameof(ReviewLevel3Brush));
+                Notify(nameof(ReviewLevel4Brush));
                 Notify(nameof(IsResultEditMode));
                 Notify(nameof(CanToggleResultEditMode));
                 Notify(nameof(CellLabels));
@@ -1329,7 +1432,9 @@ namespace Drilling.UI.Menu.Menus
             int CellCount,
             IReadOnlySet<int> ResultCellNos,
             IReadOnlyDictionary<int, IReadOnlyList<ST_REVIEW_DATA_SHOT_POSITION>> ShotsByCell,
-            IReadOnlyList<ST_REVIEW_DATA_GRID_ROW> Rows);
+            IReadOnlyList<ST_REVIEW_DATA_GRID_ROW> Rows,
+            ST_REVIEW_RESULT_LEVEL_SETTINGS LevelSettings,
+            IReadOnlyDictionary<int, EN_REVIEW_RESULT_LEVEL> CellLevels);
 
         private sealed record ST_REVIEW_DATA_SCATTER_HIT(
             ST_REVIEW_DATA_GRID_ROW Row,
@@ -1369,6 +1474,8 @@ namespace Drilling.UI.Menu.Menus
             public bool IsResult { get; init; }
             public bool IsMasked { get; init; }
             public bool IsChessSkipped { get; init; }
+            public EN_REVIEW_RESULT_LEVEL? ResultLevel { get; init; }
+            public Brush? ResultLevelBrush { get; init; }
         }
 
         public sealed record ST_REVIEW_DATA_GRID_ROW(
@@ -1384,7 +1491,9 @@ namespace Drilling.UI.Menu.Menus
             int GroupRow,
             int GroupCountX,
             int GroupCountY,
-            bool IsResolved)
+            bool IsResolved,
+            EN_REVIEW_RESULT_LEVEL Level,
+            Brush LevelBrush)
         {
             public bool IsReinspectionSelected { get; set; }
             public bool IsResultEditSelected { get; set; }
@@ -1393,6 +1502,8 @@ namespace Drilling.UI.Menu.Menus
             public string Beam => BeamNo > 0 ? BeamNo.ToString(CultureInfo.InvariantCulture) : "-";
             public string ResultXText => ResultX.ToString("F3", CultureInfo.InvariantCulture);
             public string ResultYText => ResultY.ToString("F3", CultureInfo.InvariantCulture);
+            public int LevelNo => (int)Level;
+            public string LevelText => $"LEVEL {LevelNo}";
             public Brush JudgeBrush => CStatusBrush.ForDisplayState(Judge);
         }
     }

@@ -7,6 +7,7 @@ using Drilling.Common.Motion;
 using Drilling.Common.Alarm;
 using Drilling.Common.InterLock;
 using Drilling.Common.Station;
+using Drilling.Common.Review;
 using Drilling.File.Parser;
 
 namespace Drilling.File.JHMI;
@@ -205,7 +206,7 @@ public sealed class CSettingFile(string configRoot) : CSettingFileBase
             "1001 송신·1003 수신 배열의 고정 칸 수; Count는 실제 유효 개수; 송신 잔여 칸은 모든 필드 -1; 수신 Count 초과 시 HEAVY 알람 및 검사 중단", 38)).Append(new ST_SETTING_FORM_ITEM(
             "OPTION", "REVIEW", CSettingManager.VisionCameraResolutionKey, CSettingManager.ReviewCameraResolutionKey, EN_RECIPE_DATA_TYPE.Double, "mm/pixel", true, true,
             CSettingManager.DefaultVisionCameraResolution.ToString("R", CultureInfo.InvariantCulture), 0, 0,
-            "리뷰 카메라 1 pixel당 길이(mm); 오차(mm)=이 값 x 수신 nResolution x (Target-Hole); Vision Flip 적용 후 Tolerance 판정; 양의 유한값만 저장", 39)).Concat(CreateAlignFormItems()).Concat(CreateOffsetScaleFormItems()).Concat(CreateDistortionRunOptionFormItems()))
+            "리뷰 카메라 1 pixel당 길이(mm); 오차(mm)=이 값 x 수신 nResolution x (Target-Hole); Vision Flip 적용 후 Tolerance 판정; 양의 유한값만 저장", 39)).Concat(CreateAlignFormItems()).Concat(CreateOffsetScaleFormItems()).Concat(CreateReviewLevelFormItems()).Concat(CreateDistortionRunOptionFormItems()))
         {
             if (existingKeys.Add(CreateKey(item.Tab, item.Name)))
             {
@@ -230,6 +231,34 @@ public sealed class CSettingFile(string configRoot) : CSettingFileBase
             "100", 0, int.MaxValue, "가공 좌표 생성 시 저장된 Review Offset에 적용할 비율; 0%=미적용; 100%=원래 값; 200%=2배; 저장값과 설계 Masking/Chess 판정은 변경하지 않음", 48);
         yield return new("OPTION", "ALIGN", "ALIGN_OFFSET_SCALE", "Align Offset Scale", EN_RECIPE_DATA_TYPE.Int, "%", true, true,
             "100", 0, int.MaxValue, "가공 좌표 생성 시 저장된 Align Offset에 적용할 비율; 0%=미적용; 100%=원래 값; 200%=2배; 저장값과 설계 Masking/Chess 판정은 변경하지 않음", 49);
+    }
+
+    private static IEnumerable<ST_SETTING_FORM_ITEM> CreateReviewLevelFormItems()
+    {
+        yield return new("OPTION", "REVIEW", CReviewResultLevelSettings.Level1MaximumKey, "Review Level 1 Max",
+            EN_RECIPE_DATA_TYPE.Double, "mm", true, true,
+            CReviewResultLevelSettings.DefaultLevel1Maximum.ToString("R", CultureInfo.InvariantCulture), double.Epsilon, 1000.0,
+            "|Result X|와 |Result Y| 중 큰 값이 이 값 이하이면 Level 1", 50);
+        yield return new("OPTION", "REVIEW", CReviewResultLevelSettings.Level2MaximumKey, "Review Level 2 Max",
+            EN_RECIPE_DATA_TYPE.Double, "mm", true, true,
+            CReviewResultLevelSettings.DefaultLevel2Maximum.ToString("R", CultureInfo.InvariantCulture), double.Epsilon, 1000.0,
+            "Level 1 Max 초과부터 이 값 이하까지 Level 2", 51);
+        yield return new("OPTION", "REVIEW", CReviewResultLevelSettings.Level3MaximumKey, "Review Level 3 Max",
+            EN_RECIPE_DATA_TYPE.Double, "mm", true, true,
+            CReviewResultLevelSettings.DefaultLevel3Maximum.ToString("R", CultureInfo.InvariantCulture), double.Epsilon, 1000.0,
+            "Level 2 Max 초과부터 이 값 이하까지 Level 3; 초과값은 Level 4", 52);
+        yield return new("OPTION", "REVIEW", CReviewResultLevelSettings.Level1ColorKey, "Review Level 1 Color",
+            EN_RECIPE_DATA_TYPE.String, "color", true, true, CReviewResultLevelSettings.DefaultLevel1Color, 0, 0,
+            "Review Level 1 표시 색상 (#RRGGBB)", 53);
+        yield return new("OPTION", "REVIEW", CReviewResultLevelSettings.Level2ColorKey, "Review Level 2 Color",
+            EN_RECIPE_DATA_TYPE.String, "color", true, true, CReviewResultLevelSettings.DefaultLevel2Color, 0, 0,
+            "Review Level 2 표시 색상 (#RRGGBB)", 54);
+        yield return new("OPTION", "REVIEW", CReviewResultLevelSettings.Level3ColorKey, "Review Level 3 Color",
+            EN_RECIPE_DATA_TYPE.String, "color", true, true, CReviewResultLevelSettings.DefaultLevel3Color, 0, 0,
+            "Review Level 3 표시 색상 (#RRGGBB)", 55);
+        yield return new("OPTION", "REVIEW", CReviewResultLevelSettings.Level4ColorKey, "Review Level 4 Color",
+            EN_RECIPE_DATA_TYPE.String, "color", true, true, CReviewResultLevelSettings.DefaultLevel4Color, 0, 0,
+            "Review Level 4 표시 색상 (#RRGGBB)", 56);
     }
 
     private static IEnumerable<ST_SETTING_FORM_ITEM> CreateAlignFormItems()
@@ -404,6 +433,11 @@ public sealed class CSettingFile(string configRoot) : CSettingFileBase
             {
                 throw new InvalidDataException(validationMessage);
             }
+        }
+
+        if (sectionTab.Equals("OPTION", StringComparison.OrdinalIgnoreCase))
+        {
+            _ = CReviewResultLevelSettings.Read(parameters);
         }
     }
 

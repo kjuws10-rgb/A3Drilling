@@ -57,7 +57,7 @@ public partial class CDefaultOffsetView : UserControl
 
     // A setup-session editor, not an equipment poller. Default values themselves
     // continue to be persisted exclusively in the current recipe.
-    public static (ST_DEFAULT_OFFSET_OPTIONS Options, int Model)? EditConditions(ST_DEFAULT_OFFSET_OPTIONS current, IReadOnlyList<int> models, int currentModel, IReadOnlyDictionary<int, ST_DEFAULT_HEAD_GEOMETRY> geometries, double designAlignKey3ReviewX)
+    public static (ST_DEFAULT_OFFSET_OPTIONS Options, int Model)? EditConditions(ST_DEFAULT_OFFSET_OPTIONS current, IReadOnlyList<int> models, int currentModel, IReadOnlyDictionary<int, ST_DEFAULT_HEAD_GEOMETRY> geometries, IReadOnlyDictionary<int, bool> doeExists, double designAlignKey3ReviewX)
     {
         var owner = Application.Current?.MainWindow;
         var dialog = new Window { Title = "Default CENTER 측정 조건", Width = 820, Height = 870, MaxHeight = Math.Max(400, SystemParameters.WorkArea.Height - 40), ResizeMode = ResizeMode.NoResize, WindowStartupLocation = WindowStartupLocation.CenterOwner, Owner = owner };
@@ -154,7 +154,7 @@ public partial class CDefaultOffsetView : UserControl
         reference.Children.Add(new TextBlock { Text = $"Beam간격 및 Beam중심 허용오차   {current.Tolerance:0.000} mm   (Recipe-Common-Review)", FontSize = 14, Margin = new Thickness(0,0,0,10) });
         reference.Children.Add(new TextBlock { Text = "헤드별 설정 (Setting-Common-Scanner)", FontSize = 13, Margin = new Thickness(0,0,0,6) });
         var fields = new Grid();
-        foreach (var width in new[] { new GridLength(70), new GridLength(1, GridUnitType.Star), new GridLength(1, GridUnitType.Star), new GridLength(1, GridUnitType.Star) }) fields.ColumnDefinitions.Add(new() { Width = width });
+        foreach (var width in new[] { new GridLength(70), new GridLength(1, GridUnitType.Star), new GridLength(1, GridUnitType.Star), new GridLength(1, GridUnitType.Star), new GridLength(1, GridUnitType.Star) }) fields.ColumnDefinitions.Add(new() { Width = width });
         void AddFieldRow(int row, params string[] values)
         {
             fields.RowDefinitions.Add(new() { Height = new GridLength(27) });
@@ -165,11 +165,11 @@ public partial class CDefaultOffsetView : UserControl
                 Grid.SetRow(cell, row); Grid.SetColumn(cell, col); fields.Children.Add(cell);
             }
         }
-        AddFieldRow(0, "HEAD", "Scan Field X (mm)", "Scan Field Y (mm)", "DOE 회전 각도 (deg)");
+        AddFieldRow(0, "HEAD", "Scan Field X (mm)", "Scan Field Y (mm)", "DOE 회전 각도 (deg)", "DOE 장착");
         foreach (var item in geometries.OrderBy(p => p.Key))
-            AddFieldRow(fields.RowDefinitions.Count, $"H{item.Key:00}", (item.Value.FieldHalfX * 2).ToString("0.###", CultureInfo.InvariantCulture), (item.Value.FieldHalfY * 2).ToString("0.###", CultureInfo.InvariantCulture), item.Value.DoeAngle.ToString("0.###", CultureInfo.InvariantCulture));
+            AddFieldRow(fields.RowDefinitions.Count, $"H{item.Key:00}", (item.Value.FieldHalfX * 2).ToString("0.###", CultureInfo.InvariantCulture), (item.Value.FieldHalfY * 2).ToString("0.###", CultureInfo.InvariantCulture), item.Value.DoeAngle.ToString("0.###", CultureInfo.InvariantCulture), doeExists[item.Key] ? "ON · 4×4" : "OFF · 중앙 1점");
         reference.Children.Add(fields);
-        reference.Children.Add(new TextBlock { Text = $"글래스 중심 Review X는 조건에 적용한 AK1·AK3 Review X 엔코더값의 정확한 중간값입니다. AK3의 설계값은 AK1 + Glass Size X - (2 × AK Margin X)로 계산합니다.\n십자 길이 10 mm: 스캐너는 가로·세로 각각 중심 기준 −5~+5 mm를 그리며, DOE가 같은 십자를 {current.InspectionPointCount}개 형상으로 분기합니다.\n십자 가공은 각 DOE 슬롯에서 Mark Find Setting Single로 {current.InspectionPointCount}회 검사하고, 샷 가공은 Mark Find Single로 동일한 DOE 슬롯을 검사합니다.\n십자 속도는 Head별 Recipe Jump Speed, 샷 가공은 Shot Count를 사용합니다.\nField는 전체 폭·높이입니다. Y=55 mm이면 중심 기준 ±27.5 mm입니다.\n허용오차는 Recipe의 Review Tolerance X/Y 중 작은 값입니다.\n각 Head는 입력한 Stage Y 위치에서 가공합니다.", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0,10,0,0), FontSize = 13 });
+        reference.Children.Add(new TextBlock { Text = $"글래스 중심 Review X는 조건에 적용한 AK1·AK3 Review X 엔코더값의 정확한 중간값입니다. AK3의 설계값은 AK1 + Glass Size X - (2 × AK Margin X)로 계산합니다.\nDOE ON Head는 같은 중앙 형상을 4×4로 분기하여 {current.InspectionPointCount}점을 검사합니다. DOE OFF Head는 Default Offset에서만 First Beam Offset을 제외한 실제 Head 중앙을 1점 검사합니다.\n십자 가공은 Mark Find Setting Single, 샷 가공은 Mark Find Single을 사용합니다. 다른 Review 검사는 DOE 설정과 관계없이 작업자가 선택한 Beam 번호를 그대로 사용합니다.\n십자 속도는 Head별 Recipe Jump Speed, 샷 가공은 Shot Count를 사용합니다.\nField는 전체 폭·높이입니다. Y=55 mm이면 중심 기준 ±27.5 mm입니다.\n허용오차는 Recipe의 Review Tolerance X/Y 중 작은 값입니다.\n각 Head는 입력한 Stage Y 위치에서 가공합니다.", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0,10,0,0), FontSize = 13 });
         var referenceScroll = new ScrollViewer { Content = reference, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
         Grid.SetRow(referenceScroll, 7); Grid.SetColumnSpan(referenceScroll, 2); layout.Children.Add(referenceScroll);
         layout.RowDefinitions.Add(new() { Height = new GridLength(44) });

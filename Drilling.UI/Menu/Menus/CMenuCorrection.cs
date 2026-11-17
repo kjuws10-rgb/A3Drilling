@@ -250,12 +250,14 @@
             get => _selectedReviewTabIndex;
             set
             {
-                var normalized = Math.Clamp(value, 0, 7);
+                var normalized = Math.Clamp(value, 0, 4);
                 if (_selectedReviewTabIndex == normalized)
                     return;
 
                 _selectedReviewTabIndex = normalized;
                 OnPropertyChanged(nameof(SelectedReviewTabIndex));
+                if (IsReviewCorrectionTab)
+                    _ = _refreshCurrentScreen();
             }
         }
 
@@ -396,16 +398,7 @@
                 throw new ArgumentException("저장된 검사 결과 경로가 없습니다.", nameof(resultPath));
 
             await ReviewData.OpenResult(resultPath);
-            SelectedReviewTabIndex = 7;
-        }
-
-        public bool TrySelectReviewInspectionMode(string mode)
-        {
-            if (Review is null || Review.IsReviewExecutionActive)
-                return false;
-
-            Review.SelectModeCommand.Execute(mode);
-            return true;
+            SelectedReviewTabIndex = 4;
         }
 
         public override async Task<CScreenViewModel> Build(CancellationToken cancellationToken = default)
@@ -446,34 +439,40 @@
             {
                 try
                 {
-                    if (Review is not null)
-                        await Review.Build(cancellationToken);
-
-                    var recipe = await LoadSelectedOutputViewerRecipe(cancellationToken, fallbackToFirst: false);
-                    var settings = _settingManager.LoadSection(EN_SETTING_TAB.Option, cancellationToken).Concat(_settingManager.LoadSection(EN_SETTING_TAB.Motor, cancellationToken)).ToArray();
-                    ST_REVIEW_OFFSET_FILE_DATA? current = null;
-                    if (recipe is not null)
+                    if (_selectedReviewTabIndex == 0)
                     {
-                        if (_simpleOffsetLoad is null || _simpleOffsetLoad.IsCanceled || _simpleOffsetRecipeId != recipe.Id || (_simpleOffsetLoad.IsFaulted && _simpleOffsetLoad.Exception?.GetBaseException()is not CReviewOffsetValidationException))
+                        if (Review is not null)
+                            await Review.Build(cancellationToken);
+                    }
+                    else if (_selectedReviewTabIndex is 1 or 2 or 3)
+                    {
+                        var recipe = await LoadSelectedOutputViewerRecipe(cancellationToken, fallbackToFirst: false);
+                        var settings = _settingManager.LoadSection(EN_SETTING_TAB.Option, cancellationToken).Concat(_settingManager.LoadSection(EN_SETTING_TAB.Motor, cancellationToken)).ToArray();
+                        if (_selectedReviewTabIndex == 3)
                         {
-                            _lastReviewOffsetWarning = "";
-                            _simpleOffsetRecipeId = recipe.Id;
-                            _simpleOffsetLoad = _reviewOffsetFile is null ? Task.FromResult(ST_REVIEW_OFFSET_FILE_DATA.Empty(recipe.Id)) : Task.Run(() => _reviewOffsetFile.LoadLatest(recipe.Id, cancellationToken), cancellationToken);
+                            Fine.Update(recipe, settings);
                         }
+                        else
+                        {
+                            ST_REVIEW_OFFSET_FILE_DATA? current = null;
+                            if (recipe is not null)
+                            {
+                                if (_simpleOffsetLoad is null || _simpleOffsetLoad.IsCanceled || _simpleOffsetRecipeId != recipe.Id || (_simpleOffsetLoad.IsFaulted && _simpleOffsetLoad.Exception?.GetBaseException()is not CReviewOffsetValidationException))
+                                {
+                                    _lastReviewOffsetWarning = "";
+                                    _simpleOffsetRecipeId = recipe.Id;
+                                    _simpleOffsetLoad = _reviewOffsetFile is null ? Task.FromResult(ST_REVIEW_OFFSET_FILE_DATA.Empty(recipe.Id)) : Task.Run(() => _reviewOffsetFile.LoadLatest(recipe.Id, cancellationToken), cancellationToken);
+                                }
 
-                        current = await _simpleOffsetLoad.WaitAsync(cancellationToken);
-                        _lastReviewOffsetWarning = "";
-                    }
+                                current = await _simpleOffsetLoad.WaitAsync(cancellationToken);
+                                _lastReviewOffsetWarning = "";
+                            }
 
-                    Simple.Update(recipe, settings, current);
-                    Rough.Update(recipe, settings, current);
-                    try
-                    {
-                        Fine.Update(recipe, settings);
-                    }
-                    catch (Exception exception)
-                    {
-                        Fine.Clear($"Glass preview unavailable: {exception.Message}");
+                            if (_selectedReviewTabIndex == 1)
+                                Simple.Update(recipe, settings, current);
+                            else
+                                Rough.Update(recipe, settings, current);
+                        }
                     }
                 }
                 catch (OperationCanceledException)when (cancellationToken.IsCancellationRequested)
@@ -482,10 +481,14 @@
                 }
                 catch (Exception exception)
                 {
-                    ReportInvalidReviewOffset(exception);
-                    Simple.Clear($"Glass preview unavailable: {exception.Message}");
-                    Rough.Clear($"Glass preview unavailable: {exception.Message}");
-                    Fine.Clear($"Glass preview unavailable: {exception.Message}");
+                    if (_selectedReviewTabIndex is 1 or 2)
+                        ReportInvalidReviewOffset(exception);
+                    if (_selectedReviewTabIndex == 1)
+                        Simple.Clear($"Glass preview unavailable: {exception.Message}");
+                    else if (_selectedReviewTabIndex == 2)
+                        Rough.Clear($"Glass preview unavailable: {exception.Message}");
+                    else if (_selectedReviewTabIndex == 3)
+                        Fine.Clear($"Glass preview unavailable: {exception.Message}");
                 }
             }
 
@@ -3187,7 +3190,8 @@
                             CrossSize = previous.CrossSize
                         };
                     var geometry = Enumerable.Range(1, 8).ToDictionary(head => head, head => CDefaultOffsetCalibration.HeadGeometry(values, head));
-                    var edited = Drilling.UI.Views.CDefaultOffsetView.EditConditions(defaults, DefaultOffset.ModelNumbers, DefaultOffset.SelectedModelNumber, geometry,
+                    var doeExists = Enumerable.Range(1, 8).ToDictionary(head => head, head => CDefaultOffsetCalibration.DoeExists(values, head));
+                    var edited = Drilling.UI.Views.CDefaultOffsetView.EditConditions(defaults, DefaultOffset.ModelNumbers, DefaultOffset.SelectedModelNumber, geometry, doeExists,
                         CDefaultOffsetCalibration.DesignAlignKey3ReviewX(values));
                     if (edited is not { } condition) return;
                     var options = condition.Options;
@@ -3627,6 +3631,7 @@
         {
             var manager = _defaultManager!; var route = DefaultRoute(run, head);
             CDefaultOffsetCalibration.HeadGeometry(run.Values, head);
+            var doeExists = CDefaultOffsetCalibration.DoeExists(run.Values, head);
             DefaultOffset.SetMessage($"HEAD {head:00} CENTER 시험 가공 준비", 2);
             await EnsureDefaultSource(run, token);
             // ATT is moved to the PowerTable W target and verified below. Its old
@@ -3657,7 +3662,7 @@
             var script = _defaultScriptFile!.Create(scriptName);
             script.SetDeviceNo(head - 1); script.SetAxis(route.X, route.Y); script.Start("Default SETUP_CENTER · no Cell/Align/Review/Shift offsets");
             script.AddLine($"// Session={run.Id:N}, TestId={testId:N}");
-            script.AddLine(FormattableString.Invariant($"// Machining={run.Options.MachiningMode}, CrossFullSize={run.Options.CrossSize:R} mm, Vision={run.Options.VisionMethod}"));
+            script.AddLine(FormattableString.Invariant($"// Machining={run.Options.MachiningMode}, CrossFullSize={run.Options.CrossSize:R} mm, Vision={run.Options.VisionMethod}, DoeExist={doeExists}"));
             script.LaserOff(); script.DefaultFigureScanSetting(moveToCenter: false); script.SetFrequency(frequency); script.SetLaserPower(100);
             script.SetJumpSpeed(N("SCANNER_JUMP_SPEED") / 1000);
             AppendDefaultCenterPattern(script, run.Values, head, run.Options, route.X, route.Y);
@@ -3720,7 +3725,7 @@
                 }
             }
             DefaultOffset.MarkFired(head, run.Tests[head].Q);
-            DefaultOffset.SetMessage($"HEAD {head:00} 시험 가공 완료 · {run.Options.InspectionDescription} 가능", 2, true);
+            DefaultOffset.SetMessage($"HEAD {head:00} 시험 가공 완료 · {CDefaultOffsetCalibration.DefaultInspectionDescription(run.Values, head, run.Options)} 가능", 2, true);
         }
         private static void AppendDefaultCenterPattern(CAutomation1ScriptBase script, IReadOnlyDictionary<string, string> values, int head, ST_DEFAULT_OFFSET_OPTIONS options, string xAxis, string yAxis)
         {
@@ -3786,21 +3791,25 @@
             var flip = CReviewManager.ParseVisionFlipType(run.Values.GetValueOrDefault("VisionXFlip"), run.Values.GetValueOrDefault("VisionYFlip"), run.Values.GetValueOrDefault("VisionXyFlip"));
             using var inspection = await _reviewManager.OpenDefaultInspection(token);
             var geometry = CDefaultOffsetCalibration.HeadGeometry(run.Values, head);
+            var doeExists = CDefaultOffsetCalibration.DoeExists(run.Values, head);
+            var gridSize = CDefaultOffsetCalibration.DefaultInspectionGridSize(run.Values, head, run.Options);
+            var inspectionPitch = doeExists ? run.Pitch : 0;
+            var inspectionAngle = doeExists ? geometry.DoeAngle : 0;
             var marks = new List<ST_DEFAULT_OFFSET_MARK>();
-            var beamCount = run.Options.InspectionPointCount;
+            var beamCount = gridSize * gridSize;
             for (var beam = 1; beam <= beamCount; beam++)
             {
                 await EnsureDefaultSource(run, token);
-                var slot = CDefaultOffsetCalibration.Slot(beam, run.Options.DoeBeamGridSize, run.Pitch, geometry.DoeAngle);
-                var targetName = run.Options.MachiningMode == EN_DEFAULT_MACHINING_MODE.Cross ? "십자" : "Beam";
+                var slot = CDefaultOffsetCalibration.Slot(beam, gridSize, inspectionPitch, inspectionAngle);
+                var targetName = !doeExists ? "중앙" : run.Options.MachiningMode == EN_DEFAULT_MACHINING_MODE.Cross ? "십자" : "Beam";
                 DefaultOffset.SetMessage($"HEAD {head:00} · {targetName} {beam}/{beamCount} 이동·측정 중", 3);
                 var mark = await inspection.Capture(head, beam, slot.X, slot.Y, centerX + slot.X, centerY + direction * slot.Y, flip, token, referenceCell, run.Options.VisionMethod);
                 marks.Add(mark); DefaultOffset.ShowMarks(head, marks);
             }
-            var fit = CDefaultOffsetCalibration.Fit(marks, run.Options.DoeBeamGridSize, run.Pitch, geometry.DoeAngle, run.Options.Tolerance);
+            var fit = CDefaultOffsetCalibration.Fit(marks, gridSize, inspectionPitch, inspectionAngle, run.Options.Tolerance);
             var result = CDefaultOffsetCalibration.WithHeadReference(run.Values, run.Options,
                 new(head, test.Id, test.Q, 0, test.Simulation, inspection.StageSimulation, inspection.VisionSimulation, marks.ToArray(), fit)
-                { Model = run.Model, ReferenceCell = referenceCell, Geometry = geometry });
+                { DoeExists = doeExists, Model = run.Model, ReferenceCell = referenceCell, Geometry = geometry });
             await inspection.Move(result.CenterReviewX, result.CenterStageY, token);
             return result with { R = inspection.Position.Y };
         }
@@ -4369,7 +4378,7 @@
         public CButtonCommand ActionCommand { get; }
         public CDefaultOffsetPanel()
         {
-            Heads = Enumerable.Range(1, 8).Select(number => new CDefaultOffsetHead(number, "-", "-", true)).ToArray();
+            Heads = Enumerable.Range(1, 8).Select(number => new CDefaultOffsetHead(number, "-", "-", true, true)).ToArray();
             _selectedHead = Heads[0];
             _selectedHead.SetSelected(true);
             SelectHeadCommand = new(value =>
@@ -4399,13 +4408,13 @@
         public string MeasuredCenter => _results.TryGetValue(SelectedHead.HeadNo, out var r) ? $"X {r.CenterReviewX:0.000} / Y {r.CenterStageY:0.000}" : "X -  /  Y -";
         public string CenterError => _results.TryGetValue(SelectedHead.HeadNo, out var r) ? $"X {r.CenterErrorX:0.000} / Y {r.CenterErrorY:0.000}" : "X -  /  Y -";
         public string HeadMeasurementSummary => $"{_results.Count} / {ActiveHeadCount} USE Heads 측정" + (IsApplied ? $" · {AppliedHeadCount} 적용 / {VerifiedHeadCount} 검증" : "");
-        public string SelectedHeadTitle => $"HEAD {SelectedHead.HeadNo:00}";
+        public string SelectedHeadTitle => $"HEAD {SelectedHead.HeadNo:00} · {SelectedHead.DoeState}";
         public string SelectedDefault => $"X {SelectedHead.CurrentX}  /  Y {SelectedHead.CurrentY} mm";
         public string BeamSummary { get; private set; } = "측정 0";
         public string GeometryText { get; private set; } = "레시피 설계값 대기";
-        public string PatternCaption => Options?.MachiningMode == EN_DEFAULT_MACHINING_MODE.Cross
-            ? "DOE 십자 배열"
-            : "DOE 빔 배열";
+        public string PatternCaption => !SelectedHead.DoeExists
+            ? Options?.MachiningMode == EN_DEFAULT_MACHINING_MODE.Cross ? "DOE OFF · 중앙 십자" : "DOE OFF · 중앙 1점"
+            : Options?.MachiningMode == EN_DEFAULT_MACHINING_MODE.Cross ? "DOE 십자 배열" : "DOE 빔 배열";
         public string StatusText { get; private set; } = "Head를 선택해 현재 Default와 예상 빔 배열을 확인하세요.";
         public ImageSource? GlassImage { get; private set; }
         public ImageSource? BeamImage { get; private set; }
@@ -4466,7 +4475,8 @@
             var selected = _selectedHead.HeadNo;
             Heads = Enumerable.Range(1, 8).Select(number => new CDefaultOffsetHead(number,
                 ReadText($"H{number:00}_DEFAULT_OFFSET_X"), ReadText($"H{number:00}_DEFAULT_OFFSET_Y"),
-                !values.TryGetValue($"H{number:00}_USE", out var use) || use.Trim().ToUpperInvariant() is not ("OFF" or "0" or "FALSE" or "UNUSE"))).ToArray();
+                !values.TryGetValue($"H{number:00}_USE", out var use) || use.Trim().ToUpperInvariant() is not ("OFF" or "0" or "FALSE" or "UNUSE"),
+                CDefaultOffsetCalibration.DoeExists(values, number))).ToArray();
             _selectedHead = Heads.Single(row => row.HeadNo == selected);
             _selectedHead.SetSelected(true);
             ModelNumbers = Enumerable.Range(1, CRecipeModelPixelCountReader.ReadModelTypeCount(values)).ToArray();
@@ -4487,7 +4497,7 @@
             _signature = "";
             _parameters = new Dictionary<string, string>();
             RecipeName = "-";
-            Heads = Enumerable.Range(1, 8).Select(number => new CDefaultOffsetHead(number, "-", "-", true)).ToArray();
+            Heads = Enumerable.Range(1, 8).Select(number => new CDefaultOffsetHead(number, "-", "-", true, true)).ToArray();
             _selectedHead = Heads[0];
             _selectedHead.SetSelected(true);
             ModelNumbers = [1]; _selectedModelNumber = 1;
@@ -4657,10 +4667,11 @@
                     {
                         if (!double.IsFinite(Options.CrossSize) || Options.CrossSize <= 0)
                             throw new InvalidOperationException("십자 전체 길이를 확인해 주세요.");
-                        var n = Options.DoeBeamGridSize;
-                        var count = Options.InspectionPointCount;
-                        var pitch = CDefaultOffsetCalibration.Pitch(_parameters, _selectedModelNumber);
-                        var angleDegrees = Read($"H{SelectedHead.HeadNo:00}_DOE_ROTATION_ANGLE") ?? 0;
+                        var doeExists = CDefaultOffsetCalibration.DoeExists(_parameters, SelectedHead.HeadNo);
+                        var n = CDefaultOffsetCalibration.DefaultInspectionGridSize(_parameters, SelectedHead.HeadNo, Options);
+                        var count = n * n;
+                        var pitch = doeExists ? CDefaultOffsetCalibration.Pitch(_parameters, _selectedModelNumber) : 0;
+                        var angleDegrees = doeExists ? Read($"H{SelectedHead.HeadNo:00}_DOE_ROTATION_ANGLE") ?? 0 : 0;
                         var targetSlots = Enumerable.Range(1, count)
                             .Select(beam => (Beam: beam, Slot: CDefaultOffsetCalibration.Slot(beam, n, pitch, angleDegrees)))
                             .ToArray();
@@ -4719,7 +4730,9 @@
                         }
                         else Label(drawing, "실측 배열 중심 대기", 250, 286, 11);
                         BeamSummary = $"측정 {marks.Count} / {count}";
-                        GeometryText = $"DOE {n}×{n} · 십자 {Options.CrossSize:0.###} mm × {count} · 빔 간격 {(n == 1 ? 0 : pitch):0.###} mm · Mark Find Setting Single";
+                        GeometryText = doeExists
+                            ? $"DOE {n}×{n} · 십자 {Options.CrossSize:0.###} mm × {count} · 빔 간격 {pitch:0.###} mm · Mark Find Setting Single"
+                            : $"DOE OFF · 중앙 십자 1점 · 길이 {Options.CrossSize:0.###} mm · Mark Find Setting Single";
                     }
                     else
                     {
@@ -4730,10 +4743,13 @@
                         var layout = CCellPatternCalculator.Calculate(new ST_CELL_PATTERN_DEFINITION(1, 0, 0, 0, pixel,
                             pattern.PixelCountX, pattern.PixelCountY, pattern.ProcessPitch, (int)branch), includeShotCenters: false);
                         if (!layout.IsValid) throw new InvalidOperationException(layout.ValidationMessage);
-                        var n = (int)branch;
+                        var doeExists = CDefaultOffsetCalibration.DoeExists(_parameters, SelectedHead.HeadNo);
+                        var n = Options is null
+                            ? doeExists ? (int)branch : 1
+                            : CDefaultOffsetCalibration.DefaultInspectionGridSize(_parameters, SelectedHead.HeadNo, Options);
                         var count = n * n;
                         var spacing = n > 1 ? Math.Min(310.0 / (n - 1), 180.0 / (n - 1)) : 0;
-                        var angleDegrees = Read($"H{SelectedHead.HeadNo:00}_DOE_ROTATION_ANGLE") ?? 0;
+                        var angleDegrees = doeExists ? Read($"H{SelectedHead.HeadNo:00}_DOE_ROTATION_ANGLE") ?? 0 : 0;
                         var angle = angleDegrees * Math.PI / 180;
                         var pen = new Pen(CStatusBrush.Frozen(0xAC, 0xB8, 0xC4), 1) { DashStyle = DashStyles.Dash };
                         drawing.DrawLine(pen, new Point(45, 160), new Point(455, 160));
@@ -4748,13 +4764,20 @@
                         }
                         foreach (var mark in marks)
                         {
-                            var actual = new Point(250 + mark.X * spacing / layout.BeamPitchMillimeters, 160 + mark.Y * spacing / layout.BeamPitchMillimeters);
+                            var displayScale = doeExists
+                                ? spacing / layout.BeamPitchMillimeters
+                                : 60 / Math.Max(Options?.Tolerance ?? 0.05, 0.05);
+                            var actual = new Point(
+                                Math.Clamp(250 + mark.X * displayScale, 24, 476),
+                                Math.Clamp(160 + mark.Y * displayScale, 24, 270));
                             drawing.DrawEllipse(mark.Judge == "OK" ? CStatusBrush.CommandGreen : CStatusBrush.CommandRed, null, actual, 5, 5);
                         }
 
                         (double X, double Y)? measuredCenter = null;
                         if (_results.GetValueOrDefault(SelectedHead.HeadNo)?.Fit is { } completedFit)
                             measuredCenter = (completedFit.X, completedFit.Y);
+                        else if (n == 1 && marks.Count > 0)
+                            measuredCenter = (marks[0].X, marks[0].Y);
                         else if (n == 4 && marks.Count > 0 && marks.All(mark => mark.Beam is >= 1 and <= 16))
                         {
                             var centerOffsets = marks.Select(mark =>
@@ -4769,7 +4792,9 @@
                         drawing.DrawEllipse(Brushes.White, new Pen(CStatusBrush.CommandBlue, 3), targetCenter, 10, 10);
                         if (measuredCenter is { } measured)
                         {
-                            var displayScale = spacing / layout.BeamPitchMillimeters;
+                            var displayScale = doeExists
+                                ? spacing / layout.BeamPitchMillimeters
+                                : 60 / Math.Max(Options?.Tolerance ?? 0.05, 0.05);
                             var actualCenter = new Point(
                                 Math.Clamp(250 + measured.X * displayScale, 24, 476),
                                 Math.Clamp(160 + measured.Y * displayScale, 24, 270));
@@ -4779,7 +4804,9 @@
                             drawing.DrawEllipse(centerBrush, new Pen(Brushes.White, 1), actualCenter, 5, 5);
                         }
                         BeamSummary = $"측정 {marks.Count} / {count}";
-                        GeometryText = $"MODEL {_selectedModelNumber} · {n}×{n} · 빔 간격 {layout.BeamPitchMillimeters:0.###} mm · Mark Find Single";
+                        GeometryText = doeExists
+                            ? $"MODEL {_selectedModelNumber} · DOE {n}×{n} · 빔 간격 {layout.BeamPitchMillimeters:0.###} mm · Mark Find Single"
+                            : $"MODEL {_selectedModelNumber} · DOE OFF · 중앙 1점 · Mark Find Single";
                     }
                 }
                 catch (Exception error) when (error is InvalidOperationException or ArgumentException or OverflowException)
@@ -4811,7 +4838,7 @@
         private void Changed(params string[] names) { foreach (var name in names) PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name)); }
     }
 
-    public sealed class CDefaultOffsetHead(int headNo, string currentX, string currentY, bool enabled) : INotifyPropertyChanged
+    public sealed class CDefaultOffsetHead(int headNo, string currentX, string currentY, bool enabled, bool doeExists) : INotifyPropertyChanged
     {
         private bool _isSelected;
         private ST_DEFAULT_OFFSET_HEAD_RESULT? _result;
@@ -4820,6 +4847,8 @@
         public event PropertyChangedEventHandler? PropertyChanged;
         public int HeadNo { get; } = headNo;
         public bool IsUsed => enabled;
+        public bool DoeExists => doeExists;
+        public string DoeState => doeExists ? "DOE ON" : "DOE OFF";
         public string Name => $"H{HeadNo:00}";
         public string CurrentX { get; } = currentX;
         public string CurrentY { get; } = currentY;
@@ -4835,7 +4864,7 @@
         public string CompactRecommended => Recommended.Replace("X ", "").Replace("\nY ", " / ");
         public string CompactDelta => Delta.Replace("X ", "").Replace("\nY ", " / ");
         public string State => !enabled ? "미사용" : _state ?? (_result is null ? "미측정" : _result.VisionSimulation || _result.AutomationSimulation || _result.StageSimulation ? "측정(SIM)" : "측정 완료");
-        public string Detail => $"HEAD {HeadNo:00}\n현재 Default: X {CurrentX} / Y {CurrentY} mm\n" + (_result is null ? "미측정" : $"목표 중심(Review X/Stage Y): {_result.TargetReviewX:0.000}/{_result.TargetStageY:0.000} mm\n실측 중심: {_result.CenterReviewX:0.000}/{_result.CenterStageY:0.000} mm\n목표 대비 오차(설계 X/Y): {_result.CenterErrorX:0.000}/{_result.CenterErrorY:0.000} mm\nQ {_result.Q:0.000} / R {_result.R:0.000}\n격자 잔차 {_result.Fit.Residual:0.000000} mm\n" + string.Join("\n", _result.Marks.Select(m => $"Beam {m.Beam}: Target-Hole {m.RawX:0.000000}/{m.RawY:0.000000} → Flip {m.CorrectionX:0.000000}/{m.CorrectionY:0.000000} · {m.Judge}")));
+        public string Detail => $"HEAD {HeadNo:00} · {DoeState}\n현재 Default: X {CurrentX} / Y {CurrentY} mm\n" + (_result is null ? "미측정" : $"검사점: {(_result.DoeExists ? $"DOE {_result.Marks.Count}점" : "중앙 1점")}\n목표 중심(Review X/Stage Y): {_result.TargetReviewX:0.000}/{_result.TargetStageY:0.000} mm\n실측 중심: {_result.CenterReviewX:0.000}/{_result.CenterStageY:0.000} mm\n목표 대비 오차(설계 X/Y): {_result.CenterErrorX:0.000}/{_result.CenterErrorY:0.000} mm\nQ {_result.Q:0.000} / R {_result.R:0.000}\n격자 잔차 {_result.Fit.Residual:0.000000} mm\n" + string.Join("\n", _result.Marks.Select(m => $"{(_result.DoeExists ? $"Beam {m.Beam}" : "CENTER")}: Target-Hole {m.RawX:0.000000}/{m.RawY:0.000000} → Flip {m.CorrectionX:0.000000}/{m.CorrectionY:0.000000} · {m.Judge}")));
         public Brush Background => _isSelected ? CStatusBrush.CommandBlue : CStatusBrush.Frozen(0xE6, 0xEE, 0xF5);
         public Brush Foreground => _isSelected ? Brushes.White : CStatusBrush.Frozen(0x24, 0x38, 0x4B);
         public Brush StateBrush => _isSelected ? Brushes.White : !enabled ? Brushes.DimGray : _state == "검증 NG" ? CStatusBrush.CommandRed : _result is not null ? CStatusBrush.CommandGreen : CStatusBrush.Frozen(0x98, 0x6A, 0);

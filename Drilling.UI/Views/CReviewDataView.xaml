@@ -290,12 +290,18 @@
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Text="GLASS-CELL VIEW" Style="{StaticResource PanelTitle}" FontSize="14" Margin="0" VerticalAlignment="Center" />
                                 <TextBlock Grid.Column="1" Text="{Binding GlassSummary}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="10" Margin="10,0" HorizontalAlignment="Center" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <Border Width="10" Height="10" Background="#4ADE80" BorderBrush="#86EFAC" BorderThickness="1" />
-                                    <TextBlock Text="RESULT CELL" Margin="4,0,10,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="9" VerticalAlignment="Center" />
+                                <WrapPanel Grid.Column="2" VerticalAlignment="Center">
+                                    <Ellipse Width="8" Height="8" Fill="{Binding ReviewLevel1Brush}" />
+                                    <TextBlock Text="L1" Margin="3,0,6,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="8" VerticalAlignment="Center" />
+                                    <Ellipse Width="8" Height="8" Fill="{Binding ReviewLevel2Brush}" />
+                                    <TextBlock Text="L2" Margin="3,0,6,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="8" VerticalAlignment="Center" />
+                                    <Ellipse Width="8" Height="8" Fill="{Binding ReviewLevel3Brush}" />
+                                    <TextBlock Text="L3" Margin="3,0,6,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="8" VerticalAlignment="Center" />
+                                    <Ellipse Width="8" Height="8" Fill="{Binding ReviewLevel4Brush}" />
+                                    <TextBlock Text="L4" Margin="3,0,8,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="8" VerticalAlignment="Center" />
                                     <Border Width="10" Height="10" Background="#F6C453" BorderBrush="#FFF0B3" BorderThickness="1" />
                                     <TextBlock Text="SELECTED" Margin="4,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="9" VerticalAlignment="Center" />
-                                </StackPanel>
+                                </WrapPanel>
                             </Grid>
                             <Border Grid.Row="1" Background="{DynamicResource GridBackgroundBrush}" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1" Padding="4" ClipToBounds="True">
                                 <Viewbox Stretch="Uniform">
@@ -385,21 +391,31 @@
                                     <TextBlock Text="{Binding SelectedCellTitle}" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center" />
                                     <TextBlock Text="{Binding SelectedShotTitle}" Foreground="{DynamicResource AccentTextBrush}" FontSize="10" HorizontalAlignment="Center" />
                                 </StackPanel>
-                                <WrapPanel Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                    <Ellipse Width="7" Height="7" Fill="#64748B" />
-                                    <TextBlock Text="SHOT" Margin="3,0,7,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="8" VerticalAlignment="Center" />
-                                    <Ellipse Width="7" Height="7" Fill="#22C55E" />
-                                    <TextBlock Text="RESULT" Margin="3,0,7,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="8" VerticalAlignment="Center" />
-                                    <Grid Width="8" Height="8">
-                                        <Border Height="1.5" Background="#EF4444" RenderTransformOrigin="0.5,0.5"><Border.RenderTransform><RotateTransform Angle="45" /></Border.RenderTransform></Border>
-                                        <Border Height="1.5" Background="#EF4444" RenderTransformOrigin="0.5,0.5"><Border.RenderTransform><RotateTransform Angle="-45" /></Border.RenderTransform></Border>
-                                    </Grid>
-                                    <TextBlock Text="MASKING" Margin="3,0,7,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="8" VerticalAlignment="Center" />
-                                    <Border Width="7" Height="7" Background="#A855F7" RenderTransformOrigin="0.5,0.5"><Border.RenderTransform><RotateTransform Angle="45" /></Border.RenderTransform></Border>
-                                    <TextBlock Text="CHESS" Margin="3,0,7,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="8" VerticalAlignment="Center" />
-                                    <Ellipse Width="8" Height="8" Fill="#F6C453" Stroke="#B7791F" StrokeThickness="1" />
-                                    <TextBlock Text="SELECTED" Margin="3,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="8" VerticalAlignment="Center" />
-                                </WrapPanel>
+                                <StackPanel Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,3">
+                                        <Border Width="7" Height="7" Background="{Binding ReviewLevel1Brush}" />
+                                        <TextBlock Text="L1" Margin="3,0,7,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="8" VerticalAlignment="Center" />
+                                        <Border Width="7" Height="7" Background="{Binding ReviewLevel2Brush}" />
+                                        <TextBlock Text="L2" Margin="3,0,7,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="8" VerticalAlignment="Center" />
+                                        <Border Width="7" Height="7" Background="{Binding ReviewLevel3Brush}" />
+                                        <TextBlock Text="L3" Margin="3,0,7,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="8" VerticalAlignment="Center" />
+                                        <Border Width="7" Height="7" Background="{Binding ReviewLevel4Brush}" />
+                                        <TextBlock Text="L4" Margin="3,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="8" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <Border Width="7" Height="7" Background="#64748B" />
+                                        <TextBlock Text="SHOT" Margin="3,0,7,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="8" VerticalAlignment="Center" />
+                                        <Grid Width="8" Height="8" Background="#22EF4444">
+                                            <Border Height="1.5" Background="#EF4444" RenderTransformOrigin="0.5,0.5"><Border.RenderTransform><RotateTransform Angle="45" /></Border.RenderTransform></Border>
+                                            <Border Height="1.5" Background="#EF4444" RenderTransformOrigin="0.5,0.5"><Border.RenderTransform><RotateTransform Angle="-45" /></Border.RenderTransform></Border>
+                                        </Grid>
+                                        <TextBlock Text="MASKING" Margin="3,0,7,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="8" VerticalAlignment="Center" />
+                                        <Border Width="7" Height="7" Background="#A855F7" />
+                                        <TextBlock Text="CHESS" Margin="3,0,7,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="8" VerticalAlignment="Center" />
+                                        <Border Width="8" Height="8" Background="#F6C453" BorderBrush="#B7791F" BorderThickness="1" />
+                                        <TextBlock Text="SELECTED" Margin="3,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="8" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </StackPanel>
                             </Grid>
                             <Border Grid.Row="1" Background="{DynamicResource GridBackgroundBrush}" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1" Padding="4" ClipToBounds="True">
                                 <Viewbox Stretch="Uniform">
@@ -499,10 +515,14 @@
                                                    VerticalAlignment="Center"
                                                    ToolTip="{Binding ScatterPlotSummary}" />
                                         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                                            <Ellipse Width="7" Height="7" Fill="#22C55E" />
-                                            <TextBlock Text="OK" Margin="3,0,8,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="8" VerticalAlignment="Center" />
-                                            <Ellipse Width="7" Height="7" Fill="#EF4444" />
-                                            <TextBlock Text="NG" Margin="3,0,8,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="8" VerticalAlignment="Center" />
+                                            <Ellipse Width="7" Height="7" Fill="{Binding ReviewLevel1Brush}" />
+                                            <TextBlock Text="L1" Margin="3,0,6,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="8" VerticalAlignment="Center" />
+                                            <Ellipse Width="7" Height="7" Fill="{Binding ReviewLevel2Brush}" />
+                                            <TextBlock Text="L2" Margin="3,0,6,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="8" VerticalAlignment="Center" />
+                                            <Ellipse Width="7" Height="7" Fill="{Binding ReviewLevel3Brush}" />
+                                            <TextBlock Text="L3" Margin="3,0,6,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="8" VerticalAlignment="Center" />
+                                            <Ellipse Width="7" Height="7" Fill="{Binding ReviewLevel4Brush}" />
+                                            <TextBlock Text="L4" Margin="3,0,8,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="8" VerticalAlignment="Center" />
                                             <Ellipse Width="8" Height="8" Fill="#F6C453" Stroke="#FFFFFF" StrokeThickness="1" />
                                             <TextBlock Text="SELECTED" Margin="3,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="8" VerticalAlignment="Center" />
                                         </StackPanel>
@@ -632,8 +652,33 @@
                                 <DataGridTextColumn Header="CELL" Binding="{Binding Cell}" Width="62" />
                                 <DataGridTextColumn Header="SHOT" Binding="{Binding ShotName}" Width="54" />
                                 <DataGridTextColumn Header="BEAM" Binding="{Binding Beam}" Width="52" />
-                                <DataGridTextColumn Header="RESULT X (mm)" Binding="{Binding ResultXText}" Width="*" MinWidth="138" />
-                                <DataGridTextColumn Header="RESULT Y (mm)" Binding="{Binding ResultYText}" Width="*" MinWidth="138" />
+                                <DataGridTextColumn Header="RESULT X (mm)" Binding="{Binding ResultXText}" Width="*" MinWidth="128">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{Binding LevelBrush}" />
+                                            <Setter Property="FontWeight" Value="SemiBold" />
+                                            <Setter Property="VerticalAlignment" Value="Center" />
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="RESULT Y (mm)" Binding="{Binding ResultYText}" Width="*" MinWidth="128">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{Binding LevelBrush}" />
+                                            <Setter Property="FontWeight" Value="SemiBold" />
+                                            <Setter Property="VerticalAlignment" Value="Center" />
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="LEVEL" Binding="{Binding LevelText}" Width="70">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{Binding LevelBrush}" />
+                                            <Setter Property="FontWeight" Value="Bold" />
+                                            <Setter Property="VerticalAlignment" Value="Center" />
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
                                 <DataGridTextColumn Header="JUDGE" Binding="{Binding Judge}" Width="72">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">

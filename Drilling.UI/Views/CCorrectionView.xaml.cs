@@ -20,7 +20,7 @@ public partial class CCorrectionView : UserControl
         if (_restoringCorrectionReviewTab || e.OriginalSource != sender || sender is not TabControl tabs || tabs.SelectedItem is not TabItem selected)
             return;
 
-        if (DataContext is not CRootView root || root.CurrentScreen.Correction is not CMenuCorrection correction)
+        if (DataContext is not CRootView root)
         {
             _lastCorrectionReviewTab = selected;
             return;
@@ -31,12 +31,6 @@ public partial class CCorrectionView : UserControl
         {
             RestoreCorrectionReviewTab(tabs);
             CRecipeConfirmDialog.ShowWarning("검사 진행 중", "현재 검사를 중지한 후 다른 탭으로 이동해 주세요.");
-            return;
-        }
-
-        if (selected.Tag is string mode && !correction.TrySelectReviewInspectionMode(mode))
-        {
-            RestoreCorrectionReviewTab(tabs);
             return;
         }
 

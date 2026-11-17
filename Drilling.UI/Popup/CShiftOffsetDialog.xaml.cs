@@ -94,49 +94,45 @@ public partial class CShiftOffsetDialog : Window
         var width = PreviewCanvas.ActualWidth > 0 ? PreviewCanvas.ActualWidth : 360.0;
         var height = PreviewCanvas.ActualHeight > 0 ? PreviewCanvas.ActualHeight : 220.0;
         var gridBrush = (Brush)FindResource("PanelBorderBrush");
-        var offFill = (Brush)FindResource("ButtonSecondaryBrush");
-        var offStroke = (Brush)FindResource("TextSecondaryBrush");
-        var onStroke = (Brush)FindResource("StatusReadyBrush");
+        var beforeBrush = (Brush)FindResource("TextSecondaryBrush");
+        var afterBrush = (Brush)FindResource("StatusReadyBrush");
         var textBrush = (Brush)FindResource("TextSecondaryBrush");
-        var originX = width * 0.27;
-        var originY = height * 0.62;
-        const double cellW = 46.0;
-        const double cellH = 30.0;
-        const double gapX = 12.0;
-        const double gapY = 12.0;
-        for (var row = 0; row < 3; row++)
-        {
-            for (var col = 0; col < 4; col++)
-            {
-                var x = originX + col * (cellW + gapX);
-                var y = originY - row * (cellH + gapY);
-                AddRect(x, y, cellW, cellH, offFill, offStroke, 1.0);
-            }
-        }
+        var originX = width * 0.46;
+        var originY = height * 0.55;
 
         if (isValid)
         {
-            var vectorScale = 5.5;
-            var dx = Math.Clamp(shiftX * vectorScale, -75.0, 75.0);
-            var dy = Math.Clamp(-shiftY * vectorScale, -75.0, 75.0);
             var hasShift = Math.Abs(shiftX) >= 0.000001 || Math.Abs(shiftY) >= 0.000001;
-            for (var row = 0; row < 3; row++)
-            {
-                for (var col = 0; col < 4; col++)
-                {
-                    var x = originX + col * (cellW + gapX) + dx;
-                    var y = originY - row * (cellH + gapY) + dy;
-                    AddRect(x, y, cellW, cellH, Brushes.Transparent, onStroke, 2.0);
-                }
-            }
-
+            var dx = 0.0;
+            var dy = 0.0;
             if (hasShift)
             {
-                AddArrow(originX + 28.0, originY - 94.0, originX + 28.0 + dx, originY - 94.0 + dy, onStroke);
+                var magnitude = Math.Sqrt((shiftX * shiftX) + (shiftY * shiftY));
+                var displayLength = Math.Clamp(magnitude * 45.0, 24.0, 82.0);
+                dx = shiftX / magnitude * displayLength;
+                dy = -shiftY / magnitude * displayLength;
+            }
+
+            AddPoint(originX, originY, 11.0, beforeBrush, Brushes.Transparent, 2.0);
+            if (hasShift)
+            {
+                var afterX = originX + dx;
+                var afterY = originY + dy;
+                var beforeLabelX = dx >= 0.0 ? originX - 66.0 : originX + 16.0;
+                var afterLabelX = dx >= 0.0 ? afterX + 14.0 : afterX - 62.0;
+                var beforeLabelY = dy >= 0.0 ? originY - 28.0 : originY + 12.0;
+                var afterLabelY = dy >= 0.0 ? afterY + 12.0 : afterY - 28.0;
+
+                AddArrow(originX, originY, afterX, afterY, afterBrush);
+                AddPoint(afterX, afterY, 12.0, afterBrush, afterBrush, 2.0);
+                AddText("BEFORE", Math.Clamp(beforeLabelX, 8.0, width - 64.0), Math.Clamp(beforeLabelY, 8.0, height - 32.0), beforeBrush);
+                AddText("AFTER", Math.Clamp(afterLabelX, 8.0, width - 58.0), Math.Clamp(afterLabelY, 8.0, height - 32.0), afterBrush);
             }
             else
             {
-                AddText("NO SHIFT", originX + 12.0, originY - 106.0, onStroke);
+                AddPoint(originX, originY, 6.0, afterBrush, afterBrush, 1.0);
+                AddText("BEFORE", originX - 66.0, originY + 10.0, beforeBrush);
+                AddText("AFTER", originX + 14.0, originY - 26.0, afterBrush);
             }
         }
 
@@ -147,35 +143,40 @@ public partial class CShiftOffsetDialog : Window
         PreviewCaptionText.Text = isValid ? $"Glass 기준 이동: X {Format(shiftX)} mm / Y {Format(shiftY)} mm" : "입력값을 확인하세요.";
     }
 
-    private void AddRect(double x, double y, double width, double height, Brush fill, Brush stroke, double strokeThickness)
+    private void AddPoint(double centerX, double centerY, double diameter, Brush fill, Brush stroke, double strokeThickness)
     {
-        var rect = new Rectangle
+        var point = new Ellipse
         {
-            Width = width,
-            Height = height,
+            Width = diameter,
+            Height = diameter,
             Fill = fill,
             Stroke = stroke,
             StrokeThickness = strokeThickness
         };
-        Canvas.SetLeft(rect, x);
-        Canvas.SetTop(rect, y);
-        PreviewCanvas.Children.Add(rect);
+        Canvas.SetLeft(point, centerX - (diameter / 2.0));
+        Canvas.SetTop(point, centerY - (diameter / 2.0));
+        PreviewCanvas.Children.Add(point);
     }
 
-    private void AddLine(double x1, double y1, double x2, double y2, Brush stroke)
+    private void AddLine(double x1, double y1, double x2, double y2, Brush stroke, double thickness = 1.0)
     {
-        PreviewCanvas.Children.Add(new Line { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Stroke = stroke, StrokeThickness = 1.0 });
+        PreviewCanvas.Children.Add(new Line { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Stroke = stroke, StrokeThickness = thickness });
     }
 
     private void AddArrow(double x1, double y1, double x2, double y2, Brush stroke)
     {
-        AddLine(x1, y1, x2, y2, stroke);
         var angle = Math.Atan2(y2 - y1, x2 - x1);
+        const double pointRadius = 7.0;
+        var startX = x1 + Math.Cos(angle) * pointRadius;
+        var startY = y1 + Math.Sin(angle) * pointRadius;
+        var endX = x2 - Math.Cos(angle) * pointRadius;
+        var endY = y2 - Math.Sin(angle) * pointRadius;
+        AddLine(startX, startY, endX, endY, stroke, 2.0);
         const double length = 9.0;
         var left = angle + Math.PI * 0.82;
         var right = angle - Math.PI * 0.82;
-        AddLine(x2, y2, x2 + Math.Cos(left) * length, y2 + Math.Sin(left) * length, stroke);
-        AddLine(x2, y2, x2 + Math.Cos(right) * length, y2 + Math.Sin(right) * length, stroke);
+        AddLine(endX, endY, endX + Math.Cos(left) * length, endY + Math.Sin(left) * length, stroke, 2.0);
+        AddLine(endX, endY, endX + Math.Cos(right) * length, endY + Math.Sin(right) * length, stroke, 2.0);
     }
 
     private void AddText(string text, double x, double y, Brush foreground)

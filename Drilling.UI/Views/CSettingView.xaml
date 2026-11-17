@@ -618,6 +618,32 @@
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
                                                     <Grid>
+                                                         <Button PreviewMouseLeftButtonDown="OpenParameterValueInput"
+                                                                 HorizontalContentAlignment="Stretch"
+                                                                 Padding="8,0">
+                                                             <Button.Style>
+                                                                 <Style TargetType="Button" BasedOn="{StaticResource SettingParameterValueButton}">
+                                                                     <Setter Property="Visibility" Value="Collapsed" />
+                                                                     <Style.Triggers>
+                                                                         <DataTrigger Binding="{Binding IsColorSetting}" Value="True">
+                                                                             <Setter Property="Visibility" Value="Visible" />
+                                                                         </DataTrigger>
+                                                                     </Style.Triggers>
+                                                                 </Style>
+                                                             </Button.Style>
+                                                             <Grid>
+                                                                 <Grid.ColumnDefinitions>
+                                                                     <ColumnDefinition Width="32" />
+                                                                     <ColumnDefinition Width="*" />
+                                                                 </Grid.ColumnDefinitions>
+                                                                 <Border Width="22" Height="22" HorizontalAlignment="Left"
+                                                                         Background="{Binding ColorBrush}"
+                                                                         BorderBrush="{DynamicResource PanelBorderBrush}"
+                                                                         BorderThickness="1" />
+                                                                 <TextBlock Grid.Column="1" Text="{Binding Value}" Margin="8,0,0,0"
+                                                                            FontWeight="SemiBold" VerticalAlignment="Center" />
+                                                             </Grid>
+                                                         </Button>
                                                         <Button Content="{Binding Value}"
                                                                 FontWeight="SemiBold"
                                                                 HorizontalContentAlignment="Left"
@@ -630,6 +656,9 @@
                                                                         <DataTrigger Binding="{Binding UsesSelectionEditor}" Value="True">
                                                                             <Setter Property="Visibility" Value="Collapsed" />
                                                                         </DataTrigger>
+                                                                         <DataTrigger Binding="{Binding IsColorSetting}" Value="True">
+                                                                             <Setter Property="Visibility" Value="Collapsed" />
+                                                                         </DataTrigger>
                                                                     </Style.Triggers>
                                                                 </Style>
                                                             </Button.Style>
@@ -660,6 +689,32 @@
                                             <DataGridTemplateColumn.CellEditingTemplate>
                                                 <DataTemplate>
                                                     <Grid>
+                                                         <Button PreviewMouseLeftButtonDown="OpenParameterValueInput"
+                                                                 HorizontalContentAlignment="Stretch"
+                                                                 Padding="8,0">
+                                                             <Button.Style>
+                                                                 <Style TargetType="Button" BasedOn="{StaticResource SettingParameterValueButton}">
+                                                                     <Setter Property="Visibility" Value="Collapsed" />
+                                                                     <Style.Triggers>
+                                                                         <DataTrigger Binding="{Binding IsColorSetting}" Value="True">
+                                                                             <Setter Property="Visibility" Value="Visible" />
+                                                                         </DataTrigger>
+                                                                     </Style.Triggers>
+                                                                 </Style>
+                                                             </Button.Style>
+                                                             <Grid>
+                                                                 <Grid.ColumnDefinitions>
+                                                                     <ColumnDefinition Width="32" />
+                                                                     <ColumnDefinition Width="*" />
+                                                                 </Grid.ColumnDefinitions>
+                                                                 <Border Width="22" Height="22" HorizontalAlignment="Left"
+                                                                         Background="{Binding ColorBrush}"
+                                                                         BorderBrush="{DynamicResource PanelBorderBrush}"
+                                                                         BorderThickness="1" />
+                                                                 <TextBlock Grid.Column="1" Text="{Binding Value}" Margin="8,0,0,0"
+                                                                            FontWeight="SemiBold" VerticalAlignment="Center" />
+                                                             </Grid>
+                                                         </Button>
                                                         <Button Content="{Binding Value}"
                                                                 FontWeight="SemiBold"
                                                                 HorizontalContentAlignment="Left"
@@ -672,6 +727,9 @@
                                                                         <DataTrigger Binding="{Binding UsesSelectionEditor}" Value="True">
                                                                             <Setter Property="Visibility" Value="Collapsed" />
                                                                         </DataTrigger>
+                                                                         <DataTrigger Binding="{Binding IsColorSetting}" Value="True">
+                                                                             <Setter Property="Visibility" Value="Collapsed" />
+                                                                         </DataTrigger>
                                                                     </Style.Triggers>
                                                                 </Style>
                                                             </Button.Style>

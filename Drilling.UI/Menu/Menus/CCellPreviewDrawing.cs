@@ -158,6 +158,7 @@ internal static class CCellPreviewDrawing
 public sealed record ST_CELL_PREVIEW_LABEL(int CellNo, double CanvasCenterX, double CanvasCenterY, double Width, double DesignWidth, double DesignHeight, bool IsSelected)
 {
     public Rect CellBounds { get; init; } = Rect.Empty;
+    public bool HasSelectedShots { get; init; }
     public string DisplayText
     {
         get
