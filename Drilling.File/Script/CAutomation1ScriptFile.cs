@@ -50,6 +50,7 @@ public sealed class CAutomation1ScriptFile : CAutomationScriptFileBase
 
     public override ST_SCRIPT_BUILD_RESULT Build(ST_PROCESS_MODEL processModel, string subDirectoryName, CancellationToken cancellationToken = default)
     {
+        // @흐름 [스크립트] 세트생성 - 한 Build 회차에 공통 MOF RunId, Head Script, 좌표 CSV, Manifest를 같은 폴더에 묶는다.
         cancellationToken.ThrowIfCancellationRequested();
         var createdAt = DateTimeOffset.Now;
         var readyRunId = CMofReadiness.CreateRunId();
@@ -84,7 +85,7 @@ public sealed class CAutomation1ScriptFile : CAutomationScriptFileBase
         cancellationToken.ThrowIfCancellationRequested();
         System.IO.File.WriteAllLines(shotCoordinateCsvPath, shotCoordinateCsvLines, Encoding.UTF8);
 
-        // Every build has an isolated directory, and upload/execution use only these manifest paths.
+        // @파일 [스크립트] 회차분리 - Upload와 실행은 이번 Build 폴더의 Manifest 경로만 사용해 Head별 파일 혼합을 막는다.
         foreach (var head in activeHeads)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -115,8 +116,7 @@ public sealed class CAutomation1ScriptFile : CAutomationScriptFileBase
         var root = Path.Combine(_scriptDirectory, subDirectoryName);
         if (!Directory.Exists(root))
             throw new FileNotFoundException("마지막 AUTO 스크립트 폴더가 없습니다.", root);
-        // Select a build as one set, never the newest individual file per head.
-        // A partially written newest set must fail, rather than silently run an older set.
+        // @파일 [스크립트] 최신세트 - Head별 최신 파일을 섞지 않고 가장 최근 Build 폴더 하나를 Manifest 단위로 읽는다.
         var directory = Directory.EnumerateDirectories(root).Select(path => new DirectoryInfo(path))
             .Where(info => info.Name.Length >= 15 && DateTime.TryParseExact(info.Name[..15], "yyyyMMdd_HHmmss", CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
             .OrderByDescending(info => info.Name[..15], StringComparer.Ordinal).ThenByDescending(info => info.CreationTimeUtc)
@@ -168,6 +168,7 @@ public sealed class CAutomation1ScriptFile : CAutomationScriptFileBase
             || !heads.Select(head => head.HeadNo).Order().SequenceEqual(expectedHeads)
             || heads.Select(head => (head.AutomationNo, head.TaskNo)).Distinct().Count() != heads.Count)
             throw new InvalidDataException("마지막 스크립트 세트의 Head/Task 구성이 현재 가공 대상과 일치하지 않습니다: " + manifest);
+        // @보호 [스크립트] 구성검증 - 현재 Head/Controller/Task와 MOF RunId가 모두 일치해야 저장 Script를 재실행한다.
         return new(ProcessCoordinateListFileName, manifest, heads.Sum(head => head.TotalShots), createdAt, heads) { MofReadyRunId = readyRunId!.Value };
     }
 
@@ -388,6 +389,7 @@ public sealed class CAutomation1ScriptFile : CAutomationScriptFileBase
 
     private static IReadOnlyList<string> BuildHeadLines(ST_PROCESS_MODEL processModel, ST_HEAD_PROCESS_PLAN head, DateTimeOffset createdAt, bool bufferedRun, long readyRunId)
     {
+        // @흐름 [스크립트] Head생성 - Head별 축, Encoder, Laser 지연, Shot 순서와 MOF 준비번호를 한 Script로 고정한다.
         var lines = new List<string>();
         var common = new Dictionary<string, string>(processModel.Parameters, StringComparer.OrdinalIgnoreCase);
         var simulatorMode = ReadBool(common, false, Automation1SimulatorUseKey);

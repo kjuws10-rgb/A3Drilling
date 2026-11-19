@@ -19,6 +19,7 @@
     using Drilling.Common.Product;
     using Drilling.Common.Recipe;
     using Drilling.Common.Correction;
+    using Drilling.Common.Log;
 
     public sealed partial class CRootView : CBindingBase
     {
@@ -40,11 +41,13 @@
         private static readonly TimeSpan MainLiveStatusTimeout = TimeSpan.FromSeconds(5);
         private static readonly TimeSpan MonitorDefaultRefreshInterval = TimeSpan.FromSeconds(2);
         private static readonly TimeSpan MonitorShellStatusRefreshInterval = TimeSpan.FromSeconds(5);
+        private static readonly TimeSpan PmLifeStatusRefreshInterval = TimeSpan.FromSeconds(2);
         private static readonly TimeSpan ErrorReportInterval = TimeSpan.FromSeconds(10);
         private const string SelectRecipeSettingKey = "SELECT_RECIPE";
         private const string DefaultRecipeId = "DRILL_A01";
         private const string ShiftOffsetXKey = "SHIFT_OFFSET_X";
         private const string ShiftOffsetYKey = "SHIFT_OFFSET_Y";
+        private const string PmUnlockPasswordKey = "PM_UNLOCK_PASSWORD";
         private static readonly IReadOnlyList<EN_MENU> OperatorMenus = [EN_MENU.Main, EN_MENU.Manual, EN_MENU.Recipe, EN_MENU.Setting, EN_MENU.Correction, EN_MENU.Alarm, EN_MENU.Monitor, EN_MENU.Pm];
         private static readonly IReadOnlySet<EN_MENU> AutoModeMenus = new HashSet<EN_MENU>
         {
@@ -75,10 +78,13 @@
         private readonly CReviewManager _reviewManager;
         private readonly IReadOnlyDictionary<EN_MENU, CMenuBase> _menus;
         private readonly Dictionary<EN_EQP_MODULE, int> _selectedHeaderModuleIndexes = new();
+        private readonly Dictionary<EN_MENU, CScreenViewModel> _screenCache = new();
+        private readonly object _screenBuildSync = new();
         private readonly SemaphoreSlim _processPreparationGate = new(1, 1);
         private readonly CancellationTokenSource _initialProcessModelCts = new();
         private readonly Task _initialProcessModelTask;
         private CMenuItem _selectedMenu;
+        private CMenuItem? _navigationSelectedMenu;
         private CScreenViewModel _currentScreen;
         private ST_SYSTEM_STATUS _systemStatus = CreateFallbackST_SYSTEM_STATUS();
         private IReadOnlyList<ST_INTERFACE_COMM_STATUS> _interfaceCommStatuses = [];
@@ -97,12 +103,14 @@
         private string _shiftOffsetY = "0";
         private EN_SYSTEM_MODE _operationMode = EN_SYSTEM_MODE.Manual;
         private EN_AUTO_CYCLE_STATE _autoCycleState = EN_AUTO_CYCLE_STATE.Ready;
+        private bool _isAutoSequenceInitializing;
         private CancellationTokenSource? _autoCycleCts;
         private TaskCompletionSource<bool>? _autoCycleCompletion;
         private EN_UI_THEME _currentTheme = EN_UI_THEME.Light;
         private bool _statusRefreshRunning;
         private int _screenRefreshRunning;
         private bool _screenRefreshPending;
+        private CancellationTokenSource _screenBuildCts = new();
         private bool _monitorLiveRefreshRunning;
         private bool _manualScannerStatusRefreshRunning;
         private bool _mainLiveRefreshRunning;
@@ -111,11 +119,15 @@
         private long _lastMonitorScreenRefreshTimestamp;
         private long _lastMonitorShellStatusRefreshTimestamp;
         private long _lastMainLiveStatusRefreshTimestamp;
+        private long _lastPmLifeStatusRefreshTimestamp;
         private long _lastMainLiveStatusErrorReportTimestamp;
         private long _lastClockTickErrorReportTimestamp;
         private string _lastMainLiveStatusError = "";
         private string _lastClockTickError = "";
         private ST_PM_LOCK_STATUS _pmLockStatus = new(false, null);
+        private ST_PM_HISTORY_ENTRY? _activePmSession;
+        private bool _isPmUnlocking;
+        private bool _isPmNavigationUnlockPromptOpen;
         private static readonly TimeSpan AutoCycleStopTimeout = TimeSpan.FromSeconds(10);
         private CProtectWindowRequestNotice? _protectWindowNotice;
         private CAutoFineReviewCoordinator? _autoFineReview;
@@ -164,6 +176,7 @@
 
             Menus = new ObservableCollection<CMenuItem>(OperatorMenus.Select(BuildCMenuItem));
             _selectedMenu = Menus[0];
+            _navigationSelectedMenu = _selectedMenu;
             ApplyMenuAccessForOperationMode();
             HeaderStatusItems = new ObservableCollection<ST_HEADER_STATUS_ITEM>();
             HeaderContextStatusItems = new ObservableCollection<ST_HEADER_STATUS_ITEM>();
@@ -209,7 +222,7 @@
             }
 
             ToggleThemeCommand = new CButtonCommand(ToggleThemeCallback);
-            OpenMelsecStageSimulationCommand = new CButtonCommand(_ => OpenMelsecStageSimulation());
+            OpenMelsecStageSimulationCommand = new CButtonCommand(_ => OpenMelsecStageSimulation(), _ => !_pmLockStatus.IsLocked);
             async void ToggleOperationModeCallback(object? arg0)
             {
                 await ToggleOperationMode();
@@ -217,10 +230,23 @@
 
             bool CanExecuteToggleOperationModeCommand(object? arg0)
             {
-                return _autoCycleState == EN_AUTO_CYCLE_STATE.Ready;
+                return !_pmLockStatus.IsLocked && _autoCycleState == EN_AUTO_CYCLE_STATE.Ready && !_isAutoSequenceInitializing;
             }
 
             ToggleOperationModeCommand = new CButtonCommand(ToggleOperationModeCallback, CanExecuteToggleOperationModeCommand);
+            async void InitializeAutoSequenceCallback(object? arg0)
+            {
+                await InitializeAutoSequence();
+            }
+
+            bool CanExecuteInitializeAutoSequenceCommand(object? arg0)
+            {
+                return _operationMode == EN_SYSTEM_MODE.Auto
+                    && _autoCycleState == EN_AUTO_CYCLE_STATE.Ready
+                    && !_isAutoSequenceInitializing;
+            }
+
+            InitializeAutoSequenceCommand = new CButtonCommand(InitializeAutoSequenceCallback, CanExecuteInitializeAutoSequenceCommand);
             _systemStatus = _systemStatus with
             {
                 OperationMode = _operationMode
@@ -247,6 +273,10 @@
 
         public void StopAutomationStatusAcquisition()
         {
+            lock (_screenBuildSync)
+            {
+                _screenBuildCts.Cancel();
+            }
             _protectWindowNotice?.Dispose();
             _stageSimulationDialog?.Close();
             _alarmPopup?.Close();
@@ -269,6 +299,22 @@
 
             set
             {
+                if (_pmLockStatus.IsLocked && value is not null && value.Menu != EN_MENU.Pm)
+                {
+                    RequestPmUnlockForNavigation(value);
+                    return;
+                }
+
+                if (value is not null
+                    && value.Menu == EN_MENU.Pm
+                    && _selectedMenu.Menu != EN_MENU.Pm
+                    && !_pmLockStatus.IsLocked
+                    && !TryEnterPmLock())
+                {
+                    OnPropertyChanged(nameof(SelectedMenu));
+                    return;
+                }
+
                 if (!_isAlarmNavigation && value is not null && IsReviewNavigationLocked(value.Menu))
                 {
                     StatusMessage = "Review is running. Stop the current Review before changing the menu.";
@@ -294,6 +340,9 @@
                 {
                     return;
                 }
+                SyncNavigationMenuSelection();
+                RestartScreenBuild();
+                ShowCachedScreenOrLoading(value);
 
                 CUiLogService.WriteClick("CRootView", "MENU_SELECT", value.Name, $"{previousMenu} -> {value.Menu}");
                 if (previousMenu == EN_MENU.Main && value.Menu != EN_MENU.Main)
@@ -326,8 +375,27 @@
                 StartCommand.NotifyCanExecuteChanged();
                 StopCommand.NotifyCanExecuteChanged();
                 SelectHeadCommand.NotifyCanExecuteChanged();
+                ApplyMenuAccessForOperationMode();
                 RefreshShellStatusItems();
                 _ = RefreshCurrentScreen();
+            }
+        }
+
+        public CMenuItem? NavigationSelectedMenu
+        {
+            get
+            {
+                return _navigationSelectedMenu;
+            }
+
+            set
+            {
+                if (value is null || !SetProperty(ref _navigationSelectedMenu, value))
+                    return;
+
+                SelectedMenu = value;
+                if (!ReferenceEquals(_navigationSelectedMenu, _selectedMenu))
+                    QueueNavigationMenuSelectionSync();
             }
         }
 
@@ -412,6 +480,7 @@
         public CButtonCommand SelectHeadCommand { get; }
         public CButtonCommand ToggleThemeCommand { get; }
         public CButtonCommand ToggleOperationModeCommand { get; }
+        public CButtonCommand InitializeAutoSequenceCommand { get; }
 
         public string ShiftOffsetX
         {
@@ -465,12 +534,14 @@
 
         private bool CanStartAutoCycle()
         {
-            return _autoCycleState == EN_AUTO_CYCLE_STATE.Ready && IsManualStartEligible();
+            return !_isAutoSequenceInitializing && _autoCycleState == EN_AUTO_CYCLE_STATE.Ready && IsManualStartEligible();
         }
 
         private bool CanStopAutoCycle()
         {
-            return _autoCycleState is EN_AUTO_CYCLE_STATE.Preparing or EN_AUTO_CYCLE_STATE.Running || (_operationMode == EN_SYSTEM_MODE.Auto && (_stationManager.StageRequests.IsRunning || _stationManager.StageRequests.NeedsCleanup));
+            return !_isAutoSequenceInitializing
+                && (_autoCycleState is EN_AUTO_CYCLE_STATE.Preparing or EN_AUTO_CYCLE_STATE.Running
+                    || _operationMode == EN_SYSTEM_MODE.Auto && (_stationManager.StageRequests.IsRunning || _stationManager.StageRequests.NeedsCleanup));
         }
 
         private bool IsManualStartEligible()
@@ -493,6 +564,7 @@
                 {
                     targetMenu = SelectedMenu;
                     _screenRefreshPending = false;
+                    var buildToken = GetScreenBuildToken();
                     if (!_menus.TryGetValue(targetMenu.Menu, out var menu))
                     {
                         if (SelectedMenu.Menu == targetMenu.Menu)
@@ -503,28 +575,41 @@
                         continue;
                     }
 
-                    var screen = await menu.Build();
-                    if (SelectedMenu.Menu != targetMenu.Menu)
+                    try
                     {
-                        _screenRefreshPending = true;
-                        continue;
-                    }
+                        // 메뉴 선택 표시와 캐시 화면을 먼저 렌더링한 뒤 최신 모델을 만든다.
+                        await Dispatcher.Yield(DispatcherPriority.Render);
+                        buildToken.ThrowIfCancellationRequested();
+                        var screen = await menu.Build(buildToken);
+                        buildToken.ThrowIfCancellationRequested();
+                        if (SelectedMenu.Menu != targetMenu.Menu)
+                        {
+                            _screenRefreshPending = true;
+                            continue;
+                        }
 
-                    CurrentScreen = screen;
-                    if (targetMenu.Menu == EN_MENU.Manual)
-                    {
-                        SyncSelectedManualSettingFromScreen();
-                    }
+                        _screenCache[targetMenu.Menu] = screen;
+                        CurrentScreen = screen;
+                        if (targetMenu.Menu == EN_MENU.Manual)
+                        {
+                            SyncSelectedManualSettingFromScreen();
+                        }
 
-                    if (targetMenu.Menu == EN_MENU.Setting)
-                    {
-                        SyncSelectedSettingSelectionFromScreen();
-                    }
+                        if (targetMenu.Menu == EN_MENU.Setting)
+                        {
+                            SyncSelectedSettingSelectionFromScreen();
+                        }
 
-                    ApplySystemStatusSnapshot(await GetSystemStatusSnapshot(), refreshOperationModeAccess: false);
-                    if (targetMenu.Menu == EN_MENU.Pm)
+                        ApplySystemStatusSnapshot(await GetSystemStatusSnapshot(buildToken), refreshOperationModeAccess: false);
+                        if (targetMenu.Menu == EN_MENU.Pm)
+                        {
+                            StatusMessage = "PM lock entered. Operation commands are blocked.";
+                        }
+                    }
+                    catch (OperationCanceledException) when (buildToken.IsCancellationRequested)
                     {
-                        StatusMessage = "PM lock entered. Operation commands are blocked.";
+                        // 메뉴 전환으로 취소된 경우 새 메뉴 Build를 같은 루프에서 우선 처리한다.
+                        _screenRefreshPending = !GetScreenBuildToken().IsCancellationRequested;
                     }
                 }
                 while (_screenRefreshPending);
@@ -536,6 +621,34 @@
                 {
                     _ = RefreshCurrentScreen();
                 }
+            }
+        }
+
+        private void ShowCachedScreenOrLoading(CMenuItem menu)
+        {
+            CurrentScreen = _screenCache.TryGetValue(menu.Menu, out var cached)
+                ? cached
+                : CreateLoadingScreen(menu.Menu, menu.Name);
+        }
+
+        private void RestartScreenBuild()
+        {
+            CancellationTokenSource previous;
+            lock (_screenBuildSync)
+            {
+                previous = _screenBuildCts;
+                _screenBuildCts = new CancellationTokenSource();
+            }
+
+            previous.Cancel();
+            previous.Dispose();
+        }
+
+        private CancellationToken GetScreenBuildToken()
+        {
+            lock (_screenBuildSync)
+            {
+                return _screenBuildCts.Token;
             }
         }
 
@@ -642,6 +755,48 @@
             await RefreshCurrentScreen();
         }
 
+        private async Task InitializeAutoSequence()
+        {
+            if (_operationMode != EN_SYSTEM_MODE.Auto || _autoCycleState != EN_AUTO_CYCLE_STATE.Ready || _isAutoSequenceInitializing)
+                return;
+
+            const string message = "현재 진행 중인 AUTO 동작을 중지하고\n"
+                + "Process PC Handshake 및 Action 상태를 모두 초기화합니다.\n\n"
+                + "AUTO Mode는 그대로 유지됩니다.\n\n"
+                + "상대쪽 Stage Handshake가 ON 상태인 경우,\n"
+                + "초기화 완료 후 새 요청으로 인식되어 AUTO 시퀀스가 자동으로 시작될 수 있습니다.\n\n"
+                + "초기화하시겠습니까?";
+            if (!CRecipeConfirmDialog.ShowConfirmation("AUTO SEQUENCE INIT", message, "INIT"))
+                return;
+
+            // 확인창이 열린 동안 MODE나 실행 상태가 바뀌었으면 초기화 요청을 폐기한다.
+            if (_operationMode != EN_SYSTEM_MODE.Auto || _autoCycleState != EN_AUTO_CYCLE_STATE.Ready || _isAutoSequenceInitializing)
+                return;
+
+            _isAutoSequenceInitializing = true;
+            NotifyOperationCommandStates();
+            StatusMessage = "AUTO sequence initialization in progress. Stopping operation and resetting Handshake/Action states.";
+            try
+            {
+                await _stationManager.ResetStageRequestsAsync().ConfigureAwait(true);
+                if (_operationMode != EN_SYSTEM_MODE.Auto)
+                    throw new InvalidOperationException("AUTO Mode가 해제되어 요청 감시를 다시 시작할 수 없습니다.");
+
+                _stationManager.StartStageRequests(CreateStageProcessRequest, CreateAutoReviewActions(), CreateAutoPowerActions(), CreateAutoDistortionActions());
+                StatusMessage = "AUTO sequence initialization completed. Waiting for Stage PC request.";
+            }
+            catch (Exception error)
+            {
+                StatusMessage = $"AUTO sequence initialization failed: {error.Message}";
+                CRecipeConfirmDialog.ShowWarning("AUTO SEQUENCE INIT 실패", $"초기화 또는 AUTO 요청 감시 재시작에 실패했습니다.\n\n{error.Message}");
+            }
+            finally
+            {
+                _isAutoSequenceInitializing = false;
+                NotifyOperationCommandStates();
+            }
+        }
+
         private async Task<bool> CheckAutoModeInterlocks(Action<string, string> warn)
         {
             if (_menus.TryGetValue(EN_MENU.Correction, out var correction) && correction is CMenuCorrection { DefaultBlocksAuto: true })
@@ -683,6 +838,8 @@
 
         private bool CanAccessMenu(EN_MENU menu)
         {
+            if (_pmLockStatus.IsLocked)
+                return true;
             if (_autoCycleState != EN_AUTO_CYCLE_STATE.Ready)
             {
                 return menu is EN_MENU.Main or EN_MENU.Alarm;
@@ -711,7 +868,11 @@
         {
             foreach (var menu in Menus)
             {
-                menu.IsEnabled = CanAccessMenu(menu.Menu);
+                // PM LOCK 중에는 메뉴를 흐리게 표시하되 클릭은 유지해
+                // 비밀번호 입력 후 선택한 메뉴로 이동할 수 있게 한다.
+                menu.IsEnabled = _pmLockStatus.IsLocked
+                    ? menu.Menu == EN_MENU.Pm
+                    : CanAccessMenu(menu.Menu);
             }
         }
 
@@ -731,6 +892,8 @@
             OnPropertyChanged(nameof(IsManualShiftOffsetVisible));
             StartCommand.NotifyCanExecuteChanged();
             ToggleOperationModeCommand.NotifyCanExecuteChanged();
+            InitializeAutoSequenceCommand.NotifyCanExecuteChanged();
+            OpenMelsecStageSimulationCommand.NotifyCanExecuteChanged();
         }
 
         private void RefreshShellStatusItems()
@@ -1106,14 +1269,229 @@
             return _pmLockStatus;
         }
 
-        private void EnterPMLock()
+        private bool TryEnterPmLock()
         {
-            if (_pmLockStatus.IsLocked)
+            if (_operationMode != EN_SYSTEM_MODE.Manual)
             {
+                StatusMessage = "PM은 MANUAL Mode에서만 진입할 수 있습니다.";
+                CRecipeConfirmDialog.ShowWarning("PM 진입 불가", "PM은 MANUAL MODE에서만 진입할 수 있습니다.\nAUTO 운전을 정지하고 MANUAL MODE로 전환한 후 다시 시도해 주세요.");
+                return false;
+            }
+
+            if (TryGetManualOperationBlocker(out var blocker))
+            {
+                StatusMessage = $"PM 진입 불가: {blocker}";
+                CRecipeConfirmDialog.ShowWarning("PM 진입 불가", $"진행 중인 Manual 동작이 있습니다.\n동작을 중지한 후 다시 시도해 주세요.\n\n{blocker}");
+                return false;
+            }
+
+            var dialog = new CRecipeNameDialog(
+                "PM 진입",
+                "PM LOCK에 진입하면 다른 메뉴 이동과 장비 조작이 제한됩니다.\nPM 진행 사유를 입력해 주세요.",
+                "",
+                ValidatePmReason)
+            {
+                Owner = Application.Current?.MainWindow
+            };
+            if (dialog.ShowDialog() != true)
+                return false;
+
+            // 사유 입력 중 시작된 동작과 MODE 변경을 다시 확인한 후 이력을 생성한다.
+            if (_operationMode != EN_SYSTEM_MODE.Manual || TryGetManualOperationBlocker(out blocker))
+            {
+                StatusMessage = "PM 사유 입력 중 장비 상태가 변경되어 진입을 취소했습니다.";
+                CRecipeConfirmDialog.ShowWarning("PM 진입 취소", "MODE 또는 Manual 동작 상태가 변경되었습니다.\n현재 상태를 확인한 후 다시 시도해 주세요.");
+                return false;
+            }
+
+            try
+            {
+                _activePmSession = _manager.Log().StartPmSession(dialog.RecipeName, CurrentUserText);
+                _pmLockStatus = new ST_PM_LOCK_STATUS(true, _activePmSession.LockedAt);
+                _systemStatus = _systemStatus with { PMLockState = EN_PM_LOCK_STATE.Locked };
+                StatusMessage = "PM LOCK entered. Operation commands are blocked.";
+                return true;
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException)
+            {
+                _activePmSession = null;
+                StatusMessage = $"PM 이력 저장 실패: {exception.Message}";
+                CRecipeConfirmDialog.ShowWarning("PM 진입 실패", $"PM 이력을 저장하지 못해 LOCK 진입을 취소했습니다.\n\n{exception.Message}");
+                return false;
+            }
+        }
+
+        private bool TryGetManualOperationBlocker(out string blocker)
+        {
+            if (_autoCycleState != EN_AUTO_CYCLE_STATE.Ready)
+            {
+                blocker = $"MAIN Cycle 상태: {_autoCycleState}";
+                return true;
+            }
+            if (_stationManager.StageRequests.IsRunning || _stationManager.StageRequests.NeedsCleanup)
+            {
+                blocker = "Stage 요청 동작 또는 정리 작업 진행 중";
+                return true;
+            }
+            if (_stationManager.ManualMofStatus is { IsRunning: true } or { RequiresStop: true })
+            {
+                blocker = "Manual MOF 동작 또는 정지 확인 진행 중";
+                return true;
+            }
+            if (_interfaceManager.StageReviewSequences.IsActive)
+            {
+                blocker = "Stage/Review 이동 또는 정리 작업 진행 중";
+                return true;
+            }
+            if (_reviewManager.SequenceState is EN_REVIEW_SEQUENCE_STATE.Running or EN_REVIEW_SEQUENCE_STATE.Stopping)
+            {
+                blocker = "Review 검사 또는 정지 처리 진행 중";
+                return true;
+            }
+            if (_manager.PowerMeasure.GetSnapshot().IsRunning)
+            {
+                blocker = "Power Measure 진행 중";
+                return true;
+            }
+            if (_menus.TryGetValue(EN_MENU.Manual, out var manualMenu)
+                && manualMenu is CMenuManual { HasActiveOperation: true })
+            {
+                blocker = "Manual 화면 동작 진행 중";
+                return true;
+            }
+            if (_menus.TryGetValue(EN_MENU.Correction, out var correctionMenu)
+                && correctionMenu is CMenuCorrection { BlocksMenuNavigation: true })
+            {
+                blocker = "Correction/Review 동작 진행 중";
+                return true;
+            }
+            if (_menus.TryGetValue(EN_MENU.Monitor, out var monitorMenu)
+                && monitorMenu is CMenuMonitor { IsPowerMeterTuneRunning: true })
+            {
+                blocker = "Monitor Power Meter Tune 진행 중";
+                return true;
+            }
+
+            blocker = "";
+            return false;
+        }
+
+        private static string ValidatePmReason(string reason)
+        {
+            if (string.IsNullOrWhiteSpace(reason))
+                return "PM 사유를 입력해 주세요.";
+            if (reason.Length > 200)
+                return "PM 사유는 200자 이하로 입력해 주세요.";
+            return reason.Any(char.IsControl) ? "PM 사유에는 줄바꿈이나 제어문자를 사용할 수 없습니다." : "";
+        }
+
+        private async void RequestPmUnlockForNavigation(CMenuItem targetMenu)
+        {
+            if (_isPmNavigationUnlockPromptOpen || _isPmUnlocking || !_pmLockStatus.IsLocked)
+                return;
+
+            _isPmNavigationUnlockPromptOpen = true;
+            try
+            {
+                var dialog = new CPasswordInputDialog
+                {
+                    Owner = Application.Current?.MainWindow
+                };
+                if (dialog.ShowDialog() != true)
+                {
+                    StatusMessage = "PM LOCK remains active.";
+                    return;
+                }
+
+                await UnlockPm(dialog.ResultPassword, targetMenu);
+            }
+            finally
+            {
+                _isPmNavigationUnlockPromptOpen = false;
+            }
+        }
+
+        private void QueueNavigationMenuSelectionSync()
+        {
+            var dispatcher = Application.Current?.Dispatcher;
+            if (dispatcher is null)
+            {
+                SyncNavigationMenuSelection();
                 return;
             }
 
-            _pmLockStatus = new ST_PM_LOCK_STATUS(true, DateTimeOffset.Now);
+            // ListBox 내부 선택을 먼저 비운 뒤 다음 UI 틱에서 실제 메뉴를 다시 선택한다.
+            // 같은 항목을 다시 통지하는 것만으로는 Selector의 IsSelected가 남을 수 있다.
+            _ = dispatcher.BeginInvoke(
+                DispatcherPriority.Background,
+                new Action(() =>
+                {
+                    _navigationSelectedMenu = null;
+                    OnPropertyChanged(nameof(NavigationSelectedMenu));
+                    _ = dispatcher.BeginInvoke(
+                        DispatcherPriority.Background,
+                        new Action(SyncNavigationMenuSelection));
+                }));
+        }
+
+        private void SyncNavigationMenuSelection()
+        {
+            SetProperty(
+                ref _navigationSelectedMenu,
+                _selectedMenu,
+                nameof(NavigationSelectedMenu));
+        }
+
+        public async Task<bool> UnlockPm(string password, CMenuItem? targetMenu = null)
+        {
+            if (_isPmUnlocking)
+                return false;
+            if (!_pmLockStatus.IsLocked || SelectedMenu.Menu != EN_MENU.Pm)
+                return false;
+
+            _isPmUnlocking = true;
+            try
+            {
+                var expectedPassword = _manager.Setting().GetValue(EN_SETTING_TAB.Option, PmUnlockPasswordKey, "");
+                if (string.IsNullOrEmpty(expectedPassword))
+                {
+                    CRecipeConfirmDialog.ShowWarning("PM UNLOCK 불가", "Setting의 PM_UNLOCK_PASSWORD가 설정되어 있지 않습니다.");
+                    return false;
+                }
+                if (!string.Equals(password, expectedPassword, StringComparison.Ordinal))
+                {
+                    StatusMessage = "PM UNLOCK password mismatch.";
+                    CRecipeConfirmDialog.ShowWarning("PM UNLOCK 실패", "입력한 비밀번호가 일치하지 않습니다.");
+                    return false;
+                }
+                if (_activePmSession is null)
+                {
+                    CRecipeConfirmDialog.ShowWarning("PM UNLOCK 불가", "현재 PM LOCK 세션 이력을 찾을 수 없습니다.");
+                    return false;
+                }
+
+                _activePmSession = _manager.Log().CompletePmSession(_activePmSession);
+                _pmLockStatus = new ST_PM_LOCK_STATUS(false, null);
+                _activePmSession = null;
+                _systemStatus = _systemStatus with { PMLockState = EN_PM_LOCK_STATE.Released };
+                StatusMessage = "PM UNLOCK completed. PM history was updated.";
+                RefreshOperationModeAccess();
+                SelectedMenu = targetMenu is not null && Menus.Contains(targetMenu)
+                    ? targetMenu
+                    : Menus.First(item => item.Menu == EN_MENU.Main);
+                await RefreshCurrentScreen();
+                return true;
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
+            {
+                StatusMessage = $"PM UNLOCK 이력 저장 실패: {exception.Message}";
+                CRecipeConfirmDialog.ShowWarning("PM UNLOCK 실패", $"UNLOCK 이력을 저장하지 못했습니다. PM LOCK을 유지합니다.\n\n{exception.Message}");
+                return false;
+            }
+            finally
+            {
+                _isPmUnlocking = false;
+            }
         }
 
         private static void Replace<T>(ObservableCollection<T> target, IEnumerable<T> items)
@@ -1423,8 +1801,7 @@
             var rows = new List<ST_SHIFT_OFFSET_HEAD_ROW>(headCount);
             for (var headNo = 1; headNo <= headCount; headNo++)
             {
-                // The full coordinate builder applies Shift Offset through this exact
-                // transform. Avoid rebuilding every Shot twice on each key stroke.
+                // @성능 [수동MOF] Shift미리보기 - 실제 좌표 변환만 재사용하고 매 입력마다 전체 Shot Plan을 두 번 만들지 않는다.
                 var scannerShift = CScannerAxisTransform.DesignOffsetToScanner(parameters, headNo, shiftOffsetX, shiftOffsetY);
                 rows.Add(new ST_SHIFT_OFFSET_HEAD_ROW(
                     headNo,
@@ -1447,6 +1824,7 @@
 
         private static string? ValidateShiftOffsetApply(IReadOnlyDictionary<string, string> baseParameters, double shiftOffsetX, double shiftOffsetY)
         {
+            // @보호 [수동MOF] Shift검증 - 적용 전 모든 Laser ON Shot이 Glass와 담당 Head Scan Field 안에 남는지 확인한다.
             const double tolerance = 0.000001;
             var parameters = CreateShiftOffsetParameters(baseParameters, shiftOffsetX, shiftOffsetY);
             var coordinatePlan = CShotCoordinatePlanBuilder.Build(parameters);
@@ -1850,6 +2228,7 @@
             StartCommand.NotifyCanExecuteChanged();
             StopCommand.NotifyCanExecuteChanged();
             ToggleOperationModeCommand.NotifyCanExecuteChanged();
+            InitializeAutoSequenceCommand.NotifyCanExecuteChanged();
         }
 
         private async Task SelectHead(object? parameter)
@@ -1934,6 +2313,7 @@
                     var shouldRefreshMonitorScreen = SelectedMenu.Menu == EN_MENU.Monitor && HasElapsed(_lastMonitorScreenRefreshTimestamp, nowTimestamp, monitorRefreshInterval);
                     var shouldRefreshManualScannerStatus = SelectedMenu.Menu == EN_MENU.Manual && CurrentScreen.Manual is not null;
                     var shouldRefreshMainLiveStatus = SelectedMenu.Menu == EN_MENU.Main && HasElapsed(_lastMainLiveStatusRefreshTimestamp, nowTimestamp, MainLiveStatusRefreshInterval);
+                    var shouldRefreshPmLifeStatus = SelectedMenu.Menu == EN_MENU.Pm && HasElapsed(_lastPmLifeStatusRefreshTimestamp, nowTimestamp, PmLifeStatusRefreshInterval);
                     if (shouldRefreshMonitorScreen)
                     {
                         _lastMonitorScreenRefreshTimestamp = nowTimestamp;
@@ -1953,6 +2333,13 @@
                         _lastMainLiveStatusRefreshTimestamp = nowTimestamp;
                         await RefreshMainLiveStatus();
                         await RefreshSystemStatus();
+                        return;
+                    }
+
+                    if (shouldRefreshPmLifeStatus)
+                    {
+                        _lastPmLifeStatusRefreshTimestamp = nowTimestamp;
+                        await RefreshCurrentScreen();
                         return;
                     }
 
@@ -2246,7 +2633,7 @@
                 _manager.Log().LogDirectory
             ), 
                 correctionMenu, 
-                new CMenuPm(GetPMLockStatus, EnterPMLock)
+                new CMenuPm(interfaceManager, recipeManager, settingManager, _manager.Log(), SelectSelectedRecipeId, GetPMLockStatus)
             ];
             global::Drilling.UI.Menu.Menus.EN_MENU SelectMenu(global::Drilling.UI.Menu.Menus.CMenuBase menu)
             {
@@ -2572,6 +2959,12 @@
 
         private bool CheckHeavyAlarmForOperation(string operation)
         {
+            if (_pmLockStatus.IsLocked)
+            {
+                StatusMessage = $"PM LOCK으로 {operation} 동작이 차단되었습니다.";
+                CRecipeConfirmDialog.ShowWarning("PM LOCK", "PM UNLOCK 후 장비를 조작해 주세요.");
+                return false;
+            }
             if (!_heavyRecoveryBlocked && !_alarmManager.CurAlarm.Any(row => row.Severity == EN_ALARM_LEVEL.Critical))
                 return true;
             StatusMessage = $"HEAVY 알람으로 {operation} 동작이 차단되었습니다.";
@@ -2632,6 +3025,7 @@
 
         private async Task RecoverHeavyAlarm()
         {
+            // @알람 [알람] HEAVY복구 - 진행 동작을 모두 취소하고 우리 Handshake OFF를 확인한 뒤에만 MANUAL 재시작을 허용한다.
             var stageRequest = _stationManager.StageRequests;
             var cleanupScenario = _operationMode == EN_SYSTEM_MODE.Auto
                 && (stageRequest.IsRunning || stageRequest.NeedsCleanup || stageRequest.Status.State == "ERROR")

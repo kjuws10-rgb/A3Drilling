@@ -317,6 +317,7 @@
             ArgumentException.ThrowIfNullOrWhiteSpace(localScriptPath);
             var resolvedLocalScriptPath = ResolveLocalScriptPath(localScriptPath, cancellationToken);
             var controllerFileName = string.IsNullOrWhiteSpace(scriptFileName) ? CreateControllerFileName(localScriptPath, cancellationToken) : CreateControllerFileName(scriptFileName, cancellationToken);
+            // @통신 [Automation] 업로드 - 검증한 PC 원본 경로와 Controller 파일명을 묶어 가공 전 Script를 전송한다.
             return await ExecuteRaw($"AUTOMATION1:SCRIPT|UPLOAD|{resolvedLocalScriptPath}|{controllerFileName}", number, cancellationToken);
         }
 
@@ -365,10 +366,7 @@
             int timeoutMs = 600000, 
             CancellationToken cancellationToken = default
         ) => await RunBufferedScriptsCore(scripts, number, queueSize, linesPerCommand, timeoutMs, upload: true, stageSession: false, cancellationToken).ConfigureAwait(false);
-        // Preparation already uploaded these exact files. ScriptFileName is required;
-        // LocalScriptPath is unused here, even if its source file has since been removed.
-        // This operation owns the queues until completion/cancellation; the Station
-        // observes RUN through shared snapshots.
+        // @흐름 [Automation] 준비된Buffered실행 - DoReady에서 Upload한 Controller 파일만 실행하고 PC 원본은 다시 읽지 않는다.
         public virtual Task<string> RunStagePreparedBufferedScripts(IReadOnlyList<ST_BUFFERED_SCRIPT_RUN_ITEM> scripts, int number, int queueSize, int linesPerCommand, int timeoutMs, CancellationToken cancellationToken) => RunBufferedScriptsCore(scripts, number, queueSize, linesPerCommand, timeoutMs, upload: false, stageSession: true, cancellationToken);
         private async Task<string> RunBufferedScriptsCore(
             IReadOnlyList<ST_BUFFERED_SCRIPT_RUN_ITEM> scripts, 
@@ -387,7 +385,7 @@
                 return "OK:SCRIPT:BUFFERED_RUN:EMPTY";
             }
 
-            // Reject duplicate controller-local Tasks before file access, upload or simulation RUN.
+            // @보호 [Automation] Task중복 - Controller 내부 Task 번호 중복을 파일 접근, Upload, Simulation RUN 전에 차단한다.
             var taskIndexes = new HashSet<int>();
             foreach (var script in runItems)
             {
@@ -424,7 +422,7 @@
                 }
                 else
                 {
-                    // ExecuteFromControllerFile uses the prepared controller file, not the PC source.
+                    // @파일 [Automation] Controller실행 - 준비 단계에서 확정한 Controller 파일을 사용하고 PC 원본 경로는 참조하지 않는다.
                     ArgumentException.ThrowIfNullOrWhiteSpace(script.ScriptFileName);
                     controllerFileName = CreateControllerFileName(script.ScriptFileName, cancellationToken);
                 }
@@ -437,7 +435,7 @@
                 requests.Add((script.TaskIndex, controllerFileName, resolvedLocalScriptPath));
             }
 
-            // All input validation must succeed before the first external side effect.
+            // @보호 [Automation] 선검증 - 모든 입력 검증을 끝낸 뒤 첫 Upload를 수행해 일부 Head만 실행되는 상태를 막는다.
             foreach (var request in requests)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -458,7 +456,7 @@
                 {
                     foreach (var request in requests)
                         sessions.Add(RegisterStageSimulationTask(number, request.TaskIndex, request.ControllerFile, buffered: true));
-                    // DoReady starts RUN; only Process START releases virtual machining.
+                    // @시뮬 [Automation] 가상Task - DoReady가 RUN을 만들고 Process START가 와야 가상 가공 완료를 진행한다.
                     using var limit = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                     if (commandTimeoutMs > 0)
                         limit.CancelAfter(commandTimeoutMs);
@@ -1097,6 +1095,7 @@
 #region AuxiliaryFeedback
         public async Task RunStagePreparedScript(string file, int task, int controller, CancellationToken token)
         {
+            // @흐름 [Automation] Task시작 - 이미 Upload된 파일을 Idle Task에서만 RUN하고 Status Cache를 즉시 무효화한다.
             var response = await RunScriptIfIdle(file, task, controller, token).ConfigureAwait(false);
             EnsureAutomationResponseSucceeded(response, $"Stage script RUN failed: {file}.");
             if (IsSimul(controller))
@@ -1106,6 +1105,7 @@
 
         public async Task StopStagePreparedTask(int task, int controller, CancellationToken token)
         {
+            // @보호 [Automation] Task정지 - STOP 응답만 믿지 않고 새 상태가 완료 또는 정지 상태가 될 때까지 확인한다.
             var response = await StopTask(task, controller, token).ConfigureAwait(false);
             EnsureAutomationResponseSucceeded(response, $"Stage Task stop failed: {task}.");
             StatusSnapshots.InvalidateTask(task, controller);
@@ -1242,8 +1242,7 @@
                 _simulatedMofReadiness[(controller, task)] = new(runId);
             else
             {
-                // Send a Task identity, not a raw global slot. The transport checks this
-                // controller's actual Task count immediately before accessing its variable.
+                // @상태 [Automation] MOF준비번호 - Controller의 실제 Task 수를 확인한 뒤 해당 Task 준비 슬롯을 0으로 초기화한다.
                 var response = await ExecuteRaw($"AUTOMATION1:VARIABLE|SET_MOF_READINESS|{task}|0", controller, token).ConfigureAwait(false);
                 EnsureAutomationResponseSucceeded(response, $"MOF readiness reset failed: A{controller}/T{task}.");
             }
@@ -1266,6 +1265,7 @@
 
         private async Task PublishSimulatedMofReadiness(int controller, int task, CStageSimulatedTask session)
         {
+            // @시뮬 [Automation] MOF준비응답 - 현재 활성 가상 Task가 유지될 때만 이번 RunId를 준비 완료값으로 게시한다.
             if (!_simulatedMofReadiness.TryGetValue((controller, task), out var ready))
                 return;
             await Task.Delay(200).ConfigureAwait(false);
@@ -1675,25 +1675,38 @@
         private readonly SemaphoreSlim _gate = new(1, 1);
         private long _generation;
         private Func<Task>? _stopJog;
+        private int _activeOperations;
+        private int _jogActive;
         public long Generation => Interlocked.Read(ref _generation);
+        public bool IsActive => Volatile.Read(ref _activeOperations) > 0 || Volatile.Read(ref _jogActive) != 0;
 
         public void Invalidate() => Interlocked.Increment(ref _generation);
         public async Task Execute(long generation, Func<Task> action, Func<Task>? stopJog = null)
         {
-            await _gate.WaitAsync();
+            Interlocked.Increment(ref _activeOperations);
             try
             {
-                if (generation != Generation)
-                    return;
-                if (_stopJog is not null)
-                    throw new InvalidOperationException("JOG를 먼저 정지해 주세요.");
-                // Retain the stop callback even if the start reports an error after transmission.
-                _stopJog = stopJog;
-                await action();
+                await _gate.WaitAsync();
+                try
+                {
+                    if (generation != Generation)
+                        return;
+                    if (_stopJog is not null)
+                        throw new InvalidOperationException("JOG를 먼저 정지해 주세요.");
+                    // Retain the stop callback even if the start reports an error after transmission.
+                    _stopJog = stopJog;
+                    if (stopJog is not null)
+                        Volatile.Write(ref _jogActive, 1);
+                    await action();
+                }
+                finally
+                {
+                    _gate.Release();
+                }
             }
             finally
             {
-                _gate.Release();
+                Interlocked.Decrement(ref _activeOperations);
             }
         }
 
@@ -1707,6 +1720,7 @@
                     return;
                 await _stopJog();
                 _stopJog = null;
+                Volatile.Write(ref _jogActive, 0);
             }
             finally
             {
@@ -1727,6 +1741,7 @@
                     {
                         await _stopJog();
                         _stopJog = null;
+                        Volatile.Write(ref _jogActive, 0);
                     }
                 }
                 catch (Exception exception)

@@ -136,8 +136,7 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
                 || (coordinate ? row.DataType != EN_MELSEC_DATA_TYPE.Double : row.DataType is not (EN_MELSEC_DATA_TYPE.Word or EN_MELSEC_DATA_TYPE.DWord)))
                 throw new InvalidOperationException($"실제 Process Move 맵의 장치·주소·입출력·자료형을 확인해 주세요: {id}");
         }
-        // Preparation validates routing only; it never sends a move or starts a poller.
-        // Session.Move freshly verifies permission, previous signals, Busy and position before/after START.
+        // @보호 [스테이지이동] 맵검증 - 준비 단계에서는 이동하지 않고 장치, 주소, 입출력 방향, 자료형만 검증한다.
     }
 
     public void ValidateIofReadiness(int deviceNo, int pointCount = 0)
@@ -160,8 +159,8 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
                 || (array ? row.DataType != EN_MELSEC_DATA_TYPE.Double || interfaces.Melsec.GetDoubleArrayCapacity(id) < Math.Max(1, pointCount) : row.DataType is not (EN_MELSEC_DATA_TYPE.Word or EN_MELSEC_DATA_TYPE.DWord)))
                 throw new InvalidOperationException($"IOF 맵의 장치·주소·입출력·자료형·저장 크기를 확인해 주세요: {id}");
         }
-        // WC138/WC13A are observable progress only. Stage confirms buffer
-        // readiness with WC13C, then Process acknowledges with W823A.
+        // @보호 [스테이지이동] IOF맵검증 - 실제 통신은 요청/응답 방향과 좌표 배열 용량을 첫 Write 전에 확인한다.
+        // @통신 [스테이지이동] IOF완료 - WC13C가 Buffer 준비 완료를 알리고 Process는 W823A로 확인 응답한다.
     }
 
     /// <summary>Manual ABS/REL uses the same permission, START, completion and release transaction as AUTO.</summary>
@@ -179,6 +178,7 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
         if (_cleanupFailures.ContainsKey(deviceNo))
             throw new InvalidOperationException("Stage 공통 시퀀스 정리가 실패했습니다. RESET에서 정지 및 STOP/요청/응답 OFF를 확인해 주세요.");
 
+        // @스레드 [스테이지이동] 단일소유 - 같은 MELSEC 장치의 Process Move와 IOF가 동시에 신호를 쓰지 못하게 한다.
         if (!_owners.TryAdd(deviceNo, 0))
             throw new InvalidOperationException("Stage Process Move / IOF가 이미 사용 중입니다.");
         try
@@ -247,6 +247,7 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
             _automatic = automatic;
             _reviewXOnly = reviewXOnly;
             _stageBufferOwner = stageBufferOwner;
+            // @시뮬 [스테이지이동] 모드동결 - Session 시작 시 Simulation 여부를 고정하고 실행 중 변경을 오류로 처리한다.
             var state = interfaces.GetInterfaceCommunicationList(EN_EQP_MODULE.Melsec).SingleOrDefault(item => item.Number == device);
             _simulation = state?.IsSimulation ?? (interfaces.Devices.Count == 0 && interfaces.IsSimulation);
             if (!_simulation && state?.ConnectionState != EN_COMM_STATE.Online)
@@ -304,7 +305,7 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
             {
                 Check(token, cleanup);
                 Route(id);
-                // A fresh central-poller read can recover Pending/Stale, but must not hide a known I/O failure.
+                // @통신 [MELSEC] 입력갱신 - Pending/Stale은 새 Poll로 복구하되 Error/Offline 상태는 즉시 실패 처리한다.
                 var before = _interfaces.Melsec.GetCachedValue(id);
                 if (before?.State is EN_MELSEC_CACHE_STATE.Error or EN_MELSEC_CACHE_STATE.Offline)
                     throw new IOException("Stage 입력 수신 오류: " + Describe(id));
@@ -329,6 +330,7 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
             Check(token, cleanup);
             var row = Route(id);
             var clock = Stopwatch.StartNew();
+            // @통신 [MELSEC] 출력확인 - Write 후 같은 ID를 새로 읽어 논리값이 일치해야 Handshake 진행을 허용한다.
             Record("OUTPUT_REQUEST", FormattableString.Invariant($"{id}; Address={row.Address}; Logical={value}; ReadScale={row.ReadScale}; WriteScale={row.WriteScale}; Cleanup={cleanup}"));
             if (row.Direction != EN_MELSEC_DIRECTION.Out || row.Access != EN_MELSEC_ACCESS.ReadWrite)
                 throw new InvalidOperationException("가공 PC 출력 항목이 아닙니다: " + id);
@@ -537,6 +539,7 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
 
         public async Task Move(ST_STAGE_MOVE_TARGET target, CancellationToken token)
         {
+            // @통신 [스테이지이동] 이동순서 - 이전 신호 OFF 확인 -> 목표값 Write -> ABLE -> START -> COMPLETE/도착 -> ACK 정리 순서를 유지한다.
             _scenario = "PROCESS_MOVE";
             if ((_reviewXOnly || _stageBufferOwner) && target.Mode != EN_STAGE_MOVE_MODE.ReviewX)
                 throw new InvalidOperationException("Review X 선대기/0선 소유자는 Main Y를 이동할 수 없습니다.");
@@ -563,7 +566,7 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
                 {
                     await InitialRead([MoveStart, MoveAck, MoveComplete, MoveAble], token).ConfigureAwait(false);
                     await WaitStopped(token, target.Mode).ConfigureAwait(false);
-                    // Never start over an old peer completion or unacknowledged request.
+                    // @보호 [스테이지이동] 이전신호 - 복귀하지 않은 START, ACK 또는 COMPLETE 위에서 새 이동을 시작하지 않는다.
                     if (Value(MoveStart) != 0 || Value(MoveAck) != 0)
                         throw new InvalidOperationException("이전 SDC 이동 요청/응답이 복귀되지 않았습니다.");
                     await Stage(MoveComplete, 0, token).ConfigureAwait(false);
@@ -578,19 +581,13 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
                 await Step("MOVE_SETTLE", async () =>
                 {
                     await Stage(MoveAble, 1, token).ConfigureAwait(false);
-                    // Spec 0.08 (PROCESS_REVIEW_MOVE_START, row 193) and the
-                    // Review scenario define WC124 -> W8029 -> WC128 -> W8021.
-                    // WC120/WC122 describe axis control availability, but are not
-                    // additional gates of this Process Move transaction. In the
-                    // field WC120 can remain OFF even when WC124 permits XY.
-                    // The requested axes are selected with W801B; Busy/position,
-                    // old handshake reset and WC124 are still verified.
+                    // @통신 [스테이지이동] 시작조건 - WC124가 이동 허가이며 WC120/WC122는 이 Process Move의 추가 Gate로 사용하지 않는다.
                     await Wait(MoveAble, 1, token).ConfigureAwait(false);
                     _moveOwned = true;
                     await Write(MoveStart, 1, token).ConfigureAwait(false);
                     if (_simulation)
                     {
-                        // Even with manual peer signals, the shared physical-motion preview runs.
+                        // @시뮬 [스테이지이동] 가상이동 - 수동 Peer 신호 모드에서도 공통 물리 이동 Preview와 도착 판정을 실행한다.
                         if (target.Mode != EN_STAGE_MOVE_MODE.ReviewX)
                             _lease!.Move(EN_MANUAL_STAGE_AXIS.StageY, target.Y, target.SpeedY);
                         if (target.Mode != EN_STAGE_MOVE_MODE.StageY)
@@ -601,7 +598,7 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
 
                     await Wait(MoveComplete, 1, token).ConfigureAwait(false);
                     await WaitArrival(target, token).ConfigureAwait(false);
-                    // Describe the completed validation without reading/validating an unused axis for logging.
+                    // @통신 [스테이지이동] 완료기록 - 사용하지 않은 축을 다시 읽지 않고 참여 축의 도착 검증 결과만 기록한다.
                     Record("MOVE_ARRIVAL_CONFIRMED", FormattableString.Invariant($"TargetX={target.X}; TargetY={target.Y}; Mode={target.Mode}; PositionTolerance=0.0005; Busy=0 on participating axes"));
                 }).ConfigureAwait(false);
                 await Step("MOVE_RELEASE", async () =>
@@ -657,6 +654,7 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
 
         private async Task WaitArrival(ST_STAGE_MOVE_TARGET target, CancellationToken token)
         {
+            // @보호 [스테이지이동] 도착판정 - Busy OFF만으로 완료하지 않고 참여 축 위치가 목표 +/- 0.0005 mm인지 함께 확인한다.
             using var limit = CancellationTokenSource.CreateLinkedTokenSource(token);
             limit.CancelAfter(_owner._signalTimeout);
             try
@@ -692,7 +690,7 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
                     await Write(MoveStart, 0, cleanup.Token, cleanup: true).ConfigureAwait(false);
                     await Write(MoveAck, 0, cleanup.Token, cleanup: true).ConfigureAwait(false);
                     await Stage(MoveComplete, 0, cleanup.Token).ConfigureAwait(false);
-                    // STOP must remain asserted until fresh feedback confirms the commanded axes stopped.
+                    // @보호 [스테이지이동] 비정상정리 - STOP을 유지한 채 START/ACK를 내리고 Busy OFF 확인 후에만 STOP을 해제한다.
                     await WaitStopped(cleanup.Token, _moveMode, cleanup: true).ConfigureAwait(false);
                     Record("MOVE_STOP_CONFIRMED", $"Mode={_moveMode}; Busy=0; releasing STOP");
                     await Write(MoveStop, 0, cleanup.Token, cleanup: true).ConfigureAwait(false);
@@ -750,8 +748,7 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
                 throw new ArgumentException("0선방어 촬영 개수는 2 또는 4개여야 합니다.");
             if (points.Count > 500)
                 throw new ArgumentException("IOF 한 라인의 촬영 좌표는 최대 500개입니다. (W8300~W86E7)");
-            // 2026-11-03 Stage contract: write ordered coordinates, request W8238,
-            // wait for WC13C, acknowledge W823A. Keep real and simulated paths equal.
+            // @통신 [스테이지이동] IOF순서 - 좌표 Write/Readback -> START -> Stage COMPLETE -> START OFF -> ACK -> COMPLETE OFF -> ACK OFF 순서를 유지한다.
             if (!_simulation)
                 _owner.ValidateIofReadiness(_device, points.Count);
             await _operation.WaitAsync(token).ConfigureAwait(false);
@@ -775,9 +772,7 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
                     await Wait(IofComplete, 0, token, iofPhase: "INITIAL_COMPLETE_OFF").ConfigureAwait(false);
                     await Write("IOF_SETTING", zeroLine ? 1 : 0, token).ConfigureAwait(false);
                     await Write(zeroLine ? "IOF_TRIGGER_ZERO_POINT_COUNT" : "IOF_TRIGGER_POINT_COUNT", points.Count, token).ConfigureAwait(false);
-                    // Stage contract confirmed on 2026-11-03: zero-line sends Y
-                    // only, NOT the old document's packed [Y...][X...] layout.
-                    // Reverse attempts supply their reversed X order unchanged.
+                    // @좌표 [스테이지이동] IOF배열 - 일반 IOF는 X, 0선은 Y만 순서대로 전송하며 역방향 재시도도 그 순서를 유지한다.
                     {
                         var packed = points.Select(p => zeroLine ? p.Y : p.X).ToArray();
                         var buffer = Route("IOF_POS_ARRAY_1");
@@ -803,7 +798,7 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
                 }).ConfigureAwait(false);
                 await Step("IOF_SIGNALS_CLEAR", async () =>
                 {
-                    // Release START before ACK: Stage clears COMPLETE only after both conditions.
+                    // @통신 [스테이지이동] IOF정리 - START를 먼저 내린 뒤 ACK를 올려야 Stage가 COMPLETE를 내린다.
                     await Write(IofStart, 0, token).ConfigureAwait(false);
                     await Write(IofAck, 1, token).ConfigureAwait(false);
                     _iofAckConfirmed = true;

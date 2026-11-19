@@ -166,6 +166,7 @@ namespace Drilling.Common.Interface.Vision
 
         private void ReplaceClient(TcpClient client, CancellationToken cancellationToken)
         {
+            // @통신 [비전검사] 연결교체 - 새 Client 접속 시 이전 연결을 닫고 단일 수신 Loop만 소켓을 소유한다.
             _client?.Dispose();
             _client = client;
             _stream = client.GetStream();
@@ -187,6 +188,7 @@ namespace Drilling.Common.Interface.Vision
 
         private async Task ReceiveLoop(TcpClient client, NetworkStream stream, CancellationToken cancellationToken)
         {
+            // @통신 [비전검사] 수신분배 - 응답 UniqueId를 기준으로 해당 요청의 대기 작업에만 패킷을 전달한다.
             try
             {
                 while (!cancellationToken.IsCancellationRequested && client.Connected)
@@ -238,6 +240,7 @@ namespace Drilling.Common.Interface.Vision
                         _clientReady.Wait(0);
                     }
 
+                    // @보호 [비전검사] 연결해제 - 끊어진 소켓에 매달린 모든 요청을 실패 완료해 Timeout까지 대기하지 않게 한다.
                     FailPending(new IOException("Vision client disconnected."));
                     LastError = "Vision client disconnected.";
                     SetState(IsServerListening() ? EN_COMM_STATE.Online : EN_COMM_STATE.Offline);
@@ -271,6 +274,7 @@ namespace Drilling.Common.Interface.Vision
 
         private async Task<ST_VISION_PACKET> SendRequest(NetworkStream stream, ST_VISION_PACKET request, CancellationToken cancellationToken)
         {
+            // @통신 [비전검사] 요청매칭 - UniqueId로 요청과 응답을 연결하고 Timeout/취소 시 pending 항목을 반드시 정리한다.
             var completion = new TaskCompletionSource<ST_VISION_PACKET>(TaskCreationOptions.RunContinuationsAsynchronously);
             if (!_pending.TryAdd(request.Header.UniqueId, completion))
             {
@@ -328,6 +332,7 @@ namespace Drilling.Common.Interface.Vision
 
         private static async Task<ST_VISION_PACKET> ReadPacket(NetworkStream stream, CancellationToken cancellationToken)
         {
+            // @보호 [비전검사] 프레임검증 - Header를 먼저 해석하고 선언된 Body 전체를 수신한 뒤에만 패킷으로 전달한다.
             var headerBytes = new byte[CVisionProtocol.HeaderSize];
             await stream.ReadExactlyAsync(headerBytes, cancellationToken);
             var header = CVisionProtocol.DecodeHeader(headerBytes);

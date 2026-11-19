@@ -1125,8 +1125,18 @@
             const double maxHeight = 340.0;
             var glassWidth = ReadOutputViewerDouble(parameters, 500.0, "GLASS_SIZE_X");
             var glassHeight = ReadOutputViewerDouble(parameters, 300.0, "GLASS_SIZE_Y");
-            var akMarginX = ReadOutputViewerDouble(parameters, 55.0, "AK_MARGIN_X");
-            var akMarginY = ReadOutputViewerDouble(parameters, 45.0, "AK_MARGIN_Y");
+            ST_ALIGN_KEY_MARGINS alignKeyMargins;
+            try
+            {
+                alignKeyMargins = CAlignKeyMarginSettings.Read(parameters);
+            }
+            catch (InvalidDataException exception)
+            {
+                return new ST_CORRECTION_OFFSET_VIEWER_PREVIEW(null, [], exception.Message);
+            }
+
+            var akMarginX = alignKeyMargins.X;
+            var akMarginY = alignKeyMargins.Y;
             var pixelSize = ReadOutputViewerDouble(parameters, 0.09, "PIXEL_SIZE");
             var splitBeamCount = ReadOutputViewerInt(parameters, 1, "SPLITED_BEAM_COUNT");
             var modelTypeCount = CRecipeModelPixelCountReader.ReadModelTypeCount(parameters);
@@ -2400,6 +2410,7 @@
                     "검사 결과 파일이 저장되지 않아 Review Offset 적용 이력을 기록할 수 없습니다.");
             }
 
+            // @보호 [옵셋적용] 중복확인 - 수동 APPLY는 기존 이력을 사용자에게 보여주고 명시적으로 재적용을 선택한 경우에만 허용한다.
             var existing = await Task.Run(() => _reviewOffsetFile.FindSourceApplication(
                 recipeId,
                 sourceResultFile));
@@ -2424,7 +2435,7 @@
             }
             catch (CReviewOffsetDuplicateSourceException duplicate) when (!allowDuplicate)
             {
-                // Recheck under the file lock protects two manual APPLY requests that race.
+                // @스레드 [옵셋적용] 경쟁재검사 - 두 APPLY가 동시에 시작돼도 파일 Lock 안의 최종 검사에서 한 번 더 확인한다.
                 if (!ConfirmDuplicateReviewOffset(duplicate.ExistingApplication))
                 {
                     return null;
@@ -2904,7 +2915,10 @@
                 throw new InvalidOperationException("Setting > COMMON > ALIGN의 Align Offset Tolerance를 확인해 주세요.");
             var inputSignature = AlignDistortion.OffsetInputSignature;
             var model = action == "OFFSET_APPLY" ? AlignDistortion.CreateLoadedInterpolationModel() : null;
-            var calculatedOffsets = await Task.Run(() => action == "OFFSET_APPLY" ? CAlignShotOffsetData.Calculate(recipe, model!) : CAlignShotOffsetData.ZeroValues(recipe));
+            var alignKeyMargins = _settingManager.GetAlignKeyMargins();
+            var calculatedOffsets = await Task.Run(() => action == "OFFSET_APPLY"
+                ? CAlignShotOffsetData.Calculate(recipe, model!, alignKeyMargins)
+                : CAlignShotOffsetData.ZeroValues(recipe, alignKeyMargins));
             var offsets = calculatedOffsets;
             await EnsureAlignOffsetRecipeUnchanged(recipe);
             if (action == "OFFSET_APPLY" && inputSignature != AlignDistortion.OffsetInputSignature)
@@ -2972,8 +2986,10 @@
             completed($"{title} 완료", resultMessage);
         }
 
-        private void UpdateAlignPreview(ST_RECIPE_DEFINITION? recipe) => AlignDistortion.Update(recipe,
-            CAlignKeyGeometry.ReadStagePositions(_settingManager.LoadSection(EN_SETTING_TAB.Motor)));
+        private void UpdateAlignPreview(ST_RECIPE_DEFINITION? recipe) => AlignDistortion.Update(
+            recipe,
+            CAlignKeyGeometry.ReadStagePositions(_settingManager.LoadSection(EN_SETTING_TAB.Motor)),
+            _settingManager.GetAlignKeyMargins());
 
         private double? RefreshAlignOffsetTolerance()
         {
@@ -4191,6 +4207,7 @@
                 if (!NormalizeRecipeId(recipe.Id).Equals(NormalizeRecipeId(latest.RecipeId), StringComparison.OrdinalIgnoreCase))
                     throw new InvalidOperationException("확인 중 선택 레시피가 변경되었습니다. 현재 값을 다시 확인해 주세요.");
 
+                // @보호 [리뷰옵셋] 롤백연동 - 준비된 가공 모델을 먼저 무효화해 이동된 Offset 파일로 가공하지 못하게 한다.
                 _defaultManager?.Station().InvalidatePreparedReviewOffset();
                 var rollback = await _reviewOffsetFile.RollbackLatest(recipe.Id, latest.FilePath);
                 var active = await _reviewOffsetFile.LoadLatest(recipe.Id);
@@ -5126,12 +5143,21 @@
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(null));
         }
 
-        public void Update(ST_RECIPE_DEFINITION? recipe, IReadOnlyList<double>? stageYPositions = null)
+        public void Update(
+            ST_RECIPE_DEFINITION? recipe,
+            IReadOnlyList<double>? stageYPositions = null,
+            ST_ALIGN_KEY_MARGINS? alignKeyMargins = null)
         {
             if (stageYPositions is not null) _stageYPositions = stageYPositions.ToArray();
             if (recipe is null)
             {
                 Clear("Recipe not loaded");
+                return;
+            }
+
+            if (alignKeyMargins is null)
+            {
+                Clear("Setting > Common > ALIGN의 AK Margin X/Y를 불러올 수 없습니다.", recipe);
                 return;
             }
 
@@ -5142,12 +5168,11 @@
             var layoutKeys = new[]
             {
                 "GLASS_SIZE_X",
-                "GLASS_SIZE_Y",
-                "AK_MARGIN_X",
-                "AK_MARGIN_Y"
+                "GLASS_SIZE_Y"
             };
             var baseKeys = Enumerable.Range(1, 4).Select(n => $"AK{n}").Concat(Enumerable.Range(1, 6).Select(n => $"DK{n}")).SelectMany(key => new[] { $"ALIGNBASE_{key}_X", $"ALIGNBASE_{key}_Y" });
-            var signature = recipe.Id + "|" + recipe.Name + "|" + string.Join("|", layoutKeys.Concat(baseKeys).Select(key => parameters.GetValueOrDefault(key, ""))) + "|StageY=" + string.Join(",", _stageYPositions.Select(v => v.ToString("R", CultureInfo.InvariantCulture)));
+            var signature = recipe.Id + "|" + recipe.Name + "|" + string.Join("|", layoutKeys.Concat(baseKeys).Select(key => parameters.GetValueOrDefault(key, ""))) +
+                $"|AK={alignKeyMargins.Value.X:R},{alignKeyMargins.Value.Y:R}|StageY=" + string.Join(",", _stageYPositions.Select(v => v.ToString("R", CultureInfo.InvariantCulture)));
             if (_signature == signature)
                 return;
             var previousLoads = RecipeId.Equals(recipe.Id, StringComparison.OrdinalIgnoreCase) ? Keys.ToDictionary(key => key.Name, key => (key.LastLoadX, key.LastLoadY, key.LastLoadRawX, key.LastLoadRawY), StringComparer.OrdinalIgnoreCase) : new Dictionary<string, (string LastLoadX, string LastLoadY, double? LastLoadRawX, double? LastLoadRawY)>(StringComparer.OrdinalIgnoreCase);
@@ -5167,10 +5192,8 @@
                 return;
             }
 
-            var marginX = Math.Clamp(Read("AK_MARGIN_X") ?? 0, 0, width / 2);
-            var marginY = Math.Clamp(Read("AK_MARGIN_Y") ?? 0, 0, height / 2);
             ST_ALIGN_INTERPOLATION_KEY[] geometry;
-            try { geometry = CAlignKeyGeometry.Create(parameters, _stageYPositions); }
+            try { geometry = CAlignKeyGeometry.Create(parameters, _stageYPositions, alignKeyMargins.Value); }
             catch (InvalidOperationException error) { Clear(error.Message, recipe); return; }
             UpdateDkSelections();
             var gold = MakeBrush(230, 164, 0);
@@ -6090,6 +6113,9 @@
         private double _shiftOffsetX;
         private double _shiftOffsetY;
         private ST_RECIPE_DEFINITION? _recipe;
+        private ST_ALIGN_KEY_MARGINS _alignKeyMargins = new(
+            CAlignKeyMarginSettings.DefaultMarginX,
+            CAlignKeyMarginSettings.DefaultMarginY);
         private int _sourceVersion;
         private bool _operationRunning;
         private readonly Dictionary<string, ST_FINE_REVIEW_LINE> _lastSnapshots = new();
@@ -6193,6 +6219,7 @@
             var parameters = recipe.Parameters.Where(item => item.Key.Length > 0).ToDictionary(item => item.Key, item => item.Value, StringComparer.OrdinalIgnoreCase);
             foreach (var setting in settings.Where(item => item.Key.Length > 0))
                 parameters[setting.Key] = setting.Value;
+            _alignKeyMargins = CAlignKeyMarginSettings.Read(settings);
             // Saved offsets do not change Fine line selection or the design-coordinate route.
             foreach (var key in parameters.Keys.Where(key => key.Contains("OFFSET", StringComparison.OrdinalIgnoreCase)).ToArray())
                 parameters.Remove(key);
@@ -6312,7 +6339,7 @@
             var counts = cellModels.Values.GroupBy(model => model).ToDictionary(group => group.Key, group => group.Count());
             var result = new List<CFineInspectionLine>();
             var stageDirection = CScannerAxisTransform.ReadStageDirection(_parameters);
-            var calculatePosition = CReviewManager.CreateShotBeamPositionCalculator(_recipe!, stageDirection);
+            var calculatePosition = CReviewManager.CreateShotBeamPositionCalculator(_recipe!, _alignKeyMargins, stageDirection);
             ST_REVIEW_BEAM_POSITION Position(ST_REVIEW_PLAN_POINT point) => calculatePosition(point, SelectedBeam);
             foreach (var model in _source.Points.Where(point => point.Use && selection.Contains(point.ShotKey)).GroupBy(point => cellModels[point.CellNo]).OrderByDescending(group => counts[group.Key]).ThenBy(group => group.Key))
             {
@@ -7311,6 +7338,9 @@
     public sealed class CRoughCorrectionPanel(CSimpleCorrectionPanel owner) : INotifyPropertyChanged
     {
         private ST_RECIPE_DEFINITION? _recipe;
+        private ST_ALIGN_KEY_MARGINS _alignKeyMargins = new(
+            CAlignKeyMarginSettings.DefaultMarginX,
+            CAlignKeyMarginSettings.DefaultMarginY);
         private IReadOnlyDictionary<string, string> _parameters = new Dictionary<string, string>();
         private string _targetSignature = "";
         private int _sourceVersion;
@@ -7377,6 +7407,7 @@
 
             _recipe = recipe;
             _parameters = parameters;
+            _alignKeyMargins = CAlignKeyMarginSettings.Read(parameters);
             var split = int.TryParse(parameters.GetValueOrDefault("SPLITED_BEAM_COUNT"), out var count) ? count : 0;
             BeamNumbers = Enumerable.Range(1, Math.Max(0, split * split)).ToArray();
             if (!BeamNumbers.Contains(_selectedBeam))
@@ -7432,7 +7463,7 @@
                 {
                     BeamNo = _selectedBeam
                 };
-                var position = CReviewManager.GetShotBeamPositions(_recipe, point, direction).Single(beam => beam.BeamNo == _selectedBeam);
+                var position = CReviewManager.GetShotBeamPositions(_recipe, point, _alignKeyMargins, direction).Single(beam => beam.BeamNo == _selectedBeam);
                 points.Add(point with { ReviewTargetX = position.ReviewX, ReviewTargetY = position.StageY });
             }
 

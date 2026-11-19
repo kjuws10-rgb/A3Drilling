@@ -11,6 +11,8 @@
         public static ST_SHOT_COORDINATE_PLAN Build(IReadOnlyDictionary<string, string> parameters)
         {
             ArgumentNullException.ThrowIfNull(parameters);
+            // @좌표 [자동공정] 좌표계획 - AK Margin은 합성된 Setting 맵에서 필수로 읽고 Recipe 기본값으로 대체하지 않는다.
+            var alignKeyMargins = CAlignKeyMarginSettings.Read(parameters);
             var headCount = Math.Clamp(ReadInt(parameters, 8, "HEAD_COUNT"), 1, 8);
             var cellCount = ReadInt(parameters, 0, "MAX_CELL_NUMBER");
             if (cellCount < CCellPatternCalculator.MinCellCount)
@@ -26,7 +28,7 @@
             var encoderScale = ReadDouble(parameters, 16000.0, "SCAN_ENCODER_SCALE");
             var stageScanDirectionY = ReadDirection(parameters, -1.0, "STAGE_SCAN_DIRECTION_Y");
             var scanStartDelayLengthY = Math.Abs(ReadDouble(parameters, 0.0, "SCAN_START_DELAY_LENGTH_Y"));
-            var akMarginY = ReadDouble(parameters, 0.0, "AK_MARGIN_Y");
+            var akMarginY = alignKeyMargins.Y;
             var scannerReferenceOffsetX = ReadScannerReferenceOffsetX(parameters);
             var shiftOffsetX = ReadDouble(parameters, 0.0, "SHIFT_OFFSET_X");
             var shiftOffsetY = ReadDouble(parameters, 0.0, "SHIFT_OFFSET_Y");
@@ -49,14 +51,14 @@
             {
                 var designShot = designShots[index];
                 var scannerReferenceX = designShot.DesignX + scannerReferenceOffsetX;
-                var headNo = AssignHeadNo(scannerReferenceX, assignmentHeadNos, parameters, assignedHeadCounts);
+                var headNo = AssignHeadNo(scannerReferenceX, assignmentHeadNos, parameters, assignedHeadCounts, alignKeyMargins.X);
                 if (headNo <= 0 || !activeHeadSet.Contains(headNo))
                 {
                     continue;
                 }
 
                 assignedHeadCounts[headNo]++;
-                var headCenterX = ReadHeadCenterX(parameters, headNo);
+                var headCenterX = ReadHeadCenterX(parameters, headNo, alignKeyMargins.X);
                 var headCenterY = ReadHeadCenterY(parameters, headNo);
                 var scannerTransform = CScannerAxisTransform.Read(parameters, headNo);
                 var headDefaultOffsetX = ReadHeadDefaultOffset(parameters, headNo, "X");
@@ -131,24 +133,23 @@
                 }
 
                 var baseScannerX = ApplyScannerAxis(preparedShot.StageShotX, preparedShot.HeadCenterX, 0.0);
-                // Scanner follow motion compensates the moving stage, so use the opposite stage-basis direction.
+                // @좌표 [자동공정] Stage추종 - Scanner Y는 이동 Stage를 상쇄하므로 Stage 기준과 반대 방향으로 계산한다.
                 var baseScannerY = -(stageWaitDistanceY * stageScanDirectionY);
                 var noShiftBaseScannerY = -(baseStageWaitDistanceY * stageScanDirectionY);
                 var scannerBase = preparedShot.ScannerTransform.Apply(baseScannerX, baseScannerY);
                 var noShiftScannerBase = preparedShot.ScannerTransform.Apply(baseScannerX, noShiftBaseScannerY);
                 var headDefaultScannerOffset = preparedShot.ScannerTransform.Apply(preparedShot.HeadDefaultOffsetX, ConvertRecipeYToStageY(preparedShot.HeadDefaultOffsetY));
                 var firstBeamScannerOffset = preparedShot.ScannerTransform.Apply(preparedShot.FirstBeamOffsetX, ConvertRecipeYToStageY(preparedShot.FirstBeamOffsetY));
-                // Align offsets are persisted in design coordinates. Apply the current
-                // stage/head direction here, when building scanner/script coordinates.
+                // @좌표 [자동공정] Align변환 - 설계좌표로 저장된 Align Offset은 Script 좌표를 만들 때 현재 Head GX/GY 방향으로 변환한다.
                 var alignScannerOffset = CScannerAxisTransform.DesignOffsetToScanner(parameters, preparedShot.HeadNo, preparedShot.DesignShot.AlignOffsetX, preparedShot.DesignShot.AlignOffsetY);
                 var reviewScannerOffset = CReviewOffsetData.ToScanner(parameters, preparedShot.HeadNo, preparedShot.DesignShot.ReviewOffsetX, preparedShot.DesignShot.ReviewOffsetY, preparedShot.DesignShot.ReviewOffsetIsDesign);
-                // Scale the current machining contribution only. Stored design offsets
-                // remain unchanged, so repeated builds never compound the percentage.
+                // @보호 [옵셋적용] Scale중복방지 - 저장값은 바꾸지 않고 현재 가공 기여분에만 Scale을 적용해 반복 Build 누적을 막는다.
                 alignScannerOffset = (alignScannerOffset.X * alignOffsetScale, alignScannerOffset.Y * alignOffsetScale);
                 reviewScannerOffset = (reviewScannerOffset.X * reviewOffsetScale, reviewScannerOffset.Y * reviewOffsetScale);
                 var shiftScannerOffsetXOnly = preparedShot.ScannerTransform.Apply(shiftOffsetX, 0.0);
                 var shiftScannerOffsetX = (scannerBase.X - noShiftScannerBase.X) + shiftScannerOffsetXOnly.X;
                 var shiftScannerOffsetY = (scannerBase.Y - noShiftScannerBase.Y) + shiftScannerOffsetXOnly.Y;
+                // @좌표 [자동공정] 적용순서 - Recipe, Head Default, First Beam, Review, Align을 합산하고 Shift는 Scanner Base에 별도로 반영한다.
                 var finalScannerOffsetX = preparedShot.DesignShot.RecipeOffsetX + headDefaultScannerOffset.X + firstBeamScannerOffset.X + reviewScannerOffset.X + alignScannerOffset.X;
                 var finalScannerOffsetY = preparedShot.DesignShot.RecipeOffsetY + headDefaultScannerOffset.Y + firstBeamScannerOffset.Y + reviewScannerOffset.Y + alignScannerOffset.Y;
                 var scannerGx = scannerBase.X + finalScannerOffsetX + shiftScannerOffsetXOnly.X;
@@ -221,8 +222,7 @@
 
         private static IReadOnlyList<ST_DESIGN_SHOT_POINT> BuildDesignShots(IReadOnlyDictionary<string, string> parameters, int cellCount)
         {
-            var akMarginX = ReadDouble(parameters, 0.0, "AK_MARGIN_X");
-            var akMarginY = ReadDouble(parameters, 0.0, "AK_MARGIN_Y");
+            var alignKeyMargins = CAlignKeyMarginSettings.Read(parameters);
             var pixelSize = ReadDouble(parameters, 0.09, "PIXEL_SIZE");
             var splitBeamCount = ReadInt(parameters, 1, "SPLITED_BEAM_COUNT");
             var modelTypeCount = CRecipeModelPixelCountReader.ReadModelTypeCount(parameters);
@@ -241,8 +241,8 @@
                     modelPattern.PixelCountY, 
                     modelPattern.ProcessPitch, 
                     splitBeamCount, 
-                    akMarginX, 
-                    akMarginY
+                    alignKeyMargins.X, 
+                    alignKeyMargins.Y
                 ));
                 if (!result.IsValid)
                 {
@@ -373,7 +373,12 @@
             return maxGy - minGy > maxGx - minGx;
         }
 
-        private static int AssignHeadNo(double designX, IReadOnlyList<int> assignmentHeadNos, IReadOnlyDictionary<string, string> parameters, IReadOnlyDictionary<int, int> assignedHeadCounts)
+        private static int AssignHeadNo(
+            double designX,
+            IReadOnlyList<int> assignmentHeadNos,
+            IReadOnlyDictionary<string, string> parameters,
+            IReadOnlyDictionary<int, int> assignedHeadCounts,
+            double akMarginX)
         {
             if (assignmentHeadNos.Count <= 0)
             {
@@ -382,7 +387,7 @@
 
             global::Drilling.Common.Recipe.ST_HEAD_ASSIGNMENT_CANDIDATE? SelectItem(int headNo)
             {
-                var centerX = ReadHeadCenterX(parameters, headNo);
+                var centerX = ReadHeadCenterX(parameters, headNo, akMarginX);
                 var widthX = ReadNullableDouble(parameters, $"H{headNo:00}_SCAN_FIELD_WIDTH_X", $"H{headNo:00}_HEAD_FIELD_WIDTH_X") ?? 110.0;
                 widthX = widthX > 0.0 ? widthX : 110.0;
                 var halfWidth = widthX / 2.0;
@@ -447,13 +452,12 @@
             return ReadBool(parameters, true, $"H{headNo:00}_USE");
         }
 
-        private static double ReadHeadCenterX(IReadOnlyDictionary<string, string> parameters, int headNo)
+        private static double ReadHeadCenterX(IReadOnlyDictionary<string, string> parameters, int headNo, double akMarginX)
         {
             const double fallbackHead1PositionX = -5.0;
             const double fallbackHeadGapX = 200.0;
             var head1PositionX = ReadDouble(parameters, fallbackHead1PositionX, "H01_AK_POSITION_X");
             var headGapX = ReadDouble(parameters, fallbackHeadGapX, "HeadGapX");
-            var akMarginX = ReadDouble(parameters, 0.0, "AK_MARGIN_X");
             return akMarginX + head1PositionX + ((headNo - 1) * headGapX);
         }
 
@@ -660,7 +664,7 @@
         {
             if (!double.IsFinite(value) || Math.Abs(value) > MaximumAbsoluteOffset)
                 throw new InvalidOperationException("Align Offset은 -100000~100000 mm 범위의 유한한 값이어야 합니다.");
-            // Round decimal millimetres at the final result; do not round interpolation intermediates.
+            // @좌표 [얼라인왜곡] 저장반올림 - 보간 중간값은 유지하고 최종 저장 직전에만 0.001 mm로 반올림한다.
             var rounded = (double)Math.Round((decimal)value, 3, MidpointRounding.AwayFromZero);
             return rounded == 0 ? 0 : rounded;
         }
@@ -675,10 +679,14 @@
             return RoundValue(value);
         }
 
-        public static IReadOnlyList<ST_ALIGN_SHOT_OFFSET> Calculate(ST_RECIPE_DEFINITION recipe, CAlignInterpolation model)
+        public static IReadOnlyList<ST_ALIGN_SHOT_OFFSET> Calculate(
+            ST_RECIPE_DEFINITION recipe,
+            CAlignInterpolation model,
+            ST_ALIGN_KEY_MARGINS alignKeyMargins)
         {
             model.ValidateMeasurements();
-            var parameters = recipe.Parameters.Where(parameter => !IsParameterKey(parameter.Key)).ToDictionary(parameter => parameter.Key, parameter => parameter.Value, StringComparer.OrdinalIgnoreCase);
+            // @좌표 [얼라인왜곡] Shot보정 - 선택 Key의 설계좌표 보간 범위 안에서만 전체 Shot Offset을 계산한다.
+            var parameters = BuildDesignParameters(recipe, alignKeyMargins);
             var shots = CShotCoordinatePlanBuilder.BuildDesignShots(parameters);
             if (shots.Count == 0)
                 throw new InvalidOperationException("적용할 Shot이 없습니다.");
@@ -697,11 +705,26 @@
             return values;
         }
 
-        public static IReadOnlyList<ST_ALIGN_SHOT_OFFSET> ZeroValues(ST_RECIPE_DEFINITION recipe)
+        public static IReadOnlyList<ST_ALIGN_SHOT_OFFSET> ZeroValues(
+            ST_RECIPE_DEFINITION recipe,
+            ST_ALIGN_KEY_MARGINS alignKeyMargins)
         {
             // Reset must also work if a manually edited old offset is invalid.
-            var parameters = recipe.Parameters.Where(parameter => !IsParameterKey(parameter.Key)).ToDictionary(parameter => parameter.Key, parameter => parameter.Value, StringComparer.OrdinalIgnoreCase);
+            var parameters = BuildDesignParameters(recipe, alignKeyMargins);
             return CShotCoordinatePlanBuilder.BuildDesignShots(parameters).Select(shot => new ST_ALIGN_SHOT_OFFSET(shot.CellNo, shot.CellShotNo, CReviewShotNameFormatter.ToMatrixName(shot.CellShotNo, shot.GroupCountX), shot.DesignX, shot.DesignY, 0, 0)).ToArray();
+        }
+
+        private static Dictionary<string, string> BuildDesignParameters(
+            ST_RECIPE_DEFINITION recipe,
+            ST_ALIGN_KEY_MARGINS alignKeyMargins)
+        {
+            // @보호 [얼라인왜곡] Margin출처 - Recipe의 옛 AK Margin은 사용하지 않고 호출자가 전달한 Setting 값만 주입한다.
+            var parameters = recipe.Parameters
+                .Where(parameter => !IsParameterKey(parameter.Key))
+                .ToDictionary(parameter => parameter.Key, parameter => parameter.Value, StringComparer.OrdinalIgnoreCase);
+            parameters[CAlignKeyMarginSettings.MarginXKey] = alignKeyMargins.X.ToString("R", CultureInfo.InvariantCulture);
+            parameters[CAlignKeyMarginSettings.MarginYKey] = alignKeyMargins.Y.ToString("R", CultureInfo.InvariantCulture);
+            return parameters;
         }
 
         public static ST_RECIPE_DEFINITION Apply(ST_RECIPE_DEFINITION recipe, IReadOnlyList<ST_ALIGN_SHOT_OFFSET> offsets)

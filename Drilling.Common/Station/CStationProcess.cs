@@ -82,6 +82,7 @@
         private readonly CLogManager? _logManager;
         private readonly string? _manualMofCompletionPath;
         private readonly object _sequenceLock = new();
+        private readonly SemaphoreSlim _stageRequestResetGate = new(1, 1);
         private readonly object _processLogLock = new();
         private readonly CSequenceActionStatusStore _sequenceActions = new();
         private readonly List<ST_PROCESS_LOG_ITEM> _processLogs = [];
@@ -568,8 +569,8 @@
                 BuildAutomationScript(processModel, cancellationToken);
                 UploadAutomationScript(processModel, cancellationToken);
             });
-            //test �Ⱓ���� �ӽ� �ּ�
-            //MoveStageToScanStart(processModel, cancellationToken);
+            // @좌표 [자동공정] 시작위치 - Stage가 Process START 전에 이동하므로 PC에서 중복 이동 명령을 보내지 않는다.
+            // MoveStageToScanStart(processModel, cancellationToken);
             RunScannerProcess(processModel, cancellationToken);
         }
 
@@ -1526,6 +1527,7 @@
 
         private IReadOnlyDictionary<string, string> BuildRuntimeParameters(string recipeId, IReadOnlyDictionary<string, string> sourceParameters, CancellationToken cancellationToken)
         {
+            // @흐름 [자동공정] 조건동결 - Recipe 위에 최신 Option/Motor Setting과 Review Offset을 합쳐 이번 가공의 단일 좌표 조건을 만든다.
             var parameters = new Dictionary<string, string>(sourceParameters, StringComparer.OrdinalIgnoreCase);
             var processSettings = new List<ST_SYSTEM_PARAMETER>();
             processSettings.AddRange(_settingManager.LoadSection(EN_SETTING_TAB.Option, cancellationToken));
@@ -1554,6 +1556,7 @@
                 return;
             }
 
+            // @파일 [리뷰옵셋] 최신적용 - DoReady 시점의 활성 파일 경로와 저장시각을 함께 기억해 가공 직전 변경을 검출한다.
             var reviewOffset = _reviewOffsetFile.LoadLatest(recipeId, cancellationToken).GetAwaiter().GetResult();
             _preparedReviewOffsetFilePath = reviewOffset.FilePath;
             _preparedReviewOffsetSavedAt = reviewOffset.SavedAt;
@@ -1588,6 +1591,7 @@
                 expectedSavedAt = _preparedReviewOffsetSavedAt;
             }
 
+            // @보호 [리뷰옵셋] 가공전검증 - 준비 후 Offset이 롤백되거나 교체되면 이전 값으로 가공하지 않도록 DoReady 재실행을 요구한다.
             var current = _reviewOffsetFile.LoadLatest(processModel.RecipeId, cancellationToken).GetAwaiter().GetResult();
             if (!current.FilePath.Equals(expectedPath, StringComparison.OrdinalIgnoreCase)
                 || current.SavedAt != expectedSavedAt)
@@ -3418,6 +3422,7 @@
             var heads = selectedHeads.Where(head => head is >= 1 and <= 8).ToHashSet();
             if (heads.Count == 0)
                 throw new InvalidOperationException("Head를 선택해 주세요.");
+            // @흐름 [수동MOF] 조건동결 - 선택 Head와 Shift Offset을 시작 시 복사해 실행 중 UI 변경이 가공에 섞이지 않게 한다.
             var frozen = request with
             {
                 Parameters = new Dictionary<string, string>(request.Parameters, StringComparer.OrdinalIgnoreCase)
@@ -3904,6 +3909,55 @@
 #region StageRequests
         public CStageRequestSequence StageRequests { get; }
 
+        public async Task ResetStageRequestsAsync(CancellationToken token = default)
+        {
+            await _stageRequestResetGate.WaitAsync(token).ConfigureAwait(false);
+            try
+            {
+                AddProcessLog("WARN", "AUTO_INIT", "AUTO 시퀀스 INIT 시작 · 진행 동작 정지 및 Process Handshake OFF 확인");
+
+                var stopDeadline = DateTimeOffset.UtcNow.AddSeconds(15);
+                while (!await StageRequests.StopAsync().ConfigureAwait(false))
+                {
+                    token.ThrowIfCancellationRequested();
+                    if (DateTimeOffset.UtcNow >= stopDeadline)
+                        throw new TimeoutException("AUTO Stage 시퀀스 정지 확인 시간이 초과되었습니다.");
+                    await Task.Delay(50, token).ConfigureAwait(false);
+                }
+
+                while (_interfaceManager.StageReviewSequences.HasRunningSession)
+                {
+                    token.ThrowIfCancellationRequested();
+                    if (DateTimeOffset.UtcNow >= stopDeadline)
+                        throw new TimeoutException("Review/Stage 공통 동작 정지 확인 시간이 초과되었습니다.");
+                    await Task.Delay(50, token).ConfigureAwait(false);
+                }
+
+                await _interfaceManager.StageReviewSequences.RecoverIdleCleanup(token).ConfigureAwait(false);
+                await CHandshakeOutputReset.Reset(_interfaceManager, token).ConfigureAwait(false);
+                await StageProcessData().ResetMachiningComplete(token).ConfigureAwait(false);
+
+                lock (_sequenceLock)
+                {
+                    if (_interfaceManager.StageReviewSequences.IsActive || !_stageOwnedTasks.IsEmpty || !_stageBufferedRuns.IsEmpty)
+                        throw new InvalidOperationException("AUTO 동작 소유권 또는 Task 정리가 남아 있어 Action 상태를 초기화할 수 없습니다.");
+                    _sequenceActions.Reset();
+                    _interfaceManager.StageReviewSequences.Actions.Reset();
+                }
+
+                AddProcessLog("INFO", "AUTO_INIT", "AUTO 시퀀스 INIT 완료 · Process Handshake OFF 및 Action WAIT 확인");
+            }
+            catch (Exception error)
+            {
+                AddProcessLog("ERROR", "AUTO_INIT", $"AUTO 시퀀스 INIT 실패: {error.Message}");
+                throw;
+            }
+            finally
+            {
+                _stageRequestResetGate.Release();
+            }
+        }
+
         private CStageRequestSequence CreateStageRequestSequence() => new(
             () =>
         {
@@ -3981,6 +4035,7 @@
                     throw new InvalidOperationException("Station must be Ready before AUTO request monitoring.");
                 if (!_stageOwnedTasks.IsEmpty || !_stageBufferedRuns.IsEmpty)
                     throw new InvalidOperationException("Previous AUTO Tasks have not been confirmed stopped.");
+                // @흐름 [자동공정] 요청감시 - 단일 Worker가 DoReady, Process, Review, TPM, Distortion 요청의 소유권을 직렬화한다.
                 StageRequests.Start(
                     async token =>
                 {
@@ -3989,7 +4044,7 @@
                     EnsureZeroLineFollowUpCompleted();
                     var data = await request(token).ConfigureAwait(false);
                     var parameters = new Dictionary<string, string>(data.Parameters, StringComparer.OrdinalIgnoreCase);
-                    // Manual MOF Shift is never applied to AUTO machining.
+                    // @보호 [자동공정] Shift차단 - Manual MOF Shift Offset은 AUTO 가공과 AUTO 검사에 전달하지 않는다.
                     parameters["SHIFT_OFFSET_X"] = "0.000000";
                     parameters["SHIFT_OFFSET_Y"] = "0.000000";
                     PrepareProcess(data.ProcessId, data.RecipeId, data.GlassId, data.LotId, parameters, token, preserveSequenceActions: true);
@@ -4582,6 +4637,7 @@
         /// <summary>Checks request/completion snapshots. Reads Stage's count only for an armed completion.</summary>
         public async Task CheckCompletion(Func<string> selectedRecipe, CancellationToken token = default)
         {
+            // @통신 [보호윈도우] 완료엣지 - Request ON 상태에서 새 Complete ON만 한 번 처리해 같은 Tray Count의 중복 반영을 막는다.
             await _gate.WaitAsync(token).ConfigureAwait(false);
             try
             {
@@ -4653,6 +4709,7 @@
                 // assuming that every shift/exchange starts a completely unused section at zero.
                 EnsureConnectedRoute(RequestId, map);
                 EnsureConnectedRoute(CountId, map);
+                // @파일 [보호윈도우] 매수반영 - Stage 인계 Tray Count를 Recipe 현재 매수에 먼저 저장한 뒤 출력값과 Retry 여부를 결정한다.
                 if (_committedHandoverCount is null)
                 {
                     WriteLog($"EXCHANGE_COMPLETE_ACCEPTED Recipe={_pendingRecipeId}; reading {HandoverCountId} before persistence.");
@@ -4667,6 +4724,7 @@
                 var completedRecipe = _pendingRecipeId;
                 var completedCount = _committedHandoverCount.Value;
                 var requiresAnotherExchange = completedCount >= _pendingMaximumCount;
+                // @상태 [보호윈도우] 재요청 - 반영된 매수가 Max 이상이면 Complete OFF를 확인한 후 새 Request ON을 보낸다.
                 if (requiresAnotherExchange && _retryRequestsIssued < _retryLimit)
                 {
                     _retryRequestsIssued++;
@@ -4688,6 +4746,7 @@
                 _lastCompletion = true;
                 if (exhausted)
                 {
+                    // @알람 [보호윈도우] 재시도초과 - LIGHT 알람만 발생시키며 AUTO는 계속 운전한다.
                     WriteLog($"EXCHANGE_RETRY_EXHAUSTED Recipe={completedRecipe}; TrayCount={completedCount}; Maximum={exhaustedMaximum}; RetryCount={exhaustedRetryCount}; LIGHT alarm requested; AUTO continues.");
                     NotifyRetryExhausted(new(completedRecipe, completedCount, exhaustedMaximum, exhaustedRetryCount));
                 }
@@ -4782,19 +4841,20 @@
         }
 
         public Task PublishMachiningComplete(CancellationToken token) => Publish(MachiningCompleteId, 1, EN_MELSEC_DATA_TYPE.DWord, token);
+        public Task ResetMachiningComplete(CancellationToken token) => Publish(MachiningCompleteId, 0, EN_MELSEC_DATA_TYPE.DWord, token, forceWrite: true);
         private static void ValidateSpeed(double speed)
         {
             if (!double.IsFinite(speed) || speed <= 0)
                 throw new InvalidOperationException("Recipe STAGE_SPEED must be a finite positive speed in mm/sec.");
         }
 
-        private async Task Publish(string id, double expected, EN_MELSEC_DATA_TYPE type, CancellationToken token)
+        private async Task Publish(string id, double expected, EN_MELSEC_DATA_TYPE type, CancellationToken token, bool forceWrite = false)
         {
             token.ThrowIfCancellationRequested();
             var values = interfaces.Melsec.GetCachedSnapshot(out var map);
             var row = Route(map);
             var tolerance = Math.Max(1e-8, Math.Abs(row.ReadScale) / 2 + 1e-9);
-            if (Matches(values.GetValueOrDefault(id), expected, tolerance))
+            if (!forceWrite && Matches(values.GetValueOrDefault(id), expected, tolerance))
             {
                 WriteLog($"OUTPUT_UNCHANGED {id}; Logical={expected.ToString(CultureInfo.InvariantCulture)}");
                 return;
@@ -5613,6 +5673,7 @@
 
         private async Task RunProcess(Func<CancellationToken, Task> zero, Func<CancellationToken, Task> runTasks, CancellationToken token)
         {
+            // @통신 [자동공정] Process핸드셰이크 - STG ABLE -> PRC ABLE -> STG START -> PRC START -> PRC COMPLETE 순서를 유지한다.
             while (true)
             {
                 token.ThrowIfCancellationRequested();
@@ -5663,6 +5724,7 @@
             await Action(CSequenceActionIds.ProcessResults, processResults ?? (_ => Task.CompletedTask), token).ConfigureAwait(false);
             if (updateProcessOptions is not null)
                 await updateProcessOptions(token).ConfigureAwait(false);
+            // @보호 [자동공정] 완료송신 - 가공 Task와 결과 저장이 모두 성공한 뒤에만 Process COMPLETE를 ON 한다.
             await WriteConfirmed(PrcProcessComplete, 1, token).ConfigureAwait(false);
             Set("PROCESS_WAIT_COMPLETE", "Machining complete; waiting for Stage Process COMPLETE.");
             await WaitSignal(StgProcessComplete, 1, token).ConfigureAwait(false);
@@ -5788,6 +5850,7 @@
         private bool IsReviewReady(ST_STAGE_SIGNAL_SNAPSHOT sample) => _reviewActions is not null && TrySignal(sample, StgReviewAble, out var able) && able == 1 && TrySignal(sample, StgReviewStart, out var start) && start == 0 && TrySignal(sample, StgReviewComplete, out var complete) && complete == 0;
         private async Task RunReview(CancellationToken token)
         {
+            // @통신 [리뷰검사] 자동핸드셰이크 - PLAN -> ABLE -> START -> MEASURE -> SAVE -> COMPLETE 순서를 Stage 요청과 맞춘다.
             _scenario = "REVIEW";
             _reviewOutputsOwned = true;
             BeginLogCycle("REVIEW");
@@ -5804,6 +5867,7 @@
             Set("REVIEW_RESULTS", "검사 결과 확인·저장. 0선 후속 1줄은 보정 미적용, 일반 AUTO Review만 전체 OK일 때 다음 Glass 보정 저장.");
             await Action(CSequenceActionIds.ReviewResults, review.Save, token).ConfigureAwait(false);
             Set("REVIEW_COMPLETE_SEND", "Review 결과 처리 완료; Process Review COMPLETE ON 송신·새 수신 확인.");
+            // @보호 [리뷰검사] 완료송신 - 결과 처리와 파일 저장이 성공한 뒤에만 Review COMPLETE를 ON 한다.
             await WriteConfirmed(PrcReviewComplete, 1, token).ConfigureAwait(false);
             LogEvent($"REVIEW_COMPLETE_ON_CONFIRMED {SignalRoute(PrcReviewComplete)}; ResultsHandled=True");
             Set("REVIEW_WAIT_COMPLETE", "All inspection results handled; waiting for Stage Review COMPLETE.");

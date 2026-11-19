@@ -28,6 +28,7 @@
         public bool CanReset => _processStation.CanReset;
 
         public void StartStageRequests(Func<CancellationToken, Task<ST_STAGE_PROCESS_REQUEST>> request, ST_STAGE_REVIEW_ACTIONS? review = null, ST_STAGE_TPM_ACTIONS? tpm = null, ST_STAGE_DISTORTION_ACTIONS? distortion = null) => _processStation.StartStageRequests(request, review, tpm, distortion);
+        public Task ResetStageRequestsAsync(CancellationToken token = default) => _processStation.ResetStageRequestsAsync(token);
         private readonly CStationProcess _processStation;
         public CStationManager(
             CInterfaceManager interfaceManager, 

@@ -73,17 +73,17 @@ namespace Drilling.Common.Managers
         public async Task SaveRecipe(ST_RECIPE_DEFINITION recipe, CancellationToken cancellationToken = default) => await WithRecipeOperation(() => SaveRecipeCore(recipe, cancellationToken), cancellationToken).ConfigureAwait(false);
         public Task<ST_RECIPE_DEFINITION> SaveParametersIfUnchanged(ST_RECIPE_DEFINITION expected, IReadOnlyDictionary<string, string> changes, CancellationToken token = default) => WithRecipeOperation(async () =>
         {
+            // @보호 [레시피] 동시변경 - 측정 시작 후 Recipe가 바뀌었으면 보정값으로 최신 파일을 덮어쓰지 않는다.
             var current = await recipeFile.Find(expected.Id, token).ConfigureAwait(false) ?? throw new InvalidOperationException("현재 레시피가 없습니다.");
             var before = expected.Parameters.ToDictionary(p => p.Key, p => p.Value, StringComparer.OrdinalIgnoreCase);
             var now = current.Parameters.ToDictionary(p => p.Key, p => p.Value, StringComparer.OrdinalIgnoreCase);
-            // Internal production count may change independently; never overwrite it.
+            // @보호 [레시피] 공정매수 - 공정이 독립 변경하는 CURRENT_PROCESS_COUNT는 편집 충돌 비교와 덮어쓰기에서 제외한다.
             before.Remove("CURRENT_PROCESS_COUNT"); now.Remove("CURRENT_PROCESS_COUNT");
             if (before.Count != now.Count || before.Any(p => !now.TryGetValue(p.Key, out var value) || value != p.Value))
                 throw new InvalidOperationException("측정 후 레시피가 변경되었습니다. 기준을 다시 설정해 주세요.");
             if (changes.Keys.Any(key => !now.ContainsKey(key))) throw new InvalidOperationException("저장할 레시피 파라미터가 없습니다.");
             var updated = current with { Parameters = current.Parameters.Select(p => changes.TryGetValue(p.Key, out var value) ? p with { Value = value } : p).ToArray() };
-            // Once the file commit returns, finish readback/cache publication even if
-            // the UI cancels. History must not disguise a committed Default as unsaved.
+            // @파일 [레시피] 저장확인 - Commit 후 UI 취소와 무관하게 Readback과 Cache 게시를 끝내 저장 여부를 일치시킨다.
             await recipeFile.Save(updated, token).ConfigureAwait(false);
             var saved = await recipeFile.Find(expected.Id, CancellationToken.None).ConfigureAwait(false) ?? throw new IOException("레시피 저장 명령은 완료됐지만 저장값을 다시 읽을 수 없습니다.");
             UpdateCachedRecipe(saved);
@@ -93,6 +93,7 @@ namespace Drilling.Common.Managers
         }, token);
         public Task<ST_RECIPE_DEFINITION> SaveAlignOffsetsIfUnchanged(ST_RECIPE_DEFINITION expected, IReadOnlyList<ST_ALIGN_SHOT_OFFSET> offsets, CancellationToken token = default) => WithRecipeOperation(async () =>
         {
+            // @보호 [레시피] Align동시변경 - Distortion 측정 중 Recipe가 바뀌면 오래된 기준으로 Align Offset을 저장하지 않는다.
             var current = await recipeFile.Find(expected.Id, token).ConfigureAwait(false) ?? throw new InvalidOperationException("현재 레시피가 없습니다.");
             var before = expected.Parameters.ToDictionary(p => p.Key, p => p.Value, StringComparer.OrdinalIgnoreCase);
             var now = current.Parameters.ToDictionary(p => p.Key, p => p.Value, StringComparer.OrdinalIgnoreCase);
@@ -148,9 +149,10 @@ namespace Drilling.Common.Managers
             lock (_cacheLock)
                 current = _recipeCache?.FirstOrDefault(item => item.Id.Equals(recipe.Id, StringComparison.OrdinalIgnoreCase));
             current ??= await recipeFile.Find(recipe.Id, cancellationToken);
+            // @보호 [레시피] 편집범위 - 화면에 표시되지 않은 기존 Shot Align Offset은 일반 Recipe 저장 시 유지한다.
             recipe = global::Drilling.Common.Recipe.CAlignShotOffsetData.RetainUneditedOffsets(recipe, current);
             await recipeFile.Save(recipe, cancellationToken);
-            // The editor supplies History = []; retain the persisted, newly logged history instead.
+            // @파일 [레시피] 이력재로딩 - Editor의 빈 History 대신 파일 저장 과정에서 기록된 최신 이력을 다시 읽는다.
             var savedRecipe = await recipeFile.Find(recipe.Id, cancellationToken) ?? recipe;
             UpdateCachedRecipe(savedRecipe);
             await LoadHistoryCore(true, cancellationToken);

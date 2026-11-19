@@ -283,7 +283,7 @@
             }
 
             Dictionary<string, ST_MELSEC_MAP_DATA> loadedMap = map.Where(FilterData4).ToDictionary(HandleMap5, StringComparer.OrdinalIgnoreCase);
-            // Missing Stage addresses get a distinct in-memory device space, never an invented PLC W address.
+            // @시뮬 [MELSEC] 가상주소 - 미할당 Distortion 신호는 실 PLC W주소를 만들지 않고 Simulation 전용 메모리만 사용한다.
             foreach (var signal in new[] { "ABLE", "COMPLETE" })
             {
                 var id = "HANDSHAKE_STG_DISTORTION_" + signal;
@@ -546,8 +546,7 @@
         {
             ST_MELSEC_MAP_DATA data = PrepareRead(id, [EN_MELSEC_DATA_TYPE.Double, EN_MELSEC_DATA_TYPE.Float], cancellationToken);
             ValidateMapData(data);
-            // Scalar APIs expose the first 32-bit value. LENGTH may describe the
-            // full IOF array capacity; only ReadDoubleArray reads that entire area.
+            // @보호 [MELSEC] ScalarRead - LENGTH가 IOF 배열 용량이어도 Scalar API는 첫 2 Word만 읽는다.
             int wordCount = 2;
             ushort[] words = ReadWords(data, ParseAddress(data.Address), wordCount, cancellationToken, suppressLog, logSource);
             double value;
@@ -568,7 +567,8 @@
         {
             ST_MELSEC_MAP_DATA data = PrepareWrite(id, [EN_MELSEC_DATA_TYPE.Double, EN_MELSEC_DATA_TYPE.Float], cancellationToken);
             ValidateMapData(data);
-            int wordCount = 2; // A scalar write must not clear adjacent IOF array entries.
+            // @보호 [MELSEC] ScalarWrite - Double 한 값만 2 Word에 쓰고 인접 IOF 배열을 지우지 않는다.
+            int wordCount = 2;
             double rawValue = value * data.WriteScale;
             if (!double.IsFinite(rawValue) || (data.DataType == EN_MELSEC_DATA_TYPE.Float && Math.Abs(rawValue) > float.MaxValue))
             {
@@ -613,6 +613,7 @@
 
         private void ExecuteThreadRequest(CMelsecThreadRequest request)
         {
+            // @스레드 [MELSEC] 요청직렬화 - Direct Read/Write를 Control Thread Queue로 넘겨 Native API 동시 접근을 막는다.
             request.CancellationToken.ThrowIfCancellationRequested();
             lock (_requestLock)
             {
@@ -2860,9 +2861,7 @@
             lock (_pollLock)
             {
                 generation = _pollGeneration;
-                // Explicit readback and periodic reads alternate. Within periodic reads, serve
-                // the oldest control deadline first, reserving every fourth turn for monitoring.
-                // This keeps position/BUSY/handshakes fresh without starving other enabled maps.
+                // @성능 [MELSEC] Poll우선순위 - 명시적 Readback과 제어 신호를 우선하되 매 네 번째 기회에는 일반 Monitoring을 처리한다.
                 var requested = false;
                 if (_serveRequestedPoll)
                 {
@@ -3145,12 +3144,10 @@
             }
         }
 
-        /// <summary>
-        /// Emulates the Stage PC's input in memory only. Does not use native writes,
-        /// change map access, or publish UI/action flags. The common poller reads it normally.
-        /// </summary>
+        /// <summary>Stage 소유 입력을 Simulation 메모리에만 주입한다.</summary>
         public void SetStageSimulationSignal(string id, bool on)
         {
+            // @시뮬 [MELSEC] Stage입력 - Native PLC Write 없이 Simulation 메모리만 바꾸고 공통 Poller가 정상 입력처럼 읽는다.
             lock (_pollLock)
             {
                 var data = GetMapData(id);

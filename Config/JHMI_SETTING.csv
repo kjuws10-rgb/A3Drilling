@@ -104,10 +104,13 @@ OPTION,REVIEW,REVIEW_LEVEL4_COLOR,Review Level 4 Color,STRING,color,1,1,#EF4444,
 OPTION,ALIGN,Align_Camera_Resolution,Align_Camera_Resolution,DOUBLE,mm/pixel,1,1,0.00345,0,0,얼라인 카메라 1 pixel당 길이(mm); 기본 0.00345 mm/pixel; 허용범위(pixel)=Wapage_AlignBase_Tolerance(mm) / 이 값; 양의 유한값만 저장
 OPTION,ALIGN,ALIGN_OFFSET_SCALE,Align Offset Scale,INT,%,1,1,100,0,2147483647,가공 좌표 생성 시 저장된 Align Offset에 적용할 비율; 0%=미적용; 100%=원래 값; 200%=2배; 저장값과 설계 Masking/Chess 판정은 변경하지 않음
 OPTION,ALIGN,Wapage_AlignBase_Tolerance,Wapage_AlignBase_Tolerance,DOUBLE,mm,1,1,0.1,0,0,Wapage Align Base 허용범위(mm); 0 이상; MELSEC 기록 시 Align_Camera_Resolution(mm/pixel)으로 나누어 pixel로 환산; 실제 신호 연결은 추후 작업
+OPTION,ALIGN,AK_MARGIN_X,AK Margin X,DOUBLE,mm,1,1,15.5,0,3000,Glass X edge에서 Align Key 중심까지의 공통 설계 거리; 모든 Recipe에 동일 적용
+OPTION,ALIGN,AK_MARGIN_Y,AK Margin Y,DOUBLE,mm,1,1,15.5,0,3000,Glass Y edge에서 Align Key 중심까지의 공통 설계 거리; 모든 Recipe에 동일 적용
 OPTION,INTERLOCK,SCANNER_TEMP_LIMIT,Scanner Temp Limit,DOUBLE,°C,1,1,1000,0,1000,스캐너 Galvo Temp 인터락 상한값 (섭씨)
 OPTION,INTERLOCK,DOE_Z_TOLERANCE,DOE Z Tolerance,DOUBLE,mm,1,1,0,0,1000,Recipe값 대비 +- 허용오차
 OPTION,ALIGN,ALIGN_OFFSET_TOLERANCE,Align Offset Tolerance,DOUBLE,mm,1,1,0.5,0,100000,Align Offset X 또는 Y의 절댓값 초과 시 Shot 전체 제외 여부 확인; 제외 Shot의 기존 X/Y 유지; 소수 셋째 자리 기준
 OPTION,INTERLOCK,LASER_THG_HOUR_LIMIT,LASER THG Hour Limit,INT,hour,1,1,0,0,100000,레이저 크리스탈 사용 시간 상한값
+OPTION,PM,PM_UNLOCK_PASSWORD,PM Unlock Password,STRING,,1,1,0000,0,0,PM LOCK 해제 비밀번호
 OPTION,INTERLOCK,ATTENUATOR_DEGREE_MIN_SW_LIMIT,Attenuator Degree Min SW Limit,DOUBLE,deg,1,1,0.0,0,0,ATT Limit은 Setting > OPTION > INTERLOCK에서 장비 범위에 맞게 변경 가능; 기본 0/0은 0도만 허용; 입력 메타데이터 MIN/MAX 0/0은 입력 범위 제한 없음
 OPTION,INTERLOCK,ATTENUATOR_DEGREE_MAX_SW_LIMIT,Attenuator Degree Max SW Limit,DOUBLE,deg,1,1,0.0,0,0,ATT Limit은 Setting > OPTION > INTERLOCK에서 장비 범위에 맞게 변경 가능; 기본 0/0은 0도만 허용; 입력 메타데이터 MIN/MAX 0/0은 입력 범위 제한 없음
 INTERFACE,HOST,HostIp,Host IP,STRING,,1,1,192.168.0.10,0,0,호스트 통신 IP

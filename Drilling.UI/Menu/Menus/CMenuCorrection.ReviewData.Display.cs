@@ -395,8 +395,7 @@ namespace Drilling.UI.Menu.Menus
             {
                 var pixelSize = ReadOutputViewerDouble(parameters, 0.09, "PIXEL_SIZE");
                 var splitBeamCount = ReadOutputViewerInt(parameters, 1, "SPLITED_BEAM_COUNT");
-                var akMarginX = ReadOutputViewerDouble(parameters, 0.0, "AK_MARGIN_X");
-                var akMarginY = ReadOutputViewerDouble(parameters, 0.0, "AK_MARGIN_Y");
+                var alignKeyMargins = CAlignKeyMarginSettings.Read(parameters);
                 var modelTypeCount = CRecipeModelPixelCountReader.ReadModelTypeCount(parameters);
                 var modelType = CRecipeModelPixelCountReader.ReadCellModelType(parameters, cellNo, modelTypeCount);
                 var modelPattern = CRecipeModelPixelCountReader.ReadPatternForModel(parameters, modelType);
@@ -411,8 +410,8 @@ namespace Drilling.UI.Menu.Menus
                         modelPattern.PixelCountY,
                         modelPattern.ProcessPitch,
                         splitBeamCount,
-                        akMarginX,
-                        akMarginY),
+                        alignKeyMargins.X,
+                        alignKeyMargins.Y),
                     includeShotCenters: false);
             }
 
@@ -1045,8 +1044,9 @@ namespace Drilling.UI.Menu.Menus
                 var frameTop = (canvasHeight - frameHeight) / 2.0;
                 var frame = new ST_GLASS_PREVIEW_FRAME(frameLeft, frameTop, frameWidth, frameHeight);
                 var frameBounds = new Rect(frameLeft, frameTop, frameWidth, frameHeight);
-                var akMarginX = ReadOutputViewerDouble(parameters, 0.0, "AK_MARGIN_X");
-                var akMarginY = ReadOutputViewerDouble(parameters, 0.0, "AK_MARGIN_Y");
+                var alignKeyMargins = CAlignKeyMarginSettings.Read(parameters);
+                var akMarginX = alignKeyMargins.X;
+                var akMarginY = alignKeyMargins.Y;
                 var pixelSize = ReadOutputViewerDouble(parameters, 0.09, "PIXEL_SIZE");
                 var modelTypeCount = CRecipeModelPixelCountReader.ReadModelTypeCount(parameters);
                 var drawing = new DrawingGroup();

@@ -470,6 +470,7 @@ namespace Drilling.UI.Menu.Menus
 
             private static IEnumerable<ST_REVIEW_RESULT_FILE_ROW> MeasuredRows(IReadOnlyList<ST_REVIEW_RESULT_FILE_ROW> rows)
             {
+                // @보호 [옵셋적용] 적용대상 - MEASURED/RETAINED/EDITED만 계산하고 UNMEASURED/ERROR는 보정에서 제외한다.
                 var hasSourceMetadata = rows.Any(row => !string.IsNullOrWhiteSpace(row.ResultSource));
                 return hasSourceMetadata
                     ? rows.Where(row =>

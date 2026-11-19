@@ -767,8 +767,10 @@
                                                 <ColumnDefinition Width="62" />
                                                 <ColumnDefinition Width="30" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="AK MARGIN X" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="9" />
-                                            <Button Grid.Column="1" Content="{Binding CurrentScreen.Recipe.AkMarginXItem.Value}" Tag="{Binding CurrentScreen.Recipe.AkMarginXItem}" Click="OpenManagedItemInput" Style="{StaticResource RecipeInputButton}" Width="62" Height="22" FontSize="10" />
+                                            <TextBlock Grid.Column="0" Text="AK MARGIN X" ToolTip="Setting &gt; Common &gt; ALIGN" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="9" />
+                                            <Border Grid.Column="1" Width="62" Height="22" Background="{DynamicResource PanelAltBackgroundBrush}" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1" ToolTip="Setting &gt; Common &gt; ALIGN에서 변경합니다.">
+                                                <TextBlock Text="{Binding CurrentScreen.Recipe.AkMarginXText}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="10" />
+                                            </Border>
                                             <TextBlock Grid.Column="2" Text="mm" Margin="4,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextMutedBrush}" FontSize="9" />
                                         </Grid>
                                     </Border>
@@ -779,8 +781,10 @@
                                                 <ColumnDefinition Width="62" />
                                                 <ColumnDefinition Width="30" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="AK MARGIN Y" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="9" />
-                                            <Button Grid.Column="1" Content="{Binding CurrentScreen.Recipe.AkMarginYItem.Value}" Tag="{Binding CurrentScreen.Recipe.AkMarginYItem}" Click="OpenManagedItemInput" Style="{StaticResource RecipeInputButton}" Width="62" Height="22" FontSize="10" />
+                                            <TextBlock Grid.Column="0" Text="AK MARGIN Y" ToolTip="Setting &gt; Common &gt; ALIGN" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="9" />
+                                            <Border Grid.Column="1" Width="62" Height="22" Background="{DynamicResource PanelAltBackgroundBrush}" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1" ToolTip="Setting &gt; Common &gt; ALIGN에서 변경합니다.">
+                                                <TextBlock Text="{Binding CurrentScreen.Recipe.AkMarginYText}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="10" />
+                                            </Border>
                                             <TextBlock Grid.Column="2" Text="mm" Margin="4,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextMutedBrush}" FontSize="9" />
                                         </Grid>
                                     </Border>
@@ -916,11 +920,16 @@
                                                         </Grid.RowDefinitions>
                                                         <TextBlock Grid.ColumnSpan="3" Text="{Binding DisplayText}"
                                                                    Foreground="#00723A" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,3" />
-                                                        <TextBlock Grid.Row="1" Text="Stage Y" VerticalAlignment="Center"
+                                                        <TextBlock Grid.Row="1" Text="DESIGN Y (AK1)" VerticalAlignment="Center"
                                                                    Foreground="{DynamicResource TextSecondaryBrush}" FontSize="10" />
-                                                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding StageY}"
-                                                                   ToolTip="{Binding YLabel}" VerticalAlignment="Center" HorizontalAlignment="Right"
-                                                                   Foreground="{DynamicResource TextPrimaryBrush}" FontSize="10" />
+                                                        <Button Grid.Row="1" Grid.Column="1"
+                                                                Content="{Binding YItem.Value}"
+                                                                Tag="{Binding YItem}"
+                                                                Click="OpenManagedItemInput"
+                                                                Style="{StaticResource RecipeInputButton}"
+                                                                ToolTip="{Binding YLabel}"
+                                                                Height="22"
+                                                                FontSize="10" />
                                                         <TextBlock Grid.Row="1" Grid.Column="2" Text="mm" Margin="4,0,0,0"
                                                                    VerticalAlignment="Center" FontSize="10"
                                                                    Foreground="{DynamicResource TextMutedBrush}" />

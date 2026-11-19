@@ -2393,7 +2393,7 @@
             }
             else
             {
-                Preview.Update(frame.Recipe, frame.StageYPositions);
+                Preview.Update(frame.Recipe, frame.StageYPositions, frame.AlignKeyMargins);
                 for (var index = 0; index < Preview.DkSelections.Count; index++)
                     Preview.DkSelections[index].IsSelected = frame.Groups.Contains(index);
                 if (frame.LoadedAt is { } at)

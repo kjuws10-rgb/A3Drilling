@@ -40,8 +40,7 @@ public static class CDefaultOffsetCalibration
         };
     }
 
-    // DOE_EXIST changes only Default Offset inspection. Production and every
-    // other Review mode continue to use the operator-selected beam number.
+    // @보호 [디폴트옵셋] DOE범위 - DOE_EXIST는 Default Offset에만 적용하고 다른 가공/Review는 작업자가 선택한 Beam을 유지한다.
     public static int DefaultInspectionGridSize(IReadOnlyDictionary<string, string> values, int head, ST_DEFAULT_OFFSET_OPTIONS options)
     {
         ValidateOptions(options);
@@ -144,9 +143,7 @@ public static class CDefaultOffsetCalibration
             throw new InvalidOperationException("십자 전체 길이는 0보다 큰 유한한 mm 값이어야 합니다.");
     }
 
-    // Four cross endpoints are stored in design mm and transformed with the Head
-    // at script generation. The scanner traces one center cross; the DOE optically
-    // duplicates that trace at every beam slot. CrossSize is the full stroke length.
+    // @좌표 [디폴트옵셋] 십자가공 - Scanner는 Head 중심 십자 하나를 그리고 DOE가 광학적으로 각 Beam 위치에 복제한다. 단위: mm
     public static IReadOnlyList<(double X, double Y)> CenterScannerTargets(IReadOnlyDictionary<string, string> values, int head, ST_DEFAULT_OFFSET_OPTIONS options)
     {
         ValidateOptions(options);
@@ -205,6 +202,7 @@ public static class CDefaultOffsetCalibration
             throw new InvalidOperationException($"서로 다른 {beamCount}개 DOE 빔이 모두 측정되어야 합니다.");
         if (marks.Any(m => m.Judge != "OK" || new[] { m.X, m.Y, m.RawX, m.RawY, m.CorrectionX, m.CorrectionY, m.EncoderX, m.EncoderY }.Any(v => !double.IsFinite(v))))
             throw new InvalidOperationException("NG 또는 유효하지 않은 빔 측정값이 있습니다. 해당 Head를 다시 측정해 주세요.");
+        // @흐름 [디폴트옵셋] DOE분기 - DOE ON은 4x4 전체 Mark의 중심을, OFF는 First Beam Offset을 제외한 Head 중심 1점을 사용한다.
         if (gridSize == 1)
             return new(marks[0].X, marks[0].Y, 0, 0, 0);
         // The complete symmetric 4x4 grid has orthogonal design columns: the affine

@@ -157,6 +157,7 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
         await _fileLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            // @보호 [옵셋적용] 중복이력 - Source Result의 기존 적용 이력을 확인하고 명시적 허용 없이는 새 Offset을 만들지 않는다.
             cancellationToken.ThrowIfCancellationRequested();
             var normalizedRecipeId = RequireRecipeId(recipeId, "Review Offset 저장");
             var sourceIdentity = NormalizeSourceIdentity(sourceResultFile, requireExistingFile: true);
@@ -234,6 +235,7 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
             throw new InvalidDataException("Review Offset save failed. Recipe ID is empty.");
         }
 
+        // @파일 [리뷰옵셋] 새버전 - 검증된 전체 행을 임시 파일에 쓴 뒤 새 이름으로 이동하며 기존 활성 파일은 수정하지 않는다.
         var normalizedRows = CReviewOffsetData.ValidateRows(rows,
             $"{normalizedRecipeId} (저장할 Review Offset)", token: cancellationToken);
         var savedAt = fixedSavedAt ?? _now();
@@ -274,6 +276,7 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
         await _fileLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            // @파일 [리뷰옵셋] 롤백 - 확인한 최신 파일만 Rollback 폴더로 이동하고 바로 이전 파일을 활성값으로 사용한다.
             cancellationToken.ThrowIfCancellationRequested();
             var normalizedRecipeId = NormalizeRecipeId(recipeId);
             if (string.IsNullOrWhiteSpace(normalizedRecipeId))
@@ -413,6 +416,7 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
     {
         if (!_recipeApplyHistoryCache.TryGetValue(recipeId, out var cache))
         {
+            // @성능 [옵셋적용] 이력색인 - Recipe의 일자별 CSV를 Source 경로별 최신 이력으로 한 번 색인해 반복 APPLY 조회를 줄인다.
             var latestBySource = new Dictionary<string, ST_REVIEW_OFFSET_SOURCE_APPLICATION>(
                 StringComparer.OrdinalIgnoreCase);
             var applyDirectory = Path.Combine(
@@ -477,6 +481,7 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
         }
 
         var fileInfo = new FileInfo(fullPath);
+        // @성능 [옵셋적용] 파일캐시 - 길이와 수정시각이 같으면 CSV 파싱 결과를 재사용한다.
         if (_applyHistoryCache.TryGetValue(fullPath, out var cached)
             && cached.Length == fileInfo.Length
             && cached.LastWriteTimeUtc == fileInfo.LastWriteTimeUtc)
@@ -546,6 +551,7 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
         ST_REVIEW_OFFSET_SOURCE_APPLICATION application,
         CancellationToken cancellationToken)
     {
+        // @파일 [옵셋적용] 이력저장 - Offset 파일 생성이 성공한 같은 작업에서 Source, Offset, 적용시각을 CSV에 추가한다.
         cancellationToken.ThrowIfCancellationRequested();
         if (!System.IO.File.Exists(historyPath))
         {

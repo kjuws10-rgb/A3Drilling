@@ -92,6 +92,7 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <TextBlock Text="Sequence Status" Style="{StaticResource PanelTitle}" />
             <WrapPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="14,0,4,10">
@@ -139,6 +140,13 @@
                                Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center" />
                 </StackPanel>
             </WrapPanel>
+            <Button Grid.Column="2" Content="INIT" Width="72" Height="28" Margin="10,0,4,10"
+                    HorizontalAlignment="Right" VerticalAlignment="Center"
+                    Background="{DynamicResource ButtonSecondaryBrush}"
+                    BorderBrush="{DynamicResource ButtonSecondaryBorderBrush}"
+                    Foreground="{DynamicResource TextPrimaryBrush}"
+                    FontSize="11" FontWeight="Bold"
+                    menu:CButtonCommandBehavior.Command="{Binding DataContext.InitializeAutoSequenceCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
         </Grid>
         <ItemsControl Grid.Row="1" ItemsSource="{Binding Tabs}" Margin="0,4,0,8">
             <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="1" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>

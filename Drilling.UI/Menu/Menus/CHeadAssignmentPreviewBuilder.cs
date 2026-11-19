@@ -84,8 +84,8 @@ internal static class CHeadAssignmentPreviewBuilder
         var frame = CreateGlassFrame(parameters);
         var glassWidth = ReadDoubleAny(parameters, 0.0, "GLASS_SIZE_X");
         var glassHeight = ReadDoubleAny(parameters, 0.0, "GLASS_SIZE_Y");
-        var akMarginX = ReadDoubleAny(parameters, 55.0, "AK_MARGIN_X");
-        var akMarginY = ReadDoubleAny(parameters, 45.0, "AK_MARGIN_Y");
+        var akMarginX = ReadDoubleAny(parameters, double.NaN, "AK_MARGIN_X");
+        var akMarginY = ReadDoubleAny(parameters, double.NaN, "AK_MARGIN_Y");
         if (!double.IsFinite(glassWidth) || !double.IsFinite(glassHeight) || glassWidth <= 0.0 || glassHeight <= 0.0)
         {
             return CreateRecipePreviewError(frame, $"GLASS_SIZE_X/Y must be finite values greater than 0. " + $"Current value: {glassWidth} x {glassHeight}");
@@ -427,7 +427,7 @@ internal static class CHeadAssignmentPreviewBuilder
         const int headCount = 8;
         var frame = CreateGlassFrame(parameters);
         var glassWidth = ReadDoubleAny(parameters, 0.0, "GLASS_SIZE_X");
-        var akMarginX = ReadDoubleAny(parameters, 55.0, "AK_MARGIN_X");
+        var akMarginX = ReadDoubleAny(parameters, double.NaN, "AK_MARGIN_X");
         var activeHeadNos = BuildEnabledHeadNumbers(parameters, headCount);
         var areas = new List<ST_HEAD_ASSIGNMENT_AREA>(activeHeadNos.Count);
         (double Left, double Top, double Width, double Height, double LabelLeft, double LabelWidth) GetHeadRect(int headNo)

@@ -2050,6 +2050,9 @@
             return new(value.LaserOn, value.ShutterOpen, value.GateOpen, value.OutputPower);
         }
 
+        /// <summary>주기 수집기가 마지막으로 게시한 Talon 전체 상태를 장치 통신 없이 반환한다.</summary>
+        public ST_TALON_STATUS GetCachedTalonStatus(int number) => GetTalonStatus(number);
+
         public ST_BET_STATUS GetCachedBetStatus(int number) => GetBETStatusValue(number);
 #endregion
 #region Reload

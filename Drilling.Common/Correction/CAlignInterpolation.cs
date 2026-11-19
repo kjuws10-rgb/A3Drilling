@@ -188,16 +188,20 @@
             return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) && double.IsFinite(value)
                 ? value : throw new InvalidOperationException($"Setting > Motor > ALIGN의 {key}에 유효한 mm 값이 필요합니다.");
         }).ToArray();
-        public static ST_ALIGN_INTERPOLATION_KEY[] Create(IReadOnlyDictionary<string, string> recipe, IReadOnlyList<double> stageY)
+        public static ST_ALIGN_INTERPOLATION_KEY[] Create(
+            IReadOnlyDictionary<string, string> recipe,
+            IReadOnlyList<double> stageY,
+            ST_ALIGN_KEY_MARGINS alignKeyMargins)
         {
+            // @좌표 [얼라인왜곡] Key배치 - AK는 Setting Margin, DK Y는 Motor에 입력한 실측 Stage 위치로 계산한다.
             double Read(string key) => recipe.TryGetValue(key, out var text) && double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var v) && double.IsFinite(v)
                 ? v : throw new InvalidOperationException($"{key}의 유효한 숫자 값이 필요합니다.");
             var width = Read("GLASS_SIZE_X"); var height = Read("GLASS_SIZE_Y");
             if (width <= 0 || height <= 0) throw new InvalidOperationException("Glass Size는 0보다 커야 합니다.");
             if (stageY.Count != 3 || stageY.Any(v => !double.IsFinite(v)))
                 throw new InvalidOperationException("Setting > Motor > ALIGN의 DK0/1/2 Stage Y Position을 확인하세요.");
-            var mx = Math.Clamp(Read("AK_MARGIN_X"), 0, width / 2);
-            var my = Math.Clamp(Read("AK_MARGIN_Y"), 0, height / 2);
+            var mx = Math.Clamp(alignKeyMargins.X, 0, width / 2);
+            var my = Math.Clamp(alignKeyMargins.Y, 0, height / 2);
             return new[] { new ST_ALIGN_INTERPOLATION_KEY("AK1", mx, my), new("AK2", mx, height - my), new("AK3", width - mx, my), new("AK4", width - mx, height - my) }
                 .Concat(Enumerable.Range(0, 3).SelectMany(group => new[]
                 {
@@ -214,6 +218,9 @@
         IReadOnlyList<int> Groups, IReadOnlyDictionary<string, double> LastLoads, DateTimeOffset? LoadedAt)
     {
         public IReadOnlyList<double> StageYPositions { get; init; } = [];
+        public ST_ALIGN_KEY_MARGINS AlignKeyMargins { get; init; } = new(
+            CAlignKeyMarginSettings.DefaultMarginX,
+            CAlignKeyMarginSettings.DefaultMarginY);
     }
 
     /// <summary>One real-communication Distortion transaction, called serially by the Stage worker.</summary>
@@ -225,6 +232,9 @@
         private ST_RECIPE_DEFINITION? _recipe;
         private int[] _groups = [];
         private IReadOnlyList<double> _stageYPositions = [];
+        private ST_ALIGN_KEY_MARGINS _alignKeyMargins = new(
+            CAlignKeyMarginSettings.DefaultMarginX,
+            CAlignKeyMarginSettings.DefaultMarginY);
         private double _tolerance;
         private IReadOnlyDictionary<string, double>? _results;
         private CAlignInterpolation? _model;
@@ -260,16 +270,18 @@
             var recipe = _recipe ?? throw new InvalidOperationException("Distortion 레시피가 준비되지 않았습니다.");
             var p = recipe.Parameters.ToDictionary(item => item.Key, item => item.Value, StringComparer.OrdinalIgnoreCase);
             double? Delta(string name, string axis) => _results is not null && _results.TryGetValue($"ALIGNBASE_{name}_{axis}", out var measured) ? Read(p, $"ALIGNBASE_{name}_{axis}") - measured : null;
-            return CAlignKeyGeometry.Create(p, _stageYPositions).Select(key => key with { CorrectionX = Delta(key.Name, "X"), CorrectionY = Delta(key.Name, "Y") }).ToArray();
+            return CAlignKeyGeometry.Create(p, _stageYPositions, _alignKeyMargins).Select(key => key with { CorrectionX = Delta(key.Name, "X"), CorrectionY = Delta(key.Name, "Y") }).ToArray();
         }
 
         public async Task Prepare(CancellationToken token)
         {
+            // @흐름 [얼라인왜곡] 조건동결 - Recipe, DK 그룹, Stage 위치, AK Margin, Tolerance를 측정 전에 고정한다.
             Volatile.Write(ref _snapshot, null);
             _pending = null; _results = null; _offsets = null; _model = null; _loadedAt = null; _saved = false;
             _input = await capture(token).ConfigureAwait(false);
             _recipe = await recipes.RefreshRecipe(_input.RecipeId, token).ConfigureAwait(false) ?? throw new InvalidOperationException("Distortion 레시피를 찾을 수 없습니다.");
             var option = settings.LoadSection(EN_SETTING_TAB.Option).ToArray();
+            _alignKeyMargins = CAlignKeyMarginSettings.Read(option);
             _stageYPositions = Array.AsReadOnly(CAlignKeyGeometry.ReadStagePositions(settings.LoadSection(EN_SETTING_TAB.Motor)));
             _groups = CRunOptionSettings.Read(option).DistortionGroups.ToArray();
             var op = option.ToDictionary(p => p.Key, p => p.Value, StringComparer.OrdinalIgnoreCase);
@@ -284,10 +296,14 @@
             foreach (var key in ParameterKeys(_groups)) _ = Read(rp, key);
             // Keep the viewer frame small: shot offsets/history are unrelated to key measurement display.
             var displayKeys = ParameterKeys([0, 1, 2]).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            displayKeys.UnionWith(new[] { "GLASS_SIZE_X", "GLASS_SIZE_Y", "AK_MARGIN_X", "AK_MARGIN_Y" });
+            displayKeys.UnionWith(new[] { "GLASS_SIZE_X", "GLASS_SIZE_Y" });
             var frozenRecipe = _recipe with { Parameters = Array.AsReadOnly(_recipe.Parameters.Where(p => displayKeys.Contains(p.Key)).ToArray()), History = [] };
             Volatile.Write(ref _snapshot, new(Guid.NewGuid(), frozenRecipe, GlassId, Array.AsReadOnly(_groups.ToArray()),
-                new System.Collections.ObjectModel.ReadOnlyDictionary<string, double>(new Dictionary<string, double>()), null) { StageYPositions = _stageYPositions });
+                new System.Collections.ObjectModel.ReadOnlyDictionary<string, double>(new Dictionary<string, double>()), null)
+            {
+                StageYPositions = _stageYPositions,
+                AlignKeyMargins = _alignKeyMargins
+            });
             var control = new List<(string Id, double Value)> { ("PROCESS_DISTORTION_COUNT", _groups.Length) };
             for (var index = 0; index < 3; index++) control.Add(($"PROCESS_DISTORTION_INDEX_{index}", _groups.Contains(index) ? 1 : 0));
             for (var index = 0; index < 3; index++) control.Add(($"PROCESS_DISTORTION_INDEX_{index}_POSITION", _stageYPositions[index]));
@@ -320,7 +336,8 @@
             token.ThrowIfCancellationRequested();
             if (_results is null || _recipe is null) throw new InvalidOperationException("Distortion 측정 결과가 없습니다.");
             _model = new(Keys(), Names(_groups).Where(name => name.StartsWith("DK", StringComparison.Ordinal)).ToArray());
-            var offsets = CAlignShotOffsetData.Calculate(_recipe, _model);
+            var offsets = CAlignShotOffsetData.Calculate(_recipe, _model, _alignKeyMargins);
+            // @보호 [얼라인왜곡] 허용범위 - 한 Shot의 X 또는 Y가 Tolerance를 넘으면 전체 자동 적용을 취소한다.
             var exceeded = CAlignOffsetTolerance.Check(_tolerance, offsets).ExceededShots;
             if (exceeded.Count > 0) throw new InvalidOperationException($"Align Offset Tolerance ±{_tolerance:0.000} mm 초과 {exceeded.Count} Shot. 전체 적용 취소. " + string.Join("; ", exceeded.Take(8).Select(shot => $"Cell{shot.CellNo}/{shot.ShotName}: X={shot.X:0.000}, Y={shot.Y:0.000}")));
             _offsets = offsets;
@@ -331,6 +348,7 @@
             if (_saved) return;
             if (_recipe is null || _input is null || _model is null || _offsets is null || _results is null)
                 throw new InvalidOperationException("Distortion 보정 계산이 완료되지 않았습니다.");
+            // @파일 [얼라인왜곡] 저장 - 준비 때 읽은 Recipe가 변경되지 않았을 때만 Offset과 감사 로그를 같은 측정 스냅샷으로 남긴다.
             var saved = await recipes.SaveAlignOffsetsIfUnchanged(_recipe, _offsets, token).ConfigureAwait(false);
             var selected = Names(_groups).ToHashSet(StringComparer.Ordinal);
             var p = _recipe.Parameters.ToDictionary(item => item.Key, item => item.Value, StringComparer.OrdinalIgnoreCase);

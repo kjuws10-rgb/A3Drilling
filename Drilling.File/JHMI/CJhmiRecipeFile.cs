@@ -190,7 +190,7 @@
                 cancellationToken.ThrowIfCancellationRequested();
                 var key = CreateKey(item.Tab, item.Name);
                 var value = valuesByKey.TryGetValue(key, out var editedValue) ? editedValue : item.DefaultValue;
-                // Runtime-owned count must survive an editor/offset draft opened before machining completed.
+                // @보호 [레시피] 공정매수유지 - 편집 화면을 연 뒤 가공이 끝나도 Runtime 소유 매수를 오래된 Draft로 덮어쓰지 않는다.
                 if (item.Tab.Equals(CProtectWindowRecipeData.Tab, StringComparison.OrdinalIgnoreCase) && item.Name.Equals(CProtectWindowRecipeData.CurrentCountKey, StringComparison.OrdinalIgnoreCase))
                     value = recipeExists ? GetValue(oldValues, item.Tab, item.Name, item.DefaultValue) : item.DefaultValue;
                 if (recipeExists)
@@ -224,6 +224,7 @@
             }
 
             cancellationToken.ThrowIfCancellationRequested();
+            // @파일 [레시피] 저장검증 - CSV 저장 직후 기대 Key/Value를 다시 읽어 일치해야 History를 기록한다.
             CCsvParser.WriteLines(recipePath, lines);
             ValidateSavedRecipeFile(recipePath, expectedValues, cancellationToken);
             if (!writeHistory)
@@ -1305,7 +1306,7 @@
             var destination = GetRecipePath(recipe.Id);
             if (System.IO.File.Exists(destination))
                 throw new IOException("이미 존재하는 레시피입니다: " + recipe.Id);
-            // A declined copy must not silently activate an orphaned offset folder from a deleted recipe.
+            // @보호 [레시피] 복사대상 - 삭제된 Recipe의 고아 Offset 폴더가 새 Recipe에 자동 연결되지 않게 차단한다.
             var existingFolders = ListCompanions(recipe.Id, recipe.Id, token);
             if (existingFolders.Count != 0)
                 throw new IOException("새 레시피 이름의 부가 폴더가 이미 존재합니다: " + existingFolders[0].SourceName);
@@ -1320,10 +1321,12 @@
             Directory.CreateDirectory(staging);
             try
             {
+                // @파일 [레시피] 복사준비 - Recipe와 선택 부가 폴더를 staging에 완성한 뒤 실제 경로로 Commit한다.
                 var stagedRecipe = Path.Combine(staging, recipe.Id + ".csv");
                 SaveCore(recipe, token, stagedRecipe, writeHistory: false);
                 foreach (var folder in folders)
                 {
+                    // @보호 [레시피] 이력제외 - Review Offset 값은 복사하되 원 Recipe의 _apply 중복 적용 이력은 복사하지 않는다.
                     var excludeApplyHistory = folder.SourceName.EndsWith(
                         "_reviewoffset",
                         StringComparison.OrdinalIgnoreCase);
@@ -1344,7 +1347,7 @@
                     committed.Add(target);
                 }
 
-                // Publish the recipe only after every selected folder is ready; never overwrite a destination.
+                // @파일 [레시피] 복사Commit - 선택 폴더가 모두 준비된 뒤 Recipe를 게시하고 기존 목적지는 덮어쓰지 않는다.
                 System.IO.File.Move(stagedRecipe, destination, overwrite: false);
             }
             catch
@@ -1447,7 +1450,7 @@
             var temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
             try
             {
-                // Commit only the counter row; retain every other value and avoid a full recipe/history reload.
+                // @파일 [보호윈도우] 매수저장 - Count 행만 임시 파일에 동기 기록한 뒤 교체해 다른 Recipe 값을 유지한다.
                 using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None, 4096, FileOptions.WriteThrough))
                 {
                     using (var writer = new StreamWriter(stream, new UTF8Encoding(true), leaveOpen: true))

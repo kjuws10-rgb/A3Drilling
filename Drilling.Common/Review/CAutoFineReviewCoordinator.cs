@@ -202,19 +202,18 @@
 #region AUTO FINE - 계획 생성
         public static ST_AUTO_FINE_PLAN BuildPlan(ST_AUTO_REVIEW_INPUT input, IReadOnlyList<ST_SYSTEM_PARAMETER> settings)
         {
-            // A zero-line diagnostic is exactly one IOF acquisition, independent of
-            // the operator's normal multi-line/PtoP/retry choices for later Review runs.
+            // @흐름 [리뷰검사] 0선후속 - 후속 검사는 작업자 선택과 무관하게 IOF 1 Line으로 고정하며 보정에는 사용하지 않는다.
             if (input.ZeroLineFollowUp)
                 input = input with { Options = new(1, EN_FINE_INSPECTION_METHOD.Flying, 1, false) };
             if (input.Options.LineCount is not (1 or 3 or 5 or 7) || input.Options.Method is not (EN_FINE_INSPECTION_METHOD.Flying or EN_FINE_INSPECTION_METHOD.PtoP) || input.Options.CountMismatchRetries is < 1 or > 3)
                 throw new InvalidOperationException("AUTO Review 검사 방식 또는 라인 수가 올바르지 않습니다.");
             var parameters = input.Recipe.Parameters.Where(item => item.Key.Length > 0).GroupBy(item => item.Key, StringComparer.OrdinalIgnoreCase).ToDictionary(group => group.Key, group => group.Last().Value, StringComparer.OrdinalIgnoreCase);
+            // @흐름 [리뷰검사] AUTO조건동결 - Recipe와 현재 Setting을 합쳐 Run 동안 변경되지 않는 좌표 맵을 만든다.
             foreach (var setting in settings.Where(item => item.Key.Length > 0))
-                // FollowUp inspects the same frozen Glass/Recipe/Head geometry that
-                // produced the zero-line result. Later settings only fill missing keys.
+                // @보호 [리뷰검사] 0선동일성 - FollowUp은 원 가공 좌표를 유지하고 이후 Setting은 누락된 항목만 채운다.
                 if (!input.ZeroLineFollowUp || !parameters.ContainsKey(setting.Key))
                     parameters[setting.Key] = setting.Value;
-            // Manual MOF Shift Offset must never affect AUTO inspection.
+            // @보호 [리뷰검사] Shift차단 - Manual MOF Shift Offset은 AUTO 검사에 적용하지 않는다.
             parameters["SHIFT_OFFSET_X"] = "0.000000";
             parameters["SHIFT_OFFSET_Y"] = "0.000000";
             var frozen = new ReadOnlyDictionary<string, string>(parameters);
@@ -222,7 +221,10 @@
             {
                 Parameters = parameters.Select(pair => new ST_RECIPE_PARAMETER(pair.Key, pair.Value, "", "", pair.Value, Key: pair.Key)).ToArray()
             };
-            var calculate = CReviewManager.CreateShotBeamPositionCalculator(effectiveRecipe, CScannerAxisTransform.ReadStageDirection(frozen));
+            var calculate = CReviewManager.CreateShotBeamPositionCalculator(
+                effectiveRecipe,
+                CAlignKeyMarginSettings.Read(frozen),
+                CScannerAxisTransform.ReadStageDirection(frozen));
             var masking = CRecipeShotMaskingPlan.Build(frozen);
             var shots = CShotCoordinatePlanBuilder.Build(frozen).Shots;
             var all = shots.Select(shot => new ST_REVIEW_PLAN_POINT(

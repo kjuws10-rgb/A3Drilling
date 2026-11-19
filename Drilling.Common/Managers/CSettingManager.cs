@@ -39,6 +39,7 @@ namespace Drilling.Common.Managers
 
         public IReadOnlyList<ST_SYSTEM_PARAMETER> ReloadSection(EN_SETTING_TAB section, CancellationToken cancellationToken = default)
         {
+            // @스레드 [Setting] 재로딩 - Save와 같은 Lock에서 파일을 읽어 저장 중간 상태가 Cache에 보이지 않게 한다.
             lock (_saveLock)
             {
                 var loadedParameters = settingFile.Load(section, cancellationToken).ToArray();
@@ -112,6 +113,9 @@ namespace Drilling.Common.Managers
 
         public double GetVisionCameraResolution() => ParseVisionCameraResolution(GetValue(EN_SETTING_TAB.Option, VisionCameraResolutionKey, DefaultVisionCameraResolution.ToString("R", CultureInfo.InvariantCulture)));
 
+        public ST_ALIGN_KEY_MARGINS GetAlignKeyMargins(CancellationToken cancellationToken = default) =>
+            CAlignKeyMarginSettings.Read(LoadSection(EN_SETTING_TAB.Option, cancellationToken));
+
         private static double ParseVisionCameraResolution(string text)
         {
             if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) || !double.IsFinite(value) || value <= 0)
@@ -123,6 +127,7 @@ namespace Drilling.Common.Managers
         {
             lock (_saveLock)
             {
+                // @보호 [Setting] 저장검증 - Option의 해상도, Tolerance, AK Margin, Review Level, Run Option을 파일 Write 전에 검증한다.
                 if (section == EN_SETTING_TAB.Option)
                 {
                     var resolution = parameters.FirstOrDefault(p => p.Key.Equals(VisionCameraResolutionKey, StringComparison.OrdinalIgnoreCase));
@@ -134,6 +139,7 @@ namespace Drilling.Common.Managers
                     var tolerance = parameters.FirstOrDefault(p => p.Key.Equals(WapageAlignBaseToleranceKey, StringComparison.OrdinalIgnoreCase));
                     if (tolerance is not null && (!double.TryParse(tolerance.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var toleranceValue) || !double.IsFinite(toleranceValue) || toleranceValue < 0))
                         throw new InvalidDataException("Setting-Align Wapage_AlignBase_Tolerance는 0 이상의 유한한 mm 값이어야 합니다.");
+                    _ = CAlignKeyMarginSettings.Read(parameters);
                     _ = CReviewResultLevelSettings.Read(parameters);
                     var edited = CRunOptionSettings.Read(parameters);
                     var current = CRunOptionSettings.Read(LoadSection(section, cancellationToken));
@@ -143,6 +149,7 @@ namespace Drilling.Common.Managers
                 }
 
                 settingFile.Save(section, parameters, cancellationToken);
+                // @파일 [Setting] Cache게시 - 파일 저장이 성공한 뒤에만 Section Cache를 새 값으로 교체한다.
                 lock (_cacheLock)
                     _sectionCache[section] = parameters.ToArray();
             }

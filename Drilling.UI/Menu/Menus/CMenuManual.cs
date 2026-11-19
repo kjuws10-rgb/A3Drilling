@@ -134,6 +134,14 @@
         private CManualMofStagePanel? _mofStage;
         private CManualStageMoveOperation? _manualStageMoveOperation;
         public bool IsManualStageMovePending => _manualStageMoveOperation?.CanStop == true;
+        public bool HasActiveOperation => IsManualStageMovePending
+            || _mofRun?.IsBusy == true
+            || _powerMeasurePanel?.IsRunning == true
+            || _isVisionProtocolBusy
+            || _stoppingMotionJog
+            || IsManualMotionScriptActive
+            || _motionSession?.IsActive == true
+            || IsManualShapeScanActive;
         private CManualMofRunPanel? _mofRun;
         private readonly Func<(double X, double Y)> _manualMofShiftOffsetProvider;
         private CManualMotionPanel? _motionPanel;

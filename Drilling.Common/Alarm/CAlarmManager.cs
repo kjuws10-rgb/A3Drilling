@@ -245,12 +245,13 @@
         private bool SetAlarm(ST_ALARM_DEFINITION definition) => AddCurrent(new(definition.Code, definition.Level == "LIGHT" ? EN_ALARM_LEVEL.Warning : EN_ALARM_LEVEL.Critical, definition.Cause, definition.Solution, _now(), definition.Group) { Id = definition.Id, Group = definition.Group, CimAddress = definition.CimAddress });
         private bool AddCurrent(ST_ALARM_DATA alarm)
         {
+            // @알람 [알람] 중복억제 - 같은 Code의 활성 알람은 한 번만 등록해 팝업과 이력의 중복 발생을 막는다.
             lock (_currentLock)
             {
                 if (!_curAlarm.TryAdd(alarm.Code, alarm))
                     return false;
                 PublishCurrent(_current.OccurrenceVersion + 1, _current.LogError);
-                // Only enqueue memory here, in occurrence order. The dedicated worker owns all Append I/O.
+                // @파일 [알람] 이력비동기 - 발생 순서만 메모리 Queue에 넣고 실제 Append I/O는 전용 Worker가 직렬 처리한다.
                 if (!QueueHistory(alarm))
                 {
                     var error = $"알람 {alarm.Code} 로그 저장 대기열 포화: {HistoryQueueCapacity}건. 해당 이력은 저장되지 않았습니다.";
@@ -322,6 +323,7 @@
         // Called under _currentLock, after publishing the occurrence. No external I/O or waiting here.
         private bool QueueHistory(ST_ALARM_DATA alarm)
         {
+            // @성능 [알람] 상태분리 - 알람 상태 Lock 안에서는 외부 파일 I/O나 대기를 수행하지 않는다.
             if (_history is null)
                 return true;
             lock (_historyQueueLock)

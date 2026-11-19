@@ -599,6 +599,18 @@
             return recipes.FirstOrDefault(recipe => recipe.Id.Equals("DRILL_A01", StringComparison.OrdinalIgnoreCase)) ?? recipes[0];
         }
 
+        private IReadOnlyList<ST_SYSTEM_PARAMETER> LoadCoordinatePreviewSettings()
+        {
+            if (_cameraSettings is null)
+            {
+                return [];
+            }
+
+            return _cameraSettings.LoadSection(EN_SETTING_TAB.Option)
+                .Concat(_cameraSettings.LoadSection(EN_SETTING_TAB.Motor))
+                .ToArray();
+        }
+
         private void ApplyRecipeContext(ST_RECIPE_DEFINITION recipe, ST_REVIEW_PLAN allPlan)
         {
             _headCount = MaxHeadCount;
@@ -1287,7 +1299,7 @@
                 headScopes: ShouldDrawSampleScope() ? _reviewManager.GetHeadScopes(_lastRecipe) : null, 
                 currentHolePoint: IsSimpleSampleRuleUi ? GetSimpleReferencePoint() : null, 
                 expandSmallCellBounds: false
-            , settings: _cameraSettings?.LoadSection(EN_SETTING_TAB.Motor));
+            , settings: LoadCoordinatePreviewSettings());
             SampleGlassPreviewImage = preview.Image;
             SampleGlassPreviewInspectionOverlayImage = preview.InspectionOverlayImage;
             SampleCellPreviewLabels = preview.CellLabels;
@@ -2523,6 +2535,7 @@
                 : IsOneLineReviewMode
                     ? $"선택 Glass Line {_selectedLineShotKeys.Count:N0} Shots / {_selectedInspectionMethod} / Beam{_selectedRunBeamNo}"
                     : $"{_selectedInspectionMethod} / Beam{_selectedRunBeamNo}";
+            // @흐름 [리뷰검사] Shift선택 - 최근 성공 Manual MOF의 Shift를 적용/미적용/취소로 확정한 뒤 Plan을 만든다.
             var shiftOffset = (X: 0.0, Y: 0.0);
             if (confirm is not null)
             {
@@ -2753,6 +2766,7 @@
 
             var calculateBeamPosition = CReviewManager.CreateShotBeamPositionCalculator(
                 recipe,
+                _reviewManager.AlignKeyMargins,
                 allPlan.StageScanDirectionY,
                 result.ShiftOffsetX,
                 result.ShiftOffsetY);
@@ -3440,7 +3454,7 @@
                 inspectionRule: IsOneLineReviewMode ? EN_REVIEW_CORRECTION_RULE.Fine : null,
                 expandSmallCellBounds: false,
                 filledCellNos: IsShotSelectionMode ? GetSelectedInspectionCellNos() : null,
-                settings: _cameraSettings?.LoadSection(EN_SETTING_TAB.Motor));
+                settings: LoadCoordinatePreviewSettings());
             RunGlassPreviewImage = preview.Image;
             SetCameraPreviewGeometry(preview);
             RunGlassPreviewInspectionOverlayImage = preview.InspectionOverlayImage;
@@ -3474,7 +3488,7 @@
 
             try
             {
-                var positions = CReviewManager.GetShotBeamPositions(_lastRecipe, point, _lastAllPlan.StageScanDirectionY);
+                var positions = CReviewManager.GetShotBeamPositions(_lastRecipe, point, _reviewManager.AlignKeyMargins, _lastAllPlan.StageScanDirectionY);
                 var dialog = new CReviewBeamPositionsDialog(point, positions)
                 {
                     Owner = Application.Current?.Windows.OfType<Window>().FirstOrDefault(window => window.IsActive) ?? Application.Current?.MainWindow
@@ -3811,7 +3825,7 @@
 
             return point is null
                 ? new Dictionary<int, ST_REVIEW_BEAM_POSITION>()
-                : CReviewManager.GetShotBeamPositions(_lastRecipe, point, _lastAllPlan.StageScanDirectionY)
+                : CReviewManager.GetShotBeamPositions(_lastRecipe, point, _reviewManager.AlignKeyMargins, _lastAllPlan.StageScanDirectionY)
                     .ToDictionary(item => item.BeamNo);
         }
         private async Task ExecuteOneShotAction(string action, Func<string, string, bool>? confirm = null, Action<string, string>? warn = null)
@@ -4109,7 +4123,7 @@
                 currentCellNos: cells,
                 inspectionPoints: GetSelectedLinePoints(_lastAllPlan),
                 inspectionRule: IsOneLineReviewMode ? EN_REVIEW_CORRECTION_RULE.Fine : null
-            , settings: _cameraSettings?.LoadSection(EN_SETTING_TAB.Motor));
+            , settings: LoadCoordinatePreviewSettings());
             // Cell geometry and the base image are static for the run. Only change
             // the highlight overlay/labels when its Cell set actually changes.
             if (RunGlassPreviewImage is null)
@@ -4214,6 +4228,7 @@
                 return;
             }
 
+            // @상태 [리뷰검사] 실행소유 - 시작부터 결과 저장까지 RUN/RESULT 전환과 다른 Review 실행이 장치 상태를 바꾸지 못하게 한다.
             _isStartRequestPending = true;
             _reviewCancellation = new CancellationTokenSource();
             _runtimeBrowseShotKey = "";
@@ -4301,6 +4316,7 @@
                     _statusReporter(resumeCheckpoint ? $"Review resumes: {checkpoint.Results.Count}/{checkpoint.TotalCount}." : "Review restarts from the beginning.");
                 }
 
+                // @성능 [리뷰검사] 화면갱신 - 대량 Shot 검사는 UI 갱신을 모아 적용해 측정 Loop가 렌더링에 막히지 않게 한다.
                 BeginDeferredResults();
                 var status = await Task.Run(() => _reviewManager.Start(reviewPlan, productLink.ProductId, checkpoint, resumeCheckpoint, QueueRuntimeDisplayRefresh, token));
                 FlushRuntimeDisplay();
@@ -4609,7 +4625,7 @@
                 filledCellNos: IsShotSelectionMode ? GetSelectedInspectionCellNos() : null,
                 inspectionPoints: selectedLinePoints,
                 inspectionRule: IsOneLineReviewMode ? EN_REVIEW_CORRECTION_RULE.Fine : null
-            , settings: _cameraSettings?.LoadSection(EN_SETTING_TAB.Motor)) : emptyPreview;
+            , settings: LoadCoordinatePreviewSettings()) : emptyPreview;
             _selectedSampleCellNo = Math.Clamp(_selectedSampleCellNo, 1, Math.Max(1, allPlan.CellCount));
             SetSampleMapColumnCount(CalculateShotMapColumnCount(allPlan, _selectedSampleCellNo));
             var simpleReferencePoint = IsSimpleSampleRuleUi ? GetSimpleReferencePoint() : null;
@@ -4630,7 +4646,7 @@
                 headScopes: ShouldDrawSampleScope() ? _reviewManager.GetHeadScopes(recipe) : null, 
                 currentHolePoint: IsSimpleSampleRuleUi ? GetSimpleReferencePoint() : null, 
                 expandSmallCellBounds: false
-            , settings: _cameraSettings?.LoadSection(EN_SETTING_TAB.Motor)) : emptyPreview;
+            , settings: LoadCoordinatePreviewSettings()) : emptyPreview;
             _activePlanPointCount = activePointCount;
             Tabs = [new("RUN", IsRunTab, SelectTabCommand)];
             Modes = [Mode("ALL SHOT", ""), Mode("ONE SHOT", ""), Mode("ONE LINE", ""), Mode("BEAM INSPECTION", ""), Mode("ROUGH", ""), Mode("FINE", "")];
@@ -5025,6 +5041,7 @@
                 var position = CReviewManager.GetShotBeamPositions(
                     _lastRecipe,
                     point,
+                    _reviewManager.AlignKeyMargins,
                     _lastAllPlan.StageScanDirectionY,
                     shiftOffsetX ?? _lastAllPlan.ShiftOffsetX,
                     shiftOffsetY ?? _lastAllPlan.ShiftOffsetY).First(item => item.BeamNo == beamNo);
@@ -6023,24 +6040,25 @@
         public void Configure(IReadOnlyDictionary<string, string> parameters, Rect glassBounds)
         {
             Projection? next = null;
-            if (!glassBounds.IsEmpty && glassBounds.Width > 0 && glassBounds.Height > 0 && Read(parameters, "GLASS_SIZE_X", double.NaN, out var width) && width > 0 && Read(parameters, "GLASS_SIZE_Y", double.NaN, out var height) && height > 0 && Read(parameters, "REVIEW_CAMERA_ALIGN_KEY_POS_X", 0, out var akX) && Read(parameters, "REVIEW_CAMERA_ALIGN_KEY_POS_Y", 0, out var akY) && Read(parameters, "AK_MARGIN_X", 55, out var marginX, "ALIGN_MARGIN_X") && Read(parameters, "AK_MARGIN_Y", 45, out var marginY, "ALIGN_MARGIN_Y"))
+            if (!glassBounds.IsEmpty && glassBounds.Width > 0 && glassBounds.Height > 0 && Read(parameters, "GLASS_SIZE_X", double.NaN, out var width) && width > 0 && Read(parameters, "GLASS_SIZE_Y", double.NaN, out var height) && height > 0 && Read(parameters, "REVIEW_CAMERA_ALIGN_KEY_POS_X", 0, out var akX) && Read(parameters, "REVIEW_CAMERA_ALIGN_KEY_POS_Y", 0, out var akY))
             {
                 try
                 {
+                    var margins = CAlignKeyMarginSettings.Read(parameters);
                     next = new(
                         glassBounds, 
                         width, 
                         height, 
                         akX, 
                         akY, 
-                        marginX, 
-                        marginY, 
+                        margins.X, 
+                        margins.Y, 
                         CScannerAxisTransform.ReadStageDirection(parameters), 
                         IsOn(parameters.GetValueOrDefault(UseSettingKey)), 
                         IsOn(parameters.GetValueOrDefault(XFlipSettingKey)) ? -1 : 1
                     );
                 }
-                catch (InvalidOperationException)
+                catch (Exception exception) when (exception is InvalidOperationException or InvalidDataException)
                 { /* An invalid direction must not create a fabricated camera position. */
                 }
             }
@@ -6125,9 +6143,9 @@
             PropertyChanged?.Invoke(this, new(null));
         }
 
-        private static bool Read(IReadOnlyDictionary<string, string> parameters, string key, double fallback, out double value, string? alias = null)
+        private static bool Read(IReadOnlyDictionary<string, string> parameters, string key, double fallback, out double value)
         {
-            if (!parameters.TryGetValue(key, out var text) && (alias is null || !parameters.TryGetValue(alias, out text)))
+            if (!parameters.TryGetValue(key, out var text))
             {
                 value = fallback;
                 return double.IsFinite(value);

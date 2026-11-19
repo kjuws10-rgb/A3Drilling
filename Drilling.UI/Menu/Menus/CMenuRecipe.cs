@@ -24,10 +24,11 @@
             "GLASS_SIZE_X", 
             "GLASS_SIZE_Y", 
             "MAX_CELL_NUMBER", 
-            "AK_MARGIN_X", 
-            "AK_MARGIN_Y", 
             "ESC_EDGE_TO_GLASS_EDGE", 
-            "GLASS_CENTER_TO_SCANNER_CENTER"
+            "GLASS_CENTER_TO_SCANNER_CENTER",
+            "DISTORTION_PAIR0_Y",
+            "DISTORTION_PAIR1_Y",
+            "DISTORTION_PAIR2_Y"
         ];
         private const int RecipeFilesPageSize = 10;
         private const int MaximumMaskingHoleCount = 3;
@@ -51,6 +52,9 @@
         private IReadOnlyList<ST_RECIPE_FILE> _recipeFiles = [];
         private IReadOnlyList<ST_RECIPE_PARAMETER_EDITOR_ITEM> _previewTrackedItems = [];
         private IReadOnlyList<ST_SYSTEM_PARAMETER> _headPreviewSettings = [];
+        private ST_ALIGN_KEY_MARGINS _alignKeyMargins = new(
+            CAlignKeyMarginSettings.DefaultMarginX,
+            CAlignKeyMarginSettings.DefaultMarginY);
         private CancellationTokenSource? _previewRefreshCancellation;
         private string _lastRecipeListSelectedFile = "";
         private readonly Dictionary<string, string> _lastValidChessValues = new(StringComparer.OrdinalIgnoreCase);
@@ -327,8 +331,8 @@
         public ST_RECIPE_PARAMETER_EDITOR_ITEM? ChessItem { get; private set; }
         public ST_RECIPE_PARAMETER_EDITOR_ITEM? SplitBeamCountItem { get; private set; }
         public ST_RECIPE_PARAMETER_EDITOR_ITEM? CellModelTypeCountItem { get; private set; }
-        public ST_RECIPE_PARAMETER_EDITOR_ITEM? AkMarginXItem { get; private set; }
-        public ST_RECIPE_PARAMETER_EDITOR_ITEM? AkMarginYItem { get; private set; }
+        public string AkMarginXText => _alignKeyMargins.X.ToString("0.###", CultureInfo.InvariantCulture);
+        public string AkMarginYText => _alignKeyMargins.Y.ToString("0.###", CultureInfo.InvariantCulture);
         public ST_RECIPE_PARAMETER_EDITOR_ITEM? EscEdgeToGlassEdgeItem { get; private set; }
         public ST_RECIPE_PARAMETER_EDITOR_ITEM? GlassCenterToScannerCenterItem { get; private set; }
         public IReadOnlyList<ST_RECIPE_DISTORTION_KEY_ITEM> DistortionKeyItems { get; private set; } = [];
@@ -565,7 +569,9 @@
         {
             var recipes = await _recipeManager.LoadRecipes(cancellationToken);
             var history = await _recipeManager.LoadHistory(cancellationToken);
-            var optionSettings = _settingManager.LoadSection(EN_SETTING_TAB.Option, cancellationToken).Concat(_settingManager.LoadSection(EN_SETTING_TAB.Motor, cancellationToken)).ToArray();
+            var commonSettings = _settingManager.LoadSection(EN_SETTING_TAB.Option, cancellationToken);
+            var optionSettings = commonSettings.Concat(_settingManager.LoadSection(EN_SETTING_TAB.Motor, cancellationToken)).ToArray();
+            _alignKeyMargins = CAlignKeyMarginSettings.Read(commonSettings);
             var selectRecipe = GetSelectedRecipe(recipes, _selectRecipeIdProvider());
             var selectRecipeId = selectRecipe?.Id ?? NormalizeRecipeIdInput(_selectRecipeIdProvider());
             var viewRecipeId = NormalizeRecipeIdInput(_viewRecipeIdProvider());
@@ -593,7 +599,7 @@
             var isCellCategory = selectedCategory.Equals("CELL", StringComparison.OrdinalIgnoreCase);
             var isHeadCategory = selectedCategory.Equals("HEAD", StringComparison.OrdinalIgnoreCase);
             var cellCount = GetCellCount(allManagedItems);
-            var cells = BuildCells(allManagedItems, cellCount);
+            var cells = BuildCells(allManagedItems, cellCount, _alignKeyMargins);
             _recipeCells = cells;
             _selectedCellNo = Math.Clamp(_selectedCellNo, 1, cellCount);
             OnPropertyChanged(nameof(SelectedCellNavigationText));
@@ -648,7 +654,7 @@
                 isCellCategory, 
                 isCellCategory ? BuildLayoutPreview(allManagedItems, cells, _selectedCellNo, optionSettings) : null, 
                 isHeadCategory, 
-                isHeadCategory ? BuildHeadPreview(allManagedItems, optionSettings, selectedGroup) : null, 
+                isHeadCategory ? BuildHeadPreview(allManagedItems, optionSettings, selectedGroup, _alignKeyMargins) : null, 
                 optionSettings, 
                 selectedGroup, 
                 allManagedItems, 
@@ -949,8 +955,8 @@
                 modelTypeCount, 
                 ReadManagedDouble(AllManagedItems, "GLASS_SIZE_X", 500.0), 
                 ReadManagedDouble(AllManagedItems, "GLASS_SIZE_Y", 300.0), 
-                ReadManagedDouble(AllManagedItems, "AK_MARGIN_X", 55.0), 
-                ReadManagedDouble(AllManagedItems, "AK_MARGIN_Y", 45.0)
+                _alignKeyMargins.X, 
+                _alignKeyMargins.Y
             );
         }
 
@@ -1347,11 +1353,9 @@
             SplitBeamCountItem = FindManagedItem(allManagedItems, "SPLITED_BEAM_COUNT");
             CellModelTypeCountItem = FindManagedItem(allManagedItems, "CELL_MODEL_TYPE_COUNT");
             ShotGroupPatternSummary = BuildShotGroupPatternSummary(allManagedItems);
-            AkMarginXItem = FindManagedItem(allManagedItems, "AK_MARGIN_X");
-            AkMarginYItem = FindManagedItem(allManagedItems, "AK_MARGIN_Y");
             EscEdgeToGlassEdgeItem = FindManagedItem(allManagedItems, "ESC_EDGE_TO_GLASS_EDGE");
             GlassCenterToScannerCenterItem = FindManagedItem(allManagedItems, "GLASS_CENTER_TO_SCANNER_CENTER");
-            DistortionKeyItems = BuildDistortionKeyItems(allManagedItems, headPreviewSettings);
+            DistortionKeyItems = BuildDistortionKeyItems(allManagedItems);
             IsCellCategory = isCellCategory;
             IsHeadCategory = isHeadCategory;
             CellPreviewImage = layoutPreview?.CellImage;
@@ -1373,6 +1377,8 @@
             OnPropertyChanged(nameof(RecipeSelectionSummaryText));
             OnPropertyChanged(nameof(CellModelTypeCountItem));
             OnPropertyChanged(nameof(ShotGroupPatternSummary));
+            OnPropertyChanged(nameof(AkMarginXText));
+            OnPropertyChanged(nameof(AkMarginYText));
             OnPropertyChanged(nameof(IsZeroDefenceCategory));
             NotifyCommands();
         }
@@ -1436,7 +1442,7 @@
 
         private void RefreshCellPreviewFromManagedItems()
         {
-            var cells = BuildCells(AllManagedItems, GetCellCount(AllManagedItems));
+            var cells = BuildCells(AllManagedItems, GetCellCount(AllManagedItems), _alignKeyMargins);
             _recipeCells = cells;
             CellOverviewRows = BuildCellOverviewRows(cells, AllManagedItems);
             var preview = BuildLayoutPreview(AllManagedItems, cells, _selectedCellNo);
@@ -1576,7 +1582,7 @@
             try
             {
                 await Task.Delay(400, cancellation.Token);
-                var cells = BuildCells(AllManagedItems, GetCellCount(AllManagedItems));
+                var cells = BuildCells(AllManagedItems, GetCellCount(AllManagedItems), _alignKeyMargins);
                 _recipeCells = cells;
                 CellOverviewRows = BuildCellOverviewRows(cells, AllManagedItems);
                 var preview = BuildLayoutPreview(AllManagedItems, cells, _selectedCellNo);
@@ -1606,7 +1612,7 @@
             try
             {
                 await Task.Delay(400, cancellation.Token);
-                var preview = BuildHeadPreview(AllManagedItems, _headPreviewSettings, SelectedGroup);
+                var preview = BuildHeadPreview(AllManagedItems, _headPreviewSettings, SelectedGroup, _alignKeyMargins);
                 HeadPreviewImage = preview.Image;
                 HeadPreviewLabels = preview.Labels;
                 HeadPreviewSummaryText = preview.SummaryText;
@@ -1842,10 +1848,13 @@
             return maximum.HasValue ? Math.Clamp(count, minimum, maximum.Value) : Math.Max(minimum, count);
         }
 
-        private static IReadOnlyList<ST_RECIPE_CELL_VIEW_MODEL> BuildCells(IReadOnlyList<ST_RECIPE_PARAMETER_EDITOR_ITEM> managedItems, int cellCount)
+        private static IReadOnlyList<ST_RECIPE_CELL_VIEW_MODEL> BuildCells(
+            IReadOnlyList<ST_RECIPE_PARAMETER_EDITOR_ITEM> managedItems,
+            int cellCount,
+            ST_ALIGN_KEY_MARGINS alignKeyMargins)
         {
-            var akMarginX = ReadManagedDouble(managedItems, "AK_MARGIN_X", 55.0);
-            var akMarginY = ReadManagedDouble(managedItems, "AK_MARGIN_Y", 45.0);
+            var akMarginX = alignKeyMargins.X;
+            var akMarginY = alignKeyMargins.Y;
             var pixelSize = ReadManagedDouble(managedItems, "PIXEL_SIZE", 0.09);
             var splitBeamCount = ReadManagedInt(managedItems, "SPLITED_BEAM_COUNT", 1);
             var cellModelTypeCount = GetCellModelTypeCount(managedItems);
@@ -1964,15 +1973,11 @@
             return managedItems.FirstOrDefault(MatchesItem);
         }
 
-        private static IReadOnlyList<ST_RECIPE_DISTORTION_KEY_ITEM> BuildDistortionKeyItems(IReadOnlyList<ST_RECIPE_PARAMETER_EDITOR_ITEM> managedItems, IReadOnlyList<ST_SYSTEM_PARAMETER> settings)
+        private static IReadOnlyList<ST_RECIPE_DISTORTION_KEY_ITEM> BuildDistortionKeyItems(IReadOnlyList<ST_RECIPE_PARAMETER_EDITOR_ITEM> managedItems)
         {
-            var height = ReadManagedDouble(managedItems, "GLASS_SIZE_Y", 0);
-            var margin = ReadManagedDouble(managedItems, "AK_MARGIN_Y", 0);
             return Enumerable.Range(0, 3).Select(index =>
             {
-                var text = settings.FirstOrDefault(p => p.Key.Equals(CAlignKeyGeometry.StagePositionKey(index), StringComparison.OrdinalIgnoreCase))?.Value;
-                var stage = double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) && double.IsFinite(value) ? value.ToString("0.000", CultureInfo.InvariantCulture) : "-";
-                return new ST_RECIPE_DISTORTION_KEY_ITEM(index, stage);
+                return new ST_RECIPE_DISTORTION_KEY_ITEM(index, FindManagedItem(managedItems, $"DISTORTION_PAIR{index}_Y"));
             }).ToArray();
         }
 
@@ -2130,8 +2135,8 @@
             const double maxHeight = 340.0;
             var glassWidth = ReadManagedDouble(managedItems, "GLASS_SIZE_X", 500.0);
             var glassHeight = ReadManagedDouble(managedItems, "GLASS_SIZE_Y", 300.0);
-            var akMarginX = ReadManagedDouble(managedItems, "AK_MARGIN_X", 55.0);
-            var akMarginY = ReadManagedDouble(managedItems, "AK_MARGIN_Y", 45.0);
+            var akMarginX = _alignKeyMargins.X;
+            var akMarginY = _alignKeyMargins.Y;
             var pixelSize = ReadManagedDouble(managedItems, "PIXEL_SIZE", 0.09);
             double? SelectValue(string key)
             {
@@ -2383,7 +2388,11 @@
             return summary;
         }
 
-        private static ST_RECIPE_HEAD_PREVIEW BuildHeadPreview(IReadOnlyList<ST_RECIPE_PARAMETER_EDITOR_ITEM> managedItems, IReadOnlyList<ST_SYSTEM_PARAMETER> settings, string selectedGroup)
+        private static ST_RECIPE_HEAD_PREVIEW BuildHeadPreview(
+            IReadOnlyList<ST_RECIPE_PARAMETER_EDITOR_ITEM> managedItems,
+            IReadOnlyList<ST_SYSTEM_PARAMETER> settings,
+            string selectedGroup,
+            ST_ALIGN_KEY_MARGINS alignKeyMargins)
         {
             const double maxWidth = 772.0;
             const double maxHeight = 340.0;
@@ -2392,8 +2401,8 @@
             const double paddingBottom = 28.0;
             var glassWidth = ReadManagedDouble(managedItems, "GLASS_SIZE_X", 500.0);
             var glassHeight = ReadManagedDouble(managedItems, "GLASS_SIZE_Y", 300.0);
-            var akMarginX = ReadManagedDouble(managedItems, "AK_MARGIN_X", 55.0);
-            var akMarginY = ReadManagedDouble(managedItems, "AK_MARGIN_Y", 45.0);
+            var akMarginX = alignKeyMargins.X;
+            var akMarginY = alignKeyMargins.Y;
             var headCount = Math.Clamp(ReadManagedInt(managedItems, "HEAD_COUNT", 8), 1, 8);
             var head1AkPositionX = ReadSettingDouble(settings, "H01_AK_POSITION_X", -5.0);
             var headGapX = ReadSettingDouble(settings, "HeadGapX", 200.0);
@@ -2594,7 +2603,7 @@
 
         private IReadOnlyList<ST_SHOT_GROUP_EDITOR_ROW> BuildShotGroupRows(IReadOnlyList<ST_RECIPE_PARAMETER_EDITOR_ITEM> managedItems, ST_RECIPE_CELL_VIEW_MODEL cell)
         {
-            var detailedLayout = CalculateCellPatternLayout(managedItems, cell, includeShotCenters: true);
+            var detailedLayout = CalculateCellPatternLayout(managedItems, cell, _alignKeyMargins, includeShotCenters: true);
             if (!detailedLayout.IsValid || detailedLayout.ShotCenters.Count == 0)
             {
                 return[];
@@ -2613,7 +2622,7 @@
             var maskingAreas = BuildMaskingAreas(managedItems, cell.ModelType);
             var edgeMaskingArea = BuildEdgeMaskingArea(managedItems, cell.ModelType, cell.PatternLayout);
             var beamHalfSpan = cell.PatternLayout.BeamHalfSpanMillimeters;
-            var finalShotOffsets = BuildFinalShotOffsets(managedItems);
+            var finalShotOffsets = BuildFinalShotOffsets(managedItems, _alignKeyMargins);
             bool MatchesRecipe(global::Drilling.UI.Menu.Menus.ST_RECIPE_PARAMETER_EDITOR_ITEM item)
             {
                 return TryGetCellNo(item.Key) == cell.CellNo && IsShotGroupOverrideKey(item.Key);
@@ -2675,10 +2684,14 @@
             return cell.ShotCenters.Select(BuildShot).ToArray();
         }
 
-        private static ST_CELL_PATTERN_LAYOUT CalculateCellPatternLayout(IReadOnlyList<ST_RECIPE_PARAMETER_EDITOR_ITEM> managedItems, ST_RECIPE_CELL_VIEW_MODEL cell, bool includeShotCenters)
+        private static ST_CELL_PATTERN_LAYOUT CalculateCellPatternLayout(
+            IReadOnlyList<ST_RECIPE_PARAMETER_EDITOR_ITEM> managedItems,
+            ST_RECIPE_CELL_VIEW_MODEL cell,
+            ST_ALIGN_KEY_MARGINS alignKeyMargins,
+            bool includeShotCenters)
         {
-            var akMarginX = ReadManagedDouble(managedItems, "AK_MARGIN_X", 55.0);
-            var akMarginY = ReadManagedDouble(managedItems, "AK_MARGIN_Y", 45.0);
+            var akMarginX = alignKeyMargins.X;
+            var akMarginY = alignKeyMargins.Y;
             var pixelSize = ReadManagedDouble(managedItems, "PIXEL_SIZE", 0.09);
             var modelPattern = ReadManagedModelPattern(managedItems, cell.ModelType);
             var splitBeamCount = ReadManagedInt(managedItems, "SPLITED_BEAM_COUNT", 1);
@@ -2688,7 +2701,9 @@
             return CCellPatternCalculator.Calculate(new ST_CELL_PATTERN_DEFINITION(cell.CellNo, firstPixelX, firstPixelY, rotation, pixelSize, modelPattern.PixelCountX, modelPattern.PixelCountY, modelPattern.ProcessPitch, splitBeamCount, akMarginX, akMarginY), includeShotCenters);
         }
 
-        private static IReadOnlyDictionary<(int CellNo, int CellShotNo), (double OffsetX, double OffsetY)> BuildFinalShotOffsets(IReadOnlyList<ST_RECIPE_PARAMETER_EDITOR_ITEM> managedItems)
+        private static IReadOnlyDictionary<(int CellNo, int CellShotNo), (double OffsetX, double OffsetY)> BuildFinalShotOffsets(
+            IReadOnlyList<ST_RECIPE_PARAMETER_EDITOR_ITEM> managedItems,
+            ST_ALIGN_KEY_MARGINS alignKeyMargins)
         {
             string SelectManagedParameterKey(global::Drilling.UI.Menu.Menus.ST_RECIPE_PARAMETER_EDITOR_ITEM item)
             {
@@ -2708,6 +2723,8 @@
             try
             {
                 var parameters = managedItems.GroupBy(SelectManagedParameterKey, StringComparer.OrdinalIgnoreCase).ToDictionary(SelectManagedParameterGroupKey, SelectValue, StringComparer.OrdinalIgnoreCase);
+                parameters[CAlignKeyMarginSettings.MarginXKey] = alignKeyMargins.X.ToString("R", CultureInfo.InvariantCulture);
+                parameters[CAlignKeyMarginSettings.MarginYKey] = alignKeyMargins.Y.ToString("R", CultureInfo.InvariantCulture);
                 var coordinatePlan = CShotCoordinatePlanBuilder.Build(parameters);
                 return coordinatePlan.Shots.GroupBy(shot => (shot.CellNo, shot.CellShotNo)).ToDictionary(group => group.Key, group =>
                 {
@@ -3471,7 +3488,7 @@
         }
     }
 
-    public sealed record ST_RECIPE_DISTORTION_KEY_ITEM(int PairIndex, string StageY)
+    public sealed record ST_RECIPE_DISTORTION_KEY_ITEM(int PairIndex, ST_RECIPE_PARAMETER_EDITOR_ITEM? YItem)
     {
         public string DisplayText
         {
@@ -3485,7 +3502,7 @@
         {
             get
             {
-                return $"Setting > Motor > ALIGN > DK{PairIndex} Stage Y Position (mm); AK2/AK4 촬영 위치가 0 mm";
+                return $"Group {PairIndex} (DK{PairIndex * 2 + 1}/DK{PairIndex * 2 + 2})의 AK1 기준 설계 Y 거리; 실제 촬영 Stage Y와 별개";
             }
         }
     }

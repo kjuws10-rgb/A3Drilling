@@ -35,8 +35,6 @@ public abstract class CBindingBase
     public event EventHandler? ActiveChanged;
     public event EventHandler? AddressChanged;
     public event EventHandler? AfterBrushChanged;
-    public event EventHandler? AkMarginXItemChanged;
-    public event EventHandler? AkMarginYItemChanged;
     public event EventHandler? AlarmChanged;
     public event EventHandler? AlarmBrushChanged;
     public event EventHandler? AlarmDetailChanged;
@@ -624,6 +622,7 @@ public abstract class CBindingBase
     public event EventHandler? SelectedLaserNameChanged;
     public event EventHandler? SelectedLaserNumberChanged;
     public event EventHandler? SelectedMenuChanged;
+    public event EventHandler? NavigationSelectedMenuChanged;
     public event EventHandler? SelectedPointItemsChanged;
     public event EventHandler? SelectedRecipeFileChanged;
     public event EventHandler? SelectedRunShotNameChanged;
@@ -887,12 +886,6 @@ public abstract class CBindingBase
                 break;
             case "AfterBrush":
                 AfterBrushChanged?.Invoke(this, EventArgs.Empty);
-                break;
-            case "AkMarginXItem":
-                AkMarginXItemChanged?.Invoke(this, EventArgs.Empty);
-                break;
-            case "AkMarginYItem":
-                AkMarginYItemChanged?.Invoke(this, EventArgs.Empty);
                 break;
             case "Alarm":
                 AlarmChanged?.Invoke(this, EventArgs.Empty);
@@ -2654,6 +2647,9 @@ public abstract class CBindingBase
                 break;
             case "SelectedMenu":
                 SelectedMenuChanged?.Invoke(this, EventArgs.Empty);
+                break;
+            case "NavigationSelectedMenu":
+                NavigationSelectedMenuChanged?.Invoke(this, EventArgs.Empty);
                 break;
             case "SelectedPointItems":
                 SelectedPointItemsChanged?.Invoke(this, EventArgs.Empty);

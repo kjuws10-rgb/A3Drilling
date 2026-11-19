@@ -110,6 +110,7 @@ public sealed class CSettingFile(string configRoot) : CSettingFileBase
             );
         }
 
+        // @보호 [Setting] 형식검증 - Form 정의로 입력을 정규화하고 자료형과 범위를 통과한 값만 저장한다.
         var normalizedParameters = formItems.Where(ShouldIncludeSetting).Select(BuildSystem).ToArray();
         ValidateSectionParameters(sectionTab, normalizedParameters, formItems);
         foreach (var parameter in normalizedParameters)
@@ -117,6 +118,7 @@ public sealed class CSettingFile(string configRoot) : CSettingFileBase
             values[CreateKey(sectionTab, GetParameterKey(parameter))] = parameter.Value;
         }
 
+        // @파일 [Setting] 저장확인 - 전체 values.csv를 쓴 뒤 대상 Section을 다시 읽어 일치해야 변경 이력을 남긴다.
         WriteSettingValues(formItems, values);
         ValidateSavedSection(section, normalizedParameters);
         foreach (var parameter in normalizedParameters)
@@ -271,10 +273,18 @@ public sealed class CSettingFile(string configRoot) : CSettingFileBase
             EN_RECIPE_DATA_TYPE.Double, "mm", true, true,
             CSettingManager.DefaultWapageAlignBaseTolerance.ToString("R", CultureInfo.InvariantCulture), 0, 0,
             "Wapage Align Base 허용범위(mm); 0 이상; MELSEC 기록 시 Align_Camera_Resolution(mm/pixel)으로 나누어 pixel로 환산; 실제 신호 연결은 추후 작업", 41);
+        yield return new("OPTION", "ALIGN", CAlignKeyMarginSettings.MarginXKey, "AK Margin X",
+            EN_RECIPE_DATA_TYPE.Double, "mm", true, true,
+            CAlignKeyMarginSettings.DefaultMarginX.ToString("R", CultureInfo.InvariantCulture), 0, 3000,
+            "Glass X edge에서 Align Key 중심까지의 공통 설계 거리; 모든 Recipe에 동일 적용", 42);
+        yield return new("OPTION", "ALIGN", CAlignKeyMarginSettings.MarginYKey, "AK Margin Y",
+            EN_RECIPE_DATA_TYPE.Double, "mm", true, true,
+            CAlignKeyMarginSettings.DefaultMarginY.ToString("R", CultureInfo.InvariantCulture), 0, 3000,
+            "Glass Y edge에서 Align Key 중심까지의 공통 설계 거리; 모든 Recipe에 동일 적용", 43);
         for (var index = 0; index < 3; index++)
             yield return new("MOTOR", "ALIGN", $"DK{index}_STAGE_Y_POSITION", $"DK{index} Stage Y Position",
                 EN_RECIPE_DATA_TYPE.Double, "mm", true, true, (2000 - index * 500).ToString(CultureInfo.InvariantCulture), -10000, 10000,
-                $"Distortion Group {index}(DK{index * 2 + 1}/DK{index * 2 + 2})의 실제 Stage Y 측정 위치; AK2/AK4 촬영 Stage Y=0; +방향으로 Group2→1→0→AK1/AK3; 보간 설계 Y=Glass Height-AK Margin Y-본 값", 42 + index);
+                $"Distortion Group {index}(DK{index * 2 + 1}/DK{index * 2 + 2})의 실제 Stage Y 측정 위치; AK2/AK4 촬영 Stage Y=0; +방향으로 Group2→1→0→AK1/AK3; 보간 설계 Y=Glass Height-AK Margin Y-본 값", 44 + index);
     }
 
     private static IEnumerable<ST_SETTING_FORM_ITEM> CreateScannerFormItems()

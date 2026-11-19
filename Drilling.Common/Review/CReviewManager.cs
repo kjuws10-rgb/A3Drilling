@@ -46,6 +46,7 @@ namespace Drilling.Common.Review
 #region 기본 처리
         public string? LastSavedResultPath { get; private set; }
         private double CameraResolution => settingManager.GetVisionCameraResolution();
+        public ST_ALIGN_KEY_MARGINS AlignKeyMargins => settingManager.GetAlignKeyMargins();
 
         public ST_REVIEW_PLAN? CurrentPlan
         {
@@ -138,11 +139,12 @@ namespace Drilling.Common.Review
         public static IReadOnlyList<ST_REVIEW_BEAM_POSITION> GetShotBeamPositions(
             ST_RECIPE_DEFINITION recipe,
             ST_REVIEW_PLAN_POINT point,
+            ST_ALIGN_KEY_MARGINS alignKeyMargins,
             double stageScanDirectionY,
             double shiftOffsetX = 0.0,
             double shiftOffsetY = 0.0)
         {
-            var calculate = CreateShotBeamPositionCalculator(recipe, stageScanDirectionY, shiftOffsetX, shiftOffsetY);
+            var calculate = CreateShotBeamPositionCalculator(recipe, alignKeyMargins, stageScanDirectionY, shiftOffsetX, shiftOffsetY);
             var splitBeamCount = ReadInt(recipe, 0, "SPLITED_BEAM_COUNT");
             return Enumerable.Range(1, splitBeamCount * splitBeamCount).Select(beam => calculate(point, beam)).ToArray();
         }
@@ -150,6 +152,7 @@ namespace Drilling.Common.Review
         /// <summary>Build recipe lookup and Cell geometry once for a batch. No device access or live recipe mutation.</summary>
         public static Func<ST_REVIEW_PLAN_POINT, int, ST_REVIEW_BEAM_POSITION> CreateShotBeamPositionCalculator(
             ST_RECIPE_DEFINITION recipe,
+            ST_ALIGN_KEY_MARGINS alignKeyMargins,
             double stageScanDirectionY,
             double shiftOffsetX = 0.0,
             double shiftOffsetY = 0.0)
@@ -159,8 +162,8 @@ namespace Drilling.Common.Review
             ValidateBeamNo(1, splitBeamCount);
             var parameters = recipe.Parameters.GroupBy(parameter => parameter.Key, StringComparer.OrdinalIgnoreCase).ToDictionary(group => group.Key, group => group.Last().Value, StringComparer.OrdinalIgnoreCase);
             var pixelSize = ReadDouble(recipe, 0.0, "PIXEL_SIZE");
-            var marginX = ReadDouble(recipe, 55.0, "AK_MARGIN_X", "ALIGN_MARGIN_X");
-            var marginY = ReadDouble(recipe, 45.0, "AK_MARGIN_Y", "ALIGN_MARGIN_Y");
+            var marginX = alignKeyMargins.X;
+            var marginY = alignKeyMargins.Y;
             var cameraAlignX = ReadDouble(recipe, 0.0, "REVIEW_CAMERA_ALIGN_KEY_POS_X");
             var cameraAlignY = ReadDouble(recipe, 0.0, "REVIEW_CAMERA_ALIGN_KEY_POS_Y");
             var cells = new System.Collections.Concurrent.ConcurrentDictionary<int, (double Rotation, double BeamPitch)>();
@@ -248,6 +251,7 @@ namespace Drilling.Common.Review
         public static ST_REVIEW_PLAN ApplyShiftOffset(ST_REVIEW_PLAN plan, double shiftOffsetX, double shiftOffsetY)
         {
             ValidateShiftOffset(shiftOffsetX, shiftOffsetY);
+            // @좌표 [리뷰검사] Shift적용 - Shift는 Review 목표 위치에만 더하며 측정 Error X/Y에는 섞지 않는다.
             var deltaX = shiftOffsetX - plan.ShiftOffsetX;
             var deltaY = plan.StageScanDirectionY * (shiftOffsetY - plan.ShiftOffsetY);
 
@@ -296,6 +300,7 @@ namespace Drilling.Common.Review
             CancellationToken cancellationToken = default
         )
         {
+            // @스레드 [리뷰검사] 단일실행 - P2P, IOF, 재검사가 동시에 장치와 현재 Plan을 소유하지 못하도록 Lock을 선점한다.
             if (!await _sequenceLock.WaitAsync(0, cancellationToken))
             {
                 return CreateStatus(CurrentPlan ?? plan, EN_REVIEW_SEQUENCE_STATE.Running, "Review sequence is already running.");
@@ -501,18 +506,21 @@ namespace Drilling.Common.Review
             double shiftOffsetX = 0.0,
             double shiftOffsetY = 0.0)
         {
+            // @흐름 [리뷰검사] 계획생성 - 가공과 같은 Recipe+Setting 좌표계로 Head 배정, Masking/Chess 제외, Beam 목표를 확정한다.
             const int headCount = DefaultHeadCount;
             var cellCount = ReadRequiredCellCount(recipe, "MAX_CELL_NUMBER");
             var toleranceX = ReadDouble(recipe, 0.030, "REVIEW_TOLERANCE_X");
             var toleranceY = ReadDouble(recipe, 0.030, "REVIEW_TOLERANCE_Y");
             var coordinateSettings = LoadReviewCoordinateSettings(recipe);
             var runtimeCoordinateParameters = BuildRuntimeCoordinateParameters(recipe);
+            var alignKeyMargins = settingManager.GetAlignKeyMargins();
             var stageScanDirectionY = CShotCoordinatePlanBuilder.ReadDirection(runtimeCoordinateParameters, -1.0, "STAGE_SCAN_DIRECTION_Y");
             var processCoordinatePlan = CShotCoordinatePlanBuilder.Build(runtimeCoordinateParameters);
             var excludedShots = BuildReviewExcludedShots(runtimeCoordinateParameters, processCoordinatePlan.Shots);
             var assignedHeadNos = processCoordinatePlan.Shots.GroupBy(shot => (shot.CellNo, shot.CellShotNo)).ToDictionary(group => group.Key, group => group.Last().HeadNo);
             IReadOnlyList<ST_REVIEW_PLAN_POINT> points = BuildShotPoints(
                 recipe,
+                alignKeyMargins,
                 headCount,
                 cellCount,
                 coordinateSettings,
@@ -568,9 +576,7 @@ namespace Drilling.Common.Review
         private IReadOnlyDictionary<string, string> BuildRuntimeCoordinateParameters(ST_RECIPE_DEFINITION recipe)
         {
             var parameters = recipe.Parameters.Where(parameter => !string.IsNullOrWhiteSpace(parameter.Key)).GroupBy(parameter => parameter.Key, StringComparer.OrdinalIgnoreCase).ToDictionary(group => group.Key, group => group.Last().Value, StringComparer.OrdinalIgnoreCase);
-            // Use the same effective parameter set as CStationProcess. Head use,
-            // center and scan-field settings can be supplied by Option/Motor and
-            // must override the recipe when assigning an actual processing head.
+            // @좌표 [리뷰검사] 조건합성 - 실제 가공처럼 Head USE, 중심, Scan Field의 Option/Motor Setting이 Recipe보다 우선한다.
             foreach (var tab in new[]
             {
                 EN_SETTING_TAB.Option,
@@ -673,6 +679,7 @@ namespace Drilling.Common.Review
 
         private static IReadOnlyList<ST_REVIEW_PLAN_POINT> BuildShotPoints(
             ST_RECIPE_DEFINITION recipe, 
+            ST_ALIGN_KEY_MARGINS alignKeyMargins,
             int headCount, 
             int cellCount, 
             ST_REVIEW_COORDINATE_SETTINGS coordinateSettings, 
@@ -686,8 +693,8 @@ namespace Drilling.Common.Review
         )
         {
             var headLayout = coordinateSettings.HeadLayout;
-            var akMarginX = ReadDouble(recipe, 55.0, "AK_MARGIN_X", "ALIGN_MARGIN_X");
-            var akMarginY = ReadDouble(recipe, 45.0, "AK_MARGIN_Y", "ALIGN_MARGIN_Y");
+            var akMarginX = alignKeyMargins.X;
+            var akMarginY = alignKeyMargins.Y;
             var reviewCameraAlignKeyPosX = ReadDouble(recipe, 0.0, "REVIEW_CAMERA_ALIGN_KEY_POS_X");
             var reviewCameraAlignKeyPosY = ReadDouble(recipe, 0.0, "REVIEW_CAMERA_ALIGN_KEY_POS_Y");
             var pixelSize = ReadDouble(recipe, 0.0, "PIXEL_SIZE");
@@ -1354,7 +1361,12 @@ namespace Drilling.Common.Review
 
 #endregion
 #region BeamInspection
-        public static IReadOnlyList<ST_REVIEW_PLAN_POINT> BuildBeamInspectionTargets(ST_RECIPE_DEFINITION recipe, ST_REVIEW_PLAN allPlan, IReadOnlyCollection<string> shotKeys, IReadOnlyCollection<int> beamNos)
+        public static IReadOnlyList<ST_REVIEW_PLAN_POINT> BuildBeamInspectionTargets(
+            ST_RECIPE_DEFINITION recipe,
+            ST_REVIEW_PLAN allPlan,
+            ST_ALIGN_KEY_MARGINS alignKeyMargins,
+            IReadOnlyCollection<string> shotKeys,
+            IReadOnlyCollection<int> beamNos)
         {
             if (shotKeys.Count == 0 || beamNos.Count == 0)
                 throw new InvalidOperationException("Shot과 Beam을 각각 하나 이상 선택해 주세요.");
@@ -1363,12 +1375,13 @@ namespace Drilling.Common.Review
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .Select(shotKey => new ST_BEAM_INSPECTION_ASSIGNMENT(shotKey, beams))
                 .ToArray();
-            return BuildBeamInspectionTargets(recipe, allPlan, assignments);
+            return BuildBeamInspectionTargets(recipe, allPlan, alignKeyMargins, assignments);
         }
 
         public static IReadOnlyList<ST_REVIEW_PLAN_POINT> BuildBeamInspectionTargets(
             ST_RECIPE_DEFINITION recipe,
             ST_REVIEW_PLAN allPlan,
+            ST_ALIGN_KEY_MARGINS alignKeyMargins,
             IReadOnlyCollection<ST_BEAM_INSPECTION_ASSIGNMENT> assignments)
         {
             if (assignments.Count == 0)
@@ -1399,6 +1412,7 @@ namespace Drilling.Common.Review
                 var positions = GetShotBeamPositions(
                     recipe,
                     shot,
+                    alignKeyMargins,
                     allPlan.StageScanDirectionY,
                     allPlan.ShiftOffsetX,
                     allPlan.ShiftOffsetY).ToDictionary(p => p.BeamNo);
@@ -1437,7 +1451,7 @@ namespace Drilling.Common.Review
             CancellationToken cancellationToken = default
         )
         {
-            var targets = BuildBeamInspectionTargets(recipe, allPlan, assignments).ToArray();
+            var targets = BuildBeamInspectionTargets(recipe, allPlan, settingManager.GetAlignKeyMargins(), assignments).ToArray();
             var stageSimulation = IsReviewDeviceSimulation(EN_EQP_MODULE.Melsec, GetReviewStageDeviceNo());
             var visionSimulation = IsReviewSimulation();
             if (!await _sequenceLock.WaitAsync(0, cancellationToken))
@@ -1918,6 +1932,7 @@ namespace Drilling.Common.Review
         private async Task<ST_REVIEW_MEASURE_RESULT> MeasureVision(ST_REVIEW_PLAN_POINT point, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            // @시뮬 [비전검사] 단일Shot - Simulation은 임시값, 실제 모드는 수신한 Vision 응답만 측정값으로 인정한다.
             var isSimulation = IsReviewSimulation();
             WriteReviewLog("MEASURE_START", "Measurement started.");
             try
@@ -1958,6 +1973,7 @@ namespace Drilling.Common.Review
             bool resumeFromCurrentPosition = false
         )
         {
+            // @흐름 [리뷰검사] IOF - 라인별 이동, Vision 수신, 판정, Product checkpoint 저장을 순서대로 완료한다.
             var pendingPoints = runPoints ?? workingPlan.ReviewPoints.Where(point => point.State is not (EN_REVIEW_POINT_STATE.Ok or EN_REVIEW_POINT_STATE.Ng)).ToArray();
             var lines = CreateIofLines(pendingPoints);
             for (var lineIndex = 0; lineIndex < lines.Count; lineIndex++)
@@ -2037,6 +2053,7 @@ namespace Drilling.Common.Review
                 throw new InvalidOperationException("Vision IOF line is empty.");
             }
 
+            // @통신 [비전검사] IOF순서 - 시작점 이동 -> FLYING_READY -> 끝점 이동 -> FLYING_MOVE_DONE -> MARK_FIND_LINE 순서를 바꾸지 않는다.
             await MoveIofLineStart(line[0], cancellationToken);
             await (_reviewStageMotion ?? throw new InvalidOperationException("Review Stage 이동이 준비되지 않았습니다.")).PrepareIof(line, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
@@ -2153,8 +2170,7 @@ namespace Drilling.Common.Review
 
             if (resultCount != line.Count)
             {
-                // The transport already received the full Setting-sized frame and removed
-                // padding. COUNT here is nFindHoleCount, never the physical slot capacity.
+                // @보호 [비전검사] 결과개수 - COUNT는 이번 라인의 nFindHoleCount이며 고정 수신 슬롯 수와 혼동하지 않는다.
                 throw new InvalidDataException($"Vision Mark Find Line count mismatch. Requested={line.Count}, Received={resultCount}. Requested는 이번 라인 검사점 수, Received는 응답 nFindHoleCount(유효 결과 수)이며 고정 수신 버퍼 용량이 아닙니다.");
             }
 
@@ -2303,6 +2319,7 @@ namespace Drilling.Common.Review
             string measurementNgReason = "")
         {
             var converted = VisionErrorToStageOffset(errorX, errorY, plan.VisionFlipType);
+            // @상태 [리뷰검사] 판정 - Vision Find 실패와 X/Y Tolerance 초과를 분리해 NG 원인을 결과 파일에 보존한다.
             var findOk = string.IsNullOrWhiteSpace(measurementJudge) || measurementJudge.Trim().Equals("WAIT", StringComparison.OrdinalIgnoreCase) || measurementJudge.Trim().Equals("OK", StringComparison.OrdinalIgnoreCase);
             var xExceeded = Math.Abs(converted.X) > plan.ToleranceX;
             var yExceeded = Math.Abs(converted.Y) > plan.ToleranceY;
@@ -2360,6 +2377,7 @@ namespace Drilling.Common.Review
         {
             if (resolution <= 0 || !double.IsFinite(cameraResolution) || cameraResolution <= 0)
                 throw new InvalidDataException("Vision nResolution 및 Review_Camera_Resolution(mm/pixel)은 0보다 커야 합니다.");
+            // @좌표 [비전검사] Pixel→mm - CameraResolution*nResolution을 한 번만 적용하고 Vision Flip은 이후 단계에서 처리한다.
             var factor = cameraResolution * resolution;
             var x = factor * (mark.TargetMarkX - mark.HoleX);
             var y = factor * (mark.TargetMarkY - mark.HoleY);
@@ -2669,6 +2687,7 @@ namespace Drilling.Common.Review
         public ST_AUTO_FINE_PLAN CreateAutoFinePlan(ST_AUTO_REVIEW_INPUT input, CancellationToken token = default)
         {
             token.ThrowIfCancellationRequested();
+            // @흐름 [리뷰검사] AUTO계획 - 현재 Setting을 동결하고 Beam 11 기준 Fine 계획을 Stage START 전에 만든다.
             var settings = settingManager.LoadSection(Drilling.Common.Managers.EN_SETTING_TAB.Option, token).Concat(settingManager.LoadSection(Drilling.Common.Managers.EN_SETTING_TAB.Motor, token)).ToArray();
             var plan = CAutoFineReviewCoordinator.BuildPlan(input, settings);
             ValidateFinePreparation(plan.Request);
@@ -2700,6 +2719,7 @@ namespace Drilling.Common.Review
         {
             ValidateFinePreparation(request);
             var deviceNo = GetReviewStageDeviceNo();
+            // @시뮬 [리뷰검사] 장치분리 - MELSEC와 Vision Simulation을 각각 판단하며 실제 Vision에서는 임의 측정값을 금지한다.
             var stageSimulation = IsReviewDeviceSimulation(EN_EQP_MODULE.Melsec, deviceNo);
             var visionSimulation = IsReviewSimulation();
             if (simulationMeasurement is not null && !visionSimulation)
@@ -3152,15 +3172,13 @@ namespace Drilling.Common.Review
 
         private async Task<ST_REVIEW_MEASURE_RESULT> ReceiveDefaultMark(ST_REVIEW_PLAN_POINT point, EN_ONE_SHOT_METHOD method, CancellationToken token)
         {
-            // Deliberately do not call MeasureVision: that generic Review method has
-            // a legacy random Simulation branch. Default accepts received replies only.
+            // @통신 [디폴트옵셋] 실제응답 - Default 검사는 일반 Review Simulation 경로를 거치지 않고 수신된 Vision 값만 인정한다.
             if (IsReviewSimulation() || !interfaceManager.IsConnect(EN_EQP_MODULE.Vision, 0)) throw new InvalidOperationException("Default 측정에는 Vision의 실제 통신 응답이 필요합니다.");
             if (!Enum.IsDefined(method)) throw new ArgumentOutOfRangeException(nameof(method));
             var command = method == EN_ONE_SHOT_METHOD.MarkFindSettingSingle ? "MARK_FIND_SETTING_SINGLE" : CreateMarkFindSingleCommand(point);
             var response = await interfaceManager.ExecuteFunction(EN_EQP_MODULE.Vision, 0, command, token).ConfigureAwait(false);
             if (IsReviewSimulation() || string.IsNullOrWhiteSpace(response)) throw new InvalidDataException("유효한 Default Vision 수신 응답이 없습니다.");
-            // Use the field Review decoder: Target/Hole are pixels, nResult=0 is OK.
-            // CameraResolution * nResolution is applied exactly once, before Vision Flip.
+            // @좌표 [디폴트옵셋] Vision환산 - Target/Hole pixel에 해상도를 한 번 적용한 뒤 Vision Flip으로 중심 오차를 계산한다.
             var measurement = ParseVisionResponse(response, point);
             var mark = measurement.MarkFind ?? throw new InvalidDataException("Vision 응답에 Target/Hole이 없습니다.");
             WriteReviewLog("DEFAULT_RECEIVED", $"Method={method}, Head={point.HeadNo}, Beam={point.BeamNo}, TargetPixel=({mark.TargetMarkX:R},{mark.TargetMarkY:R}), HolePixel=({mark.HoleX:R},{mark.HoleY:R}), Resolution={measurement.Resolution}, CameraResolution={measurement.CameraResolution:R}, Result={mark.Result}");
@@ -3597,6 +3615,7 @@ namespace Drilling.Common.Review
 #region FINE - 보정 계산
         public static IReadOnlyList<ST_FINE_OFFSET_DELTA> CalculateFineOffsets(IReadOnlyList<ST_REVIEW_PLAN_POINT> targets, IReadOnlyList<ST_REVIEW_PLAN_POINT> measurements, EN_VISION_FLIP_TYPE flip)
         {
+            // @보호 [옵셋적용] Fine전체적용 - 모든 측정점이 OK일 때만 열별 보간하며 NG 또는 미측정이 하나라도 있으면 전체를 차단한다.
             if (measurements.Count == 0)
                 throw new InvalidOperationException("검사 결과가 없습니다.");
             if (measurements.Any(point => point.State == EN_REVIEW_POINT_STATE.Ng || string.Equals(point.Judge?.Trim(), "NG", StringComparison.OrdinalIgnoreCase)))
@@ -3667,6 +3686,7 @@ namespace Drilling.Common.Review
 #region Vision - 수신값·설계·스캐너 좌표 변환
         public static ST_REVIEW_COORDINATE_OFFSET VisionErrorToStageOffset(double visionErrorX, double visionErrorY, EN_VISION_FLIP_TYPE flipType)
         {
+            // @좌표 [옵셋적용] Vision→Stage - XY 교환을 먼저 수행한 뒤 X/Y Flip을 순서대로 적용한다.
             var transformedX = visionErrorX;
             var transformedY = visionErrorY;
             if (flipType.HasFlag(EN_VISION_FLIP_TYPE.XyFlip))
@@ -3689,6 +3709,7 @@ namespace Drilling.Common.Review
 
         public static ST_REVIEW_COORDINATE_OFFSET VisionErrorToScannerOffset(double visionErrorX, double visionErrorY, EN_VISION_FLIP_TYPE visionFlipType, ST_SCANNER_AXIS_TRANSFORM scannerAxisTransform)
         {
+            // @좌표 [옵셋적용] Stage→Scanner - Vision Flip이 끝난 Stage 오차를 해당 Head의 GX/GY 축 방향으로 변환한다.
             var stageOffset = VisionErrorToStageOffset(visionErrorX, visionErrorY, visionFlipType);
             var scannerOffset = scannerAxisTransform.Apply(stageOffset.X, stageOffset.Y);
             return new ST_REVIEW_COORDINATE_OFFSET(scannerOffset.X, scannerOffset.Y);

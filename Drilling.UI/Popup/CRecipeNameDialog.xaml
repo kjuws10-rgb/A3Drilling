@@ -63,6 +63,7 @@
                        Grid.Row="1"
                        Margin="0,8,0,0"
                        FontSize="14"
+                       TextWrapping="Wrap"
                        Foreground="{DynamicResource TextSecondaryBrush}" />
 
             <TextBox x:Name="RecipeNameTextBox"

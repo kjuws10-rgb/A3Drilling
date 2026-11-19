@@ -191,6 +191,7 @@
             Action<IDictionary<string, string>, IReadOnlySet<string>, ST_REVIEW_REINSPECTION_UPDATE> applyUpdate,
             CancellationToken cancellationToken)
         {
+            // @파일 [재검사] Revision저장 - BASE의 검사 방식과 미대상 행은 유지하고 지정 Shot만 갱신해 새 파일로 저장한다.
             cancellationToken.ThrowIfCancellationRequested();
             ArgumentNullException.ThrowIfNull(source);
             ArgumentNullException.ThrowIfNull(updates);
@@ -353,6 +354,7 @@
             IReadOnlySet<string> headers,
             ST_REVIEW_REINSPECTION_UPDATE update)
         {
+            // @상태 [재검사] 측정값 - 다시 측정한 행만 Beam과 X/Y/Judge를 교체하고 RESULT_SOURCE를 MEASURED로 기록한다.
             SetIfPresent(row, headers, "BEAM_NO", update.BeamNo.ToString(CultureInfo.InvariantCulture));
 
             var hasCoordinates = false;
@@ -378,6 +380,7 @@
             IReadOnlySet<string> headers,
             ST_REVIEW_REINSPECTION_UPDATE update)
         {
+            // @상태 [결과편집] 편집값 - 사용자 입력은 원본 수신값과 구분할 수 있도록 RESULT_SOURCE를 EDITED로 기록한다.
             var hasCoordinates = false;
             hasCoordinates |= SetCoordinatePair(row, headers, "VISION_FLIP_CONVERT_X", "VISION_FLIP_CONVERT_Y", update.ResultX, update.ResultY);
             hasCoordinates |= SetCoordinatePair(row, headers, "CONVERTED_X", "CONVERTED_Y", update.ResultX, update.ResultY);
@@ -737,6 +740,7 @@
             IEnumerable<IReadOnlyDictionary<string, string>> rows,
             CancellationToken cancellationToken)
         {
+            // @파일 [결과파일] 원자저장 - 임시 파일을 새 이름으로 이동하고 중복 시 suffix를 증가시켜 기존 결과를 덮어쓰지 않는다.
             cancellationToken.ThrowIfCancellationRequested();
             Directory.CreateDirectory(directory);
             var temporaryPath = Path.Combine(directory, $".{Guid.NewGuid():N}.tmp");
@@ -1191,6 +1195,7 @@
                     ["RECV_TARGET_MINUS_HOLE_Y"] = measured ? Number(point.ErrorY) : "미검사",
                     ["VISION_FLIP_CONVERT_X"] = measured ? Number(converted.X) : "미검사",
                     ["VISION_FLIP_CONVERT_Y"] = measured ? Number(converted.Y) : "미검사",
+                    // @상태 [재검사] 결과출처 - 이번 측정은 MEASURED, 기존 유지점은 RETAINED로 남겨 Offset 계산에서 둘 다 구분해 사용한다.
                     ["RESULT_SOURCE"] = measured ? result.AttemptedShotKeys.Contains(point.ShotKey) ? "MEASURED" : "RETAINED" : point.Judge == "ERROR" ? "ERROR" : "UNMEASURED",
                     ["VISION_RESULT_CODE"] = measured ? point.VisionResultCode?.ToString(CultureInfo.InvariantCulture) ?? "" : "",
                     ["NG_REASON"] = measured ? point.NgReason : "",

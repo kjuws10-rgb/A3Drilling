@@ -14,6 +14,7 @@
         private readonly CRecipeShotMaskingPlan _mask;
         private readonly Dictionary<(int Cell, int Shot), ST_HEAD_SHOT_POINT> _shots;
         private readonly Func<ST_REVIEW_PLAN_POINT, int, ST_REVIEW_BEAM_POSITION> _beamPosition;
+        private readonly ST_ALIGN_KEY_MARGINS _alignKeyMargins;
         public CZeroDefenceRecipePlan(ST_RECIPE_DEFINITION recipe, IReadOnlyList<ST_SYSTEM_PARAMETER> settings)
         {
             Recipe = recipe;
@@ -26,12 +27,13 @@
             _shots = Plan.Shots.ToDictionary(p => (p.CellNo, p.CellShotNo));
             _mask = CRecipeShotMaskingPlan.Build(parameters);
             var motion = ST_REVIEW_MOTION_PARAMETERS.Read(settings);
+            _alignKeyMargins = CAlignKeyMarginSettings.Read(settings);
             Profile = new(Read("STAGE_START_POS_Y", 3960), Read("STAGE_SCAN_DIRECTION_Y", -1), Read("STAGE_SPEED", 80), motion.Speed, motion.Acceleration);
             var geometryRecipe = recipe with
             {
                 Parameters = parameters.Select(p => new ST_RECIPE_PARAMETER(p.Key, p.Value, "", "", "", Key: p.Key)).ToArray()
             };
-            _beamPosition = CReviewManager.CreateShotBeamPositionCalculator(geometryRecipe, Profile.StageDirection);
+            _beamPosition = CReviewManager.CreateShotBeamPositionCalculator(geometryRecipe, _alignKeyMargins, Profile.StageDirection);
         }
 
         public ST_RECIPE_DEFINITION Recipe { get; }
@@ -68,8 +70,8 @@
             if (!CanProcess(point))
                 throw new InvalidOperationException($"H{head:00}: Masking 또는 Chess로 제외된 Shot입니다.");
             var target = _beamPosition(new(point.SequenceNo, point.ShotKey, head, cell, shot, 0, 0, true, point.DesignX, point.DesignY, 0, 0, 0, 0, EN_REVIEW_POINT_STATE.Ready, "WAIT"), beam);
-            var beamDesignX = target.ReviewX - Read("REVIEW_CAMERA_ALIGN_KEY_POS_X", 0) + Read("AK_MARGIN_X", 55);
-            var beamDesignY = (target.StageY - Read("REVIEW_CAMERA_ALIGN_KEY_POS_Y", 0)) / Profile.StageDirection + Read("AK_MARGIN_Y", 45);
+            var beamDesignX = target.ReviewX - Read("REVIEW_CAMERA_ALIGN_KEY_POS_X", 0) + _alignKeyMargins.X;
+            var beamDesignY = (target.StageY - Read("REVIEW_CAMERA_ALIGN_KEY_POS_Y", 0)) / Profile.StageDirection + _alignKeyMargins.Y;
             if (!double.IsFinite(beamDesignX) || !double.IsFinite(beamDesignY) || beamDesignX < -1e-8 || beamDesignX > Plan.GlassSizeX + 1e-8 || beamDesignY < -1e-8 || beamDesignY > Plan.GlassSizeY + 1e-8)
                 throw new InvalidOperationException($"H{head:00}: 선택한 Beam이 Glass 영역 밖입니다.");
             var scale = Math.Abs(Read($"H{head:00}_ENCODER_SCALE", Read("SCAN_ENCODER_SCALE", 16000)));

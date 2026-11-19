@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Media;
@@ -81,8 +82,23 @@ internal static class CReviewGlassPreviewBuilder
     {
         var glassWidth = ReadDouble(recipe, 500.0, "GLASS_SIZE_X");
         var glassHeight = ReadDouble(recipe, 300.0, "GLASS_SIZE_Y");
-        var akMarginX = ReadDouble(recipe, 55.0, "AK_MARGIN_X");
-        var akMarginY = ReadDouble(recipe, 45.0, "AK_MARGIN_Y");
+        if (settings is null)
+        {
+            return CreateErrorPreview("Setting > Common > ALIGN의 AK Margin X/Y를 불러올 수 없습니다.");
+        }
+
+        ST_ALIGN_KEY_MARGINS alignKeyMargins;
+        try
+        {
+            alignKeyMargins = CAlignKeyMarginSettings.Read(settings);
+        }
+        catch (InvalidDataException exception)
+        {
+            return CreateErrorPreview(exception.Message);
+        }
+
+        var akMarginX = alignKeyMargins.X;
+        var akMarginY = alignKeyMargins.Y;
         // Process/Main decide the owning Head after converting a Recipe Cell
         // design coordinate to the scanner-reference coordinate.  Keep this
         // conversion here as well: the preview itself is drawn in DesignX.
