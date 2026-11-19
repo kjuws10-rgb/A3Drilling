@@ -2329,7 +2329,7 @@
                 var values = CMotorStatusPollingService.ReadCachedSnapshot(interfaceManager);
                 var mode = CMotorStatusPollingService.ReadStageConnectionState(interfaceManager);
                 return (values.FirstOrDefault(row => row.Name == "Stage Y")?.Position ?? "-", values.FirstOrDefault(row => row.Name == "Review X")?.Position ?? "-", mode == EN_COMM_STATE.Simulation ? "SIMULATION" : mode == EN_COMM_STATE.Online ? "ONLINE" : "OFFLINE");
-            });
+            }, ReadMainReviewLevelSettings());
             var window = new CAutoReviewMonitorDialog(panel);
             if (System.Windows.Application.Current?.MainWindow is { } owner && !ReferenceEquals(owner, window))
                 window.Owner = owner;
@@ -2348,13 +2348,27 @@
                 return;
             }
 
-            var panel = new CZeroLineResultsPanel(() => stationManager?.GetStatus().ZeroLine ?? SequenceStatus.ZeroLineSnapshot);
+            var panel = new CZeroLineResultsPanel(
+                () => stationManager?.GetStatus().ZeroLine ?? SequenceStatus.ZeroLineSnapshot,
+                ReadMainReviewLevelSettings());
             var window = new CZeroLineResultsDialog(panel);
             if (System.Windows.Application.Current?.MainWindow is { } owner && !ReferenceEquals(owner, window))
                 window.Owner = owner;
             window.Closed += (_, _) => _zeroLineResultsWindow = null;
             _zeroLineResultsWindow = window;
             window.Show();
+        }
+
+        private ST_REVIEW_RESULT_LEVEL_SETTINGS ReadMainReviewLevelSettings()
+        {
+            try
+            {
+                return CReviewResultLevelSettings.Read(settingManager.LoadSection(EN_SETTING_TAB.Option));
+            }
+            catch (InvalidDataException)
+            {
+                return CReviewResultLevelSettings.Default;
+            }
         }
 #endregion
     }
@@ -2391,18 +2405,78 @@
         }
     }
 
+    public sealed record ST_MAIN_REVIEW_LEVEL_DISPLAY(string Text, Brush Brush, Brush Foreground, bool HasValue);
+
+    public static class CMainReviewLevelPresentation
+    {
+        public static IReadOnlyList<ST_REVIEW_LEVEL_LEGEND_ITEM> CreateLegend(ST_REVIEW_RESULT_LEVEL_SETTINGS settings)
+        {
+            return
+            [
+                new("L1", $"0.0000 ~ {settings.Level1Maximum:0.0000} mm", CreateBrush(settings.Level1Color)),
+                new("L2", $"> {settings.Level1Maximum:0.0000} ~ {settings.Level2Maximum:0.0000} mm", CreateBrush(settings.Level2Color)),
+                new("L3", $"> {settings.Level2Maximum:0.0000} ~ {settings.Level3Maximum:0.0000} mm", CreateBrush(settings.Level3Color)),
+                new("L4", $"> {settings.Level3Maximum:0.0000} mm", CreateBrush(settings.Level4Color))
+            ];
+        }
+
+        public static ST_MAIN_REVIEW_LEVEL_DISPLAY Resolve(
+            ST_REVIEW_RESULT_LEVEL_SETTINGS settings,
+            double? resultX,
+            double? resultY)
+        {
+            if (resultX is not { } x
+                || resultY is not { } y
+                || !double.IsFinite(x)
+                || !double.IsFinite(y))
+            {
+                return new("-", Brushes.SlateGray, Brushes.White, false);
+            }
+
+            var level = settings.Resolve(x, y);
+            var brush = CreateBrush(settings.ColorFor(level));
+            return new($"L{(int)level}", brush, ContrastBrush(brush), true);
+        }
+
+        private static Brush CreateBrush(string colorHex)
+        {
+            var color = (Color)ColorConverter.ConvertFromString(CReviewResultLevelSettings.NormalizeColor(colorHex));
+            var brush = new SolidColorBrush(color);
+            brush.Freeze();
+            return brush;
+        }
+
+        private static Brush ContrastBrush(Brush brush)
+        {
+            if (brush is not SolidColorBrush solid)
+            {
+                return Brushes.White;
+            }
+
+            var color = solid.Color;
+            var luminance = color.R * 0.299 + color.G * 0.587 + color.B * 0.114;
+            return luminance >= 150 ? Brushes.Black : Brushes.White;
+        }
+    }
+
     /// <summary>UI projection only. Its owner samples the latest shared frame; closing it cannot stop the sequence.</summary>
     public sealed class CAutoReviewMonitorPanel : INotifyPropertyChanged
     {
         private readonly CFineReviewMonitorStore _store;
+        private readonly ST_REVIEW_RESULT_LEVEL_SETTINGS _reviewLevelSettings;
         private Guid _runId;
         private long _revision = -1;
         private readonly Dictionary<string, ST_FINE_REVIEW_LINE> _seen = new();
         private readonly Dictionary<string, (int Measured, int Ng)> _counts = new();
         private ST_FINE_MONITOR_RESULT? _selectedNg;
-        public CAutoReviewMonitorPanel(CFineReviewMonitorStore store, Func<(string StageY, string ReviewX, string Mode)> feedback)
+        public CAutoReviewMonitorPanel(
+            CFineReviewMonitorStore store,
+            Func<(string StageY, string ReviewX, string Mode)> feedback,
+            ST_REVIEW_RESULT_LEVEL_SETTINGS? reviewLevelSettings = null)
         {
             _store = store;
+            _reviewLevelSettings = reviewLevelSettings ?? CReviewResultLevelSettings.Default;
+            ReviewLevelLegendItems = CMainReviewLevelPresentation.CreateLegend(_reviewLevelSettings);
             Preview.ReadFeedback = feedback;
             Preview.Clear("FINE Review 검사 대기");
         }
@@ -2411,6 +2485,7 @@
         public CFineCorrectionPanel Preview { get; } = new();
         public ObservableCollection<ST_FINE_MONITOR_RESULT> NgResults { get; } = [];
         public IReadOnlyList<ST_FINE_MONITOR_RESULT> FinalResults { get; private set; } = [];
+        public IReadOnlyList<ST_REVIEW_LEVEL_LEGEND_ITEM> ReviewLevelLegendItems { get; }
         public string Header { get; private set; } = "Review Monitor · FINE";
         public string ProgressText { get; private set; } = "검사 대기";
         public string Status { get; private set; } = "AUTO Review 실행은 아직 미연결입니다. 현재는 Manual FINE의 실제 진행 스냅샷도 표시합니다.";
@@ -2470,7 +2545,7 @@
                         NgResults.RemoveAt(i);
                 for (var i = 0; i < line.ShotResults.Count; i++)
                     if (line.ShotResults[i].Judge is "NG" or "ERROR")
-                        NgResults.Add(new(incoming.Key, line.OrderNo, line.Points[i], line.ShotResults[i], plan.ToleranceX, plan.ToleranceY));
+                        NgResults.Add(new(incoming.Key, line.OrderNo, line.Points[i], line.ShotResults[i], plan.ToleranceX, plan.ToleranceY, _reviewLevelSettings));
             }
 
             Preview.SetMonitorNgPoints(NgResults.Select(row => row.Point).ToArray());
@@ -2488,7 +2563,7 @@
             var finished = progress.State is EN_REVIEW_SEQUENCE_STATE.Completed or EN_REVIEW_SEQUENCE_STATE.Stopped or EN_REVIEW_SEQUENCE_STATE.Failed;
             if (finished && (FinalVisibility != Visibility.Visible || FinalResults.Count != plan.Points.Count || !ReferenceEquals(_finalLines, progress.Lines)))
             {
-                FinalResults = Preview.Lines.SelectMany(line => line.ShotResults.Select((row, i) => new ST_FINE_MONITOR_RESULT(line.Key, line.OrderNo, line.Points[i], row, plan.ToleranceX, plan.ToleranceY))).ToArray();
+                FinalResults = Preview.Lines.SelectMany(line => line.ShotResults.Select((row, i) => new ST_FINE_MONITOR_RESULT(line.Key, line.OrderNo, line.Points[i], row, plan.ToleranceX, plan.ToleranceY, _reviewLevelSettings))).ToArray();
                 _finalLines = progress.Lines;
                 FinalVisibility = Visibility.Visible;
             }
@@ -2502,7 +2577,14 @@
         private void Notify(string? name) => PropertyChanged?.Invoke(this, new(name));
     }
 
-    public sealed record ST_FINE_MONITOR_RESULT(string LineKey, int LineNo, ST_REVIEW_PLAN_POINT Point, ST_FINE_SHOT_DETAIL Result, double ToleranceX, double ToleranceY)
+    public sealed record ST_FINE_MONITOR_RESULT(
+        string LineKey,
+        int LineNo,
+        ST_REVIEW_PLAN_POINT Point,
+        ST_FINE_SHOT_DETAIL Result,
+        double ToleranceX,
+        double ToleranceY,
+        ST_REVIEW_RESULT_LEVEL_SETTINGS ReviewLevelSettings)
     {
         public string Head => Result.Head;
         public string Cell => Result.Cell;
@@ -2511,6 +2593,10 @@
         public string Received => $"{Result.ReceivedXText} / {Result.ReceivedYText}";
         public string Converted => $"{Result.ConvertedXText} / {Result.ConvertedYText}";
         public string Judge => Result.Judge;
+        public ST_MAIN_REVIEW_LEVEL_DISPLAY ReviewLevel => CMainReviewLevelPresentation.Resolve(ReviewLevelSettings, Result.ConvertedX, Result.ConvertedY);
+        public string Level => ReviewLevel.Text;
+        public Brush LevelBrush => ReviewLevel.Brush;
+        public Brush LevelForeground => ReviewLevel.Foreground;
         public string Excess => string.Join(" / ", new[] { Exceeded("X", Result.ConvertedX, ToleranceX), Exceeded("Y", Result.ConvertedY, ToleranceY) }.Where(value => value.Length > 0))is { Length: > 0 } text ? text : Judge is "NG" or "ERROR" ? "Vision NG / 수치 초과 없음" : "-";
 
         private static string Exceeded(string axis, double? value, double limit) => value is { } number && Math.Abs(number) > limit ? $"{axis} +{Math.Abs(number) - limit:0.000} mm" : "";
@@ -4135,12 +4221,17 @@
     }
 
     /// <summary>Read-only projection of the coordinator's immutable snapshot. No device or result-file reads.</summary>
-    public sealed class CZeroLineResultsPanel(Func<ST_ZERO_LINE_CYCLE_STATUS?> readSnapshot) : INotifyPropertyChanged
+    public sealed class CZeroLineResultsPanel(
+        Func<ST_ZERO_LINE_CYCLE_STATUS?> readSnapshot,
+        ST_REVIEW_RESULT_LEVEL_SETTINGS? reviewLevelSettings = null) : INotifyPropertyChanged
     {
+        private readonly ST_REVIEW_RESULT_LEVEL_SETTINGS _reviewLevelSettings = reviewLevelSettings ?? CReviewResultLevelSettings.Default;
         private ST_ZERO_LINE_CYCLE_STATUS? _seen;
         private CZeroLineResultRow? _selected;
         public event PropertyChangedEventHandler? PropertyChanged;
         public IReadOnlyList<CZeroLineResultRow> Rows { get; private set; } = [];
+        public IReadOnlyList<ST_REVIEW_LEVEL_LEGEND_ITEM> ReviewLevelLegendItems { get; }
+            = CMainReviewLevelPresentation.CreateLegend(reviewLevelSettings ?? CReviewResultLevelSettings.Default);
         public string Header { get; private set; } = "0선방어 결과";
         public string Context { get; private set; } = "아직 0선방어 검사 결과가 없습니다.";
         public string Summary { get; private set; } = "검사 대기";
@@ -4159,13 +4250,14 @@
                 if (ReferenceEquals(_selected, value))
                     return;
                 _selected = value;
-                Notify(nameof(SelectedRow), nameof(SelectedTitle), nameof(SelectedRaw), nameof(SelectedCoordinates), nameof(SelectedReason));
+                Notify(nameof(SelectedRow), nameof(SelectedTitle), nameof(SelectedRaw), nameof(SelectedCoordinates), nameof(SelectedLevel), nameof(SelectedReason));
             }
         }
 
         public string SelectedTitle => SelectedRow is { } r ? $"{r.Head} / {r.Cell}-{r.Shot} / Beam {r.Beam}" : "결과 행을 선택하면 세부값을 표시합니다.";
         public string SelectedRaw => SelectedRow is { } r ? $"Target X / Y : {r.Target} pixel     Hole X / Y : {r.Hole} pixel     Resolution : {r.Resolution}" : "";
         public string SelectedCoordinates => SelectedRow is { } r ? $"Review X : {r.ReviewX} mm     Stage Y : {r.StageY} mm     Recv 허용오차 초과 X / Y : {r.Excess} mm" : "";
+        public string SelectedLevel => SelectedRow is { } r ? $"REVIEW LEVEL : {r.Level}     기준 : max(|Flip Convert X|, |Flip Convert Y|)" : "";
         public string SelectedReason => SelectedRow?.Reason ?? "";
 
         public void Refresh()
@@ -4177,7 +4269,7 @@
             var sameRun = _seen?.Plan?.RunId == frame.Plan?.RunId;
             _seen = frame;
             var plan = frame.Plan;
-            Rows = (frame.Results ?? []).Select(result => new CZeroLineResultRow(result, plan)).ToArray();
+            Rows = (frame.Results ?? []).Select(result => new CZeroLineResultRow(result, plan, _reviewLevelSettings)).ToArray();
             Context = plan is null ? $"Group {frame.Group} · {Rows.Count} Points" : $"Recipe : {plan.RecipeId}     Glass : {plan.GlassId}     Group : {frame.Group} / {plan.TotalGroups}     {Rows.Count} Points";
             Summary = $"검사 {Rows.Count(r => r.IsFinished)} / {Rows.Count} · OK {Rows.Count(r => r.Judge == "OK")} · NG {Rows.Count(r => r.Judge == "NG")} · 미완료 {Rows.Count(r => !r.IsFinished)}";
             Detail = frame.Detail
@@ -4207,8 +4299,12 @@
 
     public sealed class CZeroLineResultRow
     {
-        public CZeroLineResultRow(ST_ZERO_LINE_POINT_RESULT result, ST_ZERO_LINE_CYCLE_PLAN? plan)
+        public CZeroLineResultRow(
+            ST_ZERO_LINE_POINT_RESULT result,
+            ST_ZERO_LINE_CYCLE_PLAN? plan,
+            ST_REVIEW_RESULT_LEVEL_SETTINGS? reviewLevelSettings = null)
         {
+            var levelSettings = reviewLevelSettings ?? CReviewResultLevelSettings.Default;
             var p = result.Point;
             Key = $"{p.HeadNo}/{p.CellNo}/{p.ShotNo}/{p.BeamNo}";
             Head = $"HEAD {p.HeadNo:00}";
@@ -4234,12 +4330,14 @@
             Target = measured ? $"{Number(result.Mark!.Value.TargetMarkX)} / {Number(result.Mark.Value.TargetMarkY)}" : "- / -";
             Hole = measured ? $"{Number(result.Mark!.Value.HoleX)} / {Number(result.Mark.Value.HoleY)}" : "- / -";
             Resolution = measured ? result.Resolution.ToString(CultureInfo.InvariantCulture) : "-";
+            var levelDisplay = CMainReviewLevelPresentation.Resolve(levelSettings, null, null);
             double excessX = 0, excessY = 0;
             if (measured && plan is not null)
             {
                 var value = CReviewManager.VisionErrorToStageOffset(p.ErrorX, p.ErrorY, plan.VisionPlan.VisionFlipType);
                 ConvertedX = Number(value.X);
                 ConvertedY = Number(value.Y);
+                levelDisplay = CMainReviewLevelPresentation.Resolve(levelSettings, value.X, value.Y);
                 // Match the common mm conversion -> Vision Flip -> Tolerance order.
                 excessX = Math.Max(0, Math.Abs(value.X) - plan.VisionPlan.ToleranceX);
                 excessY = Math.Max(0, Math.Abs(value.Y) - plan.VisionPlan.ToleranceY);
@@ -4265,6 +4363,10 @@
                     _ => "검사 대기"
                 };
             }
+
+            Level = levelDisplay.Text;
+            LevelBrush = levelDisplay.Brush;
+            LevelForeground = levelDisplay.Foreground;
         }
 
         public static string Number(double value) => value.ToString("F4", CultureInfo.InvariantCulture);
@@ -4277,6 +4379,9 @@
         public string Judge { get; }
         public bool IsFinished { get; }
         public Brush StateBrush { get; }
+        public string Level { get; }
+        public Brush LevelBrush { get; }
+        public Brush LevelForeground { get; }
         public string RecvX { get; }
         public string RecvY { get; }
         public string ConvertedX { get; } = "-";

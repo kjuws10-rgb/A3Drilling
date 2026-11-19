@@ -22,9 +22,12 @@ namespace Drilling.UI.Menu.Menus
             private readonly Action<string> _statusReporter;
             private readonly Func<Task> _rollbackReviewOffset;
             private readonly Func<string, IReadOnlyList<ST_REVIEW_OFFSET_ROW>, string, Task<ST_REVIEW_OFFSET_FILE_DATA?>> _saveReviewOffsetFromResult;
+            private readonly bool _inspectionResultsOnly;
+            private readonly Func<string>? _inspectionResultTypeProvider;
             private bool _isBusy;
             private bool _isResultEditMode;
             private int _skipNextVisibleReload;
+            private int _inspectionRefreshVersion;
             private ST_REVIEW_RESULT_TREE_NODE? _selectedNode;
 
             public CReviewDataPanel(
@@ -36,7 +39,9 @@ namespace Drilling.UI.Menu.Menus
                 Func<string> selectedRecipeIdProvider,
                 Action<string> statusReporter,
                 Func<Task> rollbackReviewOffset,
-                Func<string, IReadOnlyList<ST_REVIEW_OFFSET_ROW>, string, Task<ST_REVIEW_OFFSET_FILE_DATA?>> saveReviewOffsetFromResult)
+                Func<string, IReadOnlyList<ST_REVIEW_OFFSET_ROW>, string, Task<ST_REVIEW_OFFSET_FILE_DATA?>> saveReviewOffsetFromResult,
+                bool inspectionResultsOnly = false,
+                Func<string>? inspectionResultTypeProvider = null)
             {
                 _reviewResultFile = reviewResultFile;
                 _reviewOffsetFile = reviewOffsetFile;
@@ -47,6 +52,8 @@ namespace Drilling.UI.Menu.Menus
                 _statusReporter = statusReporter;
                 _rollbackReviewOffset = rollbackReviewOffset;
                 _saveReviewOffsetFromResult = saveReviewOffsetFromResult;
+                _inspectionResultsOnly = inspectionResultsOnly;
+                _inspectionResultTypeProvider = inspectionResultTypeProvider;
                 RefreshCommand = new CButtonCommand(RefreshRequested, _ => !IsBusy);
                 LoadDataCommand = new CButtonCommand(LoadDataRequested, _ => CanLoadData);
                 SelectCellCommand = new CButtonCommand(SelectCell);
@@ -74,11 +81,15 @@ namespace Drilling.UI.Menu.Menus
             public CButtonCommand OffsetViewCommand { get; }
             public IReadOnlyList<ST_REVIEW_RESULT_TREE_NODE> Nodes { get; private set; }
             public IReadOnlyList<ST_REVIEW_DATA_DETAIL_ITEM> SelectedDetails { get; private set; } = [];
+            public string ResultListTitle { get; private set; } = "REVIEW RESULTS";
             public string StatusText { get; private set; } = "0 RESULTS";
             public string SelectedTitle { get; private set; } = "NO RESULT SELECTED";
             public string SelectedStatus { get; private set; } = "WAIT";
             public string SelectedPath { get; private set; } = "";
             public Brush SelectedStatusBrush => StatusBrush(SelectedStatus);
+            public bool IsInspectionOffsetRestricted => _inspectionResultsOnly
+                && !IsInspectionOffsetResultType(_inspectionResultTypeProvider?.Invoke());
+            public string InspectionOffsetRestrictionText => "BEAM INSPECTION 결과는 Beam 상태 확인용이므로 Offset을 적용할 수 없습니다.";
             public bool IsResultEditMode => _isResultEditMode;
             public bool CanToggleResultEditMode => _isResultEditMode
                 || (_hasLoadedData
@@ -108,6 +119,63 @@ namespace Drilling.UI.Menu.Menus
                 return Refresh(cancellationToken);
             }
 
+            public async Task ReloadForInspectionModeChange(CancellationToken cancellationToken = default)
+            {
+                if (!_inspectionResultsOnly)
+                {
+                    await Reload(cancellationToken);
+                    return;
+                }
+
+                var version = Interlocked.Increment(ref _inspectionRefreshVersion);
+                var resultType = NormalizeInspectionResultType(_inspectionResultTypeProvider?.Invoke());
+                var displayType = InspectionResultDisplayName(resultType);
+                Notify(nameof(IsInspectionOffsetRestricted));
+                Notify(nameof(InspectionOffsetRestrictionText));
+                NotifyLoadCommandState();
+                var recipeId = (_selectedRecipeIdProvider() ?? "").Trim();
+                Nodes = BuildInspectionTree([], resultType, recipeId);
+                ResultListTitle = "REVIEW RESULTS";
+                StatusText = $"{displayType} / LOADING...";
+                Notify(nameof(Nodes));
+                Notify(nameof(ResultListTitle));
+                Notify(nameof(StatusText));
+                ClearSelection();
+                SetLoadProgress(5.0, $"{displayType} 결과 목록을 불러오는 중...");
+                SetDataLoadHint("선택한 검사 모드의 결과 목록을 불러오는 중입니다.", "WAIT");
+                SetDataLoading(true);
+
+                try
+                {
+                    while (IsBusy)
+                    {
+                        await Task.Delay(20, cancellationToken);
+                        if (version != Volatile.Read(ref _inspectionRefreshVersion))
+                        {
+                            return;
+                        }
+                    }
+
+                    if (version != Volatile.Read(ref _inspectionRefreshVersion))
+                    {
+                        return;
+                    }
+
+                    await Refresh(cancellationToken);
+                    if (version == Volatile.Read(ref _inspectionRefreshVersion))
+                    {
+                        SetLoadProgress(100.0, $"{resultType.Replace('_', ' ')} 결과 목록 로드 완료");
+                    }
+                }
+                finally
+                {
+                    if (version == Volatile.Read(ref _inspectionRefreshVersion))
+                    {
+                        SetDataLoading(false);
+                    }
+                }
+            }
+
             public Task ReloadWhenVisible(CancellationToken cancellationToken = default)
             {
                 if (Interlocked.Exchange(ref _skipNextVisibleReload, 0) != 0)
@@ -125,6 +193,7 @@ namespace Drilling.UI.Menu.Menus
                 if (!File.Exists(resultPath))
                     throw new FileNotFoundException("방금 저장한 검사 결과 파일을 찾을 수 없습니다.", resultPath);
 
+                Interlocked.Exchange(ref _skipNextVisibleReload, 1);
                 await Refresh(cancellationToken, resultPath);
                 cancellationToken.ThrowIfCancellationRequested();
 
@@ -135,7 +204,6 @@ namespace Drilling.UI.Menu.Menus
                     throw new InvalidOperationException($"검사 결과를 불러올 수 없습니다. 상태: {selectedResult.ResultStatus}");
 
                 await LoadSelectedData();
-                Interlocked.Exchange(ref _skipNextVisibleReload, 1);
             }
 
             public void Select(ST_REVIEW_RESULT_TREE_NODE node)
@@ -209,18 +277,33 @@ namespace Drilling.UI.Menu.Menus
                         : preferredResultPath;
                     var selectedRecipeId = NormalizeRecipeId(_selectedRecipeIdProvider());
                     var allResults = await _reviewResultFile.ListCorrectionResults(cancellationToken);
-                    var results = string.IsNullOrWhiteSpace(selectedRecipeId)
+                    var recipeResults = string.IsNullOrWhiteSpace(selectedRecipeId)
                         ? Array.Empty<ST_REVIEW_RESULT_CATALOG_ITEM>()
                         : allResults
                             .Where(result => NormalizeRecipeId(result.RecipeId).Equals(selectedRecipeId, StringComparison.OrdinalIgnoreCase))
                             .ToArray();
-                    Nodes = BuildTree(results);
+                    var inspectionResultType = NormalizeInspectionResultType(_inspectionResultTypeProvider?.Invoke());
+                    var results = _inspectionResultsOnly
+                        ? recipeResults
+                            .Where(result => IsInspectionResultMatch(result, inspectionResultType))
+                            .ToArray()
+                        : recipeResults;
+                    ResultListTitle = "REVIEW RESULTS";
+                    var inspectionRecipeId = results.FirstOrDefault()?.RecipeId
+                        ?? recipeResults.FirstOrDefault()?.RecipeId
+                        ?? (_selectedRecipeIdProvider() ?? "").Trim();
+                    Nodes = _inspectionResultsOnly
+                        ? BuildInspectionTree(results, inspectionResultType, inspectionRecipeId)
+                        : BuildTree(results);
                     if (!string.IsNullOrWhiteSpace(selectedPath))
                     {
                         Nodes = ExpandResultPath(Nodes, selectedPath);
                     }
-                    StatusText = $"{results.Length:N0} RESULTS";
+                    StatusText = _inspectionResultsOnly
+                        ? $"{InspectionResultDisplayName(inspectionResultType)} / {results.Length:N0} RESULTS"
+                        : $"{results.Length:N0} RESULTS";
                     Notify(nameof(Nodes));
+                    Notify(nameof(ResultListTitle));
                     Notify(nameof(StatusText));
 
                     if (!string.IsNullOrWhiteSpace(selectedPath))
@@ -330,6 +413,112 @@ namespace Drilling.UI.Menu.Menus
                         null,
                         true)
                 ];
+            }
+
+            private static IReadOnlyList<ST_REVIEW_RESULT_TREE_NODE> BuildInspectionTree(
+                IReadOnlyList<ST_REVIEW_RESULT_CATALOG_ITEM> results,
+                string resultType,
+                string recipeId)
+            {
+                var manualResults = results
+                    .Where(result => result.Source.Equals("MANUAL", StringComparison.OrdinalIgnoreCase))
+                    .OrderByDescending(result => result.SavedAt)
+                    .ToArray();
+                var manualResultNodes = manualResults.Select(CreateResultNode).ToArray();
+                var manualTypeNode = new ST_REVIEW_RESULT_TREE_NODE(
+                    resultType.Replace('_', ' '),
+                    "TYPE",
+                    $"{manualResultNodes.Length:N0}",
+                    manualResultNodes,
+                    null,
+                    false);
+                var manualRecipeNode = new ST_REVIEW_RESULT_TREE_NODE(
+                    string.IsNullOrWhiteSpace(recipeId) ? "NO RECIPE" : recipeId,
+                    "RECIPE",
+                    $"{manualResultNodes.Length:N0}",
+                    [manualTypeNode],
+                    null,
+                    false);
+                var manualNode = new ST_REVIEW_RESULT_TREE_NODE(
+                    "MANUAL",
+                    "SOURCE",
+                    $"{manualResultNodes.Length:N0}",
+                    [manualRecipeNode],
+                    null,
+                    true);
+
+                var sourceNodes = new List<ST_REVIEW_RESULT_TREE_NODE> { manualNode };
+                if (resultType.Equals("FINE", StringComparison.OrdinalIgnoreCase))
+                {
+                    var autoResults = results
+                        .Where(result => result.Source.Equals("AUTO", StringComparison.OrdinalIgnoreCase))
+                        .OrderByDescending(result => result.SavedAt)
+                        .ToArray();
+                    var autoResultNodes = autoResults.Select(CreateResultNode).ToArray();
+                    var autoRecipeNode = new ST_REVIEW_RESULT_TREE_NODE(
+                        string.IsNullOrWhiteSpace(recipeId) ? "NO RECIPE" : recipeId,
+                        "RECIPE",
+                        $"{autoResultNodes.Length:N0}",
+                        autoResultNodes,
+                        null,
+                        false);
+                    sourceNodes.Add(new ST_REVIEW_RESULT_TREE_NODE(
+                        "AUTO",
+                        "SOURCE",
+                        $"{autoResultNodes.Length:N0}",
+                        [autoRecipeNode],
+                        null,
+                        true));
+                }
+
+                return
+                [
+                    new ST_REVIEW_RESULT_TREE_NODE(
+                        "REVIEW RESULTS",
+                        "ROOT",
+                        $"{results.Count:N0}",
+                        sourceNodes,
+                        null,
+                        true)
+                ];
+            }
+
+            private static bool IsInspectionResultMatch(ST_REVIEW_RESULT_CATALOG_ITEM result, string inspectionResultType)
+            {
+                if (inspectionResultType.Equals("FINE", StringComparison.OrdinalIgnoreCase))
+                {
+                    return result.Source.Equals("MANUAL", StringComparison.OrdinalIgnoreCase)
+                            && result.ResultType.Equals("FINE", StringComparison.OrdinalIgnoreCase)
+                        || result.Source.Equals("AUTO", StringComparison.OrdinalIgnoreCase)
+                            && result.ResultType.Equals("AUTO", StringComparison.OrdinalIgnoreCase);
+                }
+
+                return result.Source.Equals("MANUAL", StringComparison.OrdinalIgnoreCase)
+                    && result.ResultType.Equals(inspectionResultType, StringComparison.OrdinalIgnoreCase);
+            }
+
+            private static string InspectionResultDisplayName(string resultType)
+            {
+                return resultType.Equals("FINE", StringComparison.OrdinalIgnoreCase)
+                    ? "FINE + AUTO REVIEW"
+                    : resultType.Replace('_', ' ');
+            }
+
+            private static string NormalizeInspectionResultType(string? resultType)
+            {
+                var normalized = (resultType ?? "ALL_SHOT")
+                    .Trim()
+                    .Replace('-', '_')
+                    .Replace(' ', '_')
+                    .ToUpperInvariant();
+                return normalized is "ALL_SHOT" or "ONE_SHOT" or "ONE_LINE" or "BEAM_INSPECTION" or "ROUGH" or "FINE"
+                    ? normalized
+                    : "ALL_SHOT";
+            }
+
+            private static bool IsInspectionOffsetResultType(string? resultType)
+            {
+                return NormalizeInspectionResultType(resultType) is "ALL_SHOT" or "ONE_SHOT" or "ONE_LINE" or "ROUGH" or "FINE";
             }
 
             private static ST_REVIEW_RESULT_TREE_NODE CreateResultNode(ST_REVIEW_RESULT_CATALOG_ITEM result)

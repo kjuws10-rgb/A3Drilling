@@ -78,6 +78,7 @@
         public COutputOffsetViewerPanel OutputOffsets { get; } = new();
         public CDefaultOffsetPanel DefaultOffset { get; } = new();
         public CReviewDataPanel ReviewData { get; }
+        public CReviewDataPanel InspectionReviewData { get; }
         public CMenuReview? Review { get; private set; }
         public string OutputViewerSummary { get; private set; } = "0 Cells / 0 Shots";
         public ImageSource? OutputViewerCellShotMapImage { get; private set; }
@@ -95,6 +96,7 @@
 
         private CancellationTokenSource? _roughCancellation;
         internal bool BlocksMenuNavigation => Review?.BlocksMenuNavigation == true
+            || _isReviewOperationRunning
             || _fineCancellation is { IsCancellationRequested: false }
             || _roughCancellation is { IsCancellationRequested: false }
             || _defaultCancellation is { IsCancellationRequested: false };
@@ -148,6 +150,18 @@
                 _statusReporter,
                 () => ExecuteReviewOffsetRollback(),
                 SaveReviewOffsetFromResult);
+            InspectionReviewData = new CReviewDataPanel(
+                _reviewResultFile,
+                _reviewOffsetFile,
+                _reviewManager,
+                _recipeManager,
+                _settingManager,
+                _selectedRecipeIdProvider,
+                _statusReporter,
+                () => ExecuteReviewOffsetRollback(),
+                SaveReviewOffsetFromResult,
+                inspectionResultsOnly: true,
+                inspectionResultTypeProvider: () => Review?.SelectedInspectionResultType ?? "ALL_SHOT");
             if (defaultManager is not null && defaultScriptFile is not null)
                 DefaultOffset.ExecuteAction = ExecuteDefaultAction;
             DefaultOffset.SourceInvalidated += () => { if (_defaultOwnSave) return; _defaultCancellation?.Cancel(); if (_defaultCancellation is null) _defaultRun = null; };
@@ -250,7 +264,7 @@
             get => _selectedReviewTabIndex;
             set
             {
-                var normalized = Math.Clamp(value, 0, 4);
+                var normalized = Math.Clamp(value, 0, 1);
                 if (_selectedReviewTabIndex == normalized)
                     return;
 
@@ -390,6 +404,105 @@
         {
             Review = review ?? throw new ArgumentNullException(nameof(review));
             Review.OpenSavedReviewResultAsync = OpenSavedReviewResult;
+            Review.RefreshInspectionResultsAsync = () => InspectionReviewData.ReloadForInspectionModeChange();
+            Review.RefreshInspectionRunModeAsync = RefreshInspectionRunModePanel;
+            Review.IsExternalInspectionOperationActive = () => _isReviewOperationRunning;
+        }
+
+        private async Task RefreshInspectionRunModePanel()
+        {
+            if (!IsReviewCorrectionTab
+                || _selectedReviewTabIndex != 1
+                || Review is null
+                || !Review.IsInspectionRunWorkspace
+                || !Review.IsCorrectionInspectionMode)
+            {
+                return;
+            }
+
+            var showRough = Review.IsRoughInspectionMode;
+            var showFine = Review.IsFineInspectionMode;
+            try
+            {
+                await UpdateReviewCorrectionPanel(
+                    showSimple: false,
+                    showRough,
+                    showFine,
+                    CancellationToken.None);
+            }
+            catch (Exception exception)
+            {
+                if (showRough)
+                {
+                    ReportInvalidReviewOffset(exception);
+                    Rough.Clear($"Glass preview unavailable: {exception.Message}");
+                }
+                else if (showFine)
+                {
+                    Fine.Clear($"Glass preview unavailable: {exception.Message}");
+                }
+            }
+        }
+
+        private async Task UpdateReviewCorrectionPanel(
+            bool showSimple,
+            bool showRough,
+            bool showFine,
+            CancellationToken cancellationToken)
+        {
+            if (!showSimple && !showRough && !showFine)
+            {
+                return;
+            }
+
+            var recipe = await LoadSelectedOutputViewerRecipe(cancellationToken, fallbackToFirst: false);
+            var settings = _settingManager.LoadSection(EN_SETTING_TAB.Option, cancellationToken)
+                .Concat(_settingManager.LoadSection(EN_SETTING_TAB.Motor, cancellationToken)).ToArray();
+            if (showFine)
+            {
+                Fine.Update(recipe, settings);
+                return;
+            }
+
+            ST_REVIEW_OFFSET_FILE_DATA? current = null;
+            if (recipe is not null)
+            {
+                if (_simpleOffsetLoad is null
+                    || _simpleOffsetLoad.IsCanceled
+                    || _simpleOffsetRecipeId != recipe.Id
+                    || (_simpleOffsetLoad.IsFaulted
+                        && _simpleOffsetLoad.Exception?.GetBaseException() is not CReviewOffsetValidationException))
+                {
+                    _lastReviewOffsetWarning = "";
+                    _simpleOffsetRecipeId = recipe.Id;
+                    _simpleOffsetLoad = _reviewOffsetFile is null
+                        ? Task.FromResult(ST_REVIEW_OFFSET_FILE_DATA.Empty(recipe.Id))
+                        : Task.Run(() => _reviewOffsetFile.LoadLatest(recipe.Id, cancellationToken), cancellationToken);
+                }
+
+                current = await _simpleOffsetLoad.WaitAsync(cancellationToken);
+                _lastReviewOffsetWarning = "";
+            }
+
+            if (showSimple)
+            {
+                Simple.Update(recipe, settings, current);
+            }
+            else
+            {
+                Rough.Update(recipe, settings, current);
+            }
+        }
+
+        private void SetReviewOperationRunning(bool value)
+        {
+            if (_isReviewOperationRunning == value)
+            {
+                return;
+            }
+
+            _isReviewOperationRunning = value;
+            Review?.NotifyExternalInspectionExecutionStateChanged();
         }
 
         private async Task OpenSavedReviewResult(string resultPath)
@@ -397,8 +510,10 @@
             if (string.IsNullOrWhiteSpace(resultPath))
                 throw new ArgumentException("저장된 검사 결과 경로가 없습니다.", nameof(resultPath));
 
-            await ReviewData.OpenResult(resultPath);
-            SelectedReviewTabIndex = 4;
+            var loadTask = InspectionReviewData.OpenResult(resultPath);
+            SelectedReviewTabIndex = 1;
+            Review?.ShowInspectionResultWorkspace();
+            await loadTask;
         }
 
         public override async Task<CScreenViewModel> Build(CancellationToken cancellationToken = default)
@@ -437,42 +552,21 @@
 
             if (IsReviewCorrectionTab)
             {
+                var showSimple = _selectedReviewTabIndex == 0;
+                var showInspection = _selectedReviewTabIndex == 1;
+                var showRough = showInspection && Review?.IsRoughInspectionMode == true;
+                var showFine = showInspection && Review?.IsFineInspectionMode == true;
                 try
                 {
-                    if (_selectedReviewTabIndex == 0)
+                    if (showInspection)
                     {
                         if (Review is not null)
                             await Review.Build(cancellationToken);
                     }
-                    else if (_selectedReviewTabIndex is 1 or 2 or 3)
+
+                    if (showSimple || showRough || showFine)
                     {
-                        var recipe = await LoadSelectedOutputViewerRecipe(cancellationToken, fallbackToFirst: false);
-                        var settings = _settingManager.LoadSection(EN_SETTING_TAB.Option, cancellationToken).Concat(_settingManager.LoadSection(EN_SETTING_TAB.Motor, cancellationToken)).ToArray();
-                        if (_selectedReviewTabIndex == 3)
-                        {
-                            Fine.Update(recipe, settings);
-                        }
-                        else
-                        {
-                            ST_REVIEW_OFFSET_FILE_DATA? current = null;
-                            if (recipe is not null)
-                            {
-                                if (_simpleOffsetLoad is null || _simpleOffsetLoad.IsCanceled || _simpleOffsetRecipeId != recipe.Id || (_simpleOffsetLoad.IsFaulted && _simpleOffsetLoad.Exception?.GetBaseException()is not CReviewOffsetValidationException))
-                                {
-                                    _lastReviewOffsetWarning = "";
-                                    _simpleOffsetRecipeId = recipe.Id;
-                                    _simpleOffsetLoad = _reviewOffsetFile is null ? Task.FromResult(ST_REVIEW_OFFSET_FILE_DATA.Empty(recipe.Id)) : Task.Run(() => _reviewOffsetFile.LoadLatest(recipe.Id, cancellationToken), cancellationToken);
-                                }
-
-                                current = await _simpleOffsetLoad.WaitAsync(cancellationToken);
-                                _lastReviewOffsetWarning = "";
-                            }
-
-                            if (_selectedReviewTabIndex == 1)
-                                Simple.Update(recipe, settings, current);
-                            else
-                                Rough.Update(recipe, settings, current);
-                        }
+                        await UpdateReviewCorrectionPanel(showSimple, showRough, showFine, cancellationToken);
                     }
                 }
                 catch (OperationCanceledException)when (cancellationToken.IsCancellationRequested)
@@ -481,13 +575,13 @@
                 }
                 catch (Exception exception)
                 {
-                    if (_selectedReviewTabIndex is 1 or 2)
+                    if (showSimple || showRough)
                         ReportInvalidReviewOffset(exception);
-                    if (_selectedReviewTabIndex == 1)
+                    if (showSimple)
                         Simple.Clear($"Glass preview unavailable: {exception.Message}");
-                    else if (_selectedReviewTabIndex == 2)
+                    else if (showRough)
                         Rough.Clear($"Glass preview unavailable: {exception.Message}");
-                    else if (_selectedReviewTabIndex == 3)
+                    else if (showFine)
                         Fine.Clear($"Glass preview unavailable: {exception.Message}");
                 }
             }
@@ -1473,7 +1567,7 @@
                 ApplyPreviewRows = [];
             }
 
-            _isReviewOperationRunning = true;
+            SetReviewOperationRunning(true);
             ExecuteCommand.NotifyCanExecuteChanged();
             _reviewLoadStatus = "Calculating Review Offsets...";
             _reviewLoadState = "WAIT";
@@ -1528,7 +1622,7 @@
             }
             finally
             {
-                _isReviewOperationRunning = false;
+                SetReviewOperationRunning(false);
                 ExecuteCommand.NotifyCanExecuteChanged();
             }
         }
@@ -1713,7 +1807,7 @@
                 return;
             }
 
-            _isReviewOperationRunning = true;
+            SetReviewOperationRunning(true);
             ExecuteCommand.NotifyCanExecuteChanged();
             _reviewLoadStatus = "Saving Review Offsets...";
             _reviewLoadState = "WAIT";
@@ -1762,7 +1856,7 @@
             }
             finally
             {
-                _isReviewOperationRunning = false;
+                SetReviewOperationRunning(false);
                 ExecuteCommand.NotifyCanExecuteChanged();
             }
         }
@@ -2941,7 +3035,7 @@
             var injectedConfirmation = confirm;
             confirm ??= (title, message) => CRecipeConfirmDialog.ShowConfirmation(title, message);
             warn ??= (title, message) => CRecipeConfirmDialog.ShowWarning(title, message);
-            _isReviewOperationRunning = true;
+            SetReviewOperationRunning(true);
             Simple.SetOffsetOperationRunning(true);
             Rough.SetOffsetOperationRunning(true);
             Fine.SetOperationRunning(true);
@@ -3023,7 +3117,7 @@
                 _fineCancellation?.Dispose();
                 _fineCancellation = null;
                 Fine.End();
-                _isReviewOperationRunning = false;
+                SetReviewOperationRunning(false);
                 Simple.SetOffsetOperationRunning(false);
                 Rough.SetOffsetOperationRunning(false);
                 Fine.SetOperationRunning(false);
@@ -3056,7 +3150,7 @@
             warn ??= (caption, message) => CRecipeConfirmDialog.ShowWarning(caption, message);
             var version = Fine.SourceVersion;
             var recipeId = Fine.RecipeId;
-            _isReviewOperationRunning = true;
+            SetReviewOperationRunning(true);
             Simple.SetOffsetOperationRunning(true);
             Rough.SetOffsetOperationRunning(true);
             Fine.SetOperationRunning(true);
@@ -3134,7 +3228,7 @@
             }
             finally
             {
-                _isReviewOperationRunning = false;
+                SetReviewOperationRunning(false);
                 Simple.SetOffsetOperationRunning(false);
                 Rough.SetOffsetOperationRunning(false);
                 Fine.SetOperationRunning(false);
@@ -3168,7 +3262,7 @@
         {
             if (action == "STOP") { _defaultCancellation?.Cancel(); return; }
             if (_isReviewOperationRunning || _defaultManager is null || _defaultScriptFile is null) return;
-            _isReviewOperationRunning = true;
+            SetReviewOperationRunning(true);
             _defaultCancellation = new CancellationTokenSource();
             _defaultStopped = new(TaskCreationOptions.RunContinuationsAsynchronously);
             var token = _defaultCancellation.Token;
@@ -3339,7 +3433,7 @@
             finally
             {
                 _defaultCancellation.Dispose(); _defaultCancellation = null;
-                _isReviewOperationRunning = false;
+                SetReviewOperationRunning(false);
                 DefaultOffset.SetBusy(false);
                 _defaultStopped.TrySetResult(); _defaultStopped = null;
                 ExecuteCommand.NotifyCanExecuteChanged();
@@ -3914,7 +4008,7 @@
             confirm ??= (title, message) => CRecipeConfirmDialog.ShowConfirmation(title, message, action == "OFFSET_INIT" ? "초기화" : "확인", useDangerStyle: action == "OFFSET_INIT");
             completed ??= (title, message) => CRecipeConfirmDialog.ShowCompletion(title, message);
             warn ??= (title, message) => CRecipeConfirmDialog.ShowWarning(title, message);
-            _isReviewOperationRunning = true;
+            SetReviewOperationRunning(true);
             Simple.SetOffsetOperationRunning(true);
             Rough.SetOffsetOperationRunning(true);
             Fine.SetOperationRunning(true);
@@ -4040,7 +4134,7 @@
                 _roughCancellation?.Dispose();
                 _roughCancellation = null;
                 inspection.End();
-                _isReviewOperationRunning = false;
+                SetReviewOperationRunning(false);
                 Simple.SetOffsetOperationRunning(false);
                 Rough.SetOffsetOperationRunning(false);
                 Fine.SetOperationRunning(false);
@@ -4068,7 +4162,7 @@
             completed ??= (caption, message) => CRecipeConfirmDialog.ShowCompletion(caption, message);
             warn ??= (caption, message) => CRecipeConfirmDialog.ShowWarning(caption, message);
 
-            _isReviewOperationRunning = true;
+            SetReviewOperationRunning(true);
             Simple.SetOffsetOperationRunning(true);
             Rough.SetOffsetOperationRunning(true);
             Fine.SetOperationRunning(true);
@@ -4128,7 +4222,7 @@
             }
             finally
             {
-                _isReviewOperationRunning = false;
+                SetReviewOperationRunning(false);
                 Simple.SetOffsetOperationRunning(false);
                 Rough.SetOffsetOperationRunning(false);
                 Fine.SetOperationRunning(false);
@@ -4162,7 +4256,7 @@
             confirm ??= (caption, message) => CRecipeConfirmDialog.ShowConfirmation(caption, message, action == "OFFSET_INIT" ? "초기화" : "적용", useDangerStyle: action == "OFFSET_INIT");
             completed ??= (caption, message) => CRecipeConfirmDialog.ShowCompletion(caption, message);
             warn ??= (caption, message) => CRecipeConfirmDialog.ShowWarning(caption, message);
-            _isReviewOperationRunning = true;
+            SetReviewOperationRunning(true);
             ExecuteCommand.NotifyCanExecuteChanged();
             Simple.SetOffsetOperationRunning(true);
             Fine.SetOperationRunning(true);
@@ -4226,7 +4320,7 @@
             }
             finally
             {
-                _isReviewOperationRunning = false;
+                SetReviewOperationRunning(false);
                 Simple.SetOffsetOperationRunning(false);
                 Fine.SetOperationRunning(false);
                 ExecuteCommand.NotifyCanExecuteChanged();

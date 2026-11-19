@@ -30,6 +30,8 @@
         private Func<CancellationToken, Task<ST_BEAM_INSPECTION_RESULT_FILE_DATA?>>? _beamInspectionResultLoader = null;
         private ST_REVIEW_RESULT_FILE_DATA? _loadedRunReviewResult;
         private ST_REVIEW_PLAN? _loadedRunReviewPlan;
+        private IReadOnlyDictionary<(int CellNo, int ShotNo), ST_REVIEW_PLAN_POINT> _loadedRunReviewPointsByPosition =
+            new Dictionary<(int CellNo, int ShotNo), ST_REVIEW_PLAN_POINT>();
         private bool _isRunReviewResultLoading;
         private long _runReviewResultLoadGeneration;
         private CancellationTokenSource? _runReviewResultLoadCancellation;
@@ -49,6 +51,9 @@
         private readonly Action _refreshNavigationAccess;
         private readonly Action? _openCorrectionReview;
         public Func<string, Task>? OpenSavedReviewResultAsync { get; set; }
+        public Func<Task>? RefreshInspectionResultsAsync { get; set; }
+        public Func<Task>? RefreshInspectionRunModeAsync { get; set; }
+        public Func<bool>? IsExternalInspectionOperationActive { get; set; }
         private readonly HashSet<string> _selectedSampleShotKeys = new(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<int> _selectedInspectionBeamNos = [];
         private readonly HashSet<string> _selectedInspectionShotKeys = new(StringComparer.OrdinalIgnoreCase);
@@ -78,6 +83,7 @@
         private string _recipeId = "DRILL_A01";
         private string _sampleSelectionRecipeId = "";
         private string _selectedTab = "RUN";
+        private string _selectedWorkspace = "RUN";
         private string _selectedMode = "ALL SHOT";
         private string _selectionRuleText = "All Shot";
         private string _selectedSampleRuleUi = "ROUGH";
@@ -195,7 +201,8 @@
             _cameraInterfaces = interfaceManager;
             _cameraSettings = settingManager;
             SelectTabCommand = new CButtonCommand(SelectTab);
-            SelectModeCommand = new CButtonCommand(SelectMode, _ => !IsReviewExecutionActive);
+            SelectWorkspaceCommand = new CButtonCommand(SelectWorkspace, _ => !IsInspectionNavigationLocked);
+            SelectModeCommand = new CButtonCommand(SelectMode, _ => !IsInspectionNavigationLocked);
             OpenCorrectionReviewCommand = new CButtonCommand(_ => RequestOpenCorrectionReview(), _ => _openCorrectionReview is not null && !IsReviewExecutionActive);
             SelectSampleRuleUiCommand = new CButtonCommand(SelectSampleRuleUi, _ => !IsReviewExecutionActive);
             SelectSampleRuleScopeCommand = new CButtonCommand(SelectSampleRuleScope, _ => !IsReviewExecutionActive);
@@ -240,6 +247,8 @@
         public string PlanSummary => IsSampleSelectTab ? $"{GetConfiguredSampleInspectionShotCount()} / {_totalReviewPointCount} shots" : $"{_activePlanPointCount} / {_totalReviewPointCount} shots";
         public int SampleMapColumnCount => Math.Max(1, _sampleMapColumnCount);
         public bool IsRunTab => _selectedTab.Equals("RUN", StringComparison.OrdinalIgnoreCase);
+        public bool IsInspectionRunWorkspace => _selectedWorkspace.Equals("RUN", StringComparison.OrdinalIgnoreCase);
+        public bool IsInspectionResultWorkspace => _selectedWorkspace.Equals("RESULT", StringComparison.OrdinalIgnoreCase);
         public bool IsRunCommandsVisible => IsRunTab && !IsOneShotReviewMode;
         public bool IsRunGlassPreviewVisible => IsRunTab;
         public bool IsRunCellDetailVisible => IsRunTab;
@@ -250,6 +259,17 @@
         public bool IsRunStageStatusVisible => IsAllShotStyleReviewMode || IsOneShotReviewMode || IsBeamInspectionMode;
         public bool IsRuleReviewMode => _selectedMode.Equals("SAMPLE SHOT", StringComparison.OrdinalIgnoreCase);
         public bool IsBeamInspectionMode => _selectedMode.Equals("BEAM INSPECTION", StringComparison.OrdinalIgnoreCase);
+        public bool IsRoughInspectionMode => _selectedMode.Equals("ROUGH", StringComparison.OrdinalIgnoreCase);
+        public bool IsFineInspectionMode => _selectedMode.Equals("FINE", StringComparison.OrdinalIgnoreCase);
+        public bool IsCorrectionInspectionMode => IsRoughInspectionMode || IsFineInspectionMode;
+        public bool IsStandardInspectionMode => !IsCorrectionInspectionMode;
+        public string SelectedInspectionResultType => IsBeamInspectionMode
+            ? "BEAM_INSPECTION"
+            : IsRoughInspectionMode
+                ? "ROUGH"
+                : IsFineInspectionMode
+                    ? "FINE"
+                    : CurrentRunResultType;
         public bool IsReviewHeadCardsVisible => IsShotSelectionMode && !IsOneLineReviewMode && !IsBeamInspectionMode;
         public bool IsBeamSelectionVisible => IsAllShotStyleReviewMode || IsBeamInspectionMode || IsOneShotReviewMode;
         public bool IsSingleBeamSelectionMode => IsAllShotStyleReviewMode || IsOneShotReviewMode;
@@ -420,6 +440,7 @@
         public ImageSource? SampleGlassPreviewImage { get; private set; }
         public ImageSource? SampleGlassPreviewInspectionOverlayImage { get; private set; }
         public CButtonCommand SelectTabCommand { get; }
+        public CButtonCommand SelectWorkspaceCommand { get; }
         public CButtonCommand SelectModeCommand { get; }
         public CButtonCommand SelectSampleRuleUiCommand { get; }
         public CButtonCommand SelectSampleRuleScopeCommand { get; }
@@ -521,7 +542,7 @@
             _activePlanPointCount = 0;
             _totalReviewPointCount = 0;
             Tabs = [new("RUN", IsRunTab, SelectTabCommand)];
-            Modes = [Mode("ALL SHOT", ""), Mode("ONE SHOT", ""), Mode("ONE LINE", ""), Mode("BEAM INSPECTION", "")];
+            Modes = [Mode("ALL SHOT", ""), Mode("ONE SHOT", ""), Mode("ONE LINE", ""), Mode("BEAM INSPECTION", ""), Mode("ROUGH", ""), Mode("FINE", "")];
             TargetItems = [new("Recipe Name", _selectedRecipeIdProvider()), new("Glass ID", _productManager.Current?.GlassId ?? "-"), new("Tolerance", "-")];
             SelectionSummaryItems = [new("Status", "Configuration Error"), new("Reason", _planBuildError)];
             SelectedPointItems = [];
@@ -711,6 +732,56 @@
             _refreshScreen();
         }
 
+        private void SelectWorkspace(object? parameter)
+        {
+            if (parameter is not string workspace)
+            {
+                return;
+            }
+
+            workspace = workspace.Trim().ToUpperInvariant();
+            if (workspace is not ("RUN" or "RESULT")
+                || workspace.Equals(_selectedWorkspace, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            if (IsInspectionNavigationLocked)
+            {
+                CRecipeConfirmDialog.ShowWarning("검사 진행 중", "검사를 중지한 후 RUN / RESULT 화면을 변경해 주세요.");
+                return;
+            }
+
+            SetWorkspace(workspace);
+            if (workspace == "RESULT")
+            {
+                _ = RefreshInspectionResults();
+            }
+            else if (IsCorrectionInspectionMode)
+            {
+                _ = RefreshInspectionRunMode();
+            }
+        }
+
+        public void ShowInspectionResultWorkspace()
+        {
+            SetWorkspace("RESULT");
+        }
+
+        private void SetWorkspace(string workspace)
+        {
+            if (workspace.Equals(_selectedWorkspace, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            _selectedWorkspace = workspace;
+            OnPropertyChanged(nameof(IsInspectionRunWorkspace));
+            OnPropertyChanged(nameof(IsInspectionResultWorkspace));
+            SelectWorkspaceCommand.NotifyCanExecuteChanged();
+            _statusReporter($"Inspection workspace selected: {_selectedWorkspace}");
+        }
+
         private void SelectSampleRuleUi(object? parameter)
         {
             var rule = parameter?.ToString()?.Trim().ToUpperInvariant();
@@ -757,7 +828,7 @@
 
         private void SelectMode(object? parameter)
         {
-            if (IsReviewExecutionActive)
+            if (IsInspectionNavigationLocked)
             {
                 _statusReporter("Review is running. Stop the current review before changing the mode.");
                 return;
@@ -769,7 +840,7 @@
             }
 
             mode = mode.Trim().ToUpperInvariant();
-            if (mode is not ("ALL SHOT" or "ONE SHOT" or "ONE LINE" or "BEAM INSPECTION"))
+            if (mode is not ("ALL SHOT" or "ONE SHOT" or "ONE LINE" or "BEAM INSPECTION" or "ROUGH" or "FINE"))
                 return;
             InvalidateBeamInspectionResultLoad(clearLoaded: true);
             InvalidateRunReviewResultLoad(clearLoaded: true);
@@ -805,13 +876,65 @@
             OnPropertyChanged(nameof(IsRunCommandsVisible));
             OnPropertyChanged(nameof(IsRuleReviewMode));
             OnPropertyChanged(nameof(IsBeamInspectionMode));
+            OnPropertyChanged(nameof(IsRoughInspectionMode));
+            OnPropertyChanged(nameof(IsFineInspectionMode));
+            OnPropertyChanged(nameof(IsCorrectionInspectionMode));
+            OnPropertyChanged(nameof(IsStandardInspectionMode));
+            OnPropertyChanged(nameof(SelectedInspectionResultType));
             OnPropertyChanged(nameof(IsBeamSelectionVisible));
             OnPropertyChanged(nameof(IsSingleBeamSelectionMode));
             OnPropertyChanged(nameof(IsLastMeasurementVisible));
             OnPropertyChanged(nameof(BeamSelectionSummary));
             SelectRunCellCommand.NotifyCanExecuteChanged();
-            NotifyReviewExecutionCommandStates();
-            RefreshRunDisplayFromCachedContext();
+            // ApplyScreenData refreshes the beam rows for standard modes below.
+            // Avoid rebuilding them once here and then immediately rebuilding them again.
+            NotifyReviewExecutionCommandStates(refreshBeamInspectionDisplay: false);
+            if (IsStandardInspectionMode)
+            {
+                RefreshRunDisplayFromCachedContext();
+            }
+            else if (IsInspectionRunWorkspace)
+            {
+                _ = RefreshInspectionRunMode();
+            }
+            if (IsInspectionResultWorkspace)
+            {
+                _ = RefreshInspectionResults();
+            }
+        }
+
+        private async Task RefreshInspectionRunMode()
+        {
+            if (RefreshInspectionRunModeAsync is null)
+            {
+                return;
+            }
+
+            try
+            {
+                await RefreshInspectionRunModeAsync();
+            }
+            catch (Exception exception)
+            {
+                _statusReporter($"Inspection mode refresh failed: {exception.Message}");
+            }
+        }
+
+        private async Task RefreshInspectionResults()
+        {
+            if (RefreshInspectionResultsAsync is null)
+            {
+                return;
+            }
+
+            try
+            {
+                await RefreshInspectionResultsAsync();
+            }
+            catch (Exception exception)
+            {
+                _statusReporter($"Inspection result list refresh failed: {exception.Message}");
+            }
         }
 
         private void ToggleShot(object? parameter)
@@ -1683,6 +1806,14 @@
             }
         }
 
+        internal bool IsInspectionNavigationLocked => IsReviewExecutionActive
+            || IsExternalInspectionOperationActive?.Invoke() == true;
+
+        internal void NotifyExternalInspectionExecutionStateChanged()
+        {
+            NotifyReviewExecutionCommandStates();
+        }
+
         internal bool BlocksMenuNavigation
         {
             get
@@ -1714,6 +1845,12 @@
             if (plan is null || !TryParseShotKey(shotKey, out var cellNo, out var shotNo))
             {
                 return null;
+            }
+
+            if (ReferenceEquals(plan, _loadedRunReviewPlan)
+                && _loadedRunReviewPointsByPosition.TryGetValue((cellNo, shotNo), out var loadedPoint))
+            {
+                return loadedPoint;
             }
 
             return plan.FindPoint(cellNo, shotNo);
@@ -2352,6 +2489,26 @@
                 _openCorrectionReview?.Invoke();
         }
 
+        private async Task OpenSavedResultWorkspace(string? resultPath)
+        {
+            if (string.IsNullOrWhiteSpace(resultPath) || OpenSavedReviewResultAsync is null)
+            {
+                return;
+            }
+
+            try
+            {
+                await OpenSavedReviewResultAsync(resultPath);
+            }
+            catch (Exception exception)
+            {
+                _statusReporter($"검사 결과 자동 불러오기 실패: {exception.Message}");
+                CRecipeConfirmDialog.ShowWarning(
+                    "검사 결과 불러오기 실패",
+                    $"검사 결과는 저장되었지만 RESULT 화면에 자동으로 불러오지 못했습니다.\n\n{exception.Message}");
+            }
+        }
+
         private async Task RequestReviewStart(Func<string, string, bool>? confirm = null)
         {
             if (ShowLastResultLoadBlockedWarning())
@@ -2512,7 +2669,30 @@
                     return;
                 }
 
-                ApplyLoadedRunReviewResult(result);
+                var recipe = _lastRecipe;
+                if (recipe is null)
+                    return;
+                if (!result.RecipeId.Equals(recipe.Id, StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidDataException($"현재 Recipe({recipe.Id})와 결과 Recipe({result.RecipeId})가 다릅니다.");
+
+                var beamNo = result.Rows.Select(row => row.BeamNo).FirstOrDefault(number => number > 0);
+                if (beamNo <= 0)
+                    beamNo = Math.Max(1, result.BeamNo);
+                beamNo = Math.Clamp(beamNo, 1, Math.Max(1, _splitBeamCount * _splitBeamCount));
+                var prepared = await Task.Run(
+                    () => PrepareLoadedRunReviewResult(recipe, result, resultType, beamNo, request.Token),
+                    request.Token);
+                if (generation != _runReviewResultLoadGeneration
+                    || !IsRunResultLoadMode
+                    || IsReviewExecutionActive
+                    || !CurrentRunResultType.Equals(resultType, StringComparison.OrdinalIgnoreCase)
+                    || _lastRecipe is null
+                    || !_lastRecipe.Id.Equals(recipe.Id, StringComparison.OrdinalIgnoreCase))
+                {
+                    return;
+                }
+
+                ApplyLoadedRunReviewResult(result, prepared);
                 _statusReporter($"최근 {resultType} 결과 불러오기: {result.FileName}");
             }
             catch (OperationCanceledException) when (request.IsCancellationRequested)
@@ -2536,26 +2716,34 @@
             }
         }
 
-        private void ApplyLoadedRunReviewResult(ST_REVIEW_RESULT_FILE_DATA result)
+        private ST_LOADED_RUN_REVIEW_RESULT PrepareLoadedRunReviewResult(
+            ST_RECIPE_DEFINITION recipe,
+            ST_REVIEW_RESULT_FILE_DATA result,
+            string resultType,
+            int beamNo,
+            CancellationToken cancellationToken)
         {
-            if (IsReviewExecutionActive || _lastRecipe is null)
-                return;
-            if (!result.RecipeId.Equals(_lastRecipe.Id, StringComparison.OrdinalIgnoreCase))
-                throw new InvalidDataException($"현재 Recipe({_lastRecipe.Id})와 결과 Recipe({result.RecipeId})가 다릅니다.");
-
-            var beamNo = result.Rows.Select(row => row.BeamNo).FirstOrDefault(number => number > 0);
-            if (beamNo <= 0)
-                beamNo = Math.Max(1, result.BeamNo);
-            _selectedRunBeamNo = Math.Clamp(beamNo, 1, Math.Max(1, _splitBeamCount * _splitBeamCount));
-            var allPlan = _reviewManager.CreateAllPlan(_lastRecipe, _selectedRunBeamNo, result.ShiftOffsetX, result.ShiftOffsetY);
-            _lastAllPlan = allPlan;
-            _lastAllPlanBeamNo = _selectedRunBeamNo;
+            cancellationToken.ThrowIfCancellationRequested();
+            var allPlan = _reviewManager.CreateAllPlan(recipe, beamNo, result.ShiftOffsetX, result.ShiftOffsetY);
+            var pointsByKey = new Dictionary<string, ST_REVIEW_PLAN_POINT>(allPlan.Points.Count, StringComparer.OrdinalIgnoreCase);
+            var pointsByCellAndName = new Dictionary<string, ST_REVIEW_PLAN_POINT>(allPlan.Points.Count, StringComparer.OrdinalIgnoreCase);
+            for (var index = 0; index < allPlan.Points.Count; index++)
+            {
+                if ((index & 0xFF) == 0)
+                    cancellationToken.ThrowIfCancellationRequested();
+                var point = allPlan.Points[index];
+                pointsByKey.TryAdd(CReviewManager.NormalizeShotKey(point.ShotKey), point);
+                pointsByCellAndName.TryAdd(CreateCellShotNameLookupKey(point.CellNo, ToMatrixShotName(point)), point);
+            }
 
             var measured = new Dictionary<string, (ST_REVIEW_PLAN_POINT Point, ST_REVIEW_RESULT_FILE_ROW Row)>(StringComparer.OrdinalIgnoreCase);
-            foreach (var row in result.Rows)
+            for (var index = 0; index < result.Rows.Count; index++)
             {
-                var point = FindPointByShotKey(allPlan, row.ShotKey)
-                    ?? allPlan.GetCellPoints(row.CellNo).FirstOrDefault(item => ToMatrixShotName(item).Equals(row.ShotName, StringComparison.OrdinalIgnoreCase));
+                if ((index & 0xFF) == 0)
+                    cancellationToken.ThrowIfCancellationRequested();
+                var row = result.Rows[index];
+                pointsByKey.TryGetValue(CReviewManager.NormalizeShotKey(row.ShotKey), out var point);
+                point ??= pointsByCellAndName.GetValueOrDefault(CreateCellShotNameLookupKey(row.CellNo, row.ShotName));
                 if (point is not null)
                     measured[point.ShotKey] = (point, row);
             }
@@ -2563,40 +2751,91 @@
             if (measured.Count == 0)
                 throw new InvalidDataException("현재 Recipe에서 결과 Shot을 찾을 수 없습니다.");
 
-            var displayPoints = allPlan.Points.Select(point =>
+            var calculateBeamPosition = CReviewManager.CreateShotBeamPositionCalculator(
+                recipe,
+                allPlan.StageScanDirectionY,
+                result.ShiftOffsetX,
+                result.ShiftOffsetY);
+            var displayPoints = new ST_REVIEW_PLAN_POINT[allPlan.Points.Count];
+            var pointsByPosition = new Dictionary<(int CellNo, int ShotNo), ST_REVIEW_PLAN_POINT>(allPlan.Points.Count);
+            for (var index = 0; index < allPlan.Points.Count; index++)
             {
+                if ((index & 0xFF) == 0)
+                    cancellationToken.ThrowIfCancellationRequested();
+                var point = allPlan.Points[index];
                 if (!measured.TryGetValue(point.ShotKey, out var item))
-                    return point with { State = EN_REVIEW_POINT_STATE.Ready, Judge = "WAIT", ErrorX = 0.0, ErrorY = 0.0, VisionResultCode = null, NgReason = "" };
-                var rowBeam = item.Row.BeamNo > 0 ? item.Row.BeamNo : _selectedRunBeamNo;
-                var target = ResolveBeamTargetPoint(point, rowBeam, result.ShiftOffsetX, result.ShiftOffsetY) ?? point;
-                var judge = item.Row.Judge.Trim().ToUpperInvariant();
-                var isOk = judge == "OK";
-                return target with
                 {
-                    State = isOk ? EN_REVIEW_POINT_STATE.Ok : EN_REVIEW_POINT_STATE.Ng,
-                    Judge = isOk ? "OK" : "NG",
-                    ErrorX = item.Row.ErrorX,
-                    ErrorY = item.Row.ErrorY,
-                    VisionResultCode = item.Row.VisionResultCode,
-                    NgReason = item.Row.NgReason
-                };
-            }).ToArray();
-            _loadedRunReviewResult = result;
-            _loadedRunReviewPlan = allPlan with
+                    displayPoints[index] = point with { State = EN_REVIEW_POINT_STATE.Ready, Judge = "WAIT", ErrorX = 0.0, ErrorY = 0.0, VisionResultCode = null, NgReason = "" };
+                }
+                else
+                {
+                    var rowBeam = item.Row.BeamNo > 0 ? item.Row.BeamNo : beamNo;
+                    var target = point with { BeamNo = rowBeam };
+                    try
+                    {
+                        var position = calculateBeamPosition(point, rowBeam);
+                        target = target with { ReviewTargetX = position.ReviewX, ReviewTargetY = position.StageY };
+                    }
+                    catch (InvalidOperationException)
+                    {
+                    }
+
+                    var judge = item.Row.Judge.Trim().ToUpperInvariant();
+                    var isOk = judge == "OK";
+                    displayPoints[index] = target with
+                    {
+                        State = isOk ? EN_REVIEW_POINT_STATE.Ok : EN_REVIEW_POINT_STATE.Ng,
+                        Judge = isOk ? "OK" : "NG",
+                        ErrorX = item.Row.ErrorX,
+                        ErrorY = item.Row.ErrorY,
+                        VisionResultCode = item.Row.VisionResultCode,
+                        NgReason = item.Row.NgReason
+                    };
+                }
+
+                pointsByPosition[(displayPoints[index].CellNo, displayPoints[index].ShotNo)] = displayPoints[index];
+            }
+
+            var displayPlan = allPlan with
             {
                 Points = displayPoints,
-                ResultType = CurrentRunResultType,
+                ResultType = resultType,
                 ShiftOffsetX = result.ShiftOffsetX,
                 ShiftOffsetY = result.ShiftOffsetY
             };
-            var first = measured.Values.OrderBy(item => item.Point.CellNo).ThenBy(item => item.Point.ShotNo).First().Point;
-            _selectedRunCellNo = first.CellNo;
-            _selectedRunShotKey = first.ShotKey;
+            var first = measured.Values
+                .OrderBy(item => item.Point.CellNo)
+                .ThenBy(item => item.Point.ShotNo)
+                .First().Point;
+            return new ST_LOADED_RUN_REVIEW_RESULT(
+                beamNo,
+                allPlan,
+                displayPlan,
+                first,
+                measured.Keys.ToArray(),
+                pointsByPosition);
+        }
+
+        private void ApplyLoadedRunReviewResult(
+            ST_REVIEW_RESULT_FILE_DATA result,
+            ST_LOADED_RUN_REVIEW_RESULT prepared)
+        {
+            if (IsReviewExecutionActive)
+                return;
+
+            _selectedRunBeamNo = prepared.BeamNo;
+            _lastAllPlan = prepared.AllPlan;
+            _lastAllPlanBeamNo = prepared.BeamNo;
+            _loadedRunReviewResult = result;
+            _loadedRunReviewPlan = prepared.DisplayPlan;
+            _loadedRunReviewPointsByPosition = prepared.PointsByPosition;
+            _selectedRunCellNo = prepared.FirstPoint.CellNo;
+            _selectedRunShotKey = prepared.FirstPoint.ShotKey;
             _runtimeBrowseShotKey = "";
             if (IsOneLineReviewMode)
             {
                 _selectedLineShotKeys.Clear();
-                _selectedLineShotKeys.UnionWith(measured.Keys);
+                _selectedLineShotKeys.UnionWith(prepared.MeasuredShotKeys);
             }
 
             RefreshRunDisplayFromCachedContext();
@@ -2623,8 +2862,20 @@
             {
                 _loadedRunReviewResult = null;
                 _loadedRunReviewPlan = null;
+                _loadedRunReviewPointsByPosition = new Dictionary<(int CellNo, int ShotNo), ST_REVIEW_PLAN_POINT>();
             }
         }
+
+        private static string CreateCellShotNameLookupKey(int cellNo, string shotName) =>
+            $"{cellNo.ToString(CultureInfo.InvariantCulture)}|{shotName.Trim()}";
+
+        private sealed record ST_LOADED_RUN_REVIEW_RESULT(
+            int BeamNo,
+            ST_REVIEW_PLAN AllPlan,
+            ST_REVIEW_PLAN DisplayPlan,
+            ST_REVIEW_PLAN_POINT FirstPoint,
+            IReadOnlyCollection<string> MeasuredShotKeys,
+            IReadOnlyDictionary<(int CellNo, int ShotNo), ST_REVIEW_PLAN_POINT> PointsByPosition);
 
         private void NotifyRunResultLoadState()
         {
@@ -2822,7 +3073,10 @@
                 if (result.State == EN_REVIEW_SEQUENCE_STATE.Failed)
                     CRecipeConfirmDialog.ShowWarning("Beam Inspection 실패", result.Message);
                 else if (result.State == EN_REVIEW_SEQUENCE_STATE.Completed)
+                {
                     CRecipeConfirmDialog.ShowCompletion("Beam Inspection", $"검사가 완료되었습니다.\n완료 {result.CompletedCount} Beam / NG {result.NgCount}\n결과 저장: {result.SavedPath}");
+                    await OpenSavedResultWorkspace(result.SavedPath);
+                }
             }
             catch (OperationCanceledException)
             {
@@ -3636,7 +3890,10 @@
                 if (!string.IsNullOrWhiteSpace(result.ResultSaveError))
                     warn("One Shot 결과 저장", result.ResultSaveError);
                 else if (operation != EN_ONE_SHOT_ACTION.Move && !string.IsNullOrWhiteSpace(result.ResultFilePath))
+                {
                     _statusReporter($"One Shot 결과 저장: {result.ResultFilePath}");
+                    await OpenSavedResultWorkspace(result.ResultFilePath);
+                }
             }
             catch (OperationCanceledException)
             {
@@ -4056,7 +4313,10 @@
                 {
                     _statusReporter($"{status.Message} ({status.CompletedCount}/{status.TotalCount}, NG={status.NgCount}) " + $"[{productLink.Message}]");
                     if (status.State == EN_REVIEW_SEQUENCE_STATE.Completed)
+                    {
                         _statusReporter($"Review 결과 저장: {_reviewManager.LastSavedResultPath ?? "-"}");
+                        await OpenSavedResultWorkspace(_reviewManager.LastSavedResultPath);
+                    }
                 }
 
                 _refreshScreen();
@@ -4119,13 +4379,14 @@
             return Task.FromResult<(string? ProductId, string Message)>((null, "UNLINKED REVIEW: Product process does not match the current Station process"));
         }
 
-        private void NotifyReviewExecutionCommandStates()
+        private void NotifyReviewExecutionCommandStates(bool refreshBeamInspectionDisplay = true)
         {
             OneShotActionCommand?.NotifyCanExecuteChanged();
             StartCommand.NotifyCanExecuteChanged();
             StopCommand.NotifyCanExecuteChanged();
             RetryCommand.NotifyCanExecuteChanged();
             SelectTabCommand.NotifyCanExecuteChanged();
+            SelectWorkspaceCommand.NotifyCanExecuteChanged();
             SelectModeCommand.NotifyCanExecuteChanged();
             OpenCorrectionReviewCommand.NotifyCanExecuteChanged();
             SelectRunBeamCommand.NotifyCanExecuteChanged();
@@ -4153,7 +4414,10 @@
             OnPropertyChanged(nameof(CanLoadRunReviewResult));
             OnPropertyChanged(nameof(CanClearLoadedRunReviewResult));
             OnPropertyChanged(nameof(RunResultLoadStatus));
-            RefreshBeamInspectionDisplay();
+            if (refreshBeamInspectionDisplay)
+            {
+                RefreshBeamInspectionDisplay();
+            }
             SelectInspectionMethodCommand.NotifyCanExecuteChanged();
             OnPropertyChanged(nameof(CanSelectInspectionMethod));
             TogglePointCommand.NotifyCanExecuteChanged();
@@ -4369,7 +4633,7 @@
             , settings: _cameraSettings?.LoadSection(EN_SETTING_TAB.Motor)) : emptyPreview;
             _activePlanPointCount = activePointCount;
             Tabs = [new("RUN", IsRunTab, SelectTabCommand)];
-            Modes = [Mode("ALL SHOT", ""), Mode("ONE SHOT", ""), Mode("ONE LINE", ""), Mode("BEAM INSPECTION", "")];
+            Modes = [Mode("ALL SHOT", ""), Mode("ONE SHOT", ""), Mode("ONE LINE", ""), Mode("BEAM INSPECTION", ""), Mode("ROUGH", ""), Mode("FINE", "")];
             TargetItems = [
                 new("Recipe Name", reviewPlan.RecipeId), 
                 new("Glass ID", _productManager.Current?.GlassId ?? "-"), 

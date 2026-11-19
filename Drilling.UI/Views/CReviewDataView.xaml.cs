@@ -29,6 +29,12 @@ namespace Drilling.UI.Views
 
     public partial class CReviewDataView : UserControl
     {
+        public static readonly DependencyProperty IsInspectionModeProperty = DependencyProperty.Register(
+            nameof(IsInspectionMode),
+            typeof(bool),
+            typeof(CReviewDataView),
+            new PropertyMetadata(false));
+
         private FrameworkElement? _resultEditDragSurface;
         private Rectangle? _resultEditDragRectangle;
         private Point _resultEditDragStart;
@@ -39,12 +45,23 @@ namespace Drilling.UI.Views
             InitializeComponent();
         }
 
+        public bool IsInspectionMode
+        {
+            get => (bool)GetValue(IsInspectionModeProperty);
+            set => SetValue(IsInspectionModeProperty, value);
+        }
+
         private async void ReviewDataView_IsVisibleChanged(
             object sender,
             DependencyPropertyChangedEventArgs eventArgs)
         {
             if (IsVisible && DataContext is CMenuCorrection.CReviewDataPanel panel)
             {
+                if (IsInspectionMode)
+                {
+                    return;
+                }
+
                 await panel.ReloadWhenVisible();
             }
         }

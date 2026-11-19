@@ -557,53 +557,92 @@
                             Command="{Binding CurrentScreen.Review.SelectModeCommand}"
                             CommandParameter="ONE LINE"
                             Tag="{Binding CurrentScreen.Review.IsOneLineReviewMode}" />
+                    <Button Content="BEAM INSPECTION"
+                            MinWidth="154"
+                            Style="{StaticResource ReviewModeChoiceButton}"
+                            Command="{Binding CurrentScreen.Review.SelectModeCommand}"
+                            CommandParameter="BEAM INSPECTION"
+                            Tag="{Binding CurrentScreen.Review.IsBeamInspectionMode}" />
                 </StackPanel>
 
                 <Border Grid.Column="2"
                         Width="1"
                         Height="30"
-                        Margin="12,0,2,0"
+                        Margin="10,0"
                         VerticalAlignment="Center"
                         Background="{DynamicResource PanelBorderBrush}" />
 
-                <Button Grid.Column="3"
-                        Content="BEAM INSPECTION"
-                        Style="{StaticResource ReviewDiagnosticModeChoiceButton}"
-                        Command="{Binding CurrentScreen.Review.SelectModeCommand}"
-                        CommandParameter="BEAM INSPECTION"
-                        Tag="{Binding CurrentScreen.Review.IsBeamInspectionMode}" />
+                <StackPanel Grid.Column="3" Orientation="Horizontal">
+                    <Button Content="ROUGH"
+                            MinWidth="116"
+                            Style="{StaticResource ReviewModeChoiceButton}"
+                            Command="{Binding CurrentScreen.Review.SelectModeCommand}"
+                            CommandParameter="ROUGH"
+                            Tag="{Binding CurrentScreen.Review.IsRoughInspectionMode}" />
+                    <Button Content="FINE"
+                            MinWidth="116"
+                            Margin="0"
+                            Style="{StaticResource ReviewModeChoiceButton}"
+                            Command="{Binding CurrentScreen.Review.SelectModeCommand}"
+                            CommandParameter="FINE"
+                            Tag="{Binding CurrentScreen.Review.IsFineInspectionMode}" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="4"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center">
+                    <Button Content="RUN"
+                            Width="104"
+                            MinWidth="0"
+                            Style="{StaticResource ReviewModeChoiceButton}"
+                            Command="{Binding CurrentScreen.Review.SelectWorkspaceCommand}"
+                            CommandParameter="RUN"
+                            Tag="{Binding CurrentScreen.Review.IsInspectionRunWorkspace}" />
+                    <Button Content="RESULT"
+                            Width="104"
+                            MinWidth="0"
+                            Margin="0"
+                            Style="{StaticResource ReviewModeChoiceButton}"
+                            Command="{Binding CurrentScreen.Review.SelectWorkspaceCommand}"
+                            CommandParameter="RESULT"
+                            Tag="{Binding CurrentScreen.Review.IsInspectionResultWorkspace}" />
+                </StackPanel>
             </Grid>
         </Border>
 
-        <Grid Grid.Row="2"
-              Visibility="{Binding CurrentScreen.Review.IsRunTab, Converter={StaticResource BooleanToVisibilityConverter}}">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="0" />
-                <ColumnDefinition>
-                    <ColumnDefinition.Style>
-                        <Style TargetType="ColumnDefinition">
-                            <Setter Property="Width" Value="*" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding CurrentScreen.Review.IsBeamInspectionMode}" Value="True">
-                                    <Setter Property="Width" Value="2*" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </ColumnDefinition.Style>
-                </ColumnDefinition>
-                <ColumnDefinition>
-                    <ColumnDefinition.Style>
-                        <Style TargetType="ColumnDefinition">
-                            <Setter Property="Width" Value="400" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding CurrentScreen.Review.IsBeamInspectionMode}" Value="True">
-                                    <Setter Property="Width" Value="*" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </ColumnDefinition.Style>
-                </ColumnDefinition>
-            </Grid.ColumnDefinitions>
+        <Grid x:Name="RunWorkspace"
+              Grid.Row="2"
+              Visibility="{Binding CurrentScreen.Review.IsInspectionRunWorkspace, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <Grid x:Name="StandardInspectionRunWorkspace"
+                  Visibility="{Binding CurrentScreen.Review.IsStandardInspectionMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="0" />
+                    <ColumnDefinition>
+                        <ColumnDefinition.Style>
+                            <Style TargetType="ColumnDefinition">
+                                <Setter Property="Width" Value="*" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CurrentScreen.Review.IsBeamInspectionMode}" Value="True">
+                                        <Setter Property="Width" Value="2*" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ColumnDefinition.Style>
+                    </ColumnDefinition>
+                    <ColumnDefinition>
+                        <ColumnDefinition.Style>
+                            <Style TargetType="ColumnDefinition">
+                                <Setter Property="Width" Value="400" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CurrentScreen.Review.IsBeamInspectionMode}" Value="True">
+                                        <Setter Property="Width" Value="*" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ColumnDefinition.Style>
+                    </ColumnDefinition>
+                </Grid.ColumnDefinitions>
 
             <Border Grid.Column="0"
                     Style="{StaticResource PanelBorder}"
@@ -2091,7 +2130,22 @@
                     </StackPanel>
                 </Border>
             </Grid>
+            </Grid>
+
+            <views:CSimpleCorrectionView x:Name="RoughInspectionRunWorkspace"
+                DataContext="{Binding CurrentScreen.Correction.Rough}"
+                Visibility="{Binding DataContext.CurrentScreen.Review.IsRoughInspectionMode, RelativeSource={RelativeSource AncestorType=views:CReviewView}, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+            <views:CFineCorrectionView x:Name="FineInspectionRunWorkspace"
+                DataContext="{Binding CurrentScreen.Correction.Fine}"
+                Visibility="{Binding DataContext.CurrentScreen.Review.IsFineInspectionMode, RelativeSource={RelativeSource AncestorType=views:CReviewView}, Converter={StaticResource BooleanToVisibilityConverter}}" />
         </Grid>
+
+        <views:CReviewDataView x:Name="InspectionResultWorkspace"
+                               Grid.Row="2"
+                               IsInspectionMode="True"
+                               DataContext="{Binding CurrentScreen.Correction.InspectionReviewData}"
+                               Visibility="{Binding DataContext.CurrentScreen.Review.IsInspectionResultWorkspace, RelativeSource={RelativeSource AncestorType=views:CReviewView}, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
         <Border x:Name="ReviewResultsPanel" Grid.Row="3"
                 Style="{StaticResource PanelBorder}"

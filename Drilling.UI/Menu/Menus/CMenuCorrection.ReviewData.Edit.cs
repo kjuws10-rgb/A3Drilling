@@ -94,7 +94,8 @@ namespace Drilling.UI.Menu.Menus
             public CButtonCommand AddResultEditCopyTargetsCommand { get; private set; } = null!;
             public CButtonCommand RemoveResultEditCopyTargetCommand { get; private set; } = null!;
             public CButtonCommand ClearResultEditCopyTargetsCommand { get; private set; } = null!;
-            public CButtonCommand CopyResultEditXyCommand { get; private set; } = null!;
+            public CButtonCommand CopyResultEditXCommand { get; private set; } = null!;
+            public CButtonCommand CopyResultEditYCommand { get; private set; } = null!;
             public CButtonCommand CopyResultEditJudgeCommand { get; private set; } = null!;
             public CButtonCommand CopyResultEditAllCommand { get; private set; } = null!;
             public CButtonCommand SaveResultEditCommand { get; private set; } = null!;
@@ -111,7 +112,8 @@ namespace Drilling.UI.Menu.Menus
                 AddResultEditCopyTargetsCommand = new CButtonCommand(AddResultEditCopyTargets, _ => CanAddResultEditCopyTargets);
                 RemoveResultEditCopyTargetCommand = new CButtonCommand(RemoveResultEditCopyTarget, _ => CanRemoveResultEditCopyTarget);
                 ClearResultEditCopyTargetsCommand = new CButtonCommand(ClearResultEditCopyTargets, _ => CanClearResultEditCopyTargets);
-                CopyResultEditXyCommand = new CButtonCommand(CopyResultEditXy, _ => CanApplyResultEditCopy);
+                CopyResultEditXCommand = new CButtonCommand(CopyResultEditX, _ => CanApplyResultEditCopy);
+                CopyResultEditYCommand = new CButtonCommand(CopyResultEditY, _ => CanApplyResultEditCopy);
                 CopyResultEditJudgeCommand = new CButtonCommand(CopyResultEditJudge, _ => CanApplyResultEditCopy);
                 CopyResultEditAllCommand = new CButtonCommand(CopyResultEditAll, _ => CanApplyResultEditCopy);
                 SaveResultEditCommand = new CButtonCommand(SaveResultEdit, _ => CanSaveResultEdit);
@@ -366,22 +368,27 @@ namespace Drilling.UI.Menu.Menus
                 NotifyResultEditState();
             }
 
-            private void CopyResultEditXy(object? parameter)
+            private void CopyResultEditX(object? parameter)
             {
-                ApplyResultEditCopy(copyXy: true, copyJudge: false, "RESULT X/Y COPIED");
+                ApplyResultEditCopy(copyX: true, copyY: false, copyJudge: false, "RESULT X COPIED");
+            }
+
+            private void CopyResultEditY(object? parameter)
+            {
+                ApplyResultEditCopy(copyX: false, copyY: true, copyJudge: false, "RESULT Y COPIED");
             }
 
             private void CopyResultEditJudge(object? parameter)
             {
-                ApplyResultEditCopy(copyXy: false, copyJudge: true, "JUDGE COPIED");
+                ApplyResultEditCopy(copyX: false, copyY: false, copyJudge: true, "JUDGE COPIED");
             }
 
             private void CopyResultEditAll(object? parameter)
             {
-                ApplyResultEditCopy(copyXy: true, copyJudge: true, "RESULT X/Y AND JUDGE COPIED");
+                ApplyResultEditCopy(copyX: true, copyY: true, copyJudge: true, "RESULT X/Y AND JUDGE COPIED");
             }
 
-            private void ApplyResultEditCopy(bool copyXy, bool copyJudge, string status)
+            private void ApplyResultEditCopy(bool copyX, bool copyY, bool copyJudge, string status)
             {
                 if (_resultEditCopySource is null)
                 {
@@ -390,9 +397,13 @@ namespace Drilling.UI.Menu.Menus
 
                 foreach (var target in _resultEditCopyTargets)
                 {
-                    if (copyXy)
+                    if (copyX)
                     {
                         target.EditedXText = _resultEditCopySource.OriginalXText;
+                    }
+
+                    if (copyY)
+                    {
                         target.EditedYText = _resultEditCopySource.OriginalYText;
                     }
 
@@ -609,7 +620,8 @@ namespace Drilling.UI.Menu.Menus
                 AddResultEditCopyTargetsCommand?.NotifyCanExecuteChanged();
                 RemoveResultEditCopyTargetCommand?.NotifyCanExecuteChanged();
                 ClearResultEditCopyTargetsCommand?.NotifyCanExecuteChanged();
-                CopyResultEditXyCommand?.NotifyCanExecuteChanged();
+                CopyResultEditXCommand?.NotifyCanExecuteChanged();
+                CopyResultEditYCommand?.NotifyCanExecuteChanged();
                 CopyResultEditJudgeCommand?.NotifyCanExecuteChanged();
                 CopyResultEditAllCommand?.NotifyCanExecuteChanged();
                 SaveResultEditCommand?.NotifyCanExecuteChanged();

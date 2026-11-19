@@ -17,7 +17,11 @@ namespace Drilling.UI.Menu.Menus
         {
             private bool _isOffsetBusy;
 
-            public bool CanEditOffsets => HasLoadedData && !_isOffsetBusy && !_isDataLoading && !IsBusy;
+            public bool CanEditOffsets => !IsInspectionOffsetRestricted
+                && HasLoadedData
+                && !_isOffsetBusy
+                && !_isDataLoading
+                && !IsBusy;
             public bool CanApplyOffset => CanEditOffsets
                 && _loadedCatalog is { } catalog
                 && IsOffsetApplicableResultType(catalog.ResultType)
@@ -27,6 +31,11 @@ namespace Drilling.UI.Menu.Menus
             {
                 get
                 {
+                    if (IsInspectionOffsetRestricted)
+                    {
+                        return InspectionOffsetRestrictionText;
+                    }
+
                     if (!HasLoadedData || _loadedCatalog is null)
                     {
                         return "검사 결과를 DATA LOAD한 뒤 Review Offset 작업을 사용할 수 있습니다.";
@@ -41,6 +50,7 @@ namespace Drilling.UI.Menu.Menus
                     {
                         "ALL_SHOT" => "ALL SHOT의 측정 OK 값을 같은 Shot의 Review Offset에 직접 누적합니다.",
                         "ONE_SHOT" => "ONE SHOT의 측정 OK 값을 선택 Shot의 Review Offset에 직접 누적합니다.",
+                        "ONE_LINE" => "ONE LINE의 측정 OK 값을 검사한 같은 Shot의 Review Offset에만 직접 누적합니다.",
                         "ROUGH" => "ROUGH 결과의 HEAD 또는 HEAD + CELL 범위에 측정 OK 값을 누적합니다.",
                         "FINE" => "FINE 측정값을 Cell 열별로 보간하여 Review Offset에 누적합니다.",
                         "AUTO" => "AUTO 검사 측정값을 Cell 열별로 보간하여 Review Offset에 누적합니다.",
@@ -276,7 +286,7 @@ namespace Drilling.UI.Menu.Menus
                 var applicationType = CreateApplicationType(resultType, result);
                 IReadOnlyList<ST_REVIEW_OFFSET_DELTA> deltas = resultType switch
                 {
-                    "ALL_SHOT" or "ONE_SHOT" => BuildDirectDeltas(result.Rows, pointLookup),
+                    "ALL_SHOT" or "ONE_SHOT" or "ONE_LINE" => BuildDirectDeltas(result.Rows, pointLookup),
                     "ROUGH" => BuildRoughDeltas(result, allPoints, pointLookup),
                     "FINE" or "AUTO" => BuildFineDeltas(result, allPoints, pointLookup),
                     _ => throw new InvalidOperationException($"{catalog.ResultType} 결과는 Review Offset 적용을 지원하지 않습니다.")
@@ -462,7 +472,10 @@ namespace Drilling.UI.Menu.Menus
             {
                 var hasSourceMetadata = rows.Any(row => !string.IsNullOrWhiteSpace(row.ResultSource));
                 return hasSourceMetadata
-                    ? rows.Where(row => row.ResultSource.Equals("MEASURED", StringComparison.OrdinalIgnoreCase))
+                    ? rows.Where(row =>
+                        row.ResultSource.Equals("MEASURED", StringComparison.OrdinalIgnoreCase)
+                        || row.ResultSource.Equals("RETAINED", StringComparison.OrdinalIgnoreCase)
+                        || row.ResultSource.Equals("EDITED", StringComparison.OrdinalIgnoreCase))
                     : rows.Where(row => row.Judge.Equals("OK", StringComparison.OrdinalIgnoreCase) || row.Judge.Equals("NG", StringComparison.OrdinalIgnoreCase));
             }
 
@@ -504,6 +517,7 @@ namespace Drilling.UI.Menu.Menus
                 {
                     "ALL_SHOT" => new("DIRECT_ALL", "DIRECT / ALL SHOT", "측정 OK Shot의 변환된 X/Y를 같은 Shot에 직접 누적"),
                     "ONE_SHOT" => new("DIRECT_ONE", "DIRECT / ONE SHOT", "선택 검사 Shot의 변환된 X/Y를 같은 Shot에 직접 누적"),
+                    "ONE_LINE" => new("DIRECT_LINE", "DIRECT / ONE LINE", "검사한 Line의 측정 OK X/Y를 같은 Shot에만 직접 누적"),
                     "ROUGH" => new("ROUGH", $"ROUGH / {result.RuleScope.Trim().ToUpperInvariant().Replace("_", " + ", StringComparison.Ordinal)}", "측정 OK 값을 같은 Head 또는 Head + Cell 범위에 누적"),
                     "FINE" => new("FINE", $"FINE / {Math.Max(result.LineCount, result.FineLineCount)} LINE", "Cell의 같은 X 열에서 측정값을 Y 방향 보간 후 누적"),
                     "AUTO" => new("AUTO_FINE", $"AUTO / {Math.Max(result.LineCount, result.FineLineCount)} LINE", "자동 검사 측정값을 Cell의 같은 X 열에서 Y 방향 보간 후 누적"),
@@ -513,7 +527,7 @@ namespace Drilling.UI.Menu.Menus
 
             private static bool IsOffsetApplicableResultType(string resultType)
             {
-                return resultType.Trim().ToUpperInvariant() is "ALL_SHOT" or "ONE_SHOT" or "ROUGH" or "FINE" or "AUTO";
+                return resultType.Trim().ToUpperInvariant() is "ALL_SHOT" or "ONE_SHOT" or "ONE_LINE" or "ROUGH" or "FINE" or "AUTO";
             }
 
             private void EnsureLoadedResultUnchanged(string filePath, string recipeId)

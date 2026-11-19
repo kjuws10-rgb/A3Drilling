@@ -256,20 +256,11 @@
                     </Trigger></Style.Triggers>
                 </Style>
             </TabControl.Resources>
-            <TabItem Header="INSPECTION" IsSelected="True">
-                <views:CReviewView Margin="0,8,0,0" />
-            </TabItem>
-            <TabItem Header="SIMPLE">
+            <TabItem Header="SIMPLE" IsSelected="True">
                 <views:CSimpleCorrectionView Margin="0,8,0,0" DataContext="{Binding CurrentScreen.Correction.Simple}" />
             </TabItem>
-            <TabItem Header="ROUGH">
-                <views:CSimpleCorrectionView Margin="0,8,0,0" DataContext="{Binding CurrentScreen.Correction.Rough}" />
-            </TabItem>
-            <TabItem Header="FINE">
-                <views:CFineCorrectionView Margin="0,8,0,0" DataContext="{Binding CurrentScreen.Correction.Fine}" />
-            </TabItem>
-            <TabItem Header="REVIEW DATA">
-                <views:CReviewDataView Margin="0,8,0,0" DataContext="{Binding CurrentScreen.Correction.ReviewData}" />
+            <TabItem Header="INSPECTION">
+                <views:CReviewView Margin="0,8,0,0" />
             </TabItem>
         </TabControl>
 

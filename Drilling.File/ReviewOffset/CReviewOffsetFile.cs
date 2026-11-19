@@ -46,11 +46,16 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
     private readonly SemaphoreSlim _fileLock = new(1, 1);
     private readonly Dictionary<string, ST_APPLY_HISTORY_CACHE> _applyHistoryCache
         = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, ST_RECIPE_APPLY_HISTORY_CACHE> _recipeApplyHistoryCache
+        = new(StringComparer.OrdinalIgnoreCase);
 
     private sealed record ST_APPLY_HISTORY_CACHE(
         long Length,
         DateTime LastWriteTimeUtc,
         IReadOnlyList<ST_REVIEW_OFFSET_SOURCE_APPLICATION> Rows);
+
+    private sealed record ST_RECIPE_APPLY_HISTORY_CACHE(
+        Dictionary<string, ST_REVIEW_OFFSET_SOURCE_APPLICATION> LatestBySource);
 
     public CReviewOffsetFile(string configRoot, Func<DateTimeOffset>? now = null)
     {
@@ -131,10 +136,10 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
             cancellationToken.ThrowIfCancellationRequested();
             var normalizedRecipeId = RequireRecipeId(recipeId, "Review Offset 적용 이력 조회");
             var sourceIdentity = NormalizeSourceIdentity(sourceResultFile, requireExistingFile: false);
-            var appliedAt = _now();
-            var historyPath = GetApplyHistoryPath(normalizedRecipeId, appliedAt);
-            var historyRows = LoadApplyHistory(historyPath, cancellationToken);
-            return FindSourceApplicationCore(sourceIdentity, historyRows);
+            return FindSourceApplicationAcrossHistory(
+                normalizedRecipeId,
+                sourceIdentity,
+                cancellationToken);
         }
         finally
         {
@@ -158,7 +163,10 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
             var appliedAt = _now();
             var historyPath = GetApplyHistoryPath(normalizedRecipeId, appliedAt);
             var historyRows = LoadApplyHistory(historyPath, cancellationToken);
-            var existing = FindSourceApplicationCore(sourceIdentity, historyRows);
+            var existing = FindSourceApplicationAcrossHistory(
+                normalizedRecipeId,
+                sourceIdentity,
+                cancellationToken);
             if (existing is not null && !allowDuplicate)
             {
                 throw new CReviewOffsetDuplicateSourceException(existing);
@@ -181,6 +189,7 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
                     historyRows,
                     application,
                     cancellationToken);
+                UpdateRecipeApplyHistoryCache(normalizedRecipeId, application);
                 return saved;
             }
             catch (Exception historyError)
@@ -315,6 +324,8 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
                     WriteApplyHistory(historyPath, retainedHistory, cancellationToken);
                 }
 
+                _recipeApplyHistoryCache.Remove(normalizedRecipeId);
+
                 var latestAfterRollback = EnumerateActiveFiles(directory).FirstOrDefault();
                 var expectedCurrentPath = current.FilePath;
                 if (!string.Equals(
@@ -365,11 +376,13 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
 
                 if (recoveryErrors.Count > 0)
                 {
+                    _recipeApplyHistoryCache.Remove(normalizedRecipeId);
                     throw new AggregateException(
                         "Review Offset 롤백 실패 후 파일 상태 복구에도 실패했습니다.",
                         new[] { rollbackError }.Concat(recoveryErrors));
                 }
 
+                _recipeApplyHistoryCache.Remove(normalizedRecipeId);
                 throw;
             }
 
@@ -393,14 +406,63 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
             .OrderByDescending(Path.GetFileName, StringComparer.OrdinalIgnoreCase);
     }
 
-    private static ST_REVIEW_OFFSET_SOURCE_APPLICATION? FindSourceApplicationCore(
+    private ST_REVIEW_OFFSET_SOURCE_APPLICATION? FindSourceApplicationAcrossHistory(
+        string recipeId,
         string sourceIdentity,
-        IReadOnlyList<ST_REVIEW_OFFSET_SOURCE_APPLICATION> historyRows)
+        CancellationToken cancellationToken)
     {
-        return historyRows
-            .Where(row => row.SourceResultFile.Equals(sourceIdentity, StringComparison.OrdinalIgnoreCase))
-            .OrderByDescending(row => row.AppliedAt)
-            .FirstOrDefault();
+        if (!_recipeApplyHistoryCache.TryGetValue(recipeId, out var cache))
+        {
+            var latestBySource = new Dictionary<string, ST_REVIEW_OFFSET_SOURCE_APPLICATION>(
+                StringComparer.OrdinalIgnoreCase);
+            var applyDirectory = Path.Combine(
+                GetRecipeOffsetDirectory(recipeId),
+                ApplyHistoryDirectoryName);
+            if (Directory.Exists(applyDirectory))
+            {
+                foreach (var historyPath in Directory.EnumerateFiles(
+                             applyDirectory,
+                             ApplyHistoryFileName,
+                             SearchOption.AllDirectories))
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    foreach (var application in LoadApplyHistory(historyPath, cancellationToken))
+                    {
+                        if (!latestBySource.TryGetValue(application.SourceResultFile, out var current)
+                            || application.AppliedAt > current.AppliedAt)
+                        {
+                            latestBySource[application.SourceResultFile] = application;
+                        }
+                    }
+                }
+            }
+
+            cache = new ST_RECIPE_APPLY_HISTORY_CACHE(latestBySource);
+            _recipeApplyHistoryCache[recipeId] = cache;
+        }
+
+        return cache.LatestBySource.GetValueOrDefault(sourceIdentity);
+    }
+
+    private void UpdateRecipeApplyHistoryCache(
+        string recipeId,
+        ST_REVIEW_OFFSET_SOURCE_APPLICATION application)
+    {
+        try
+        {
+            if (!_recipeApplyHistoryCache.TryGetValue(recipeId, out var cache))
+            {
+                return;
+            }
+
+            cache.LatestBySource[application.SourceResultFile] = application;
+        }
+        catch
+        {
+            // History is already committed. Cache failures must not invalidate a
+            // valid Offset/history pair; the next lookup rebuilds the index.
+            _recipeApplyHistoryCache.Remove(recipeId);
+        }
     }
 
     private IReadOnlyList<ST_REVIEW_OFFSET_SOURCE_APPLICATION> LoadApplyHistory(

@@ -14,6 +14,19 @@
             <Setter Property="ScrollViewer.CanContentScroll" Value="True" /><Setter Property="RowHeight" Value="30" />
             <Setter Property="FontSize" Value="12" /><Setter Property="SelectionMode" Value="Single" />
         </Style>
+        <DataTemplate x:Key="ReviewLevelCellTemplate">
+            <Border Background="{Binding LevelBrush}"
+                    CornerRadius="2"
+                    Padding="7,2"
+                    Margin="5,3"
+                    HorizontalAlignment="Center"
+                    MinWidth="38">
+                <TextBlock Text="{Binding Level}"
+                           Foreground="{Binding LevelForeground}"
+                           FontWeight="Bold"
+                           TextAlignment="Center" />
+            </Border>
+        </DataTemplate>
     </Window.Resources>
     <Grid Margin="12">
         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
@@ -30,6 +43,28 @@
                         <TextBlock Text="{Binding ReviewX}" FontWeight="Bold" /><TextBlock Text="  mm    " /><TextBlock Text="{Binding Mode}" />
                     </StackPanel>
                 </Grid>
+                <DockPanel Margin="0,7,0,0">
+                    <TextBlock Text="REVIEW LEVEL"
+                               FontSize="11"
+                               FontWeight="Bold"
+                               VerticalAlignment="Center"
+                               Margin="0,0,10,0" />
+                    <ItemsControl ItemsSource="{Binding ReviewLevelLegendItems}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,12,0">
+                                    <Border Width="10" Height="10" Background="{Binding ColorBrush}" Margin="0,0,4,0" VerticalAlignment="Center" />
+                                    <TextBlock FontSize="10" VerticalAlignment="Center">
+                                        <Run Text="{Binding Name}" FontWeight="Bold" /><Run Text="  " /><Run Text="{Binding RangeText}" />
+                                    </TextBlock>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </DockPanel>
             </StackPanel>
         </Border>
         <Grid Grid.Row="1"><Grid.ColumnDefinitions><ColumnDefinition Width="11*" /><ColumnDefinition Width="12*" /></Grid.ColumnDefinitions>
@@ -47,6 +82,7 @@
                                 <DataGridTextColumn Header="BEAM" Binding="{Binding Beam}" Width="48" />
                                 <DataGridTextColumn Header="Recv Target−Hole&#10;X / Y (mm)" Binding="{Binding Received}" Width="125" />
                                 <DataGridTextColumn Header="Vision Flip Convert&#10;X / Y (mm)" Binding="{Binding Converted}" Width="132" />
+                                <DataGridTemplateColumn Header="LEVEL" Width="62" CellTemplate="{StaticResource ReviewLevelCellTemplate}" />
                                 <DataGridTextColumn Header="초과량 / 원인" Binding="{Binding Excess}" Width="150" />
                             </DataGrid.Columns>
                         </DataGrid></TabItem>
@@ -72,6 +108,7 @@
                                 <DataGridTextColumn Header="BEAM" Binding="{Binding Beam}" Width="48" />
                                 <DataGridTextColumn Header="Recv Target−Hole&#10;X / Y (mm)" Binding="{Binding Received}" Width="125" />
                                 <DataGridTextColumn Header="Vision Flip Convert&#10;X / Y (mm)" Binding="{Binding Converted}" Width="132" />
+                                <DataGridTemplateColumn Header="LEVEL" Width="62" CellTemplate="{StaticResource ReviewLevelCellTemplate}" />
                                 <DataGridTextColumn Header="RESULT" Binding="{Binding Judge}" Width="75" />
                             </DataGrid.Columns>
                         </DataGrid></TabItem>

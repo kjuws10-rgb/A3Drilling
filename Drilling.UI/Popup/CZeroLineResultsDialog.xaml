@@ -14,6 +14,19 @@
                 <Setter Property="Foreground" Value="White" />
             </DataTrigger></Style.Triggers>
         </Style>
+        <DataTemplate x:Key="ReviewLevelCellTemplate">
+            <Border Background="{Binding LevelBrush}"
+                    CornerRadius="2"
+                    Padding="7,2"
+                    Margin="5,3"
+                    HorizontalAlignment="Center"
+                    MinWidth="38">
+                <TextBlock Text="{Binding Level}"
+                           Foreground="{Binding LevelForeground}"
+                           FontWeight="Bold"
+                           TextAlignment="Center" />
+            </Border>
+        </DataTemplate>
     </Window.Resources>
     <Grid Margin="14">
         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
@@ -30,6 +43,28 @@
                 <TextBlock Text="{Binding Summary}" FontSize="15" Margin="0,6,0,0" />
                 <TextBlock Text="{Binding Detail}" FontSize="12" Margin="0,5,0,0" TextWrapping="Wrap" />
                 <TextBlock Text="{Binding Tolerance}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,5,0,0" TextWrapping="Wrap" />
+                <DockPanel Margin="0,7,0,0">
+                    <TextBlock Text="REVIEW LEVEL"
+                               FontSize="11"
+                               FontWeight="Bold"
+                               VerticalAlignment="Center"
+                               Margin="0,0,10,0" />
+                    <ItemsControl ItemsSource="{Binding ReviewLevelLegendItems}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,12,0">
+                                    <Border Width="10" Height="10" Background="{Binding ColorBrush}" Margin="0,0,4,0" VerticalAlignment="Center" />
+                                    <TextBlock FontSize="10" VerticalAlignment="Center">
+                                        <Run Text="{Binding Name}" FontWeight="Bold" /><Run Text="  " /><Run Text="{Binding RangeText}" />
+                                    </TextBlock>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </DockPanel>
             </StackPanel>
         </Border>
         <DataGrid x:Name="ResultGrid" Grid.Row="1" Style="{StaticResource PlainDataGrid}"
@@ -47,6 +82,7 @@
                 <DataGridTextColumn Header="Recv Y&#10;(mm)" Binding="{Binding RecvY}" Width="90" ElementStyle="{StaticResource ResultText}" />
                 <DataGridTextColumn Header="Flip Convert X&#10;(mm)" Binding="{Binding ConvertedX}" Width="108" ElementStyle="{StaticResource ResultText}" />
                 <DataGridTextColumn Header="Flip Convert Y&#10;(mm)" Binding="{Binding ConvertedY}" Width="108" ElementStyle="{StaticResource ResultText}" />
+                <DataGridTemplateColumn Header="LEVEL" Width="66" CellTemplate="{StaticResource ReviewLevelCellTemplate}" />
                 <DataGridTextColumn Header="RESULT" Binding="{Binding Judge}" Width="80" ElementStyle="{StaticResource StateText}" />
                 <DataGridTextColumn Header="사유" Binding="{Binding Reason}" Width="*" MinWidth="170">
                     <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock" BasedOn="{StaticResource ResultText}">
@@ -60,6 +96,7 @@
                 <TextBlock Text="{Binding SelectedTitle}" FontWeight="Bold" FontSize="16" />
                 <TextBlock Text="{Binding SelectedRaw}" FontSize="13" Margin="0,7,0,0" TextWrapping="Wrap" />
                 <TextBlock Text="{Binding SelectedCoordinates}" FontSize="13" Margin="0,5,0,0" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding SelectedLevel}" Foreground="{Binding SelectedRow.LevelBrush}" FontWeight="Bold" FontSize="13" Margin="0,5,0,0" />
                 <TextBlock Text="{Binding SelectedReason}" Foreground="{Binding SelectedRow.StateBrush}" FontWeight="SemiBold" FontSize="13" Margin="0,5,0,0" TextWrapping="Wrap" />
             </StackPanel>
         </Border>

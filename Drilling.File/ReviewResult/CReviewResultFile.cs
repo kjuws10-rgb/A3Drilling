@@ -1320,7 +1320,7 @@
         }
 
         private static string Int(int value) => value.ToString(CultureInfo.InvariantCulture);
-        private static string Number(double value) => Math.Round(value, 3, MidpointRounding.AwayFromZero).ToString("0.000", CultureInfo.InvariantCulture);
+        private static string Number(double value) => FormatDouble(value);
         public override async Task<string> SaveZeroLine(ST_ZERO_LINE_RESULT_DATA data, CancellationToken token = default)
         {
             var directory = ZeroDefenceDirectory(data.Plan.RecipeId, data.Plan.GlassId);

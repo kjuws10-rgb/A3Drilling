@@ -27,7 +27,7 @@ public partial class CCorrectionView : UserControl
         }
 
         var review = root.CurrentScreen.Review;
-        if (review?.IsReviewExecutionActive == true && !ReferenceEquals(selected, _lastCorrectionReviewTab))
+        if (review?.IsInspectionNavigationLocked == true && !ReferenceEquals(selected, _lastCorrectionReviewTab))
         {
             RestoreCorrectionReviewTab(tabs);
             CRecipeConfirmDialog.ShowWarning("검사 진행 중", "현재 검사를 중지한 후 다른 탭으로 이동해 주세요.");

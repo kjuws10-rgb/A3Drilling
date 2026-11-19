@@ -16,11 +16,18 @@ public abstract class CBindingBase
     public event EventHandler? CanStopOneShotChanged;
     public event EventHandler? InspectionListCommitTextChanged;
     public event EventHandler? IsReviewHeadCardsVisibleChanged;
+    public event EventHandler? IsInspectionRunWorkspaceChanged;
+    public event EventHandler? IsInspectionResultWorkspaceChanged;
+    public event EventHandler? IsRoughInspectionModeChanged;
+    public event EventHandler? IsFineInspectionModeChanged;
+    public event EventHandler? IsCorrectionInspectionModeChanged;
+    public event EventHandler? IsStandardInspectionModeChanged;
     public event EventHandler? IsRunStageStatusVisibleChanged;
     public event EventHandler? IsShotInspectionOngoingChanged;
     public event EventHandler? IsSingleBeamSelectionModeChanged;
     public event EventHandler? ReviewLevelLegendItemsChanged;
     public event EventHandler? SelectedBeamInspectionAssignmentChanged;
+    public event EventHandler? SelectedInspectionResultTypeChanged;
     public event EventHandler? AbleBrushChanged;
     public event EventHandler? AccentBrushChanged;
     public event EventHandler? AccessChanged;
@@ -824,6 +831,24 @@ public abstract class CBindingBase
             case "IsReviewHeadCardsVisible":
                 IsReviewHeadCardsVisibleChanged?.Invoke(this, EventArgs.Empty);
                 break;
+            case "IsInspectionRunWorkspace":
+                IsInspectionRunWorkspaceChanged?.Invoke(this, EventArgs.Empty);
+                break;
+            case "IsInspectionResultWorkspace":
+                IsInspectionResultWorkspaceChanged?.Invoke(this, EventArgs.Empty);
+                break;
+            case "IsRoughInspectionMode":
+                IsRoughInspectionModeChanged?.Invoke(this, EventArgs.Empty);
+                break;
+            case "IsFineInspectionMode":
+                IsFineInspectionModeChanged?.Invoke(this, EventArgs.Empty);
+                break;
+            case "IsCorrectionInspectionMode":
+                IsCorrectionInspectionModeChanged?.Invoke(this, EventArgs.Empty);
+                break;
+            case "IsStandardInspectionMode":
+                IsStandardInspectionModeChanged?.Invoke(this, EventArgs.Empty);
+                break;
             case "IsRunStageStatusVisible":
                 IsRunStageStatusVisibleChanged?.Invoke(this, EventArgs.Empty);
                 break;
@@ -838,6 +863,9 @@ public abstract class CBindingBase
                 break;
             case "SelectedBeamInspectionAssignment":
                 SelectedBeamInspectionAssignmentChanged?.Invoke(this, EventArgs.Empty);
+                break;
+            case "SelectedInspectionResultType":
+                SelectedInspectionResultTypeChanged?.Invoke(this, EventArgs.Empty);
                 break;
             case "AbleBrush":
                 AbleBrushChanged?.Invoke(this, EventArgs.Empty);

@@ -123,7 +123,7 @@
                     </Grid.RowDefinitions>
                     <DockPanel Margin="0,0,0,6">
                         <Button DockPanel.Dock="Right" Content="REFRESH" Width="100" Height="34" Margin="0" FontSize="13" Style="{StaticResource SecondaryButton}" menu:CButtonCommandBehavior.Command="{Binding RefreshCommand}" />
-                        <TextBlock Text="REVIEW RESULTS" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="17" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding ResultListTitle}" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="17" FontWeight="SemiBold" VerticalAlignment="Center" />
                     </DockPanel>
                     <TreeView x:Name="ReviewResultsTree"
                               Grid.Row="1"
@@ -750,15 +750,23 @@
                                 </Grid>
 
                                 <Grid Grid.Row="1" Margin="0,6,0,0">
-                                    <Grid>
+                                    <Grid ToolTipService.ShowOnDisabled="True">
                                         <Grid.Style>
                                             <Style TargetType="Grid">
+                                                <Setter Property="IsEnabled" Value="True" />
+                                                <Setter Property="Opacity" Value="1" />
+                                                <Setter Property="ToolTip" Value="{x:Null}" />
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding IsReinspectionMode}" Value="True">
                                                         <Setter Property="Visibility" Value="Collapsed" />
                                                     </DataTrigger>
                                                     <DataTrigger Binding="{Binding IsResultEditMode}" Value="True">
                                                         <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding IsInspectionOffsetRestricted}" Value="True">
+                                                        <Setter Property="IsEnabled" Value="False" />
+                                                        <Setter Property="Opacity" Value="0.55" />
+                                                        <Setter Property="ToolTip" Value="{Binding InspectionOffsetRestrictionText}" />
                                                     </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
@@ -948,6 +956,34 @@
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsReinspectionMode}" Value="True">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding IsResultEditMode}" Value="True">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding IsInspectionOffsetRestricted}" Value="True">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBlock Grid.Row="2"
+                                           Text="{Binding InspectionOffsetRestrictionText}"
+                                           Margin="0,6,0,0"
+                                           Foreground="{DynamicResource ButtonWarningBrush}"
+                                           FontSize="10"
+                                           FontWeight="SemiBold"
+                                           TextTrimming="CharacterEllipsis"
+                                           ToolTip="{Binding InspectionOffsetRestrictionText}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsInspectionOffsetRestricted}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
                                                 <DataTrigger Binding="{Binding IsReinspectionMode}" Value="True">
                                                     <Setter Property="Visibility" Value="Collapsed" />
                                                 </DataTrigger>
@@ -1423,20 +1459,25 @@
                                     <DataGridTextColumn Header="EDIT J" Binding="{Binding EditedJudge}" Width="52" />
                                 </DataGrid.Columns>
                             </DataGrid>
-                            <UniformGrid Grid.Row="3" Columns="3">
-                                <Button Content="COPY X/Y"
+                            <UniformGrid Grid.Row="3" Columns="4">
+                                <Button Content="COPY X"
                                         Height="36"
-                                        Margin="0,0,4,0"
+                                        Margin="0,0,3,0"
                                         Style="{StaticResource SecondaryButton}"
-                                        menu:CButtonCommandBehavior.Command="{Binding CopyResultEditXyCommand}" />
+                                        menu:CButtonCommandBehavior.Command="{Binding CopyResultEditXCommand}" />
+                                <Button Content="COPY Y"
+                                        Height="36"
+                                        Margin="3,0"
+                                        Style="{StaticResource SecondaryButton}"
+                                        menu:CButtonCommandBehavior.Command="{Binding CopyResultEditYCommand}" />
                                 <Button Content="COPY JUDGE"
                                         Height="36"
-                                        Margin="4,0"
+                                        Margin="3,0"
                                         Style="{StaticResource SecondaryButton}"
                                         menu:CButtonCommandBehavior.Command="{Binding CopyResultEditJudgeCommand}" />
                                 <Button Content="COPY ALL"
                                         Height="36"
-                                        Margin="4,0,0,0"
+                                        Margin="3,0,0,0"
                                         Style="{StaticResource PrimaryButton}"
                                         menu:CButtonCommandBehavior.Command="{Binding CopyResultEditAllCommand}" />
                             </UniformGrid>
