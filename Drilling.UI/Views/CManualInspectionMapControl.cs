@@ -67,7 +67,7 @@ public sealed class CManualInspectionMapControl : Control
         Focusable = true;
         ClipToBounds = true;
         SnapsToDevicePixels = true;
-        MinHeight = 330;
+        MinHeight = 100;
         Cursor = Cursors.Cross;
         SetResourceReference(BackgroundProperty, "GridBackgroundBrush");
         SetResourceReference(ForegroundProperty, "TextPrimaryBrush");
@@ -214,7 +214,8 @@ public sealed class CManualInspectionMapControl : Control
                     new Rect(r.Left + 3, r.Top + 3, Math.Max(0.5, r.Width - 6), Math.Max(0.5, r.Height - 6)));
             if (r.Width > 22 && r.Height > 19)
             {
-                var mark = p.Key == _representative ? "★ " : p.IsProxy ? "◇ " : p.WorkingJudge == "ERROR" ? "! " : p.WorkingJudge == "UNMEASURED" ? "· " : "";
+                var mark = p.Key == _representative ? "★ " : p.IsProxy ? "◇ " : p.UsesAppliedMeasurement ? "□ "
+                    : p.WorkingJudge == "ERROR" ? "! " : !p.HasMeasurementHistory && p.WorkingJudge == "UNMEASURED" ? "· " : "";
                 var label = mark + (r.Width > 50 ? "S" : "") + p.ShotNo + (r.Width > 95 ? $" / B{p.BeamNo}" : "");
                 CManualInspectionDrawing.Text(context, this, label, new Point(r.Left + 4, r.Top + Math.Max(1, r.Height / 2 - 7)),
                     Math.Clamp(r.Height / 3, 9, 12), CManualInspectionDrawing.Color("#153E4E"), false, Math.Max(1, r.Width - 7));
@@ -265,7 +266,7 @@ public sealed class CManualInspectionMapControl : Control
         _hoverKey = point?.Key;
         _tip.SetResourceReference(Control.BackgroundProperty, "PreviewHoverTipBackgroundBrush");
         _tip.SetResourceReference(Control.ForegroundProperty, "PreviewHoverTipTextBrush");
-        _tip.Content = point is null ? null : $"{point.Key}\n측정 {point.WorkingJudge} · 편차 {point.WorkingErrorText} µm\n" +
+        _tip.Content = point is null ? null : $"{point.Key}\n{point.MeasurementStatusText} · 편차 {point.MeasurementErrorText} µm\n{point.MeasurementBasisText}\n" +
             (point.HasAppliedOffset ? $"적용 보정 B {point.BaseOffsetText} µm · {(CManualInspectionDrawing.AppliedLevel(point,_snapshot) >= 0 ? "L"+(CManualInspectionDrawing.AppliedLevel(point,_snapshot)+1) : "Level 확인 필요")}" : "활성 보정 미적용") +
             (string.IsNullOrWhiteSpace(point.DisplayedMeasurementOrigin) ? "" : "\n측정 출처: " + point.DisplayedMeasurementOrigin) +
             (point.IsMasked ? "\nMasking · 측정 선택 제외" : point.IsProxy ? $"\n◇ 대표값 복사: {point.ReferenceKey}" : "");
@@ -364,6 +365,21 @@ public sealed class CManualInspectionMapControl : Control
             item.Click += (_, _) => OperationRequested?.Invoke(this, new(action, keys, version));
             menu.Items.Add(item);
         }
+        menu.Items.Add(new Separator());
+        var focus = _snapshot.Points.FirstOrDefault(p => p.Key == _focusKey && !p.IsMasked)
+            ?? _snapshot.Points.First(p => p.Key == keys[0]);
+        foreach (var (title, action) in new[]
+        {
+            ("현재 위치 한 점 측정", EN_MANUAL_INSPECTION_UI_ACTION.Measure),
+            ("측정 · 출처 상세", EN_MANUAL_INSPECTION_UI_ACTION.ShowPoint)
+        })
+        {
+            var item = new MenuItem { Header = title + " · " + focus.Key,
+                IsEnabled = !_snapshot.IsBusy && (action == EN_MANUAL_INSPECTION_UI_ACTION.ShowPoint || !_snapshot.IsReadOnly) };
+            item.SetResourceReference(ForegroundProperty, "TextPrimaryBrush");
+            item.Click += (_, _) => OperationRequested?.Invoke(this, new(action, [focus.Key], version));
+            menu.Items.Add(item);
+        }
         ContextMenu = menu; menu.IsOpen = true;
     }
 
@@ -405,8 +421,8 @@ internal static class CManualInspectionDrawing
     internal static Brush Resource(FrameworkElement owner, string key, Brush fallback) => owner.TryFindResource(key) as Brush ?? fallback;
     internal static int Level(CManualInspectionUiPoint point, CManualInspectionUiSnapshot snapshot)
     {
-        if (point.IsMasked || point.WorkingJudge is not ("OK" or "NG")) return -1;
-        return CManualInspectionLevels.Evaluate(point.WorkingXUm, point.WorkingYUm, snapshot.LevelMetric, snapshot.LevelBoundsUm) ?? -1;
+        if (!point.HasMeasurementHistory) return -1;
+        return CManualInspectionLevels.Evaluate(point.MeasurementXUm, point.MeasurementYUm, snapshot.LevelMetric, snapshot.LevelBoundsUm) ?? -1;
     }
     internal static int AppliedLevel(CManualInspectionUiPoint point, CManualInspectionUiSnapshot snapshot) => point.IsMasked || !point.HasAppliedOffset ? -1
         : CManualInspectionLevels.Evaluate(point.BaseXUm, point.BaseYUm, snapshot.LevelMetric, snapshot.LevelBoundsUm) ?? -1;
@@ -417,7 +433,8 @@ internal static class CManualInspectionDrawing
         if (mode == "head") return Color(HeadColors[Math.Max(0, point.HeadNo - 1) % HeadColors.Length]);
         if (mode == "level") return LevelBrush(Level(point, snapshot));
         if (mode == "source") return point.Source switch { "MEASURED" => Color("#3B9870"), "IMPORTED" => Color("#7899A8"), "INTERPOLATED" => Color("#77A6CD"), "MANUAL" => Color("#A482BE"), _ => Color("#DBE4EA") };
-        return point.WorkingJudge switch { "OK" => Color("#3B9870"), "NG" => Color("#D16776"), "ERROR" => Color("#D39A45"), _ => Color("#DBE4EA") };
+        return point.UsesAppliedMeasurement ? Color("#638CA8")
+            : point.WorkingJudge switch { "OK" => Color("#3B9870"), "NG" => Color("#D16776"), "ERROR" => Color("#D39A45"), _ => Color("#DBE4EA") };
     }
     private static Brush LevelBrush(int level) => Color(level switch { 0 => "#2E9076", 1 => "#B88B2A", 2 => "#CA754A", 3 => "#BE4F68", _ => "#DBE4EA" });
     internal static void Text(DrawingContext drawing, FrameworkElement owner, string text, Point origin,

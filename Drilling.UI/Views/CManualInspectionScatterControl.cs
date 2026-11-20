@@ -11,6 +11,7 @@ public sealed record CManualInspectionScatterMetrics
     public int Total { get; init; }
     public int Count { get; init; }
     public int ProxyCount { get; init; }
+    public int CorrectionBasedCount { get; init; }
     public int Masked { get; init; }
     public int Unmeasured { get; init; }
     public int Errors { get; init; }
@@ -30,26 +31,30 @@ public sealed record CManualInspectionScatterMetrics
         foreach (var p in source)
         {
             if (p.IsMasked) masked++;
+            else if (p.HasMeasurementHistory)
+            {
+                if (CManualInspectionUiPoint.Finite(p.MeasurementXUm) && CManualInspectionUiPoint.Finite(p.MeasurementYUm)) valid.Add(p);
+                else invalid++;
+            }
             else if (p.WorkingJudge == "UNMEASURED") unmeasured++;
             else if (p.WorkingJudge == "ERROR") errors++;
-            else if (!CManualInspectionUiPoint.Finite(p.WorkingXUm) || !CManualInspectionUiPoint.Finite(p.WorkingYUm)) invalid++;
-            else valid.Add(p);
+            else invalid++;
         }
         double meanX = 0, meanY = 0, max = 0;
         for (var i = 0; i < valid.Count; i++)
         {
             var p = valid[i]; var n = i + 1.0;
             // Weighted means avoid overflowing the sum of otherwise finite imported values.
-            meanX = meanX * (i / n) + p.WorkingXUm!.Value / n;
-            meanY = meanY * (i / n) + p.WorkingYUm!.Value / n;
-            var x = Math.Abs(p.WorkingXUm.Value); var y = Math.Abs(p.WorkingYUm.Value); var scale = Math.Max(x, y);
+            meanX = meanX * (i / n) + p.MeasurementXUm!.Value / n;
+            meanY = meanY * (i / n) + p.MeasurementYUm!.Value / n;
+            var x = Math.Abs(p.MeasurementXUm.Value); var y = Math.Abs(p.MeasurementYUm.Value); var scale = Math.Max(x, y);
             max = Math.Max(max, scale == 0 ? 0 : scale * Math.Sqrt((x / scale) * (x / scale) + (y / scale) * (y / scale)));
         }
         double sx = 0, sy = 0;
-        foreach (var p in valid) { sx += Math.Pow(p.WorkingXUm!.Value - meanX, 2) / Math.Max(1, valid.Count); sy += Math.Pow(p.WorkingYUm!.Value - meanY, 2) / Math.Max(1, valid.Count); }
+        foreach (var p in valid) { sx += Math.Pow(p.MeasurementXUm!.Value - meanX, 2) / Math.Max(1, valid.Count); sy += Math.Pow(p.MeasurementYUm!.Value - meanY, 2) / Math.Max(1, valid.Count); }
         return new CManualInspectionScatterMetrics
         {
-            Total = source.Length, Count = valid.Count, ProxyCount = source.Count(p => p.IsProxy),
+            Total = source.Length, Count = valid.Count, ProxyCount = valid.Count(p => p.IsProxy), CorrectionBasedCount = valid.Count(p => p.UsesAppliedMeasurement),
             Masked = masked, Unmeasured = unmeasured, Errors = errors, Invalid = invalid,
             MeanX = valid.Count == 0 ? null : meanX, MeanY = valid.Count == 0 ? null : meanY,
             SigmaX = valid.Count == 0 ? null : Math.Sqrt(sx), SigmaY = valid.Count == 0 ? null : Math.Sqrt(sy),
@@ -58,7 +63,7 @@ public sealed record CManualInspectionScatterMetrics
     }
 }
 
-/// <summary>Equal-scale ΔX/ΔY scatter; proxy values use open diamonds rather than measured dots.</summary>
+/// <summary>Equal-scale display ΔX/ΔY: raw dots, representative diamonds and correction-derived squares.</summary>
 public sealed class CManualInspectionScatterControl : Control
 {
     private IReadOnlyList<CManualInspectionUiPoint> _points = [];
@@ -100,7 +105,7 @@ public sealed class CManualInspectionScatterControl : Control
         var tolX = double.IsFinite(_toleranceX) ? Math.Abs(_toleranceX) : 0;
         var tolY = double.IsFinite(_toleranceY) ? Math.Abs(_toleranceY) : 0;
         var axis = Math.Max(5, Math.Max(tolX, tolY) * 1.3);
-        foreach (var p in Metrics.ValidPoints) axis = Math.Max(axis, Math.Max(Math.Abs(p.WorkingXUm!.Value), Math.Abs(p.WorkingYUm!.Value)));
+        foreach (var p in Metrics.ValidPoints) axis = Math.Max(axis, Math.Max(Math.Abs(p.MeasurementXUm!.Value), Math.Abs(p.MeasurementYUm!.Value)));
         if (!double.IsFinite(axis) || axis <= 0) axis = 5;
         var power = Math.Pow(10, Math.Floor(Math.Log10(axis)));
         var rounded = Math.Ceiling(axis / power * 2) / 2 * power;
@@ -129,13 +134,15 @@ public sealed class CManualInspectionScatterControl : Control
         dc.PushClip(new RectangleGeometry(new Rect(cx - size / 2 - 6, cy - size / 2 - 6, size + 12, size + 12)));
         foreach (var point in Metrics.ValidPoints)
         {
-            var x = cx + point.WorkingXUm!.Value * scale; var y = cy - point.WorkingYUm!.Value * scale;
+            var x = cx + point.MeasurementXUm!.Value * scale; var y = cy - point.MeasurementYUm!.Value * scale;
             if (!double.IsFinite(x) || !double.IsFinite(y)) continue;
             var group = _byHead ? point.HeadNo : point.CellNo;
             var index = _byHead ? Math.Max(0, group - 1) : Math.Max(0, Array.IndexOf(groups, group));
             var brush = CManualInspectionDrawing.Color(CManualInspectionDrawing.HeadColors[index % CManualInspectionDrawing.HeadColors.Length]);
             var selected = _selected.Contains(point.Key);
-            if (point.IsProxy)
+            if (point.UsesAppliedMeasurement)
+                dc.DrawRectangle(null, new Pen(brush, selected ? 2.3 : 1.3), new Rect(x - 3.5, y - 3.5, 7, 7));
+            else if (point.IsProxy)
             {
                 var geometry = new StreamGeometry();
                 using (var g = geometry.Open()) { g.BeginFigure(new Point(x, y - 4), false, true); g.LineTo(new Point(x + 4, y), true, false); g.LineTo(new Point(x, y + 4), true, false); g.LineTo(new Point(x - 4, y), true, false); }

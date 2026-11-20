@@ -22,7 +22,7 @@ internal sealed class FakeController(CManualInspectionUiSnapshot snapshot) : IMa
     public void Replace(CManualInspectionUiSnapshot value) { Snapshot = value; Changed?.Invoke(this, EventArgs.Empty); }
 }
 
-internal static class Program
+internal static partial class Program
 {
     private static readonly List<object> Checks = [];
     private static string _output = "";
@@ -33,10 +33,10 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
-        if (args.Length is < 2 or > 3 || args.Length == 3 && args[2] is not ("--integration-impact" or "--sync-levels")) { Console.Error.WriteLine("Usage: UiHarness <repository/Drilling.UI> <private-output> [--integration-impact|--sync-levels]"); return 2; }
+        if (args.Length is < 2 or > 3 || args.Length == 3 && args[2] is not ("--integration-impact" or "--sync-levels" or "--coverage-compact")) { Console.Error.WriteLine("Usage: UiHarness <repository/Drilling.UI> <private-output> [--integration-impact|--sync-levels|--coverage-compact]"); return 2; }
         _uiSource = Path.GetFullPath(args[0]); _output = Path.GetFullPath(args[1]); Directory.CreateDirectory(_output);
         _application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-        if (args.Length == 3) return args[2] == "--sync-levels" ? SyncLevels() : IntegrationImpact();
+        if (args.Length == 3) return args[2] switch { "--sync-levels" => SyncLevels(), "--coverage-compact" => CoverageCompact(), _ => IntegrationImpact() };
         try
         {
             LoadResources("Light");
@@ -54,7 +54,7 @@ internal static class Program
             Test("theme_dark_background", ResourceColor("PanelBackgroundBrush") == "#FF20262D");
             ((Expander)view.FindName("CorrectionSection")).IsExpanded = true; Pump(); ((FrameworkElement)view.FindName("CorrectionSection")).BringIntoView(); Pump(); Render(view, "native-correction-dark.png");
             ((Expander)view.FindName("ScatterSection")).IsExpanded = true; Pump(); ((FrameworkElement)view.FindName("ScatterPlot")).BringIntoView(); Pump(); Render(view, "native-scatter-dark.png");
-            ((FrameworkElement)view.FindName("ResultGrid")).BringIntoView(); Pump(); Render(view, "native-results-dark.png");
+            ((Expander)view.FindName("ResultsSection")).IsExpanded = true; Pump(); ((FrameworkElement)view.FindName("ResultGrid")).BringIntoView(); Pump(); Render(view, "native-results-dark.png");
             ((ScrollViewer)view.FindName("WorkspaceScroll")).ScrollToTop(); Pump();
             var map = (CManualInspectionMapControl)view.FindName("PositionMap");
             var scatter = (CManualInspectionScatterControl)view.FindName("ScatterPlot");
@@ -85,12 +85,12 @@ internal static class Program
             Test("empty_rectangle_clears_selection", Field<HashSet<string>>(view, "_selected").Count == 0);
             var selected = Field<HashSet<string>>(view, "_selected"); selected.Add(key1); Invoke(view, "Refresh");
             map.ShowOperationMenu(); Pump();
-            Test("context_has_three_operations", map.ContextMenu!.Items.OfType<MenuItem>().Count(x => x.IsEnabled) == 3);
+            Test("context_retains_three_motion_operations", map.ContextMenu!.Items.OfType<MenuItem>().Count(x => x.IsEnabled && x.Header.ToString()!.StartsWith("이동", StringComparison.Ordinal)) == 3);
             map.ContextMenu.IsOpen = false;
             fake.Replace(fake.Snapshot with { Version = 8, IsBusy = true }); Pump(); map.ShowOperationMenu();
             Test("context_busy_disabled", map.ContextMenu!.Items.OfType<MenuItem>().All(x => !x.IsEnabled)); map.ContextMenu.IsOpen = false;
             fake.Replace(fake.Snapshot with { Version = 9, IsBusy = false, IsReadOnly = true }); Pump(); map.ShowOperationMenu();
-            Test("context_readonly_disabled", map.ContextMenu!.Items.OfType<MenuItem>().All(x => !x.IsEnabled)); map.ContextMenu.IsOpen = false;
+            Test("context_readonly_motion_disabled", map.ContextMenu!.Items.OfType<MenuItem>().Where(x => x.Header.ToString()!.StartsWith("이동", StringComparison.Ordinal) || x.Header.ToString()!.Contains("현재 위치")).All(x => !x.IsEnabled)); map.ContextMenu.IsOpen = false;
             fake.Replace(fake.Snapshot with { Version = 10, IsReadOnly = false }); Pump();
             Test("table_page_50", ((IEnumerable)((DataGrid)view.FindName("ResultGrid")).ItemsSource).Cast<object>().Count() == 50);
             Invoke(view, "SelectNg_Click", view, new RoutedEventArgs());
@@ -181,11 +181,14 @@ internal static class Program
             var legend = (WrapPanel)view.FindName("MapLegendItems");
             Test("applied_legend_marks_unapplied", legend.Children.OfType<StackPanel>().SelectMany(p => p.Children.OfType<TextBlock>()).Any(t => t.Text.Contains("미적용")));
             Test("imported_table_preserves_original", points[1].OriginalJudge == "OK" && points[1].OriginalXUm == initial.Points[1].OriginalXUm);
-            Invoke(view, "PointHistory_Click", view, new RoutedEventArgs()); Pump();
+            var map = (CManualInspectionMapControl)view.FindName("PositionMap");
+            map.ShowOperationMenu(); Pump();
+            map.ContextMenu!.Items.OfType<MenuItem>().Single(i => i.Header.ToString()!.Contains("상세")).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent)); Pump();
             Test("raw_history_uses_controller_full_history", fake.Calls.Count == 1 && fake.Calls[0].Action == EN_MANUAL_INSPECTION_UI_ACTION.ShowPoint && fake.Calls[0].Request.FocusKey == points[1].Key);
             Test("raw_history_request_current_version", fake.Calls[0].Request.ExpectedVersion == 41);
             fake.Replace(fake.Snapshot with { Version = 42, IsBusy = true }); Pump();
-            Test("busy_history_disabled_consistent_with_serial_controller", !((Button)view.FindName("PointHistoryButton")).IsEnabled);
+            map.ShowOperationMenu(); Pump();
+            Test("busy_history_disabled_consistent_with_serial_controller", !map.ContextMenu!.Items.OfType<MenuItem>().Single(i => i.Header.ToString()!.Contains("상세")).IsEnabled); map.ContextMenu.IsOpen = false;
             fake.Replace(fake.Snapshot with { Version = 43, IsBusy = false }); Pump();
             var reference = points[2] with { BaseXUm = 13, BaseYUm = 4, WorkingXUm = 3, WorkingYUm = 2, CandidateXUm = 70, CandidateYUm = 80, ReferenceFinalXUm = 13, ReferenceFinalYUm = 4 };
             var resolved = ((double?, double?))Invoke(view, "ReferenceValues", reference)!;
@@ -239,7 +242,7 @@ internal static class Program
             var map=(CManualInspectionMapControl)view.FindName("PositionMap");
             Test("default_color_is_applied_offset",Field<string>(view,"_color")=="applied");
             Test("only_three_color_concepts",((ComboBox)view.FindName("ColorFilter")).Items.Count==3);
-            Test("advanced_sections_initially_closed",new[]{"ReferenceSection","CorrectionSection","SettingsSection","ScatterSection"}.All(n=>!((Expander)view.FindName(n)).IsExpanded));
+            Test("advanced_sections_initially_closed",new[]{"ReferenceSection","CorrectionSection","SettingsSection","ScatterSection","ResultsSection","PointDetailsSection"}.All(n=>!((Expander)view.FindName(n)).IsExpanded));
             Test("simulation_and_duplicate_motion_controls_removed",new[]{"SimulationOptions","SimulationDemoButton","MoveButton","MoveMeasureCorrectButton","SideStopButton","PanToolButton","LoadResultButton"}.All(n=>view.FindName(n)is null));
             Test("automatic_synchronization_description_visible",((TextBlock)view.FindName("StatusText")).Text.Contains("Rough/Fine"));
             fake.Replace(initial with{Version=101,SyncPending=true});Pump();
@@ -253,7 +256,7 @@ internal static class Program
             Test("missing_offset_is_gray_not_false_zero",Brush(sample with{HasAppliedOffset=false,BaseXUm=0,BaseYUm=0})=="#FFDBE4EA");
             Test("draft_final_never_colors_active_map",Brush(sample with{BaseXUm=1,CandidateXUm=99,CandidateYUm=99})=="#FF2E9076");
             Test("active_level_ignores_measurement_judge",new[]{"OK","NG","ERROR","UNMEASURED"}.Select(j=>Brush(sample with{WorkingJudge=j})).Distinct().Count()==1);
-            Test("measurement_level_excludes_failed_response",Brush(sample with{WorkingJudge="ERROR",WorkingXUm=1,WorkingYUm=1},"level")=="#FFDBE4EA");
+            Test("measurement_level_uses_existing_history_after_failed_response",Brush(sample with{WorkingJudge="ERROR",WorkingXUm=1,WorkingYUm=1},"level")==Brush(sample));
             Test("measurement_and_applied_share_inclusive_bounds",Brush(sample with{WorkingJudge="OK",WorkingXUm=5,WorkingYUm=0},"level")==Brush(sample with{BaseXUm=5,BaseYUm=0}));
             Test("level_upper_ranges_distinct",new[]{5d,10d,20d,20.001}.Select(x=>Brush(sample with{BaseXUm=x,BaseYUm=0})).Distinct().Count()==4);
             Test("radial_metric_uses_common_policy",Brush(sample with{BaseXUm=4,BaseYUm=4},snapshot:initial with{LevelMetric="RADIAL"})=="#FFB88B2A"&&Brush(sample with{BaseXUm=4,BaseYUm=4})=="#FF2E9076");
@@ -272,8 +275,8 @@ internal static class Program
             ((Task)Invoke(view,"ConfirmOperation",EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasureCorrect,new[]{key},102L,"P2P")!).GetAwaiter().GetResult();
             Test("measurement_correction_description_requires_fresh_all_OK",confirmations.Last().Description.Contains("새 직접 측정 OK")&&confirmations.Last().Description.Contains("자동 보정하지"));
             Test("operation_cancel_sends_no_device_request",fake.Calls.Count==before+1);
-            accept=true;((Button)view.FindName("MoveMeasureButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();
-            Test("primary_measurement_uses_selected_keys",fake.Calls.Last().Action==EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure&&fake.Calls.Last().Request.Keys.SequenceEqual([key]));
+            accept=true;map.ShowOperationMenu();Pump();map.ContextMenu!.Items.OfType<MenuItem>().Single(i=>i.Header.ToString()=="이동 후 측정").RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));Pump();
+            Test("context_measurement_uses_selected_keys",fake.Calls.Last().Action==EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure&&fake.Calls.Last().Request.Keys.SequenceEqual([key]));
             var callCount=fake.Calls.Count;((Button)view.FindName("StopButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();
             Test("stop_is_immediate_without_confirmation",fake.Calls.Count==callCount+1&&fake.Calls.Last().Action==EN_MANUAL_INSPECTION_UI_ACTION.Stop);
             Test("calculate_description_does_not_claim_saved",CManualInspectionView.DescribeAction(EN_MANUAL_INSPECTION_UI_ACTION.Calculate,snapshot,3).Contains("저장하지"));

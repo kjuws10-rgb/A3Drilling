@@ -58,6 +58,23 @@ public sealed record CManualInspectionUiPoint
     public string ReferenceKey { get; init; } = "";
     public string MeasurementToken { get; init; } = "";
     public string Details { get; init; } = "";
+    /// <summary>
+    /// Display coverage is independent of where a point was measured. An active correction row is
+    /// measurement-derived history, including interpolated/copied values and explicitly saved zero.
+    /// These properties never change native raw, judge, correction eligibility or consumed tokens.
+    /// </summary>
+    public bool HasWorkingMeasurement => WorkingJudge is "OK" or "NG" && Finite(WorkingXUm) && Finite(WorkingYUm);
+    public bool HasMeasurementHistory => !IsMasked && (HasWorkingMeasurement || HasAppliedOffset);
+    public bool UsesAppliedMeasurement => !IsMasked && HasAppliedOffset && !HasWorkingMeasurement;
+    public double? MeasurementXUm => UsesAppliedMeasurement ? BaseXUm : HasWorkingMeasurement ? WorkingXUm : null;
+    public double? MeasurementYUm => UsesAppliedMeasurement ? BaseYUm : HasWorkingMeasurement ? WorkingYUm : null;
+    public string MeasurementErrorText => Pair(MeasurementXUm, MeasurementYUm);
+    public string MeasurementStatusText => IsMasked ? "Masking" : UsesAppliedMeasurement
+        ? "측정됨 · 보정기반" + (WorkingJudge == "ERROR" ? " · 최근 수신 오류" : "")
+        : WorkingJudge switch { "OK" => "OK · 측정됨", "NG" => "NG · 측정됨", "ERROR" => "수신 오류", "UNMEASURED" => "미측정", _ => WorkingJudge };
+    public string MeasurementBasisText => UsesAppliedMeasurement ? "보정기반 편차 · 기존 적용 Review Offset"
+        : HasWorkingMeasurement ? IsProxy ? "대표값 복사 편차" : "측정 결과 편차" : "유효 편차 없음";
+    public string MeasurementSourceCode => UsesAppliedMeasurement ? "CORRECTION_BASED" : IsProxy ? "MANUAL" : Source;
     public bool CanBeReference => !IsMasked && !IsProxy && Source == "MEASURED"
         && WorkingJudge is "OK" or "NG" && Finite(WorkingXUm) && Finite(WorkingYUm);
     public string Identity => $"C{CellNo} / H{HeadNo:00} / S{ShotNo} / B{BeamNo}";
@@ -66,7 +83,8 @@ public sealed record CManualInspectionUiPoint
     public string BaseOffsetText => Pair(BaseXUm, BaseYUm);
     public string CandidateOffsetText => CandidateXUm.HasValue && CandidateYUm.HasValue
         ? Pair(CandidateXUm, CandidateYUm) : "—";
-    public string SourceText => IsProxy ? "◇ 대표값 복사 · MANUAL" : Source == "MEASURED" ? "직접 측정" : Source == "IMPORTED" ? "불러온 측정 · IMPORTED" : Source;
+    public string SourceText => UsesAppliedMeasurement ? "보정기반 측정 · 적용 이력"
+        : IsProxy ? "◇ 대표값 복사 · MANUAL" : Source == "MEASURED" ? "직접 측정" : Source == "IMPORTED" ? "불러온 측정 · IMPORTED" : Source;
     public string ReferenceText => string.IsNullOrEmpty(ReferenceKey) ? "—" : ReferenceKey;
     public static bool Finite(double? value) => value.HasValue && double.IsFinite(value.Value);
     public static string Number(double? value, bool sign = false) => Finite(value)

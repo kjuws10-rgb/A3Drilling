@@ -472,7 +472,16 @@ public sealed class CManualInspectionController : IManualInspectionController
     private void ShowPoint(string? key)
     {
         if (key is null) return; var p = _engine.GetPoint(key);
-        var text = new StringBuilder(); text.AppendLine($"{p.Key}\nDESIGN {p.XMm:R}/{p.YMm:R} mm\n작업 {p.Judge} · {p.Source}");
+        var text = new StringBuilder(); text.AppendLine($"{p.Key}\nDESIGN {p.XMm:R}/{p.YMm:R} mm\n원시 기록의 작업 판정 {p.Judge} · {p.Source}");
+        var display = Snapshot.Points.FirstOrDefault(point => point.Key == key);
+        if (display is not null)
+        {
+            var level = CManualInspectionLevels.Evaluate(display.MeasurementXUm, display.MeasurementYUm, _levelMetric, _levelBounds);
+            text.AppendLine($"표시 상태: {display.MeasurementStatusText}\n표시 편차: {display.MeasurementErrorText} µm · {(level.HasValue && !display.IsMasked ? $"L{level.Value + 1}" : "Level 없음")}\n근거: {display.MeasurementBasisText}");
+            if (display.UsesAppliedMeasurement) text.AppendLine("보정에 사용된 측정 이력을 표시합니다. 아래 원측정/raw는 그대로 보존하며 표시 편차를 추가 보정으로 재누적하지 않습니다.");
+            if (!string.IsNullOrWhiteSpace(display.MeasurementSourcePath)) text.AppendLine("표시 근거 파일: " + display.MeasurementSourcePath);
+            if (_displayedImports.TryGetValue(key, out var imported)) text.AppendLine("최근 결과 파일: " + imported.Path);
+        }
         text.AppendLine(JsonSerializer.Serialize(p, new JsonSerializerOptions { WriteIndented = true }));
         foreach (var item in _engine.History.Where(h => h.Key == key)) text.AppendLine(JsonSerializer.Serialize(item));
         ShowDetails("원측정·변경 이력 · DESIGN µm / 원시 단위 명시", text.ToString());
@@ -512,14 +521,18 @@ public sealed class CManualInspectionController : IManualInspectionController
         if (_source is null) throw new InvalidOperationException("내보낼 결과가 없습니다.");
         var file = ChooseFile(true, "csv"); if (file is null) return;
         static string Q(object? value) => "\"" + (value is double d ? d.ToString("R", CultureInfo.InvariantCulture) : value?.ToString() ?? "").Replace("\"", "\"\"") + "\"";
-        var sb = new StringBuilder("KEY,CELL,HEAD,SHOT,BEAM,ROW,COLUMN,DESIGN_X_MM,DESIGN_Y_MM,WORK_JUDGE,WORK_DX_DESIGN_UM,WORK_DY_DESIGN_UM,ORIGINAL_JUDGE,ORIGINAL_DX_DESIGN_UM,ORIGINAL_DY_DESIGN_UM,STATE_SOURCE,REFERENCE_KEY,BASE_X_DESIGN_UM,BASE_Y_DESIGN_UM,FINAL_X_DESIGN_UM,FINAL_Y_DESIGN_UM,ACTIVE_REVISION,RUN,ORIGINAL_RAW\r\n");
+        var sb = new StringBuilder("KEY,CELL,HEAD,SHOT,BEAM,ROW,COLUMN,DESIGN_X_MM,DESIGN_Y_MM,WORK_JUDGE,WORK_DX_DESIGN_UM,WORK_DY_DESIGN_UM,ORIGINAL_JUDGE,ORIGINAL_DX_DESIGN_UM,ORIGINAL_DY_DESIGN_UM,STATE_SOURCE,REFERENCE_KEY,BASE_X_DESIGN_UM,BASE_Y_DESIGN_UM,FINAL_X_DESIGN_UM,FINAL_Y_DESIGN_UM,ACTIVE_REVISION,RUN,ORIGINAL_RAW,MEASUREMENT_HISTORY,MEASUREMENT_BASIS,DISPLAY_DX_DESIGN_UM,DISPLAY_DY_DESIGN_UM,MEASUREMENT_LEVEL\r\n");
         var bases = _engine.ActiveOffsets; var candidates = _engine.Candidate?.Rows.ToDictionary(r => r.Key) ?? [];
+        var displayPoints = Snapshot.Points.ToDictionary(point => point.Key, StringComparer.Ordinal);
         foreach (var p in _engine.Points)
         {
             var b = bases[p.Key]; var f = candidates.GetValueOrDefault(p.Key)?.Final;
+            var display = displayPoints[p.Key];
+            var level = display.HasMeasurementHistory ? CManualInspectionLevels.Evaluate(display.MeasurementXUm, display.MeasurementYUm, _levelMetric, _levelBounds) : null;
             object?[] row = [p.Key,p.CellNo,p.HeadNo,p.ShotNo,p.BeamNo,p.Row+1,p.Column+1,p.XMm,p.YMm,p.Judge,p.ErrorXUm,p.ErrorYUm,
                 p.OriginalMeasurement?.Judge,p.OriginalMeasurement?.ErrorXUm,p.OriginalMeasurement?.ErrorYUm,p.Source,p.ProxySource?.ReferenceKey,
-                b.XUm,b.YUm,f?.XUm,f?.YUm,_engine.Context!.RevisionId,_engine.Context.RunId,p.OriginalMeasurement?.RawData];
+                b.XUm,b.YUm,f?.XUm,f?.YUm,_engine.Context!.RevisionId,_engine.Context.RunId,p.OriginalMeasurement?.RawData,
+                display.HasMeasurementHistory,display.MeasurementBasisText,display.MeasurementXUm,display.MeasurementYUm,level.HasValue ? $"L{level.Value+1}" : ""];
             sb.AppendLine(string.Join(",", row.Select(Q)));
         }
         await System.IO.File.WriteAllTextAsync(file, sb.ToString(), new UTF8Encoding(true), token); _status = "작업·원측정·보정 기준을 구분한 CSV를 내보냈습니다.";
@@ -555,6 +568,8 @@ public sealed class CManualInspectionController : IManualInspectionController
         var points = reusePoints ? Snapshot.Points : _engine.Points.Select(p =>
         {
             var b = bases.GetValueOrDefault(p.Key); var f = candidates.GetValueOrDefault(p.Key)?.Final;
+            var correctionBased = !p.Masked && _source?.AppliedOffsetKeys.Contains(p.Key)==true
+                && !(p.Judge is "OK" or "NG" && p.HasFiniteError);
             ST_MANUAL_OFFSET? reference = null;
             if (!p.Masked && p.IsDirectMeasurement && p.HasFiniteError && p.Judge is "OK" or "NG")
                 try { reference = _engine.ResolveReferenceFinal(p.Key); } catch (InvalidOperationException) { }
@@ -567,9 +582,9 @@ public sealed class CManualInspectionController : IManualInspectionController
                 HasAppliedOffset=_source?.AppliedOffsetKeys.Contains(p.Key)==true,
                 AppliedLevel=!p.Masked && _source?.AppliedOffsetKeys.Contains(p.Key)==true ? CManualInspectionLevels.Evaluate(b.XUm,b.YUm,_levelMetric,_levelBounds) : null,
                 AppliedMetricUm=!p.Masked && _source?.AppliedOffsetKeys.Contains(p.Key)==true ? CManualInspectionLevels.Metric(b.XUm,b.YUm,_levelMetric) : null,
-                DisplayedMeasurementOrigin=p.ProxySource is not null ? "대표값 복사 · " + p.ProxySource.ReferenceKey
+                DisplayedMeasurementOrigin=correctionBased ? "보정기반 측정 · 기존 적용 Review Offset" : p.ProxySource is not null ? "대표값 복사 · " + p.ProxySource.ReferenceKey
                     : p.Source=="MEASURED" ? "직접 측정 · Manual Inspection" : _displayedImports.GetValueOrDefault(p.Key)?.Origin ?? "",
-                MeasurementSourcePath=p.Source=="IMPORTED" ? _displayedImports.GetValueOrDefault(p.Key)?.Path ?? "" : "",
+                MeasurementSourcePath=correctionBased ? _source?.Context.RevisionId ?? "" : p.Source=="IMPORTED" ? _displayedImports.GetValueOrDefault(p.Key)?.Path ?? "" : "",
                 ReferenceFinalXUm=reference?.XUm,ReferenceFinalYUm=reference?.YUm,
                 ReferenceKey=p.ProxySource?.ReferenceKey ?? "",MeasurementToken=p.OriginalMeasurement?.RawToken ?? "",
                 Details=$"DESIGN µm · {p.Judge}\n원측정: {p.OriginalMeasurement?.RawData}\n{p.ProxySource?.Reason}"

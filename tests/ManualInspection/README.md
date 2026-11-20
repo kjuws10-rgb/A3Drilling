@@ -22,4 +22,4 @@ Common 회귀는 대표값·작업 상태·원측정 보존, 계산/검증/저�
 
 정식 프로그램 빌드, Controller와 기존 Review Manager의 연결, 실제 PLC/Vision 지연·비상정지·모션 도착·트리거/결과 수 및 장비 소프트리밋은 각자의 별도 검증 범위입니다.
 
-후속 결과 동기화 버전은 계산 111개, bridge/writer 22개, 실제 assembly Controller 65개, 외부 결과 병합 37개를 실행했습니다. Controller에는 기존 38개와 공통 Level·외부 최신/과거 결과·후보/잔여 보호·실제 파일/폴더 감시·갱신 중 재알림·취소·mode 저장/읽기·EDITED 시각 보존 27개가 포함됩니다. WPF UI는 49개와 증분 23개, 단순화·Level 34개를 각각 실행했습니다. 상세 범위는 [SYNC_QA.md](SYNC_QA.md)를 참조합니다. 첨부 HTML 원본은 `docs/ManualInspection/Reference`에 보존했습니다.
+현재 측정 이력·접기 후속은 실제 assembly Controller 71개(기존 65+표시/CSV/raw 보존 6개), WPF UI 49/23/34개 회귀와 측정 이력·우클릭·기본 스크롤·지도 클리핑 71개를 실행했습니다. `--coverage-compact` UI 옵션으로 새 화면 검사를 재현합니다. 상세 범위는 [COVERAGE_COMPACT_QA.md](COVERAGE_COMPACT_QA.md), 이전 결과 동기화 기록은 [SYNC_QA.md](SYNC_QA.md)입니다. 계산 111/bridge-writer 22/외부 결과 병합 37 검사는 관련 구현을 바꾸지 않은 이전 Commit의 별도 근거이며 이번 수정의 재실행 수로 합산하지 않습니다. 첨부 HTML 원본은 `docs/ManualInspection/Reference`에 보존했습니다.

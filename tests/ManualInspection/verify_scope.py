@@ -1,4 +1,4 @@
-"""Verify the synchronization feature against its prior Manual Inspection branch. No equipment execution."""
+"""Verify measurement-history coverage and compact UI scope. No equipment execution."""
 import argparse
 import hashlib
 import json
@@ -7,7 +7,7 @@ from pathlib import Path
 import subprocess
 import xml.etree.ElementTree as ET
 
-BASE = "a062c701d825c925a8ba74184bc8eff98dce0ab6"
+BASE = "5937e635d1e1a83ea992ca2f04ecd1b7ff2e6f5d"
 ROOT = Path(__file__).resolve().parents[2]
 EXISTING = {
     "Drilling.Common/Review/CReviewManager.cs",

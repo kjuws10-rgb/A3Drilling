@@ -20,11 +20,13 @@ public partial class CManualInspectionView : UserControl
         public override string ToString() => Label;
     }
     private sealed record ScatterGroup(string Group, int Count, string Mean);
-    private sealed class GridRow(CManualInspectionUiPoint point, bool selected, Action<GridRow> changed, int appliedLevel) : INotifyPropertyChanged
+    private sealed class GridRow(CManualInspectionUiPoint point, bool selected, Action<GridRow> changed, int appliedLevel, int measurementLevel) : INotifyPropertyChanged
     {
         private bool _selected = selected;
         public CManualInspectionUiPoint Point { get; } = point;
         public string AppliedLevelText => !Point.HasAppliedOffset ? "미적용" : appliedLevel >= 0 ? $"L{appliedLevel + 1}" : "확인 필요";
+        public string MeasurementLevelText => measurementLevel >= 0 ? $"L{measurementLevel + 1}" + (Point.UsesAppliedMeasurement ? " · 보정" : "") : "—";
+        public string MeasurementOriginText => string.IsNullOrWhiteSpace(Point.DisplayedMeasurementOrigin) ? Point.MeasurementBasisText : Point.DisplayedMeasurementOrigin;
         public bool IsSelectable => !Point.IsMasked;
         public bool IsSelected
         {
@@ -69,8 +71,8 @@ public partial class CManualInspectionView : UserControl
     {
         InitializeComponent();
         _updating = true;
-        SetChoices(JudgeFilter, [new("ALL", "전체 결과"), new("OK", "OK"), new("NG", "NG"), new("ERROR", "수신 오류"), new("UNMEASURED", "미측정")], "ALL");
-        SetChoices(SourceFilter, [new("ALL", "전체 출처"), new("MEASURED", "MEASURED"), new("IMPORTED", "IMPORTED · 조회 자료"), new("INTERPOLATED", "INTERPOLATED"), new("MANUAL", "MANUAL"), new("KEPT", "KEPT")], "ALL");
+        SetChoices(JudgeFilter, [new("ALL", "전체 결과"), new("MEASURED", "측정됨 · 보정 포함"), new("OK", "실측 OK"), new("NG", "실측 NG"), new("ERROR", "최근 수신 오류"), new("UNMEASURED", "미측정")], "ALL");
+        SetChoices(SourceFilter, [new("ALL", "전체 출처"), new("MEASURED", "MEASURED"), new("IMPORTED", "IMPORTED · 조회 자료"), new("CORRECTION_BASED", "보정 기반 측정"), new("INTERPOLATED", "INTERPOLATED"), new("MANUAL", "MANUAL"), new("KEPT", "KEPT")], "ALL");
         SetChoices(SortFilter, [new("shot", "Shot 순"), new("cell", "Cell 순"), new("error", "편차 크기 순")], "shot");
         SetChoices(ColorFilter, [new("applied", "적용 보정값 · Level"), new("level", "측정 편차 · Level"), new("judge", "측정 판정 · OK/NG")], "applied");
         SetChoices(ScatterDataCombo, [new("WORKING", "작업 결과 · 대표값 반영"), new("ORIGINAL", "원측정 기록")], "WORKING");
@@ -98,6 +100,20 @@ public partial class CManualInspectionView : UserControl
     }
 
     private void View_Loaded(object sender, RoutedEventArgs e) { AttachController(); Refresh(); }
+    private void View_LayoutUpdated(object? sender, EventArgs e)
+    {
+        if (!IsInitialized || WorkspaceBody is null || MapPanel.Child is not Grid mapLayout) return;
+        // Fit the normal folded workspace to its viewport. If optional content/error text takes
+        // more space, grow the scroll content instead of clipping a minimum-height drawing surface.
+        var minimum = ResultsSection.IsExpanded || ScatterSection.IsExpanded ? 0
+            : mapLayout.RowDefinitions.Where((_, i) => i != 4).Sum(row => row.ActualHeight)
+                + PositionMap.MinHeight + 2 + MapPanel.Padding.Top + MapPanel.Padding.Bottom
+                + MapPanel.BorderThickness.Top + MapPanel.BorderThickness.Bottom
+                + MapPanel.Margin.Top + MapPanel.Margin.Bottom
+                + WorkspaceBody.RowDefinitions.Skip(1).Sum(row => row.ActualHeight);
+        if (double.IsFinite(minimum) && Math.Abs(WorkspaceBody.MinHeight - Math.Ceiling(minimum)) > .5)
+            WorkspaceBody.MinHeight = Math.Ceiling(minimum);
+    }
     private void View_Unloaded(object sender, RoutedEventArgs e) { DetachController(); }
     private void View_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
@@ -159,23 +175,31 @@ public partial class CManualInspectionView : UserControl
             SelectValue(ColorFilter, _color); SelectValue(ScatterDataCombo, _scatterOriginal ? "ORIGINAL" : "WORKING");
             _filtered = FilteredPoints();
             ContextText.Text = $"{(_snapshot.IsSimulation ? "SIM · 설비 명령 없음" : "실제 설비 · 현재 Recipe")}  |  Recipe {_snapshot.RecipeId} · Run {_snapshot.RunId} · 활성 보정 {_snapshot.ActiveRevisionId}";
+            ContextText.ToolTip = ContextText.Text;
             StatusText.Text = _snapshot.StatusText + (string.IsNullOrWhiteSpace(_snapshot.SynchronizationText) ? "" : "\n" + _snapshot.SynchronizationText);
             if (_snapshot.SyncPending) StatusText.Text += "\n새 결과 대기 중 · 현재 작업을 마치면 반영합니다.";
+            StatusText.ToolTip = StatusText.Text;
             StagePositionText.Text = $"마지막 도착 확인  X {CManualInspectionUiPoint.Number(_snapshot.StageXmm)} / Y {CManualInspectionUiPoint.Number(_snapshot.StageYmm)} mm";
             PersistenceText.Text = _snapshot.PersistenceText + (string.IsNullOrWhiteSpace(_snapshot.SourcePath) ? "" : " · " + _snapshot.SourcePath);
             if (!string.IsNullOrEmpty(_snapshot.Message)) MessageText.Text = _snapshot.Message;
             if (_snapshot.IsReadOnly) MessageText.Text = "조회 전용 자료입니다. 현재 Recipe/Run 연결을 확인한 자료로 측정·보정을 진행하세요. " + _snapshot.Message;
+            MessageText.ToolTip = MessageText.Text;
+            MessageText.Visibility = string.IsNullOrWhiteSpace(MessageText.Text) ? Visibility.Collapsed : Visibility.Visible;
             var scoped = _snapshot.Points.Where(p => (_cell == 0 || p.CellNo == _cell) && (_head == 0 || p.HeadNo == _head)).ToArray();
             PositionMap.Configure(_snapshot, scoped, _filtered, _selected, FocusPoint?.Key, _representativeKey, _color, $"{_cell}|{_head}");
             SelectionCountText.Text = $"선택 {_selected.Count:N0}점 · 지도 {_filtered.Count:N0} / 전체 {_snapshot.Points.Count:N0}점";
             FilterNoticeText.Text = _head != 0 || _judge != "ALL" || _source != "ALL" || _query.Length > 0
                 ? "세부 필터가 지도·표에 적용되어 있습니다. 산포도는 별도 범위를 사용합니다." : "";
+            FilterNoticeText.Visibility = string.IsNullOrWhiteSpace(FilterNoticeText.Text) ? Visibility.Collapsed : Visibility.Visible;
             MapLegendText.Text = MapLegend();
+            MapLegendText.ToolTip = MapLegendText.Text;
+            MapLegendItems.ToolTip = MapLegendText.Text;
             RefreshMapLegend();
             ColorDescriptionText.Text = _color == "applied"
-                ? "현재 활성 보정값 B의 크기를 모든 Cell에 같은 Level로 표시합니다. 측정하지 않은 위치도 보정 파일에 있으면 표시하며, 미적용 후보는 포함하지 않습니다."
-                : _color == "level" ? "실제 표시 중인 측정·대표 복사 편차를 공통 Level로 표시합니다. 보정 후 잔류오차를 예측한 값이 아닙니다."
+                ? "기존 활성 보정값이 있는 위치는 측정 이력이 있는 점입니다. 적용 B의 공통 Level을 표시하며 미적용 후보는 제외합니다."
+                : _color == "level" ? "직접 측정 편차를 우선 사용하고, 원편차가 없는 기존 보정점은 B 기준으로 같은 Level을 표시합니다."
                 : "수신한 측정 판정을 표시합니다. 적용 보정값의 크기와는 별도입니다.";
+            ColorDescriptionText.ToolTip = ColorDescriptionText.Text;
             RefreshRows(); RefreshReference(); RefreshCorrection(); RefreshDetails(); RefreshScatter(); RefreshButtons();
         }
         finally { _updating = false; }
@@ -185,23 +209,27 @@ public partial class CManualInspectionView : UserControl
     private IReadOnlyList<CManualInspectionUiPoint> FilteredPoints()
     {
         var points = _snapshot.Points.Where(p => (_cell == 0 || p.CellNo == _cell) && (_head == 0 || p.HeadNo == _head)
-            && (_judge == "ALL" || p.WorkingJudge == _judge) && (_source == "ALL" || (p.IsProxy ? "MANUAL" : p.Source) == _source)
+            && (_judge == "ALL" || _judge == "MEASURED" && p.HasMeasurementHistory
+                || _judge == "UNMEASURED" && !p.IsMasked && !p.HasMeasurementHistory && p.WorkingJudge == "UNMEASURED"
+                || _judge is not ("MEASURED" or "UNMEASURED") && p.WorkingJudge == _judge)
+            && (_source == "ALL" || (p.IsProxy ? "MANUAL" : p.MeasurementSourceCode) == _source)
             && (_query.Length == 0 || (p.Key + " " + p.Identity).Contains(_query, StringComparison.OrdinalIgnoreCase)));
         return (_sort switch
         {
             "cell" => points.OrderBy(p => p.CellNo).ThenBy(p => p.HeadNo).ThenBy(p => p.ShotNo).ThenBy(p => p.BeamNo),
-            "error" => points.OrderByDescending(p => CManualInspectionUiPoint.Finite(p.WorkingXUm) && CManualInspectionUiPoint.Finite(p.WorkingYUm)
-                ? Math.Max(Math.Abs(p.WorkingXUm!.Value), Math.Abs(p.WorkingYUm!.Value)) : double.NegativeInfinity).ThenBy(p => p.Key, StringComparer.Ordinal),
+            "error" => points.OrderByDescending(p => CManualInspectionLevels.Metric(p.MeasurementXUm,p.MeasurementYUm,_snapshot.LevelMetric)
+                ?? double.NegativeInfinity).ThenBy(p => p.Key, StringComparer.Ordinal),
             _ => points.OrderBy(p => p.ShotNo).ThenBy(p => p.CellNo).ThenBy(p => p.HeadNo).ThenBy(p => p.BeamNo)
         }).ToArray();
     }
     private void RefreshRows()
     {
         var pages = Math.Max(1, (int)Math.Ceiling(_filtered.Count / (double)PageSize)); _page = Math.Clamp(_page, 0, pages - 1);
-        ResultGrid.ItemsSource = _filtered.Skip(_page * PageSize).Take(PageSize).Select(p => new GridRow(p, _selected.Contains(p.Key), RowCheckChanged, CManualInspectionDrawing.AppliedLevel(p,_snapshot))).ToArray();
+        ResultGrid.ItemsSource = _filtered.Skip(_page * PageSize).Take(PageSize).Select(p => new GridRow(p, _selected.Contains(p.Key), RowCheckChanged,
+            CManualInspectionDrawing.AppliedLevel(p,_snapshot),CManualInspectionDrawing.Level(p,_snapshot))).ToArray();
         PageText.Text = $"{_page + 1} / {pages} 페이지";
         PreviousPageButton.IsEnabled = _page > 0; NextPageButton.IsEnabled = _page + 1 < pages;
-        ResultStatsText.Text = $"OK {_filtered.Count(p => p.WorkingJudge == "OK"):N0}   ·   NG {_filtered.Count(p => p.WorkingJudge == "NG"):N0}   ·   오류 {_filtered.Count(p => p.WorkingJudge == "ERROR"):N0}   ·   미측정 {_filtered.Count(p => p.WorkingJudge == "UNMEASURED"):N0}";
+        ResultStatsText.Text = $"측정됨 {_filtered.Count(p => p.HasMeasurementHistory):N0} (보정 기반 {_filtered.Count(p => p.UsesAppliedMeasurement):N0}) · OK {_filtered.Count(p => p.WorkingJudge == "OK"):N0} · NG {_filtered.Count(p => p.WorkingJudge == "NG"):N0} · 최근 오류 {_filtered.Count(p => p.WorkingJudge == "ERROR"):N0} · 미측정 {_filtered.Count(p => !p.IsMasked && !p.HasMeasurementHistory && p.WorkingJudge == "UNMEASURED"):N0}";
     }
     private void RefreshReference()
     {
@@ -255,9 +283,10 @@ public partial class CManualInspectionView : UserControl
         var p = FocusPoint;
         PointTitleText.Text = p is null ? "선택 없음" : $"Cell {p.CellNo} · Head {p.HeadNo}";
         PointIdentityText.Text = p is null ? "지도에서 점을 선택하세요." : $"Shot {p.ShotNo} · Beam {p.BeamNo}";
-        PointJudgesText.Text = p is null ? "" : $"작업 판정 {p.WorkingJudge} · 원측정 {p.OriginalJudge}";
+        PointJudgesText.Text = p is null ? "" : p.MeasurementStatusText;
         PointJudgesText.SetResourceReference(TextBlock.ForegroundProperty, p?.WorkingJudge == "NG" ? "ReviewMaskTextBrush" : p?.WorkingJudge == "ERROR" ? "ButtonWarningBrush" : "TextPrimaryBrush");
-        PointErrorText.Text = p is null ? "" : $"작업 ΔX / ΔY\n{p.WorkingErrorText} µm\n원측정 {p.OriginalErrorText} µm";
+        PointErrorText.Text = p is null ? "" : $"편차 {p.MeasurementErrorText} µm\n{(p.UsesAppliedMeasurement ? "□ 기존 보정 기반" : p.IsProxy ? "◇ 대표값 복사 편차" : p.HasWorkingMeasurement ? "● 측정 결과 편차" : "유효 편차 없음")}";
+        PointErrorText.ToolTip = p is null ? "" : $"표시 편차 {p.MeasurementErrorText} µm\n{p.MeasurementBasisText}\n직접 작업값 {p.WorkingErrorText} µm\n원측정 {p.OriginalErrorText} µm";
         var appliedLevel = p is null ? -1 : CManualInspectionDrawing.AppliedLevel(p,_snapshot);
         PointAppliedText.Text = p is null ? "" : p.HasAppliedOffset
             ? $"적용 보정 B  {p.BaseOffsetText} µm\n{(appliedLevel >= 0 ? $"L{appliedLevel + 1} · {_snapshot.LevelNames.ElementAtOrDefault(appliedLevel)}" : "Level 확인 필요")}"
@@ -268,16 +297,14 @@ public partial class CManualInspectionView : UserControl
             + (string.IsNullOrWhiteSpace(p.MeasurementSourcePath) ? "" : "\n" + p.MeasurementSourcePath) + "\n" + p.Key;
         JobProgressText.Text = Busy ? $"진행 {_snapshot.CompletedCount:N0} / {_snapshot.TotalCount:N0}점" : _snapshot.HasIncomplete ? $"잔여 {_snapshot.RemainingCount:N0}점 · 자동 보정은 재개하지 않습니다." : "대기";
         JobProgressBar.Value = _snapshot.TotalCount <= 0 ? 0 : Math.Clamp(_snapshot.CompletedCount * 100.0 / _snapshot.TotalCount, 0, 100);
+        JobProgressText.Visibility = JobProgressBar.Visibility = Busy || _snapshot.HasIncomplete ? Visibility.Visible : Visibility.Collapsed;
         RetryButton.Visibility = _snapshot.HasIncomplete ? Visibility.Visible : Visibility.Collapsed;
     }
     private void RefreshButtons()
     {
         var idle = !Busy; var operate = idle && !_snapshot.IsReadOnly && _snapshot.Points.Count > 0;
         var hasSelection = _selected.Any(k => _points.TryGetValue(k, out var p) && !p.IsMasked);
-        var hasPoint = FocusPoint is { IsMasked: false };
         foreach (var b in new[] { LoadRecipeButton, FilesButton }) b.IsEnabled = idle;
-        MoveMeasureButton.IsEnabled = SelectedWorkButton.IsEnabled = operate && (hasSelection || hasPoint);
-        MeasureButton.IsEnabled = operate && hasPoint;
         CalculateButton.IsEnabled = operate && hasSelection && !_snapshot.HasIncomplete;
         ValidateButton.IsEnabled = operate && !_snapshot.HasIncomplete && _snapshot.CandidateRows.Count > 0 && !string.Equals(_snapshot.CandidateStatus, "APPLIED", StringComparison.OrdinalIgnoreCase);
         ApplyButton.IsEnabled = operate && !_snapshot.HasIncomplete && _snapshot.CanApply && _snapshot.ValidationPassed;
@@ -291,15 +318,14 @@ public partial class CManualInspectionView : UserControl
         RetryButton.IsEnabled = operate && _snapshot.HasIncomplete && _snapshot.RemainingCount > 0;
         AllowManualCheck.IsEnabled = SaveLimitsButton.IsEnabled = LevelsButton.IsEnabled = idle && !_snapshot.IsReadOnly;
         MeasurementModeCombo.IsEnabled = idle;
-        PointHistoryButton.IsEnabled = idle && FocusPoint is not null;
     }
 
     private string MapLegend() => (_color switch
     {
         "applied" => "적용 보정 B · Rough/Fine/대표 복사 모두 같은 DESIGN µm 기준 · 회색: 미적용",
-        "level" => "측정 편차 · 공통 Level · 미측정/수신 오류는 회색 · OK/NG와 별도",
-        _ => "OK · NG · 수신 오류 ! · 미측정 ·"
-    }) + "   |   Masking × · 파란 테두리: 선택 · ★: 대표값 · ◇: 대표값 복사";
+        "level" => "실측/보정 기반 편차 · 공통 Level · □ 보정 기반 측정",
+        _ => "실측 OK/NG · □ 보정 기반 측정 · 수신 오류 ! · 미측정 ·"
+    }) + "   |   Masking × · 선택 테두리 · ★ 대표 · ◇ 복사";
 
     private void AddLegend(WrapPanel panel, string name, Brush brush)
     {
@@ -324,7 +350,7 @@ public partial class CManualInspectionView : UserControl
         if (_color is "level" or "applied")
             AddLegend(MapLegendItems, _color == "applied" ? "미적용" : "유효 측정 없음", CManualInspectionDrawing.Color("#DBE4EA"));
         else
-            foreach (var (name, color) in new[] { ("OK", "#3B9870"), ("NG", "#D16776"), ("수신 오류 !", "#D39A45"), ("미측정 ·", "#DBE4EA") }) AddLegend(MapLegendItems, name, CManualInspectionDrawing.Color(color));
+            foreach (var (name, color) in new[] { ("실측 OK", "#3B9870"), ("실측 NG", "#D16776"), ("□ 보정 기반 측정", "#638CA8"), ("수신 오류 !", "#D39A45"), ("미측정 ·", "#DBE4EA") }) AddLegend(MapLegendItems, name, CManualInspectionDrawing.Color(color));
         AddLegend(MapLegendItems, "Masking ×", CManualInspectionDrawing.Resource(this, "ReviewMaskBackgroundBrush", Brushes.LightGray));
     }
 
@@ -332,12 +358,12 @@ public partial class CManualInspectionView : UserControl
     {
         var currentCell = _cell != 0 ? _cell : FocusPoint?.CellNo ?? _snapshot.Points.FirstOrDefault()?.CellNo ?? 0;
         var range = _snapshot.Points.Where(p => _scatterScope == "CELL" ? p.CellNo == currentCell : _scatterScope == "HEAD" ? _scatterHead == 0 || p.HeadNo == _scatterHead : _scatterCells.Contains(p.CellNo)).ToArray();
-        var display = _scatterOriginal ? range.Select(p => p with { WorkingJudge = p.OriginalJudge, WorkingXUm = p.OriginalXUm, WorkingYUm = p.OriginalYUm, IsProxy = false }).ToArray() : range;
+        var display = _scatterOriginal ? range.Select(p => p with { WorkingJudge = p.OriginalJudge, WorkingXUm = p.OriginalXUm, WorkingYUm = p.OriginalYUm, IsProxy = false, HasAppliedOffset = false }).ToArray() : range;
         ScatterPlot.Configure(display, _selected, _scatterScope == "HEAD", _snapshot.ToleranceXUm, _snapshot.ToleranceYUm,
             _scatterScope == "CELLS" && _scatterCells.Count == 0 ? "산포도를 볼 Cell을 위에서 선택하세요." : "이 범위에 유효한 측정값이 없습니다.");
         var m = ScatterPlot.Metrics;
         ScatterMetricsText.Text = $"전체 위치  {m.Total:N0}점\n{(_scatterOriginal ? "유효 원측정값" : "표시한 작업값")}  {m.Count:N0}점"
-            + (_scatterOriginal ? "" : $"\n대표값 복사  {m.ProxyCount:N0}점")
+            + (_scatterOriginal ? "" : $"\n대표값 복사  {m.ProxyCount:N0}점\n□ 보정 기반  {m.CorrectionBasedCount:N0}점")
             + $"\n\n평균 ΔX / ΔY\n{CManualInspectionUiPoint.Pair(m.MeanX, m.MeanY)} µm\n\n표준편차 σX / σY\n{CManualInspectionUiPoint.Number(m.SigmaX)} / {CManualInspectionUiPoint.Number(m.SigmaY)} µm\n\n최대 벡터 편차\n{CManualInspectionUiPoint.Number(m.MaximumVector)} µm";
         ScatterExcludedText.Text = $"제외: Masking {m.Masked} · 미측정 {m.Unmeasured} · 수신 오류 {m.Errors} · 수치 없음 {m.Invalid}점. σ는 모집단 기준입니다.";
         var byHead = _scatterScope == "HEAD";
@@ -353,7 +379,7 @@ public partial class CManualInspectionView : UserControl
             var group = groups[i]; var index = byHead && int.TryParse(group.Group.AsSpan(1), out var h) ? Math.Max(0, h - 1) : i;
             AddLegend(ScatterLegendItems, group.Group, CManualInspectionDrawing.Color(CManualInspectionDrawing.HeadColors[index % 8]));
         }
-        ScatterLegendText.Text = string.Join(" · ", groups.Select(g => g.Group)) + "   ＋ 평균 · 중심 (0,0): 목표   " + (_scatterOriginal ? "원측정 기록만 표시" : "● 실측 · ◇ 대표값 복사");
+        ScatterLegendText.Text = string.Join(" · ", groups.Select(g => g.Group)) + "   ＋ 평균 · 중심 (0,0): 목표   " + (_scatterOriginal ? "원측정 기록만 표시" : "● 실측 · ◇ 대표값 복사 · □ 보정 기반 측정");
         foreach (var b in new[] { ScatterCellButton, ScatterHeadButton, ScatterCellsButton }) b.Style = (Style)FindResource((string)b.Tag == _scatterScope ? "ManualPrimaryButton" : "ManualButton");
         ScatterScopeControls.Children.Clear();
         if (_scatterScope == "CELL") ScatterScopeControls.Children.Add(Label($"Cell {currentCell} 전체 · 지도 선택·NG·검색 필터와 관계없이 셀 전체를 봅니다."));
@@ -460,11 +486,6 @@ public partial class CManualInspectionView : UserControl
     private void ZoomIn_Click(object sender, RoutedEventArgs e) => PositionMap.ZoomAt(1.25, new Point(PositionMap.ActualWidth / 2, PositionMap.ActualHeight / 2));
     private void ZoomOut_Click(object sender, RoutedEventArgs e) => PositionMap.ZoomAt(0.8, new Point(PositionMap.ActualWidth / 2, PositionMap.ActualHeight / 2));
     private void ZoomReset_Click(object sender, RoutedEventArgs e) => PositionMap.ResetView();
-    private void SelectedWork_Click(object sender, RoutedEventArgs e)
-    {
-        if (_selected.Count == 0 && FocusPoint is { IsMasked: false } p) ChangeSelection(new([p.Key], p.Key));
-        PositionMap.ShowOperationMenu();
-    }
     private void SelectionTools_Click(object sender, RoutedEventArgs e)
     {
         var menu = NewMenu((Button)sender);
@@ -503,7 +524,18 @@ public partial class CManualInspectionView : UserControl
         catch (Exception ex) { ShowMessage(ex.Message); }
         finally { _requests--; Refresh(); }
     }
-    private async void Map_OperationRequested(object? sender, CManualInspectionOperationEventArgs e) => await ConfirmOperation(e.Action, e.Keys, e.ExpectedVersion, "P2P");
+    private async void Map_OperationRequested(object? sender, CManualInspectionOperationEventArgs e)
+    {
+        if (e.Action == EN_MANUAL_INSPECTION_UI_ACTION.ShowPoint)
+        {
+            if (e.ExpectedVersion != _snapshot.Version) { ShowMessage("메뉴를 연 뒤 측정 기준이 바뀌었습니다. 다시 선택하세요."); return; }
+            var key = e.Keys.FirstOrDefault(); if (key is null) return;
+            await Execute(e.Action, Request([key], e.ExpectedVersion) with { FocusKey = key });
+            return;
+        }
+        await ConfirmOperation(e.Action, e.Keys, e.ExpectedVersion,
+            e.Action is EN_MANUAL_INSPECTION_UI_ACTION.Move or EN_MANUAL_INSPECTION_UI_ACTION.Measure ? "P2P" : Value(MeasurementModeCombo,"P2P"));
+    }
     private async void Action_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button button || !Enum.TryParse<EN_MANUAL_INSPECTION_UI_ACTION>(button.Tag as string, out var action)) return;
@@ -662,11 +694,6 @@ public partial class CManualInspectionView : UserControl
             throw new InvalidOperationException("네 레벨의 이름을 중복 없이 1~20자로 입력하세요.");
         return values;
     }
-    private async void PointHistory_Click(object sender, RoutedEventArgs e)
-    {
-        var point = FocusPoint; if (point is null) return;
-        await Execute(EN_MANUAL_INSPECTION_UI_ACTION.ShowPoint, Request([point.Key]) with { FocusKey = point.Key });
-    }
     private void Files_Click(object sender, RoutedEventArgs e)
     {
         var menu = NewMenu(FilesButton);
@@ -735,7 +762,11 @@ public partial class CManualInspectionView : UserControl
         ContentControl content when content.Content is UIElement child => DescriptionText(child),
         _ => ""
     };
-    private void ShowMessage(string message) { MessageText.Text = message; }
+    private void ShowMessage(string message)
+    {
+        MessageText.Text = message; MessageText.ToolTip = message;
+        MessageText.Visibility = string.IsNullOrWhiteSpace(message) ? Visibility.Collapsed : Visibility.Visible;
+    }
     private async void View_PreviewKeyDown(object sender, KeyEventArgs e)
     {
         var key = e.Key == Key.System ? e.SystemKey : e.Key;

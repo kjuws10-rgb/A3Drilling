@@ -1,7 +1,6 @@
 {
-  "schemaVersion": "a3-manual-inspection-validation/2",
-  "baseCommit": "a062c701d825c925a8ba74184bc8eff98dce0ab6",
-  "originalVersionBaseCommit": "334b3599651b2e8e0181fd4459bafaf3cddafff3",
+  "schemaVersion": "a3-manual-inspection-validation/3",
+  "baseCommit": "5937e635d1e1a83ea992ca2f04ecd1b7ff2e6f5d",
   "featureBranch": "feature/manual-inspection-sync-levels-20261120",
   "verifiedDate": "2026-11-20",
   "build": {
@@ -9,25 +8,13 @@
     "configuration": "Release",
     "warnings": 0,
     "errors": 0,
-    "logSha256": "1a3189d69220163127279b59f3363d8570088bed82c1df5607e854af3cadcd96"
+    "logSha256": "b534bd17db6fa341fece2a64b3c89d0267b83b0a7a3b7f8666ad0f945a3ea3dd"
   },
   "checks": {
-    "core": {
-      "count": 111,
-      "passed": true
-    },
-    "bridgeWriter": {
-      "count": 22,
-      "passed": true
-    },
-    "externalResultProjection": {
-      "count": 37,
-      "passed": true
-    },
     "productionController": {
-      "count": 65,
+      "count": 71,
       "passed": true,
-      "assemblySha256": "1947d6abc976cf742348aceac594035a6b57ff966f9195c58b05406410ae328b",
+      "assemblySha256": "233cf308a4f0d54a77b9c1a987ea9d98cab983b370474a89f195135ed4b909aa",
       "loadedVendorAssemblies": []
     },
     "nativeUi": {
@@ -42,9 +29,36 @@
       "count": 34,
       "passed": true
     },
+    "coverageCompactUi": {
+      "count": 71,
+      "passed": true
+    },
     "scope": {
       "count": 12,
       "passed": true
+    }
+  },
+  "sourceLinkController": {
+    "count": 68,
+    "passed": true,
+    "duplicatesNotAddedToProductionCount": true
+  },
+  "inheritedChecks": {
+    "sourceCommit": "5937e635d1e1a83ea992ca2f04ecd1b7ff2e6f5d",
+    "repeatedForThisChange": false,
+    "checks": {
+      "core": {
+        "count": 111,
+        "passed": true
+      },
+      "bridgeWriter": {
+        "count": 22,
+        "passed": true
+      },
+      "externalResultProjection": {
+        "count": 37,
+        "passed": true
+      }
     }
   },
   "previousHtmlOracle": {
@@ -53,11 +67,6 @@
     "passed": true,
     "repeatedForThisChange": false,
     "scope": "Historical attachment oracle, not a current WPF or machine test"
-  },
-  "sourceLinkController": {
-    "count": 62,
-    "passed": true,
-    "duplicatesNotAddedToProductionCount": true
   },
   "productionSha256": {
     "Drilling.Common/Review/CManualInspectionCoordinateBridge.cs": "faf320044ebb800f2f5216cf0900c2e23b6d12d8a2cb86e089825bc8d97d9344",
@@ -70,18 +79,18 @@
     "Drilling.File/ReviewResult/CReviewResultFile.cs": "fe57ec9538f0032480b6fd73b32b4c93633bd095fe11ca05123ce07fa71292d0",
     "Drilling.UI/CRootView.cs": "fe3e65ce811d26664d64ed1155bfe623bc547bddd9f785d3dd6ae3eb7ee16963",
     "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs": "5b24cfaff4195514797267b198d3f787bb85376d5a290233c06c48943dedd409",
-    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "980daea93077075c9fd702802e24c585164bb43f65d38f08cb4df9c60a4dcaf3",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "8e472551f61c00e152cef7460b937c01365bb7d84c1472377aacfe1d601c8c1c",
     "Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs": "8e7a239bcbaf630383e9330fcb53ddb0cdf538111d8a1f754867524c1808164c",
     "Drilling.UI/Menu/Menus/CManualInspectionUpdateMonitor.cs": "a5d8854aea32ae9eb9cf4cfa05c99cf6ab0548dddcebd7fa32a94335ab94a1e0",
     "Drilling.UI/Menu/Menus/CMenuCorrection.ManualInspection.cs": "12af934e028a18f1b714d7be9a3e777434f6b21e66b16184e294b5acccbe17df",
     "Drilling.UI/Menu/Menus/CMenuCorrection.cs": "11cf844b10fe749f7ec171079b0f9cf2f4b7995f10dc5dbd26f7e8e7b1bb9e7f",
     "Drilling.UI/Views/CCorrectionView.xaml": "ae9f6bbd40970212f2788a06d6e8fb5499496a153bb0d8e05a07f8b6850ae4f6",
     "Drilling.UI/Views/CCorrectionView.xaml.cs": "b963c5748d9da1342a527f8b946c93ffcf4e483ed1568ecc514b2816fd1a1fec",
-    "Drilling.UI/Views/CManualInspectionMapControl.cs": "c2368e0806218ed31a335f0705a83736deb090252e7acf9536ec6bf1f4a4c11a",
-    "Drilling.UI/Views/CManualInspectionScatterControl.cs": "78ce5ed46c062af44a9ef4c1e7347198a0eb2a4112744ad2d163464656cee742",
-    "Drilling.UI/Views/CManualInspectionUiContract.cs": "cfe43465f038cff2ae622d336e58af967928af139df8338cdb530f4f1d7be7cd",
-    "Drilling.UI/Views/CManualInspectionView.xaml": "bf79fee5f1c4e2cc0900330e06959b9408169be3b8ef1824a173a1ef8553b9d4",
-    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "9a68a8fd4bea16d0d38192d2ab31f764400d7909e03d45fcbeb88b434ef499ec"
+    "Drilling.UI/Views/CManualInspectionMapControl.cs": "a3622768537e47603f9eb6fcc7496e7a76250aedc67b7c350a09d13b5dc11b2f",
+    "Drilling.UI/Views/CManualInspectionScatterControl.cs": "fc46c3e933b532e7835761be2fdfe387485f8a5ce63fd047be5b6d4458fed994",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "f146bf9a8a6a6a037c939cb85424735e8a8fad3c8a0f60b3ef9f150fa7d1d0cd",
+    "Drilling.UI/Views/CManualInspectionView.xaml": "b0438ee17595721b97768b2a58192452890bcb00fc007bbb2ef6c8cda2a4c236",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "d03f495af69d6b3fe25bcdd1d31333845ab92c0c7ae8cf28a866cf86a3e505ba"
   },
   "productionWorktreeSha256": {
     "Drilling.Common/Review/CManualInspectionCoordinateBridge.cs": "faf320044ebb800f2f5216cf0900c2e23b6d12d8a2cb86e089825bc8d97d9344",
@@ -94,34 +103,57 @@
     "Drilling.File/ReviewResult/CReviewResultFile.cs": "48d76ca790635663fc3f247f5e88483dbb9c318d6f1a1bd8ecec4761005ee3cc",
     "Drilling.UI/CRootView.cs": "b3f201a4639014f7163347a8106945ae06dbc7d18dce4fb2851b67d33f43a7ba",
     "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs": "5b24cfaff4195514797267b198d3f787bb85376d5a290233c06c48943dedd409",
-    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "980daea93077075c9fd702802e24c585164bb43f65d38f08cb4df9c60a4dcaf3",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "8e472551f61c00e152cef7460b937c01365bb7d84c1472377aacfe1d601c8c1c",
     "Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs": "8e7a239bcbaf630383e9330fcb53ddb0cdf538111d8a1f754867524c1808164c",
     "Drilling.UI/Menu/Menus/CManualInspectionUpdateMonitor.cs": "a5d8854aea32ae9eb9cf4cfa05c99cf6ab0548dddcebd7fa32a94335ab94a1e0",
     "Drilling.UI/Menu/Menus/CMenuCorrection.ManualInspection.cs": "12af934e028a18f1b714d7be9a3e777434f6b21e66b16184e294b5acccbe17df",
     "Drilling.UI/Menu/Menus/CMenuCorrection.cs": "3eaac7a8a1ea367063d44325e584f69ede325385bd04cdb5f1292eb511c793f0",
     "Drilling.UI/Views/CCorrectionView.xaml": "850404c76dda72d2d741b74f07a8161966f6cd55d173697bebaf619ee79e296c",
     "Drilling.UI/Views/CCorrectionView.xaml.cs": "aad7dd20f74ecfb6876c917e11ae1ef2e6494aad5d5c9ada9fb4ac9596c4e980",
-    "Drilling.UI/Views/CManualInspectionMapControl.cs": "c2368e0806218ed31a335f0705a83736deb090252e7acf9536ec6bf1f4a4c11a",
-    "Drilling.UI/Views/CManualInspectionScatterControl.cs": "78ce5ed46c062af44a9ef4c1e7347198a0eb2a4112744ad2d163464656cee742",
-    "Drilling.UI/Views/CManualInspectionUiContract.cs": "cfe43465f038cff2ae622d336e58af967928af139df8338cdb530f4f1d7be7cd",
-    "Drilling.UI/Views/CManualInspectionView.xaml": "bf79fee5f1c4e2cc0900330e06959b9408169be3b8ef1824a173a1ef8553b9d4",
-    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "9a68a8fd4bea16d0d38192d2ab31f764400d7909e03d45fcbeb88b434ef499ec"
+    "Drilling.UI/Views/CManualInspectionMapControl.cs": "a3622768537e47603f9eb6fcc7496e7a76250aedc67b7c350a09d13b5dc11b2f",
+    "Drilling.UI/Views/CManualInspectionScatterControl.cs": "fc46c3e933b532e7835761be2fdfe387485f8a5ce63fd047be5b6d4458fed994",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "f146bf9a8a6a6a037c939cb85424735e8a8fad3c8a0f60b3ef9f150fa7d1d0cd",
+    "Drilling.UI/Views/CManualInspectionView.xaml": "b0438ee17595721b97768b2a58192452890bcb00fc007bbb2ef6c8cda2a4c236",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "d03f495af69d6b3fe25bcdd1d31333845ab92c0c7ae8cf28a866cf86a3e505ba"
   },
-  "hashScope": "productionSha256 is staged Git blob bytes (LF); productionWorktreeSha256 is tested Windows bytes. Checkout CRLF normalization can differ.",
-  "attachmentSha256": "24ee7abc7a1b3818cfa2d80ea9f60b334ead1be17c65fbf1538d0a85310fedf0",
-  "automaticJoinPolicy": {
-    "scope": "known current Recipe/Glass/time window/Shift/mode/Head/geometry",
-    "importedIsDirectAnchor": false,
-    "retainedIsNewMeasurement": false,
-    "unknownLegacyAvailableInRecentResults": true
+  "hashScope": "productionSha256 is staged Git LF blob bytes; productionWorktreeSha256 is tested Windows bytes.",
+  "coveragePolicy": {
+    "activeOffsetRowIsMeasurementHistory": true,
+    "explicitZeroIsMeasured": true,
+    "validWorkingMeasurementTakesPriority": true,
+    "fallback": "active stored DESIGN micrometre offset, labelled correction-based",
+    "originalRawOrJudgeChanged": false,
+    "nativeAnchorEligibilityChanged": false,
+    "candidateOnlyCreatesHistory": false,
+    "rawOnlyScatterUsesOffsetFallback": false
   },
-  "levelPolicy": {
-    "default": "active stored DESIGN micrometre offsets",
-    "missingOffset": "no applied level",
-    "explicitZeroOffset": "L1",
-    "candidateIncludedBeforeCommit": false,
-    "boundsInclusive": true,
-    "sharedAcrossCellsAndHeads": true
+  "layoutPolicy": {
+    "resultsInitiallyCollapsed": true,
+    "scatterInitiallyCollapsed": true,
+    "defaultNoScrollTestSizes": [
+      "1120x560",
+      "1120x720",
+      "1480x900"
+    ],
+    "mapParentAndAllTileBoundsChecked": true,
+    "expandedDetailsMayScroll": true,
+    "removedSidebarActions": [
+      "MoveMeasure",
+      "SelectedWork",
+      "ShowPoint",
+      "Measure"
+    ]
+  },
+  "contextActions": {
+    "selectionScope": [
+      "Move",
+      "MoveMeasure",
+      "MoveMeasureCorrect"
+    ],
+    "focusedPointScope": [
+      "Measure",
+      "ShowPoint"
+    ]
   },
   "notExecuted": [
     "equipment App/Root/Manager",
@@ -129,11 +161,5 @@
     "physical motion/PLC/Vision",
     "AeroScript",
     "laser processing"
-  ],
-  "priorSourceSettingObservation": {
-    "eligible": 19525,
-    "existingOutsideField": 90,
-    "halfFieldMm": 55,
-    "classification": "Retained prior source-setting observation; not a new equipment test"
-  }
+  ]
 }
