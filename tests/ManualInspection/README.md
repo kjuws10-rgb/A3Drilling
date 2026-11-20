@@ -22,4 +22,8 @@ Common 회귀는 대표값·작업 상태·원측정 보존, 계산/검증/저�
 
 정식 프로그램 빌드, Controller와 기존 Review Manager의 연결, 실제 PLC/Vision 지연·비상정지·모션 도착·트리거/결과 수 및 장비 소프트리밋은 각자의 별도 검증 범위입니다.
 
-현재 측정 이력·접기 후속은 실제 assembly Controller 71개(기존 65+표시/CSV/raw 보존 6개), WPF UI 49/23/34개 회귀와 측정 이력·우클릭·기본 스크롤·지도 클리핑 71개를 실행했습니다. `--coverage-compact` UI 옵션으로 새 화면 검사를 재현합니다. 상세 범위는 [COVERAGE_COMPACT_QA.md](COVERAGE_COMPACT_QA.md), 이전 결과 동기화 기록은 [SYNC_QA.md](SYNC_QA.md)입니다. 계산 111/bridge-writer 22/외부 결과 병합 37 검사는 관련 구현을 바꾸지 않은 이전 Commit의 별도 근거이며 이번 수정의 재실행 수로 합산하지 않습니다. 첨부 HTML 원본은 `docs/ManualInspection/Reference`에 보존했습니다.
+이전 측정 이력·접기 후속에서는 실제 assembly Controller 71개(기존 65+표시/CSV/raw 보존 6개), WPF UI 49/23/34개 회귀와 측정 이력·우클릭·기본 스크롤·지도 클리핑 71개를 실행했습니다. `--coverage-compact` UI 옵션으로 새 화면 검사를 재현합니다. 상세 범위는 [COVERAGE_COMPACT_QA.md](COVERAGE_COMPACT_QA.md), 이전 결과 동기화 기록은 [SYNC_QA.md](SYNC_QA.md)입니다. 계산 111/bridge-writer 22/외부 결과 병합 37 검사는 관련 구현을 바꾸지 않은 이전 Commit의 별도 근거이며 이번 수정의 재실행 수로 합산하지 않습니다. 첨부 HTML 원본은 `docs/ManualInspection/Reference`에 보존했습니다.
+
+## 현재 Review 교차검증
+
+[현재 검토·수정·현장 한계](HARDENING_QA.md)를 참조한다. 정식 Release 0/0, 엔진113·writer35·Backend16·실제 Controller89·외부projection53·WPF49/23/34/71/30·scope15를 실행했다. 실제 Controller와 source-link86은 중복 합산하지 않는다. 세부 Source/DLL/report SHA는 [manifest](../../docs/ManualInspection/validation.json)에 있다. BackendReadHarness는 실제 새 Adapter와 Recipe/Setting/Review 순수 planner 및 CSV writer를 연결하지만, 장비 Manager/Root/SDK는 생성하지 않는다.

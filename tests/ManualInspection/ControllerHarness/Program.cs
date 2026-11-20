@@ -77,6 +77,7 @@ internal static partial class Program
 #endif
         await RunSynchronizationChecks();
         await RunCoverageChecks();
+        await RunHardeningChecks();
         await Check("generic_sta_application_and_no_loaded_vendor_assemblies",async()=>{True(Application.Current.GetType()==typeof(Application));True(!VendorAssemblies().Any());await Task.CompletedTask;});
         var path=args.Length==2&&args[0]=="--report"?args[1]:Path.Combine(AppContext.BaseDirectory,"controller-results.json");Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         var assembly=typeof(CManualInspectionController).Assembly;
@@ -96,6 +97,10 @@ internal static partial class Program
         public bool IsSimulation=>Simulation;public string StateDirectory{get;}public CManualInspectionSource Source;public int Loads,Saves,StopCalls;public bool FailSave,Stale,Hold,Simulation;public string? FailKey;public double NewX=.5;public string NewJudge="OK";public readonly List<string> Executed=[],SourceIds=[],FlyingKeys=[];
         public readonly List<KeyValuePair<string,string>> ReceiptSeeds=[],SavedConsumption=[];
         public Func<CManualInspectionSource,CancellationToken,Task>? LoadHook;
+        public Func<CancellationToken,Task>? SaveHook;
+        public Action? StopHook;
+        public bool CancellationCallbackThrows;
+        public IReadOnlyList<string> WatchRoots { get; set; } = [];
         public IReadOnlyList<KeyValuePair<string,string>> ConsumedMeasurements=>ReceiptSeeds;
         public readonly TaskCompletionSource Entered=new(TaskCreationOptions.RunContinuationsAsynchronously),CancelObserved=new(TaskCreationOptions.RunContinuationsAsynchronously),Release=new(TaskCreationOptions.RunContinuationsAsynchronously);
         public FakeBackend(string path,bool readOnly,bool ng)
@@ -109,11 +114,11 @@ internal static partial class Program
         public Task EnsureCurrentAsync(CManualInspectionSource source,CancellationToken t){t.ThrowIfCancellationRequested();if(Stale)throw new InvalidOperationException("Changed native context");return Task.CompletedTask;}
         public async Task<CManualInspectionMeasurement> ExecutePointAsync(CManualInspectionSource s,string key,EN_MANUAL_OPERATION_KIND kind,Action<string>progress,CancellationToken token)
         {
-            Executed.Add(key);Entered.TrySetResult();if(Hold){try{await Task.Delay(Timeout.Infinite,token);}catch(OperationCanceledException){CancelObserved.TrySetResult();await Release.Task;throw;}}
+            Executed.Add(key);Entered.TrySetResult();if(Hold){using var registration=CancellationCallbackThrows?token.Register(()=>throw new IOException("Synthetic cancellation callback failure")):default;try{await Task.Delay(Timeout.Infinite,token);}catch(OperationCanceledException){CancelObserved.TrySetResult();await Release.Task;throw;}}
             token.ThrowIfCancellationRequested();if(key==FailKey)throw new TimeoutException("Synthetic missing response");var p=s.Points.First(p=>p.Key==key);var m=new ST_MANUAL_MEASUREMENT(NewJudge,NewX,-.25,"NEW-RAW-"+NewX,s.Context.RecipeId,s.Context.RunId,s.Context.CoordinateSignature){RawData="Synthetic new raw"};return new(key,m,p.XMm,p.YMm);
         }
         public async Task ExecuteFlyingAsync(CManualInspectionSource s,IReadOnlyList<string>keys,Action<CManualInspectionMeasurement>measured,Action<string>progress,CancellationToken token){FlyingKeys.AddRange(keys);foreach(var k in keys)measured(await ExecutePointAsync(s,k,EN_MANUAL_OPERATION_KIND.Flying,progress,token));}
-        public Task<string> SaveAsync(CManualInspectionSource s,IReadOnlyDictionary<string,ST_MANUAL_OFFSET>values,string identity,IReadOnlyList<ST_MANUAL_CANDIDATE_ROW>rows,CancellationToken token,IReadOnlyDictionary<string,string>?consumedMeasurements=null){token.ThrowIfCancellationRequested();if(FailSave)throw new IOException("Synthetic writer error");SourceIds.Add(identity);if(consumedMeasurements is not null)SavedConsumption.AddRange(consumedMeasurements);Saves++;var id="REV-"+Saves;Source=Source with{Context=Source.Context with{RevisionId=id},Values=new Dictionary<string,ST_MANUAL_OFFSET>(values)};return Task.FromResult(id);}
-        public void Stop()=>StopCalls++;
+        public async Task<string> SaveAsync(CManualInspectionSource s,IReadOnlyDictionary<string,ST_MANUAL_OFFSET>values,string identity,IReadOnlyList<ST_MANUAL_CANDIDATE_ROW>rows,CancellationToken token,IReadOnlyDictionary<string,string>?consumedMeasurements=null){if(SaveHook is not null)await SaveHook(token);token.ThrowIfCancellationRequested();if(FailSave)throw new IOException("Synthetic writer error");SourceIds.Add(identity);if(consumedMeasurements is not null)SavedConsumption.AddRange(consumedMeasurements);Saves++;var id="REV-"+Saves;Source=Source with{Context=Source.Context with{RevisionId=id},Values=new Dictionary<string,ST_MANUAL_OFFSET>(values)};return id;}
+        public void Stop(){StopCalls++;StopHook?.Invoke();}
     }
 }

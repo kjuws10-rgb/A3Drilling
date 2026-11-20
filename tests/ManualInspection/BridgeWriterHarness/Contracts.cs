@@ -100,6 +100,7 @@ namespace Drilling.Common.Review {
 
     public sealed record ST_REVIEW_OFFSET_FILE_DATA(string RecipeId, string FilePath, string FileName, DateTimeOffset SavedAt, IReadOnlyList<ST_REVIEW_OFFSET_ROW> Rows)
     {
+        public string ContentSha256 { get; init; } = "";
         public static ST_REVIEW_OFFSET_FILE_DATA Empty(string recipeId)
         {
             return new ST_REVIEW_OFFSET_FILE_DATA(recipeId, "", "", DateTimeOffset.MinValue, []);
@@ -132,7 +133,8 @@ namespace Drilling.Common.Review {
     {
         public virtual Task<ST_REVIEW_OFFSET_FILE_DATA> SaveNewIfUnchanged(
             string recipeId, string expectedLatestFilePath, IReadOnlyList<ST_REVIEW_OFFSET_ROW> rows,
-            string sourceResultFile, CancellationToken cancellationToken = default)
+            string sourceResultFile, CancellationToken cancellationToken = default,
+            string? expectedLatestContentSha256 = null)
             => throw new NotSupportedException("이 저장소는 Manual Inspection의 활성 Revision 확인 저장을 지원하지 않습니다.");
 
         public abstract string RootPath { get; }
@@ -143,6 +145,9 @@ namespace Drilling.Common.Review {
             string recipeId,
             string sourceResultFile,
             CancellationToken cancellationToken = default);
+        public virtual Task<ST_REVIEW_OFFSET_SOURCE_APPLICATION?> FindCommittedSourceApplication(
+            string recipeId, string sourceResultFile, CancellationToken cancellationToken = default)
+            => FindSourceApplication(recipeId, sourceResultFile, cancellationToken);
         public abstract Task<ST_REVIEW_OFFSET_FILE_DATA> SaveNewFromSource(
             string recipeId,
             IReadOnlyList<ST_REVIEW_OFFSET_ROW> rows,

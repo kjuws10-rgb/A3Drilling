@@ -4372,6 +4372,8 @@ namespace Drilling.Common.Review
 
     public sealed record ST_REVIEW_OFFSET_FILE_DATA(string RecipeId, string FilePath, string FileName, DateTimeOffset SavedAt, IReadOnlyList<ST_REVIEW_OFFSET_ROW> Rows)
     {
+        /// <summary>SHA-256 of the exact persisted bytes read with Rows, when supported by the store.</summary>
+        public string ContentSha256 { get; init; } = "";
         public static ST_REVIEW_OFFSET_FILE_DATA Empty(string recipeId)
         {
             return new ST_REVIEW_OFFSET_FILE_DATA(recipeId, "", "", DateTimeOffset.MinValue, []);
@@ -4411,7 +4413,8 @@ namespace Drilling.Common.Review
         /// </summary>
         public virtual Task<ST_REVIEW_OFFSET_FILE_DATA> SaveNewIfUnchanged(
             string recipeId, string expectedLatestFilePath, IReadOnlyList<ST_REVIEW_OFFSET_ROW> rows,
-            string sourceResultFile, CancellationToken cancellationToken = default)
+            string sourceResultFile, CancellationToken cancellationToken = default,
+            string? expectedLatestContentSha256 = null)
             => throw new NotSupportedException("이 저장소는 Manual Inspection의 활성 Revision 확인 저장을 지원하지 않습니다.");
 
         public abstract Task<ST_REVIEW_OFFSET_FILE_DATA> LoadLatest(string recipeId, CancellationToken cancellationToken = default);
@@ -4420,6 +4423,14 @@ namespace Drilling.Common.Review
             string recipeId,
             string sourceResultFile,
             CancellationToken cancellationToken = default);
+        /// <summary>
+        /// Evidence of a completed application, including one later rolled back by another Review
+        /// menu. Manual Inspection uses it for its immutable same-run measurement consumption guard.
+        /// The existing active-source lookup and reapply/rollback policy remain separate.
+        /// </summary>
+        public virtual Task<ST_REVIEW_OFFSET_SOURCE_APPLICATION?> FindCommittedSourceApplication(
+            string recipeId, string sourceResultFile, CancellationToken cancellationToken = default)
+            => FindSourceApplication(recipeId, sourceResultFile, cancellationToken);
         public abstract Task<ST_REVIEW_OFFSET_FILE_DATA> SaveNewFromSource(
             string recipeId,
             IReadOnlyList<ST_REVIEW_OFFSET_ROW> rows,

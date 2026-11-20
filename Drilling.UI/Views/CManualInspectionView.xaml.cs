@@ -45,6 +45,8 @@ public partial class CManualInspectionView : UserControl
     private string? _focusKey;
     private string? _representativeKey;
     private string _runId = "";
+    private string _localMessage = "";
+    private long _localMessageVersion = -1;
     private int _cell;
     private int _head;
     private string _judge = "ALL";
@@ -159,12 +161,15 @@ public partial class CManualInspectionView : UserControl
                 _runId = workspaceIdentity; _selected.Clear(); _focusKey = null; _representativeKey = null;
                 _cell = _snapshot.Points.FirstOrDefault()?.CellNo ?? 0; _head = 0; _judge = _source = "ALL";
                 _query = ""; _page = 0; SearchBox.Text = "";
-                MessageText.Text = "";
+                _localMessage = "";
                 _color = "applied"; _scatterScope = "CELL"; _scatterHead = 0; _scatterOriginal = false;
                 PositionMap.IsPanTool = false; PositionMap.Cursor = Cursors.Cross;
                 _scatterCells.Clear(); if (_cell != 0) _scatterCells.Add(_cell);
             }
-            if (_representativeKey is not null && !_points.ContainsKey(_representativeKey)) _representativeKey = null;
+            // External Review imports can replace a point without changing its key. A previously
+            // selected direct reference must not remain usable after it becomes imported/proxy/B-only.
+            if (_representativeKey is not null && (!_points.TryGetValue(_representativeKey, out var reference) || !reference.CanBeReference))
+                _representativeKey = null;
             var cells = _snapshot.Points.Select(p => p.CellNo).Distinct().OrderBy(x => x).ToArray();
             var heads = _snapshot.Points.Select(p => p.HeadNo).Distinct().OrderBy(x => x).ToArray();
             if (_cell != 0 && !cells.Contains(_cell)) _cell = cells.FirstOrDefault();
@@ -181,10 +186,8 @@ public partial class CManualInspectionView : UserControl
             StatusText.ToolTip = StatusText.Text;
             StagePositionText.Text = $"마지막 도착 확인  X {CManualInspectionUiPoint.Number(_snapshot.StageXmm)} / Y {CManualInspectionUiPoint.Number(_snapshot.StageYmm)} mm";
             PersistenceText.Text = _snapshot.PersistenceText + (string.IsNullOrWhiteSpace(_snapshot.SourcePath) ? "" : " · " + _snapshot.SourcePath);
-            if (!string.IsNullOrEmpty(_snapshot.Message)) MessageText.Text = _snapshot.Message;
-            if (_snapshot.IsReadOnly) MessageText.Text = "조회 전용 자료입니다. 현재 Recipe/Run 연결을 확인한 자료로 측정·보정을 진행하세요. " + _snapshot.Message;
-            MessageText.ToolTip = MessageText.Text;
-            MessageText.Visibility = string.IsNullOrWhiteSpace(MessageText.Text) ? Visibility.Collapsed : Visibility.Visible;
+            if (_localMessageVersion != _snapshot.Version) _localMessage = "";
+            RefreshMessage();
             var scoped = _snapshot.Points.Where(p => (_cell == 0 || p.CellNo == _cell) && (_head == 0 || p.HeadNo == _head)).ToArray();
             PositionMap.Configure(_snapshot, scoped, _filtered, _selected, FocusPoint?.Key, _representativeKey, _color, $"{_cell}|{_head}");
             SelectionCountText.Text = $"선택 {_selected.Count:N0}점 · 지도 {_filtered.Count:N0} / 전체 {_snapshot.Points.Count:N0}점";
@@ -311,7 +314,9 @@ public partial class CManualInspectionView : UserControl
         RollbackButton.IsEnabled = operate && _snapshot.CanRollback;
         SetReferenceButton.IsEnabled = operate && FocusPoint?.CanBeReference == true;
         ClearReferenceButton.IsEnabled = idle && _representativeKey is not null;
-        CopyReferenceButton.IsEnabled = operate && !_snapshot.HasIncomplete && _representativeKey is not null && _selected.Any(k => k != _representativeKey && _points.TryGetValue(k, out var p) && !p.IsMasked);
+        CopyReferenceButton.IsEnabled = operate && !_snapshot.HasIncomplete && _representativeKey is not null
+            && _points.TryGetValue(_representativeKey, out var reference) && reference.CanBeReference
+            && _selected.Any(k => k != _representativeKey && _points.TryGetValue(k, out var p) && !p.IsMasked);
         UndoCopyButton.IsEnabled = operate && !_snapshot.HasIncomplete && _snapshot.CanUndoCopy;
         UndoCopyButton.Visibility = _snapshot.CanUndoCopy ? Visibility.Visible : Visibility.Collapsed;
         StopButton.IsEnabled = Busy;
@@ -426,8 +431,14 @@ public partial class CManualInspectionView : UserControl
     private void Map_SelectionRequested(object? sender, CManualInspectionSelectionEventArgs e) => ChangeSelection(e);
     private void Scatter_SelectionRequested(object? sender, CManualInspectionSelectionEventArgs e)
     {
-        if (e.FocusKey is not null && _points.TryGetValue(e.FocusKey, out var p) && _cell != 0 && _cell != p.CellNo)
-        { _cell = p.CellNo; _head = 0; _judge = _source = "ALL"; _query = ""; _page = 0; SearchBox.Text = ""; }
+        // Scatter scopes are intentionally independent of map filters. Reveal its focused point
+        // even when it belongs to the same Cell but was hidden by Head/judge/source/search.
+        if (e.FocusKey is not null && _points.TryGetValue(e.FocusKey, out var p) && !_filtered.Any(q => q.Key == p.Key))
+        {
+            if (_cell != 0 && _cell != p.CellNo) _cell = p.CellNo;
+            if (_head != 0 && _head != p.HeadNo) _head = 0;
+            _judge = _source = "ALL"; _query = ""; _page = 0; SearchBox.Text = "";
+        }
         ChangeSelection(e);
     }
     private void RowCheckChanged(GridRow row)
@@ -518,12 +529,31 @@ public partial class CManualInspectionView : UserControl
     private async Task Execute(EN_MANUAL_INSPECTION_UI_ACTION action, CManualInspectionUiRequest? request = null)
     {
         if (_controller is null) { ShowMessage("Manual Inspection 제어기가 연결되지 않았습니다."); return; }
-        if (action != EN_MANUAL_INSPECTION_UI_ACTION.Stop && Busy) { ShowMessage("동작 중입니다. 완료 또는 중지 후 조작하세요."); return; }
+        var frozen = request ?? Request();
+        var current = _controller.Snapshot;
+        if (action != EN_MANUAL_INSPECTION_UI_ACTION.Stop)
+        {
+            if (Busy || current.IsBusy) { ShowMessage("동작 중입니다. 완료 또는 중지 후 조작하세요."); return; }
+            // The controller repeats this check. Reject in the view as well so a confirmation
+            // opened before an external Review update never dispatches a stale apply/copy request.
+            if (frozen.ExpectedVersion != current.Version)
+            { Refresh(); ShowMessage("확인 중 측정 기준이 바뀌었습니다. 현재 자료를 확인한 뒤 다시 요청하세요."); return; }
+            if (current.IsReadOnly && RequiresWritableSource(action))
+            { Refresh(); ShowMessage("조회 전용 자료에서는 이동·측정·보정·설정 변경을 실행할 수 없습니다. 현재 Recipe/Run을 다시 불러오세요."); return; }
+        }
         _requests++; RefreshButtons();
-        try { await _controller.ExecuteAsync(action, request ?? Request()); }
+        try { await _controller.ExecuteAsync(action, frozen); }
         catch (Exception ex) { ShowMessage(ex.Message); }
         finally { _requests--; Refresh(); }
     }
+
+    private static bool RequiresWritableSource(EN_MANUAL_INSPECTION_UI_ACTION action) => action is
+        EN_MANUAL_INSPECTION_UI_ACTION.Move or EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure or EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasureCorrect
+        or EN_MANUAL_INSPECTION_UI_ACTION.Measure or EN_MANUAL_INSPECTION_UI_ACTION.RetryRemaining
+        or EN_MANUAL_INSPECTION_UI_ACTION.Calculate or EN_MANUAL_INSPECTION_UI_ACTION.Validate
+        or EN_MANUAL_INSPECTION_UI_ACTION.Apply or EN_MANUAL_INSPECTION_UI_ACTION.Rollback
+        or EN_MANUAL_INSPECTION_UI_ACTION.CopyReference or EN_MANUAL_INSPECTION_UI_ACTION.UndoCopy
+        or EN_MANUAL_INSPECTION_UI_ACTION.UpdateLimits or EN_MANUAL_INSPECTION_UI_ACTION.SetAllowManual or EN_MANUAL_INSPECTION_UI_ACTION.UpdateLevels;
     private async void Map_OperationRequested(object? sender, CManualInspectionOperationEventArgs e)
     {
         if (e.Action == EN_MANUAL_INSPECTION_UI_ACTION.ShowPoint)
@@ -764,6 +794,16 @@ public partial class CManualInspectionView : UserControl
     };
     private void ShowMessage(string message)
     {
+        // Keep a local validation/cancel notice for the current immutable source frame. A real
+        // controller update replaces it; a mere layout/selection refresh must not hide the error.
+        _localMessage = message;
+        _localMessageVersion = _controller?.Snapshot.Version ?? _snapshot.Version;
+        RefreshMessage();
+    }
+    private void RefreshMessage()
+    {
+        var message = string.IsNullOrWhiteSpace(_localMessage) ? _snapshot.Message : _localMessage;
+        if (_snapshot.IsReadOnly) message = "조회 전용 자료입니다. 현재 Recipe/Run 연결을 확인한 자료로 측정·보정을 진행하세요. " + message;
         MessageText.Text = message; MessageText.ToolTip = message;
         MessageText.Visibility = string.IsNullOrWhiteSpace(message) ? Visibility.Collapsed : Visibility.Visible;
     }

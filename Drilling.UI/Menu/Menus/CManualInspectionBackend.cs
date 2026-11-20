@@ -74,6 +74,7 @@ public sealed class CManualInspectionBackend(
     private Dictionary<string, ST_MANUAL_OFFSET> _baseline = new(StringComparer.Ordinal);
     private readonly Dictionary<string, CachedResult> _resultCache = new(StringComparer.OrdinalIgnoreCase);
     private string _sourceRun = "";
+    private bool _sourceSimulation;
     private double _shiftX, _shiftY;
     public IReadOnlyDictionary<string, ST_MANUAL_OFFSET> LastSavedValues { get; private set; } = new Dictionary<string, ST_MANUAL_OFFSET>();
     public IReadOnlyList<KeyValuePair<string, string>> ConsumedMeasurements { get; private set; } = [];
@@ -99,6 +100,11 @@ public sealed class CManualInspectionBackend(
         var selected = selectedRecipe();
         _recipe = (await recipes.LoadRecipes(token)).SingleOrDefault(r => r.Id.Equals(selected, StringComparison.OrdinalIgnoreCase))
             ?? throw new InvalidOperationException("현재 선택된 Recipe가 없습니다. Recipe를 선택한 후 불러오세요.");
+        // Capture the run BEFORE asynchronous result/offset/plan work. A new product or machining
+        // completion during loading must not relabel old Shift/observations as the new run.
+        var capturedRun = RunIdentity();
+        var legacyRun = LegacyRunIdentity();
+        _sourceSimulation = IsSimulation;
         var file = string.IsNullOrWhiteSpace(resultPath) ? null : await ReadResult(resultPath, token);
         if (file is not null && !file.RecipeId.Equals(_recipe.Id, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("측정 결과와 현재 Recipe가 다릅니다. 다른 Recipe의 위치로 이동하지 않습니다.");
@@ -112,14 +118,14 @@ public sealed class CManualInspectionBackend(
         var product = manager?.Product().Current;
         // The persisted completion record has no Glass/Recipe key. A completion predating this
         // product cannot supply its Shift or prove its result run.
-        if (product?.CreatedAt is DateTimeOffset productCreated && completion?.CompletedAt < productCreated)
-            completion = null;
+        var resolvedCompletion = ResolveCompletion(_recipe.Id, product?.RecipeId, product?.CreatedAt, completion);
+        completion = resolvedCompletion.Completion;
         var currentGlass = product is not null && product.RecipeId.Equals(_recipe.Id, StringComparison.OrdinalIgnoreCase)
             ? product.GlassId : "";
         var minimumTime = product?.CreatedAt;
         if (completion is not null && (minimumTime is null || completion.CompletedAt > minimumTime)) minimumTime = completion.CompletedAt;
         var currentFrame = new ST_MANUAL_RESULT_FRAME(_recipe.Id, currentGlass, minimumTime,
-            completion?.ShiftOffsetX ?? 0, completion?.ShiftOffsetY ?? 0, IsSimulation);
+            completion?.ShiftOffsetX ?? 0, completion?.ShiftOffsetY ?? 0, _sourceSimulation);
         var catalog = (await results.ListCorrectionResults(token))
             .Where(item => item.RecipeId.Equals(_recipe.Id, StringComparison.OrdinalIgnoreCase))
             .OrderByDescending(item => item.SavedAt).ThenBy(item => item.FilePath, StringComparer.OrdinalIgnoreCase).ToArray();
@@ -191,8 +197,7 @@ public sealed class CManualInspectionBackend(
             foreach (var pair in observations) fileRows[pair.Key] = pair.Value.Row;
             rejectedRows = projection.RejectedRowCount;
         }
-        var actualRun = RunIdentity();
-        _sourceRun = actualRun;
+        _sourceRun = capturedRun;
         var linkedGlass = file is null || CManualInspectionResultProjection.IsSameFrame(currentFrame, file);
         // Old CSV rows are IMPORTED, never native MEASURED anchors. Only a fresh native direct
         // measurement or a current representative may replace their working value.
@@ -257,23 +262,78 @@ public sealed class CManualInspectionBackend(
         var limits = new ST_MANUAL_LIMITS(30, 200, widths.DefaultIfEmpty(110).Min());
         var plan = _plans[defaultBeam];
         var consumed = new List<KeyValuePair<string, string>>();
+        var appliedSources = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
         var receipts = Path.Combine(StateDirectory, "ApplySources", Digest(context.RunId));
         if (Directory.Exists(receipts)) foreach (var path in Directory.EnumerateFiles(receipts, "point-*.json"))
         {
             token.ThrowIfCancellationRequested();
             var reservation = JsonSerializer.Deserialize<Reservation>(await System.IO.File.ReadAllTextAsync(path, token))
                 ?? throw new InvalidDataException("보정 소비 기록이 비었습니다.");
-            if (reservation.RunId == context.RunId && await offsets.FindSourceApplication(context.RecipeId, reservation.SourcePath, token) is not null)
-                consumed.Add(new(reservation.PointKey, reservation.MeasurementToken));
+            if (reservation.RunId != context.RunId) continue;
+            if (!appliedSources.TryGetValue(reservation.SourcePath, out var applied))
+                appliedSources[reservation.SourcePath] = applied = await offsets.FindCommittedSourceApplication(context.RecipeId, reservation.SourcePath, token) is not null;
+            if (applied) consumed.Add(new(reservation.PointKey, reservation.MeasurementToken));
         }
         ConsumedMeasurements = consumed.AsReadOnly();
-        return new(context, points, bases, limits, Field, plan.ToleranceX * 1000, plan.ToleranceY * 1000,
+        var legacyReason = await LegacyStateReason(legacyRun, product?.CreatedAt, context, token);
+        var source = new CManualInspectionSource(context, points, bases, limits, Field, plan.ToleranceX * 1000, plan.ToleranceY * 1000,
             file?.FilePath ?? "", $"Beam {defaultBeam} · Shift {_shiftX:0.###}/{_shiftY:0.###} mm · DESIGN µm · {points.Count:N0}점"
                 + (imported.Count == 0 ? "" : $" · 다른 경로 결과 {imported.Count:N0}점 연결 · IMPORTED 조회값")
                 + (file is null && !currentFrame.IsLinked ? " · 현재 기판/회차 미확인: 결과는 목록에서 선택 조회" : "")
-                + (rejectedFiles == 0 && rejectedRows == 0 ? "" : $" · 불일치/읽기 실패 {rejectedFiles:N0}파일/{rejectedRows:N0}행 자동 제외"))
-        { ReadOnly = !lineage, AppliedOffsetKeys = appliedKeys, ImportedResults = imported,
+                + (rejectedFiles == 0 && rejectedRows == 0 ? "" : $" · 불일치/읽기 실패 {rejectedFiles:N0}파일/{rejectedRows:N0}행 자동 제외")
+                + (legacyReason.Length > 0 ? " · " + legacyReason : "")
+                + (resolvedCompletion.Ambiguous ? " · 현재 Product와 선택 Recipe가 달라 가공 Shift의 출처를 확인할 수 없습니다. Product/Recipe를 맞춘 후 다시 불러오세요." : ""))
+        { ReadOnly = !lineage || legacyReason.Length > 0 || resolvedCompletion.Ambiguous, AppliedOffsetKeys = appliedKeys, ImportedResults = imported,
           RecentResults = catalog, ObservationFingerprint = ObservationFingerprint(external, file, _latest, context.CoordinateSignature) };
+        // Loading is read-only, but the published coordinate context must be internally current.
+        // This also detects same-path offset replacement through the store's content identity.
+        await EnsureCurrentAsync(source, token);
+        return source;
+    }
+
+    private async Task<string> LegacyStateReason(string legacyRun, DateTimeOffset? productCreatedAt,
+        ST_MANUAL_CONTEXT context, CancellationToken token)
+    {
+        const string message = "이전 버전의 같은 회차 작업 이력이 있습니다. 원본 이력을 보존한 조회 전용입니다. 새 기판/가공 회차에서 다시 불러오세요.";
+        var directory = Path.Combine(StateDirectory, "ApplySources", Digest(legacyRun));
+        var checkedSources = new Dictionary<string, ST_REVIEW_OFFSET_SOURCE_APPLICATION?>(StringComparer.OrdinalIgnoreCase);
+        if (Directory.Exists(directory)) foreach (var path in Directory.EnumerateFiles(directory, "point-*.json"))
+        {
+            token.ThrowIfCancellationRequested();
+            try
+            {
+                var marker = JsonSerializer.Deserialize<Reservation>(await System.IO.File.ReadAllTextAsync(path, token));
+                if (marker is null) return message;
+                if (marker.RunId != legacyRun) continue;
+                if (!checkedSources.TryGetValue(marker.SourcePath, out var application))
+                    checkedSources[marker.SourcePath] = application = await offsets.FindCommittedSourceApplication(context.RecipeId, marker.SourcePath, token);
+                if (application is not null && (productCreatedAt is null || application.AppliedAt >= productCreatedAt)) return message;
+            }
+            catch (Exception error) when (error is JsonException or IOException or UnauthorizedAccessException or ArgumentException)
+            { return message + " 기록 확인 필요: " + error.Message; }
+        }
+        // Do not reinterpret an interrupted old-format session as a fresh empty workspace. Old
+        // JSON remains untouched; schema/run tokens are deliberately never relabelled as new raw.
+        var oldRevision = string.IsNullOrWhiteSpace(_latest!.FilePath) ? "INITIAL_ZERO" : Path.GetFullPath(_latest.FilePath);
+        var sessionPath = Path.Combine(StateDirectory, "Sessions", Digest(context.RecipeId + "|" + legacyRun
+            + "|" + context.CoordinateSignature + "|" + oldRevision) + ".json");
+        if (System.IO.File.Exists(sessionPath))
+        {
+            try
+            {
+                using var document = JsonDocument.Parse(await System.IO.File.ReadAllTextAsync(sessionPath, token));
+                var session = document.RootElement.GetProperty("Session").Deserialize<ST_MANUAL_SESSION>();
+                if (session is null) return message;
+                if (session.Context.RecipeId == context.RecipeId && session.Context.RunId == legacyRun
+                    && (productCreatedAt is null || session.Audit.Any(a => a.At >= productCreatedAt))
+                    && (session.ConsumedMeasurementHistory.Count > 0
+                        || session.Operation is { Kind: not EN_MANUAL_OPERATION_KIND.Move, RemainingKeys.Count: > 0 }
+                        || session.Candidate is { State: not EN_MANUAL_CANDIDATE_STATE.Applied })) return message;
+            }
+            catch (Exception error) when (error is JsonException or IOException or UnauthorizedAccessException or KeyNotFoundException or InvalidOperationException)
+            { return message + " 기록 확인 필요: " + error.Message; }
+        }
+        return "";
     }
 
     private async Task<ST_REVIEW_RESULT_FILE_DATA> ReadResult(string path, CancellationToken token)
@@ -321,6 +381,8 @@ public sealed class CManualInspectionBackend(
             throw new InvalidOperationException("Recipe 또는 좌표 Setting이 바뀌었습니다. 다시 불러오세요.");
         if (RunIdentity() != source.Context.RunId)
             throw new InvalidOperationException("기판/가공 완료 회차가 바뀌었습니다. 새 작업공간을 불러오세요.");
+        if (IsSimulation != _sourceSimulation)
+            throw new InvalidOperationException("설비/시뮬레이션 모드가 바뀌었습니다. 현재 모드에서 다시 불러오세요.");
         var current = await offsets.LoadLatest(_recipe.Id, token);
         if (_latest is null || Revision(current) != Revision(_latest) || Revision(current) != source.Context.RevisionId)
             throw new InvalidOperationException("다른 작업에서 활성 보정이 바뀌었습니다. 현재 보정을 다시 불러오세요.");
@@ -441,7 +503,7 @@ public sealed class CManualInspectionBackend(
             if (System.IO.File.Exists(marker))
             {
                 var old = JsonSerializer.Deserialize<Reservation>(await System.IO.File.ReadAllTextAsync(marker, token))!;
-                if (await offsets.FindSourceApplication(source.Context.RecipeId, old.SourcePath, token) is not null)
+                if (await offsets.FindCommittedSourceApplication(source.Context.RecipeId, old.SourcePath, token) is not null)
                 {
                     if (driving.GetValueOrDefault(pair.Key) == pair.Value)
                         throw new InvalidOperationException($"{pair.Key}: 같은 Run의 측정 원본이 이미 적용됐습니다. 새 가공 후 재측정하세요.");
@@ -472,7 +534,8 @@ public sealed class CManualInspectionBackend(
             // changes at the write boundary as well as the writer's atomic offset-revision check.
             GuardOperation(); await EnsureCurrentAsync(source, token);
             var saved = await offsets.SaveNewIfUnchanged(source.Context.RecipeId, _latest.FilePath,
-                nextRows.OrderBy(r => r.CellId).ThenBy(r => r.ShotId, StringComparer.OrdinalIgnoreCase).ToArray(), sourcePath, token);
+                nextRows.OrderBy(r => r.CellId).ThenBy(r => r.ShotId, StringComparer.OrdinalIgnoreCase).ToArray(), sourcePath, token,
+                expectedLatestContentSha256: _latest.ContentSha256);
             _latest = saved;
             LastSavedValues = actualValues;
             foreach (var p in source.Points) _baseline[p.OffsetKey] = actualValues[p.Key];
@@ -483,7 +546,7 @@ public sealed class CManualInspectionBackend(
         catch
         {
             // Keep a marker when the authoritative writer committed but subsequent host work failed.
-            if (await offsets.FindSourceApplication(source.Context.RecipeId, sourcePath, CancellationToken.None) is null)
+            if (await offsets.FindCommittedSourceApplication(source.Context.RecipeId, sourcePath, CancellationToken.None) is null)
                 foreach (var path in reservations) System.IO.File.Delete(path);
             throw;
         }
@@ -505,8 +568,32 @@ public sealed class CManualInspectionBackend(
     private string RunIdentity()
     {
         var p = manager?.Product().Current; var c = manager?.Station().LastCompletedManualMof;
+        return CreateRunIdentity(_recipe!.Id, p?.ProductId, p?.GlassId, p?.RecipeId, p?.CreatedAt,
+            c?.CompletedAt, c?.ShiftOffsetX, c?.ShiftOffsetY);
+    }
+    private static (ST_MANUAL_MOF_COMPLETION? Completion, bool Ambiguous) ResolveCompletion(
+        string selectedRecipeId, string? productRecipeId, DateTimeOffset? createdAt, ST_MANUAL_MOF_COMPLETION? completion)
+    {
+        if (completion is null || createdAt is not null && completion.CompletedAt < createdAt) return (null, false);
+        if (productRecipeId is not null && !productRecipeId.Equals(selectedRecipeId, StringComparison.OrdinalIgnoreCase))
+            // The old completion format has no Recipe/Glass identity. Do not silently borrow its
+            // nonzero Shift for another selected Recipe, or silently authorize a zero-shift move.
+            return (null, completion.ShiftOffsetX != 0 || completion.ShiftOffsetY != 0);
+        return (completion, false);
+    }
+    private string LegacyRunIdentity()
+    {
+        var p = manager?.Product().Current; var c = manager?.Station().LastCompletedManualMof;
         return "NATIVE:" + Digest($"{_recipe!.Id}|{p?.ProductId}|{p?.GlassId}|{c?.CompletedAt:O}");
     }
+    private static string CreateRunIdentity(string recipe, string? product, string? glass,
+        string? productRecipe, DateTimeOffset? createdAt, DateTimeOffset? completedAt,
+        double? shiftX, double? shiftY)
+        // Host IDs may repeat on a newly created Product. CreatedAt separates those physical runs;
+        // completion Shift also belongs to the identity, rather than only the displayed plan.
+        => "NATIVE:" + Digest(JsonSerializer.Serialize(new { recipe, product, glass, productRecipe,
+            CreatedAt = createdAt?.ToString("O", CultureInfo.InvariantCulture),
+            CompletedAt = completedAt?.ToString("O", CultureInfo.InvariantCulture), shiftX, shiftY }));
     private ST_MANUAL_MEASUREMENT Measurement(ST_MANUAL_CONTEXT context, string key, int head, string judge,
         ST_MANUAL_OFFSET design, double stageX, double stageY, string stableRaw)
     {
@@ -524,7 +611,8 @@ public sealed class CManualInspectionBackend(
     private string CoordinateSignature() => Signature(_parameters) + ShiftSignature();
     public static string Digest(string text) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text)));
     private static string DigestFile(string path) { using var stream = System.IO.File.OpenRead(path); return Convert.ToHexString(SHA256.HashData(stream)); }
-    private static string Revision(ST_REVIEW_OFFSET_FILE_DATA value) => string.IsNullOrEmpty(value.FilePath) ? "INITIAL_ZERO" : Path.GetFullPath(value.FilePath);
+    private static string Revision(ST_REVIEW_OFFSET_FILE_DATA value) => string.IsNullOrEmpty(value.FilePath) ? "INITIAL_ZERO"
+        : Path.GetFullPath(value.FilePath) + (value.ContentSha256.Length > 0 ? "|SHA256:" + value.ContentSha256 : "");
     private static string Normalize(string value) => new(value.Where(char.IsLetterOrDigit).Select(char.ToUpperInvariant).ToArray());
     private static string OffsetKey(int cell, int shot) => $"C{cell}/S{shot}";
     private static int Int(IReadOnlyDictionary<string, string> p, string key) => int.Parse(p[key], CultureInfo.InvariantCulture);

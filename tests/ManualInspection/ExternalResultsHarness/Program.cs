@@ -1,7 +1,8 @@
 using System.Text.Json;
+using System.Security.Cryptography;
 using Drilling.Common.Review;
 
-internal static class Program
+internal static partial class Program
 {
     private static readonly DateTimeOffset Start = DateTimeOffset.Parse("2026-11-20T10:00:00+09:00");
     private static readonly ST_MANUAL_RESULT_FRAME Frame = new("R", "GLASS-1", Start, 1, 2, false);
@@ -62,12 +63,17 @@ internal static class Program
         Check("tie_break_is_deterministic", () => True(Merge(File("z.csv", Row()), File("a.csv", Row())).Rows.Values.Single().FilePath == "a.csv"));
         Check("nonexistent_coordinate_not_invented", () => True(Merge(File("f.csv", Row(19))).Rows.Count == 0));
         Check("future_row_cannot_override_file_timestamp", () => True(Merge(File("f.csv", Row()) with { SavedAt = Start }).Rows.Count == 0));
-        Check("vendor_assemblies_not_loaded", () => True(!AppDomain.CurrentDomain.GetAssemblies().Any(a => new[] { "Aerotech", "Automation1", "ACS.SPii", "Newport.XPS", "CmdLib", "DeviceIOLib" }.Any(n => (a.GetName().Name ?? "").Contains(n, StringComparison.OrdinalIgnoreCase)))));
+        RunHardeningChecks();
+        Check("vendor_assemblies_not_loaded", () => True(VendorAssemblies().Length == 0));
         var output = args.Length == 2 && args[0] == "--report" ? args[1] : "external-results.json";
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(output))!);
+        var assembly = typeof(CManualInspectionResultProjection).Assembly;
         System.IO.File.WriteAllText(output, JsonSerializer.Serialize(new { schemaVersion = "a3-manual-external-results/1", passed = Failed == 0, count = Results.Count, failed = Failed, tests = Results,
+            commonAssembly = assembly.GetName().Name, commonAssemblySha256 = Convert.ToHexString(SHA256.HashData(System.IO.File.ReadAllBytes(assembly.Location))).ToLowerInvariant(), loadedVendorAssemblies = VendorAssemblies(),
             scope = "Actual Common pure projection and DTOs. Synthetic saved results/recipe geometry; no equipment App/Root/Manager, SDK, PLC, Vision or motion execution." }, new JsonSerializerOptions { WriteIndented = true }));
         Console.WriteLine($"External result projection: {Results.Count - Failed}/{Results.Count} passed. {output}");
         return Failed == 0 ? 0 : 1;
     }
+    private static string[] VendorAssemblies() => AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetName().Name ?? "")
+        .Where(name => new[] { "Aerotech", "Automation1", "ACS.SPii", "Newport.XPS", "CmdLib", "DeviceIOLib", "NpEthernet", "NpSerial", "UsbDllWrap" }.Any(vendor => name.Contains(vendor, StringComparison.OrdinalIgnoreCase))).ToArray();
 }

@@ -1,9 +1,18 @@
 # MANUAL INSPECTION · 결과 동기화·공통 Level
 
+## 다른 Review 경로 교차검증 후속
+
+현재 브랜치는 `feature/manual-inspection-review-hardening-20261120`이며 기준은 `4cbf259a16cd04bdab0bf6f76cd4591c681c109f`다. master에는 병합하지 않는다. [발견사항·수정·검증·현장 확인](../../tests/ManualInspection/HARDENING_QA.md)에 경계별 근거를 정리했다.
+
+같은 경로의 보정 파일 교체, 저장 경합·시계 역전·이력 저장 실패, 다른 Review 메뉴의 원복 후 소비 증거, 회차 재사용·로딩 중 기준 변경, STOP·화면 callback 오류, 세션 재연결과 대표 복사 출처를 보완했다. 기존 측정 이력·Level·접기 정책과 다른 Correction 화면/좌표 계산·장비 시퀀스는 유지한다.
+
+이전 버전에서 **같은 물리 회차에 적용했거나 중단한 작업**이 있으면 원본을 보존한 조회 전용으로 연다. 새 기판/Product 또는 새 가공 회차에서 다시 불러온다. 현재 Product와 선택 Recipe가 다르고 완료 기록의 비영점 Shift 출처를 확인할 수 없어도 이동·보정을 막는다. 임의로 이력 파일을 지워 우회하지 않는다.
+
+
 사용자 첨부 [Review Workspace HTML](Reference/A3_Review_Workspace.html)의 작업공간을 **Correction → Review → MANUAL INSPECTION**에 별도 WPF 탭으로 구현했다. 기존 SIMPLE / INSPECTION, Default·Simple·Rough·Fine·Review Data 화면과 계산 방식은 유지한다. 기존 Light/Dark 테마의 패널·버튼·콤보·표를 사용한다.
 
-- 기준: 이전 Manual Inspection `a062c701d825c925a8ba74184bc8eff98dce0ab6`의 후속. 원래 버전은 11.19.0+누락 Log 추적 수정 `334b359`다.
-- 브랜치: `feature/manual-inspection-sync-levels-20261120`. **master 병합·배포는 하지 않았다.**
+- 기준: 바로 이전 보정 이력 후속 `4cbf259a16cd04bdab0bf6f76cd4591c681c109f`. 원래 구현은 11.19.0+누락 Log 추적 수정 `334b359`에 기반한다.
+- 브랜치: `feature/manual-inspection-review-hardening-20261120`. **master 병합·배포는 하지 않았다.**
 - 빌드: Windows / .NET 8 Windows Desktop, `dotnet build Drilling.sln -c Release`.
 - 시험은 독립 하네스에서 진행했다. 실제 설비용 App·Root·장비 Manager·벤더 SDK·모션·AeroScript는 실행하지 않았다.
 
@@ -120,13 +129,14 @@ flowchart LR
 | 검증 | 결과 |
 | --- | --- |
 | 전체 솔루션 Release | 경고 0 / 오류 0 |
-| 계산·상태·세션 | 111/111 |
-| 좌표·실제 CSV writer | 22/22 |
-| 실제 UI 프로젝트 참조 Controller | 71/71, 벤더 Assembly 로드 0개. 측정 이력·CSV·원시값 보존 6개 포함 |
-| 외부 결과 병합 | 37/37, 실제 Common·합성 파일/기하 |
-| 실제 WPF UI / 추가 연결 검사 | 49/49 + 23/23 + 34/34 + 측정 이력·접기·우클릭·화면 클리핑 71/71 |
+| 계산·상태·세션 | 113/113 · 192 복합 상태 시나리오 포함 |
+| 좌표·실제 CSV writer | 35/35 |
+| 실제 UI 프로젝트 참조 Controller | 89/89, 벤더 Assembly 로드 0개 |
+| 실제 Backend 로딩 연결 | 16/16 · 실제 순수 planner·CSV/보정 저장기, 장비 Manager 없음 |
+| 외부 결과 병합 | 53/53, 실제 Common·합성 파일/기하 |
+| 실제 WPF UI / 추가 연결 검사 | 49/49 + 23/23 + 34/34 + 71/71 + 새 교차 동작 30/30 |
 | 첨부 HTML oracle | 이전 구현의 14/14 기록. 후속 단순화는 새 WPF 검사로 확인 |
-| 기존 화면·변경 범위 보존 | 12/12, 결과 저장 제어흐름·구화면·Theme/Config/Data 보존 |
+| 기존 화면·변경 범위 보존 | 15/15 · 구화면·Theme/Config/Data·장비 실행 본문/순수 계산 보존 |
 
 재현 명령과 범위는 [테스트 안내](../../tests/ManualInspection/README.md), [UI 대조표](../../tests/ManualInspection/HTML_PARITY_CHECKLIST.md), [현재 검토](../../tests/ManualInspection/COVERAGE_COMPACT_QA.md)를 참조한다. 결과별 범위와 소스 SHA는 [validation.json](validation.json)에 기록했다. HTML/WPF/순수 계산/파일 시험을 실장비 시험으로 합산하지 않는다.
 

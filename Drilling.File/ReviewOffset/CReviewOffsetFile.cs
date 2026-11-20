@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Collections.Concurrent;
+using System.Security.Cryptography;
 using Drilling.Common.Review;
 using Drilling.Common.Recipe;
 using Drilling.File.Parser;
@@ -43,7 +45,8 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
     private readonly string _applicationRoot;
     private readonly string _recipeRoot;
     private readonly Func<DateTimeOffset> _now;
-    private readonly SemaphoreSlim _fileLock = new(1, 1);
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> StoreLocks = new(StringComparer.OrdinalIgnoreCase);
+    private readonly SemaphoreSlim _fileLock;
     private readonly Dictionary<string, ST_APPLY_HISTORY_CACHE> _applyHistoryCache
         = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, ST_RECIPE_APPLY_HISTORY_CACHE> _recipeApplyHistoryCache
@@ -52,16 +55,18 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
     private sealed record ST_APPLY_HISTORY_CACHE(
         long Length,
         DateTime LastWriteTimeUtc,
+        string ContentSha256,
         IReadOnlyList<ST_REVIEW_OFFSET_SOURCE_APPLICATION> Rows);
 
     private sealed record ST_RECIPE_APPLY_HISTORY_CACHE(
-        Dictionary<string, ST_REVIEW_OFFSET_SOURCE_APPLICATION> LatestBySource);
+        string Fingerprint, Dictionary<string, ST_REVIEW_OFFSET_SOURCE_APPLICATION> LatestBySource);
 
     public CReviewOffsetFile(string configRoot, Func<DateTimeOffset>? now = null)
     {
         var normalizedConfigRoot = Path.GetFullPath(configRoot);
         _applicationRoot = Directory.GetParent(normalizedConfigRoot)?.FullName ?? normalizedConfigRoot;
         _recipeRoot = Path.Combine(normalizedConfigRoot, "RECIPE");
+        _fileLock = StoreLocks.GetOrAdd(_recipeRoot, _ => new SemaphoreSlim(1, 1));
         _now = now ?? (() => DateTimeOffset.Now);
     }
 
@@ -74,6 +79,7 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
         await _fileLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            using var processLease = await AcquireProcessLease(cancellationToken).ConfigureAwait(false);
             return LoadLatestCore(recipeId, cancellationToken);
         }
         finally
@@ -117,6 +123,7 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
         await _fileLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            using var processLease = await AcquireProcessLease(cancellationToken).ConfigureAwait(false);
             return SaveNewCore(recipeId, rows, cancellationToken);
         }
         finally
@@ -133,6 +140,7 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
         await _fileLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            using var processLease = await AcquireProcessLease(cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             var normalizedRecipeId = RequireRecipeId(recipeId, "Review Offset 적용 이력 조회");
             var sourceIdentity = NormalizeSourceIdentity(sourceResultFile, requireExistingFile: false);
@@ -157,13 +165,12 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
         await _fileLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            using var processLease = await AcquireProcessLease(cancellationToken).ConfigureAwait(false);
             // @보호 [옵셋적용] 중복이력 - Source Result의 기존 적용 이력을 확인하고 명시적 허용 없이는 새 Offset을 만들지 않는다.
             cancellationToken.ThrowIfCancellationRequested();
             var normalizedRecipeId = RequireRecipeId(recipeId, "Review Offset 저장");
             var sourceIdentity = NormalizeSourceIdentity(sourceResultFile, requireExistingFile: true);
             var appliedAt = _now();
-            var historyPath = GetApplyHistoryPath(normalizedRecipeId, appliedAt);
-            var historyRows = LoadApplyHistory(historyPath, cancellationToken);
             var existing = FindSourceApplicationAcrossHistory(
                 normalizedRecipeId,
                 sourceIdentity,
@@ -180,10 +187,12 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
                 appliedAt);
             try
             {
+                var historyPath = GetApplyHistoryPath(normalizedRecipeId, saved.SavedAt);
+                var historyRows = LoadApplyHistory(historyPath, cancellationToken);
                 var application = new ST_REVIEW_OFFSET_SOURCE_APPLICATION(
                     sourceIdentity,
                     saved.FileName,
-                    appliedAt,
+                    saved.SavedAt,
                     Path.GetFullPath(historyPath));
                 AppendApplyHistory(
                     historyPath,
@@ -221,37 +230,65 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
         }
     }
 
-    /// <summary>Compare-and-save for the new tab. All existing save/rollback entry points retain their behavior.</summary>
-    public override async Task<ST_REVIEW_OFFSET_FILE_DATA> SaveNewIfUnchanged(
-        string recipeId, string expectedLatestFilePath, IReadOnlyList<ST_REVIEW_OFFSET_ROW> rows,
-        string sourceResultFile, CancellationToken cancellationToken = default)
+    /// <summary>Active duplicate-source history plus immutable evidence retained by a legacy rollback.</summary>
+    public override async Task<ST_REVIEW_OFFSET_SOURCE_APPLICATION?> FindCommittedSourceApplication(
+        string recipeId, string sourceResultFile, CancellationToken cancellationToken = default)
     {
         await _fileLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            using var processLease = await AcquireProcessLease(cancellationToken).ConfigureAwait(false);
+            var id = RequireRecipeId(recipeId, "Review Offset 저장 증거 조회");
+            var source = NormalizeSourceIdentity(sourceResultFile, requireExistingFile: false);
+            var current = FindSourceApplicationAcrossHistory(id, source, cancellationToken);
+            if (current is not null) return current;
+            var archive = Path.Combine(GetRecipeOffsetDirectory(id), "_committed");
+            if (!Directory.Exists(archive)) return null;
+            return Directory.EnumerateFiles(archive, "*.csv", SearchOption.TopDirectoryOnly)
+                .SelectMany(path => LoadApplyHistory(path, cancellationToken))
+                .Where(row => row.SourceResultFile.Equals(source, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(row => row.AppliedAt).FirstOrDefault();
+        }
+        finally { _fileLock.Release(); }
+    }
+
+    /// <summary>Compare-and-save for the new tab. All existing save/rollback entry points retain their behavior.</summary>
+    public override async Task<ST_REVIEW_OFFSET_FILE_DATA> SaveNewIfUnchanged(
+        string recipeId, string expectedLatestFilePath, IReadOnlyList<ST_REVIEW_OFFSET_ROW> rows,
+        string sourceResultFile, CancellationToken cancellationToken = default,
+        string? expectedLatestContentSha256 = null)
+    {
+        await _fileLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            using var processLease = await AcquireProcessLease(cancellationToken).ConfigureAwait(false);
             var id = RequireRecipeId(recipeId, "Manual Inspection 저장");
             var latest = LoadLatestCore(id, cancellationToken);
+            // Keep the verified active file read-locked through the transaction. A same-name
+            // replacement by a non-cooperating editor must not race the compare-and-save boundary.
+            using var activeLease = string.IsNullOrWhiteSpace(latest.FilePath) ? null : OpenStableRead(latest.FilePath);
+            var activeSha = activeLease is null ? "" : Digest(activeLease);
+            if (activeSha != latest.ContentSha256 || expectedLatestContentSha256 is not null
+                && !activeSha.Equals(expectedLatestContentSha256, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("활성 Review Offset 파일 내용이 변경되었습니다. 최신 기준을 다시 불러오세요.");
             static string Full(string path) => string.IsNullOrWhiteSpace(path) ? "" : Path.GetFullPath(path);
             if (!Full(latest.FilePath).Equals(Full(expectedLatestFilePath), StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException("활성 Review Offset이 변경되었습니다. 최신 기준으로 다시 계산하세요.");
             var source = NormalizeSourceIdentity(sourceResultFile, requireExistingFile: true);
             var existing = FindSourceApplicationAcrossHistory(id, source, cancellationToken);
             if (existing is not null) throw new CReviewOffsetDuplicateSourceException(existing);
-            var at = _now(); var historyPath = GetApplyHistoryPath(id, at);
-            var history = LoadApplyHistory(historyPath, cancellationToken);
+            var at = _now();
             var saved = SaveNewCore(id, rows, cancellationToken, at);
             try
             {
-                var application = new ST_REVIEW_OFFSET_SOURCE_APPLICATION(source, saved.FileName, at, Path.GetFullPath(historyPath));
+                var historyPath = GetApplyHistoryPath(id, saved.SavedAt);
+                var history = LoadApplyHistory(historyPath, cancellationToken);
+                var application = new ST_REVIEW_OFFSET_SOURCE_APPLICATION(source, saved.FileName, saved.SavedAt, Path.GetFullPath(historyPath));
                 AppendApplyHistory(historyPath, history, application, cancellationToken);
                 UpdateRecipeApplyHistoryCache(id, application);
                 // Return the actual six-decimal-mm representation without new I/O/cancellation
                 // after the authoritative file+history commit has succeeded.
-                return saved with { Rows = saved.Rows.Select(row => row with
-                {
-                    ReviewOffsetX = double.Parse(FormatDouble(row.ReviewOffsetX), CultureInfo.InvariantCulture),
-                    ReviewOffsetY = double.Parse(FormatDouble(row.ReviewOffsetY), CultureInfo.InvariantCulture)
-                }).ToArray() };
+                return saved;
             }
             catch (Exception historyError)
             {
@@ -280,16 +317,25 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
 
         // @파일 [리뷰옵셋] 새버전 - 검증된 전체 행을 임시 파일에 쓴 뒤 새 이름으로 이동하며 기존 활성 파일은 수정하지 않는다.
         var normalizedRows = CReviewOffsetData.ValidateRows(rows,
-            $"{normalizedRecipeId} (저장할 Review Offset)", token: cancellationToken);
-        var savedAt = fixedSavedAt ?? _now();
+            $"{normalizedRecipeId} (저장할 Review Offset)", token: cancellationToken)
+            .Select(row => row with { ReviewOffsetX = WrittenValue(row.ReviewOffsetX), ReviewOffsetY = WrittenValue(row.ReviewOffsetY) }).ToArray();
+        var savedAt = (fixedSavedAt ?? _now()).ToLocalTime();
         var directory = GetRecipeOffsetDirectory(normalizedRecipeId);
         Directory.CreateDirectory(directory);
+        var latestName = EnumerateActiveFiles(directory).Select(Path.GetFileName).FirstOrDefault();
+        var latestAt = latestName is null ? null : TryParseSavedAt(latestName);
+        if (latestAt.HasValue && StringComparer.OrdinalIgnoreCase.Compare($"{savedAt:yyyyMMdd_HHmmss_fff}_reviewoffset.csv", latestName) <= 0)
+            savedAt = latestAt.Value.AddMilliseconds(1);
+        if (latestName is not null && StringComparer.OrdinalIgnoreCase.Compare($"{savedAt:yyyyMMdd_HHmmss_fff}_reviewoffset.csv", latestName) <= 0)
+            throw new InvalidDataException("현재 활성 Offset 파일명으로 신규 버전 순서를 확인할 수 없습니다. 파일명을 확인하세요.");
         var temporary = Path.Combine(directory, $".{Guid.NewGuid():N}.tmp");
+        string contentSha256;
         string path;
         try
         {
             CCsvParser.Write(temporary, Headers, normalizedRows.OrderBy(row => row.CellId)
                 .ThenBy(row => row.ShotId, StringComparer.OrdinalIgnoreCase).Select(ToCsvRow));
+            using (var immutable = OpenStableRead(temporary)) contentSha256 = Digest(immutable);
             while (true)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -308,7 +354,7 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
             Path.GetFullPath(path),
             Path.GetFileName(path),
             savedAt,
-            normalizedRows);
+            normalizedRows) { ContentSha256 = contentSha256 };
     }
 
     public override async Task<ST_REVIEW_OFFSET_ROLLBACK_RESULT> RollbackLatest(
@@ -319,6 +365,7 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
         await _fileLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            using var processLease = await AcquireProcessLease(cancellationToken).ConfigureAwait(false);
             // @파일 [리뷰옵셋] 롤백 - 확인한 최신 파일만 Rollback 폴더로 이동하고 바로 이전 파일을 활성값으로 사용한다.
             cancellationToken.ThrowIfCancellationRequested();
             var normalizedRecipeId = NormalizeRecipeId(recipeId);
@@ -360,6 +407,13 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
                 .Where(row => !row.OffsetFile.Equals(removed.FileName, StringComparison.OrdinalIgnoreCase))
                 .ToArray();
             var historyChanged = retainedHistory.Length != originalHistory.Count;
+            if (historyChanged)
+            {
+                // The legacy rollback may remove active duplicate-source history, but a successful
+                // past commit remains evidence for Manual Inspection's consumed-raw ledger.
+                var auditPath = Path.Combine(directory, "_committed", $"{Guid.NewGuid():N}.csv");
+                WriteApplyHistory(auditPath, originalHistory.Where(row => row.OffsetFile.Equals(removed.FileName, StringComparison.OrdinalIgnoreCase)).ToArray(), cancellationToken);
+            }
             var offsetMoved = false;
             try
             {
@@ -452,12 +506,52 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
             .OrderByDescending(Path.GetFileName, StringComparer.OrdinalIgnoreCase);
     }
 
+    private async Task<FileStream> AcquireProcessLease(CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        Directory.CreateDirectory(_applicationRoot);
+        var path = Path.Combine(_applicationRoot, ".reviewoffset.lock.tmp");
+        while (true)
+        {
+            token.ThrowIfCancellationRequested();
+            try
+            {
+                return new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None, 1,
+                    FileOptions.DeleteOnClose | FileOptions.Asynchronous);
+            }
+            catch (IOException error) when ((error.HResult & 0xffff) is 32 or 33 or 11)
+            { await Task.Delay(25, token).ConfigureAwait(false); }
+        }
+    }
+
+    private string HistoryFingerprint(string recipeId, CancellationToken token)
+    {
+        var directory = Path.Combine(GetRecipeOffsetDirectory(recipeId), ApplyHistoryDirectoryName);
+        if (!Directory.Exists(directory)) return "";
+        var files = Directory.EnumerateFiles(directory, ApplyHistoryFileName, SearchOption.AllDirectories)
+            .OrderBy(path => path, StringComparer.OrdinalIgnoreCase).ToArray();
+        var stamps = new List<string>(files.Length);
+        foreach (var path in files)
+        {
+            token.ThrowIfCancellationRequested();
+            var info = new FileInfo(path);
+            stamps.Add(Path.GetFullPath(path) + "|" + info.Length + "|" + info.LastWriteTimeUtc.Ticks + "|" + FileDigest(path));
+        }
+        return string.Join("\n", stamps);
+    }
+
+    private static FileStream OpenStableRead(string path) => new(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+    private static string Digest(Stream stream) => Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
+    private static string FileDigest(string path) { using var immutable = OpenStableRead(path); return Digest(immutable); }
+    private static double WrittenValue(double value) => double.Parse(FormatDouble(value), CultureInfo.InvariantCulture);
+
     private ST_REVIEW_OFFSET_SOURCE_APPLICATION? FindSourceApplicationAcrossHistory(
         string recipeId,
         string sourceIdentity,
         CancellationToken cancellationToken)
     {
-        if (!_recipeApplyHistoryCache.TryGetValue(recipeId, out var cache))
+        var fingerprint = HistoryFingerprint(recipeId, cancellationToken);
+        if (!_recipeApplyHistoryCache.TryGetValue(recipeId, out var cache) || cache.Fingerprint != fingerprint)
         {
             // @성능 [옵셋적용] 이력색인 - Recipe의 일자별 CSV를 Source 경로별 최신 이력으로 한 번 색인해 반복 APPLY 조회를 줄인다.
             var latestBySource = new Dictionary<string, ST_REVIEW_OFFSET_SOURCE_APPLICATION>(
@@ -484,7 +578,9 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
                 }
             }
 
-            cache = new ST_RECIPE_APPLY_HISTORY_CACHE(latestBySource);
+            if (HistoryFingerprint(recipeId, cancellationToken) != fingerprint)
+                throw new IOException("Review Offset 적용 이력이 읽는 중 변경되었습니다. 다시 조회하세요.");
+            cache = new ST_RECIPE_APPLY_HISTORY_CACHE(fingerprint, latestBySource);
             _recipeApplyHistoryCache[recipeId] = cache;
         }
 
@@ -503,6 +599,7 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
             }
 
             cache.LatestBySource[application.SourceResultFile] = application;
+            _recipeApplyHistoryCache[recipeId] = cache with { Fingerprint = HistoryFingerprint(recipeId, CancellationToken.None) };
         }
         catch
         {
@@ -523,11 +620,14 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
             return [];
         }
 
+        using var immutable = OpenStableRead(fullPath);
+        var contentSha256 = Digest(immutable);
         var fileInfo = new FileInfo(fullPath);
         // @성능 [옵셋적용] 파일캐시 - 길이와 수정시각이 같으면 CSV 파싱 결과를 재사용한다.
         if (_applyHistoryCache.TryGetValue(fullPath, out var cached)
             && cached.Length == fileInfo.Length
-            && cached.LastWriteTimeUtc == fileInfo.LastWriteTimeUtc)
+            && cached.LastWriteTimeUtc == fileInfo.LastWriteTimeUtc
+            && cached.ContentSha256 == contentSha256)
         {
             return cached.Rows;
         }
@@ -596,19 +696,9 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
     {
         // @파일 [옵셋적용] 이력저장 - Offset 파일 생성이 성공한 같은 작업에서 Source, Offset, 적용시각을 CSV에 추가한다.
         cancellationToken.ThrowIfCancellationRequested();
-        if (!System.IO.File.Exists(historyPath))
-        {
-            WriteApplyHistory(historyPath, [application], cancellationToken);
-            return;
-        }
-
-        CCsvParser.Append(
-            historyPath,
-            ApplyHistoryHeaders,
-            ToApplyHistoryCsvRow(application));
-        UpdateApplyHistoryCache(
-            historyPath,
-            existingRows.Concat([application]).ToArray());
+        // Never append directly to the authoritative CSV: a failed append can leave half a row
+        // after the new offset is rolled back. Publish the complete next history atomically.
+        WriteApplyHistory(historyPath, existingRows.Concat([application]).ToArray(), cancellationToken);
     }
 
     private void WriteApplyHistory(
@@ -652,6 +742,7 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
             _applyHistoryCache[fullPath] = new(
                 fileInfo.Length,
                 fileInfo.LastWriteTimeUtc,
+                FileDigest(fullPath),
                 rows);
         }
         catch
@@ -748,6 +839,10 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
     {
         try
         {
+            // Hold a read-only, non-delete-sharing handle across parsing so returned rows and SHA
+            // describe exactly the same file even if another program attempts an in-place edit.
+            using var immutable = OpenStableRead(path);
+            var contentSha256 = Digest(immutable);
             CCsvParser.ValidateRequiredHeaders(
                 path,
                 "Review Offset",
@@ -773,7 +868,7 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
                 fileInfo.FullName,
                 fileInfo.Name,
                 savedAt,
-                rows);
+                rows) { ContentSha256 = contentSha256 };
         }
         catch (InvalidDataException error) { throw new CReviewOffsetValidationException(path, 0, error.Message); }
     }

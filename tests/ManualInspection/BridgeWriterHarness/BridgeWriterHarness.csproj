@@ -10,6 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Program.cs" />
+    <Compile Include="HardeningCases.cs" />
     <Compile Include="Contracts.cs" />
     <Compile Include="$(ManualSourceRoot)/Drilling.Common/Review/CManualInspectionCoordinateBridge.cs" Link="Production/CManualInspectionCoordinateBridge.cs" />
     <Compile Include="$(ManualSourceRoot)/Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs" Link="Production/CManualInspectionModels.cs" />

@@ -5,7 +5,7 @@ using Drilling.Common.Review;
 using Drilling.Common.Review.ManualInspection;
 using Drilling.File.ReviewOffset;
 
-internal static class Program
+internal static partial class Program
 {
     private static readonly List<object> Results = [];
     private static int Failed;
@@ -15,6 +15,13 @@ internal static class Program
 
     private static async Task<int> Main(string[] args)
     {
+        if (args.Length == 3 && args[0] == "--probe-store-load")
+        {
+            File.WriteAllText(args[2] + ".started", "ready");
+            await new CReviewOffsetFile(args[1]).LoadLatest("QA");
+            File.WriteAllText(args[2], "loaded");
+            return 0;
+        }
         await Check("vision_headflip_direction_matrix_128", () =>
         {
             var cases = 0;
@@ -184,6 +191,7 @@ internal static class Program
             var rolled = await f.Store.RollbackLatest("QA", b.FilePath); True(rolled.Current.FilePath == a.FilePath && File.Exists(rolled.ArchivedFilePath));
         });
 
+        await RunHardeningCases();
         var output = args.Length == 2 && args[0] == "--report" ? args[1] : Path.Combine(AppContext.BaseDirectory, "bridge-writer-results.json");
         var result = new { schemaVersion = "a3-manual-inspection-bridge-writer-tests/1", passed = Failed == 0, count = Results.Count, failed = Failed, tests = Results, optionalSourcePlan = OptionalSourcePlan,
             scope = "New production coordinate bridge, original pure planner/axis transform, production offset writer and CSV parser. Source-derived fixture contracts/static Vision conversion only. Synthetic temporary CSVs; no device, WPF, SDK or scripts." };

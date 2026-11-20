@@ -1,4 +1,4 @@
-"""Verify measurement-history coverage and compact UI scope. No equipment execution."""
+"""Verify Review integration hardening scope and preservation. No equipment execution."""
 import argparse
 import hashlib
 import json
@@ -7,7 +7,7 @@ from pathlib import Path
 import subprocess
 import xml.etree.ElementTree as ET
 
-BASE = "5937e635d1e1a83ea992ca2f04ecd1b7ff2e6f5d"
+BASE = "4cbf259a16cd04bdab0bf6f76cd4591c681c109f"
 ROOT = Path(__file__).resolve().parents[2]
 EXISTING = {
     "Drilling.Common/Review/CReviewManager.cs",
@@ -60,13 +60,20 @@ def main():
     check("changed_paths_scoped", all(p in EXISTING | NEW or p.startswith(("tests/ManualInspection/", "docs/ManualInspection/")) for p in paths))
     check("all_new_production_files_present", all((ROOT / p).is_file() for p in NEW))
     check("configuration_data_sdk_and_themes_unchanged", not any(p.startswith(("Config/", "Data/", "Drilling.UI/Theme")) or p.endswith(".dll") for p in paths))
-    # Existing control/save behavior stays intact; the ordinary result save additionally records mode.
-    for path in sorted(p for p in EXISTING if p.startswith(("Drilling.Common/", "Drilling.File/"))):
-        original = git("show", f"{BASE}:{path}").decode("utf-8-sig").splitlines()
-        if path == "Drilling.Common/Review/CReviewManager.cs":
-            original = [line for line in original if "await reviewResultFile.Save(new ST_REVIEW_RESULT_DATA(" not in line]
-        current = iter((ROOT / path).read_text(encoding="utf-8-sig").splitlines())
-        check("original_lines_retained:" + path, all(any(line == candidate for candidate in current) for line in original))
+    # This revision deliberately changes the shared writer's transaction guarantees. Preserve the
+    # equipment sequences/result writer and the Review manager's executable body exactly instead
+    # of demanding that known-broken writer lines remain in the file.
+    for path in ["Drilling.Common/Station/CStageReviewSequences.cs", "Drilling.File/ReviewResult/CReviewResultFile.cs",
+                 "Drilling.UI/CRootView.cs", "Drilling.UI/Menu/Menus/CMenuCorrection.cs", "Drilling.UI/Views/CCorrectionView.xaml.cs"]:
+        check("unchanged:" + path, git("rev-parse", f"{BASE}:{path}").strip() == git("hash-object", path).strip())
+    path = "Drilling.Common/Review/CReviewManager.cs"
+    marker = "public sealed record ST_REVIEW_OFFSET_FILE_DATA"
+    check("review_executable_body_unchanged", git("show", f"{BASE}:{path}").decode("utf-8-sig").split(marker, 1)[0]
+          == (ROOT / path).read_text(encoding="utf-8-sig").split(marker, 1)[0])
+    check("pure_correction_engine_unchanged", all(git("show", f"{BASE}:{p}") == (ROOT / p).read_bytes()
+          for p in ["Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs",
+                    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
+                    "Drilling.Common/Review/CManualInspectionCoordinateBridge.cs"]))
     manager_path = "Drilling.Common/Review/CReviewManager.cs"
     def result_method(text):
         body = text.split("private async Task SaveResultForProduct", 1)[1].split("private async Task SaveProgressToProduct", 1)[0]

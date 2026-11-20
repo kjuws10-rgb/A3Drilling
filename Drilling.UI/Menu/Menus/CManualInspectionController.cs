@@ -34,6 +34,7 @@ public sealed class CManualInspectionController : IManualInspectionController
     private string[] _levelNames = ["정상", "관찰", "주의", "점검"];
     private DateTimeOffset _lastCheckpoint;
     private string _simulationScenario = "normal";
+    private string _stopRequestError = "";
     private bool _syncPending, _syncQueued, _explicitResultView;
     private string _synchronizationText = "같은 Recipe·기판의 최근 측정과 활성 보정을 자동 확인합니다.";
     private CManualInspectionUpdateMonitor? _updateMonitor;
@@ -98,6 +99,7 @@ public sealed class CManualInspectionController : IManualInspectionController
         }
         if (!await _command.WaitAsync(0, cancellationToken)) { _syncPending = true; Publish(reusePoints: true); return; }
         _busy = true; _syncQueued = false; _idle = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        _stopRequestError = "";
         _cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         try
         {
@@ -121,7 +123,8 @@ public sealed class CManualInspectionController : IManualInspectionController
         {
             _busy = false; _cancellation?.Dispose(); _cancellation = null;
             try { SaveLocalSession(); } catch (Exception e) { _persistence = "자동 보관 실패 · " + e.Message; }
-            Publish(); _idle?.TrySetResult(); _command.Release();
+            try { Publish(); }
+            finally { _idle?.TrySetResult(); _command.Release(); }
             ScheduleQueuedSynchronization();
         }
     }
@@ -149,6 +152,7 @@ public sealed class CManualInspectionController : IManualInspectionController
         if (request.ExpectedVersion != Snapshot.Version) throw new InvalidOperationException("선택/확인 뒤 작업 기준이 바뀌었습니다. 현재 화면에서 다시 요청하세요.");
         if (!await _command.WaitAsync(0, cancellationToken)) throw new InvalidOperationException("다른 작업이 진행 중입니다.");
         _busy = true; _idle = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        _stopRequestError = "";
         // A modal information/export dialog owns the UI command gate, but no device or offset write.
         // Heavy-alarm shutdown must wait for actual control/write cleanup, not a user closing a dialog.
         _waitForControlStop = action is EN_MANUAL_INSPECTION_UI_ACTION.Move
@@ -219,7 +223,8 @@ public sealed class CManualInspectionController : IManualInspectionController
             _message = _status;
         }
         catch (OperationCanceledException)
-        { _status = "중지했습니다. 미완료 위치는 잔여 재실행으로 측정하세요. 자동 보정은 재개하지 않습니다."; _message = _status; }
+        { _status = "중지했습니다. 미완료 위치는 잔여 재실행으로 측정하세요. 자동 보정은 재개하지 않습니다."
+                + (_stopRequestError.Length > 0 ? "\nSTOP 요청 확인 필요 · " + _stopRequestError : ""); _message = _status; }
         catch (Exception e)
         {
             if (action is EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe or EN_MANUAL_INSPECTION_UI_ACTION.LoadResultFile
@@ -231,7 +236,13 @@ public sealed class CManualInspectionController : IManualInspectionController
         {
             _busy = false; _waitForControlStop = false; _cancellation?.Dispose(); _cancellation = null;
             try { SaveLocalSession(); } catch (Exception e) { _persistence = "자동 보관 실패 · " + e.Message; }
-            Publish(); _report(_status); _idle?.TrySetResult(); _command.Release();
+            try
+            {
+                Publish();
+                try { _report(_status); }
+                catch (Exception error) { TraceObserverFailure("status reporter", error); }
+            }
+            finally { _idle?.TrySetResult(); _command.Release(); }
             if (_syncQueued && !_engine.HasIncompleteMeasurements
                 && _engine.Candidate is not { State: not EN_MANUAL_CANDIDATE_STATE.Applied })
                 await SynchronizeExternalAsync();
@@ -412,7 +423,10 @@ public sealed class CManualInspectionController : IManualInspectionController
             SaveLocalSession(); Publish(reusePoints: true);
             var identity = JsonSerializer.Serialize(new { Kind = "MANUAL_INSPECTION", snapshot.RecipeId, snapshot.RunId,
                 Tokens = snapshot.Rows.Select(r => new { r.Key, r.MeasurementToken, r.Source, r.ReferenceKey, r.Reason, r.Final,
-                    ReferenceRaw = r.ReferenceKey.Length > 0 ? _engine.GetPoint(r.ReferenceKey).OriginalMeasurement?.RawToken : null }).OrderBy(r => r.Key) });
+                    // A representative can be remeasured after the copy. Audit the raw captured by
+                    // that copy, not a newer raw currently displayed at the same reference key.
+                    ReferenceRaw = r.Source == "MANUAL" ? _engine.GetPoint(r.Key).ProxySource?.ReferenceMeasurementToken
+                        : r.MeasurementToken }).OrderBy(r => r.Key) });
             var revision = await _backend.SaveAsync(_source!, snapshot.ValuesByPointKey, identity, snapshot.Rows, token, snapshot.ConsumedMeasurements);
             _engine.CommitApplied(snapshot, revision, "Manual Inspection 검증된 보정 적용",
                 _backend.LastSavedValues.Count > 0 ? _backend.LastSavedValues : null);
@@ -445,16 +459,25 @@ public sealed class CManualInspectionController : IManualInspectionController
 
     public void RequestStop()
     {
-        _cancellation?.Cancel();
-        if (_engine.Operation?.State == EN_MANUAL_OPERATION_STATE.Running) _backend.Stop();
-        _status = "STOP 요청 · 이동/측정 정리 완료를 기다립니다."; Publish(reusePoints: true);
+        // Cancellation registrations and device-stop reporting can throw independently. Always
+        // attempt both stop paths, keep Busy until the worker returns, and still let StopAsync wait.
+        var errors = new List<string>();
+        try { _cancellation?.Cancel(); }
+        catch (Exception error) { errors.Add("취소 전달: " + error.Message); TraceObserverFailure("cancellation callback", error); }
+        try { if (_engine.Operation?.State == EN_MANUAL_OPERATION_STATE.Running) _backend.Stop(); }
+        catch (Exception error) { errors.Add("장비 STOP: " + error.Message); TraceObserverFailure("device STOP request", error); }
+        if (errors.Count > 0) _stopRequestError = string.Join(" / ", errors);
+        _status = "STOP 요청 · 이동/측정 정리 완료를 기다립니다."
+            + (_stopRequestError.Length > 0 ? "\nSTOP 요청 확인 필요 · " + _stopRequestError : "");
+        _message = _status; Publish(reusePoints: true);
     }
     public async Task StopAsync()
     {
         if (!IsBusy) return;
         var waitForCleanup = _waitForControlStop || _engine.IsBusy;
+        var cleanup = _idle;
         RequestStop();
-        if (waitForCleanup && _idle is not null) await _idle.Task.WaitAsync(TimeSpan.FromSeconds(15));
+        if (waitForCleanup && cleanup is not null) await cleanup.Task.WaitAsync(TimeSpan.FromSeconds(15));
     }
 
     private void UpdateLevels(CManualInspectionUiRequest request)
@@ -504,6 +527,11 @@ public sealed class CManualInspectionController : IManualInspectionController
         _engine.RestoreSession(bundle.Session, next.Context, next.Points, next.Values, next.FieldEvaluator);
         _engine.SeedConsumedMeasurements(_backend.ConsumedMeasurements);
         _source = next; RestoreOptions(bundle); _status = "실제 Recipe/Run/보정과 대조해 세션을 불러왔습니다. 자동 동작은 재개하지 않습니다.";
+        _explicitResultView = false;
+        _stageX = _stageY = double.NaN;
+        _syncPending = _engine.HasIncompleteMeasurements && next.ImportedResults.Count > 0;
+        _syncQueued = _syncPending;
+        _synchronizationText = "현재 세션 연결 · 최근 측정·활성 보정 자동 확인";
         _displayedImports.Clear(); ReconcileDisplayedImports(next);
     }
 
@@ -605,14 +633,24 @@ public sealed class CManualInspectionController : IManualInspectionController
                 DeltaXUm=r.Delta.XUm,DeltaYUm=r.Delta.YUm,FinalXUm=r.Final.XUm,FinalYUm=r.Final.YUm }).ToArray() ?? [],
             Revisions=_engine.Revisions.Select(r=>new CManualInspectionUiRevision { Id=r.Id,CreatedAt=r.CreatedAt.ToLocalTime().ToString("MM-dd HH:mm:ss"),Reason=r.Reason }).ToArray(),
             CandidateStatus=candidate?.State.ToString().ToUpperInvariant() ?? "후보 없음",ValidationPassed=validation?.Ok==true,
-            CanApply=candidate?.State==EN_MANUAL_CANDIDATE_STATE.Validated && validation?.Ok==true && !_engine.HasIncompleteMeasurements && c?.LineageValid==true,
-            CanRollback=_engine.Revisions.Count>1 && !IsBusy,CanUndoCopy=_engine.CanUndoReferenceCopy,AllowManual=_allowManual,
+            CanApply=candidate?.State==EN_MANUAL_CANDIDATE_STATE.Validated && validation?.Ok==true && !_engine.HasIncompleteMeasurements && c?.LineageValid==true && _source?.ReadOnly!=true,
+            CanRollback=_engine.Revisions.Count>1 && !IsBusy && _source?.ReadOnly!=true,CanUndoCopy=_engine.CanUndoReferenceCopy,AllowManual=_allowManual,
             ValidationErrors=validation?.Errors ?? [],ValidationWarnings=validation?.Warnings ?? [],MaxCandidateDeltaUm=validation?.MaxDeltaUm ?? 0,
             MaxCandidateTotalUm=validation?.MaxTotalUm ?? 0,ToleranceXUm=_source?.ToleranceXUm ?? 5,ToleranceYUm=_source?.ToleranceYUm ?? 5,
             DeltaLimitUm=_engine.Limits?.MaxDeltaUm ?? 30,TotalLimitUm=_engine.Limits?.MaxTotalUm ?? 200,ScannerFieldMm=_engine.Limits?.FieldWidthMm ?? 5,
             LevelMetric=_levelMetric,LevelBoundsUm=_levelBounds.ToArray(),LevelNames=_levelNames.ToArray()
         };
-        Changed?.Invoke(this, EventArgs.Empty);
+        // UI/log observers do not own the equipment command gate. Isolate each observer so a
+        // rendering exception cannot strand STOP cleanup or conceal a successfully saved offset.
+        if (Changed is { } changed)
+            foreach (EventHandler observer in changed.GetInvocationList())
+                try { observer(this, EventArgs.Empty); }
+                catch (Exception error) { TraceObserverFailure("snapshot observer", error); }
+    }
+    private static void TraceObserverFailure(string observer, Exception error)
+    {
+        try { System.Diagnostics.Trace.TraceError($"Manual Inspection {observer}: {error}"); }
+        catch { /* A broken diagnostic listener must not acquire control of a device transaction. */ }
     }
     private static void OnUi(Action action)
     {
