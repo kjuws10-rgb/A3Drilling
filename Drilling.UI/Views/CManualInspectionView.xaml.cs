@@ -110,12 +110,13 @@ public partial class CManualInspectionView : UserControl
     private void View_Loaded(object sender, RoutedEventArgs e) { AttachController(); Refresh(); }
     private void View_LayoutUpdated(object? sender, EventArgs e)
     {
-        if (!IsInitialized || WorkspaceBody is null || MapPanel.Child is not Grid mapLayout) return;
+        if (!IsInitialized || WorkspaceBody is null) return;
         var wide = ActualWidth >= 1300 && ActualHeight >= 700;
         if (_wideLayout != wide)
         {
             _wideLayout = wide;
-            InspectorColumn.Width = new GridLength(wide ? 320 : 280);
+            // The inspector consumes width only when the user opens its side handle.
+            InspectorColumn.Width = GridLength.Auto;
             PointSummaryPanel.Padding = new Thickness(wide ? 12 : 6);
             PointTitleText.FontSize = wide ? 23 : 19;
             PointAppliedText.FontSize = wide ? 15 : 13;
@@ -124,9 +125,8 @@ public partial class CManualInspectionView : UserControl
         }
         // Fit the normal folded workspace to its viewport. If optional content/error text takes
         // more space, grow the scroll content instead of clipping a minimum-height drawing surface.
-        var minimum = ResultsSection.IsExpanded || ScatterSection.IsExpanded ? 0
-            : mapLayout.RowDefinitions.Where((_, i) => i != 4).Sum(row => row.ActualHeight)
-                + PositionMap.MinHeight + 2 + MapPanel.Padding.Top + MapPanel.Padding.Bottom
+        var minimum = ResultsSection.IsExpanded || ScatterSection.IsExpanded || WorkInfoSection.IsExpanded ? 0
+            : PositionMap.MinHeight + MapPanel.Padding.Top + MapPanel.Padding.Bottom
                 + MapPanel.BorderThickness.Top + MapPanel.BorderThickness.Bottom
                 + MapPanel.Margin.Top + MapPanel.Margin.Bottom
                 + WorkspaceBody.RowDefinitions.Skip(1).Sum(row => row.ActualHeight);
@@ -213,9 +213,10 @@ public partial class CManualInspectionView : UserControl
             _filtered = FilteredPoints();
             ContextText.Text = $"{(_snapshot.IsSimulation ? "SIM · 설비 명령 없음" : "실제 설비")}  |  Recipe {_snapshot.RecipeId}{(_snapshot.IsReadOnly ? " · 조회 전용" : "")}";
             ContextText.ToolTip = $"Recipe {_snapshot.RecipeId}\nRun {_snapshot.RunId}\n활성 보정 {_snapshot.ActiveRevisionId}";
-            StatusText.Text = _snapshot.StatusText + (string.IsNullOrWhiteSpace(_snapshot.SynchronizationText) ? "" : "\n" + _snapshot.SynchronizationText);
-            if (_snapshot.SyncPending) StatusText.Text += "\n새 결과 대기 중 · 현재 작업을 마치면 반영합니다.";
-            StatusText.ToolTip = StatusText.Text;
+            var statusDetails = _snapshot.StatusText + (string.IsNullOrWhiteSpace(_snapshot.SynchronizationText) ? "" : "\n" + _snapshot.SynchronizationText);
+            StatusText.Text = (_snapshot.IsReadOnly ? "조회 전용 · " : Busy ? "진행 중 · " : "")
+                + (_snapshot.SyncPending ? "동기화 대기 · " : "") + _snapshot.StatusText.ReplaceLineEndings(" · ");
+            StatusText.ToolTip = statusDetails + (_snapshot.SyncPending ? "\n새 결과 대기 중 · 현재 작업을 마치면 반영합니다." : "");
             StatusText.SetResourceReference(TextBlock.ForegroundProperty, _snapshot.IsReadOnly ? "ButtonWarningBrush" : Busy ? "AccentTextBrush" : "TextPrimaryBrush");
             StagePositionText.Text = $"마지막 도착 확인  X {CManualInspectionUiPoint.Number(_snapshot.StageXmm)} / Y {CManualInspectionUiPoint.Number(_snapshot.StageYmm)} mm";
             PersistenceText.Text = _snapshot.PersistenceText + (string.IsNullOrWhiteSpace(_snapshot.SourcePath) ? "" : " · " + _snapshot.SourcePath);
@@ -223,7 +224,7 @@ public partial class CManualInspectionView : UserControl
             if (_localMessageVersion != _snapshot.Version) _localMessage = "";
             RefreshMessage();
             var scoped = _snapshot.Points.Where(p => (_cell == 0 || p.CellNo == _cell) && (_head == 0 || p.HeadNo == _head)).ToArray();
-            PositionMap.Configure(_snapshot, scoped, _filtered, _selected, FocusPoint?.Key, _representativeKey, _color, $"{_cell}|{_head}");
+            PositionMap.Configure(_snapshot, scoped, _filtered, _selected, _focusKey, _representativeKey, _color, $"{_cell}|{_head}");
             var visibleSelection = _filtered.Count(p => _selected.Contains(p.Key));
             var hiddenSelection = _selected.Count - visibleSelection;
             SelectionCountText.Text = $"선택 {_selected.Count:N0}점" + (hiddenSelection > 0 ? $" · 숨김 {hiddenSelection:N0}점" : "") + $" · 지도 {_filtered.Count:N0}점";
@@ -231,6 +232,7 @@ public partial class CManualInspectionView : UserControl
             FilterNoticeText.Text = _head != 0 || _judge != "ALL" || _source != "ALL" || _query.Length > 0
                 ? "세부 필터가 지도·표에 적용되어 있습니다. 산포도는 별도 범위를 사용합니다." : "";
             FilterNoticeText.Visibility = string.IsNullOrWhiteSpace(FilterNoticeText.Text) ? Visibility.Collapsed : Visibility.Visible;
+            WorkInfoSection.Header = string.IsNullOrWhiteSpace(FilterNoticeText.Text) ? "필터 · 범례 · 작업 정보" : "필터 · 범례 · 작업 정보 · 필터 적용 중";
             MapLegendText.Text = MapLegend();
             MapLegendText.ToolTip = MapLegendText.Text;
             MapLegendItems.ToolTip = MapLegendText.Text;
@@ -503,7 +505,8 @@ public partial class CManualInspectionView : UserControl
         foreach (var key in e.Keys)
             if (_points.TryGetValue(key, out var p) && !p.IsMasked)
             { if (e.Toggle && _selected.Contains(key)) _selected.Remove(key); else _selected.Add(key); }
-        if (e.FocusKey is not null) _focusKey = e.FocusKey;
+        if (e.ClearFocus) _focusKey = null;
+        else if (e.FocusKey is not null) _focusKey = e.FocusKey;
         Refresh();
     }
     private void Map_SelectionRequested(object? sender, CManualInspectionSelectionEventArgs e) => ChangeSelection(e);
@@ -887,7 +890,7 @@ public partial class CManualInspectionView : UserControl
         var key = e.Key == Key.System ? e.SystemKey : e.Key;
         if (key == Key.Escape && PositionMap.TryCancelGesture()) { e.Handled = true; return; }
         if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && key == Key.F)
-        { SearchSection.IsExpanded = true; SearchBox.Focus(); SearchBox.SelectAll(); e.Handled = true; return; }
+        { WorkInfoSection.IsExpanded = true; SearchSection.IsExpanded = true; SearchBox.Focus(); SearchBox.SelectAll(); e.Handled = true; return; }
         if (Keyboard.Modifiers.HasFlag(ModifierKeys.Alt) && key is Key.Left or Key.Right or Key.Up or Key.Down
             && Ancestor<TextBox>(e.OriginalSource as DependencyObject) is null && Ancestor<ComboBox>(e.OriginalSource as DependencyObject) is null)
         {

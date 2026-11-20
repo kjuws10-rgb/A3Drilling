@@ -1,4 +1,4 @@
-"""Verify Manual Inspection visual polish scope and preservation. No equipment execution."""
+"""Verify map-first Manual Inspection scope and preservation. No equipment execution."""
 import argparse
 import hashlib
 import json
@@ -7,7 +7,7 @@ from pathlib import Path
 import subprocess
 import xml.etree.ElementTree as ET
 
-BASE = "798359edaba1afb24977ea81185c0086d7fd57b3"
+BASE = "7c6cd31ecaa5b201e6138c59fa757f2f87e292d8"
 ROOT = Path(__file__).resolve().parents[2]
 EXISTING = {
     "Drilling.Common/Review/CReviewManager.cs",
@@ -75,6 +75,7 @@ def main():
                     "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
                     "Drilling.Common/Review/CManualInspectionCoordinateBridge.cs"]))
     for path in ["Drilling.UI/Menu/Menus/CManualInspectionBackend.cs",
+                 "Drilling.UI/Menu/Menus/CManualInspectionController.cs",
                  "Drilling.UI/Menu/Menus/CManualInspectionUpdateMonitor.cs",
                  "Drilling.Common/Review/CManualInspectionResultProjection.cs",
                  "Drilling.File/ReviewOffset/CReviewOffsetFile.cs"]:

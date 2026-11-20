@@ -33,10 +33,10 @@ internal static partial class Program
     [STAThread]
     private static int Main(string[] args)
     {
-        if (args.Length is < 2 or > 3 || args.Length == 3 && args[2] is not ("--integration-impact" or "--sync-levels" or "--coverage-compact" or "--hardening" or "--visual-usability")) { Console.Error.WriteLine("Usage: UiHarness <repository/Drilling.UI> <private-output> [--integration-impact|--sync-levels|--coverage-compact|--hardening|--visual-usability]"); return 2; }
+        if (args.Length is < 2 or > 3 || args.Length == 3 && args[2] is not ("--integration-impact" or "--sync-levels" or "--coverage-compact" or "--hardening" or "--visual-usability" or "--map-first")) { Console.Error.WriteLine("Usage: UiHarness <repository/Drilling.UI> <private-output> [--integration-impact|--sync-levels|--coverage-compact|--hardening|--visual-usability|--map-first]"); return 2; }
         _uiSource = Path.GetFullPath(args[0]); _output = Path.GetFullPath(args[1]); Directory.CreateDirectory(_output);
         _application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-        if (args.Length == 3) return args[2] switch { "--sync-levels" => SyncLevels(), "--coverage-compact" => CoverageCompact(), "--hardening" => Hardening(), "--visual-usability" => VisualUsability(), _ => IntegrationImpact() };
+        if (args.Length == 3) return args[2] switch { "--sync-levels" => SyncLevels(), "--coverage-compact" => CoverageCompact(), "--hardening" => Hardening(), "--visual-usability" => VisualUsability(), "--map-first" => MapFirst(), _ => IntegrationImpact() };
         try
         {
             LoadResources("Light");
@@ -182,6 +182,8 @@ internal static partial class Program
             Test("applied_legend_marks_unapplied", legend.Children.OfType<StackPanel>().SelectMany(p => p.Children.OfType<TextBlock>()).Any(t => t.Text.Contains("미적용")));
             Test("imported_table_preserves_original", points[1].OriginalJudge == "OK" && points[1].OriginalXUm == initial.Points[1].OriginalXUm);
             var map = (CManualInspectionMapControl)view.FindName("PositionMap");
+            // Map-first has no implicit work target when focus/selection is empty.
+            Invoke(view, "ChangeSelection", new CManualInspectionSelectionEventArgs([points[1].Key], points[1].Key));
             map.ShowOperationMenu(); Pump();
             map.ContextMenu!.Items.OfType<MenuItem>().Single(i => i.Header.ToString()!.Contains("상세")).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent)); Pump();
             Test("raw_history_uses_controller_full_history", fake.Calls.Count == 1 && fake.Calls[0].Action == EN_MANUAL_INSPECTION_UI_ACTION.ShowPoint && fake.Calls[0].Request.FocusKey == points[1].Key);
@@ -244,9 +246,10 @@ internal static partial class Program
             Test("only_three_color_concepts",((ComboBox)view.FindName("ColorFilter")).Items.Count==3);
             Test("advanced_sections_initially_closed",new[]{"ReferenceSection","CorrectionSection","SettingsSection","ScatterSection","ResultsSection","PointDetailsSection"}.All(n=>!((Expander)view.FindName(n)).IsExpanded));
             Test("simulation_and_duplicate_motion_controls_removed",new[]{"SimulationOptions","SimulationDemoButton","MoveButton","MoveMeasureCorrectButton","SideStopButton","PanToolButton","LoadResultButton"}.All(n=>view.FindName(n)is null));
-            Test("automatic_synchronization_description_visible",((TextBlock)view.FindName("StatusText")).Text.Contains("Rough/Fine"));
+            Test("automatic_synchronization_description_reachable",((TextBlock)view.FindName("StatusText")).ToolTip?.ToString()?.Contains(initial.SynchronizationText)==true);
             fake.Replace(initial with{Version=101,SyncPending=true});Pump();
-            Test("deferred_synchronization_is_explicit",((TextBlock)view.FindName("StatusText")).Text.Contains("새 결과 대기"));
+            Test("deferred_synchronization_is_explicit",((TextBlock)view.FindName("StatusText")).Text.Contains("동기화 대기")
+                &&((TextBlock)view.FindName("StatusText")).ToolTip?.ToString()?.Contains("새 결과 대기")==true);
             var sample=initial.Points[2] with{HasAppliedOffset=true,BaseXUm=7,BaseYUm=-2,WorkingJudge="UNMEASURED",WorkingXUm=null,WorkingYUm=null};
             string Brush(CManualInspectionUiPoint p,string mode="applied",CManualInspectionUiSnapshot? snapshot=null)=>((SolidColorBrush)CManualInspectionDrawing.PointBrush(view,p,mode,snapshot??initial)).Color.ToString();
             var originSamples=new[]{sample with{CellNo=1,HeadNo=1,DisplayedMeasurementOrigin="ROUGH"},sample with{CellNo=2,HeadNo=8,DisplayedMeasurementOrigin="FINE"},sample with{CellNo=3,HeadNo=4,IsProxy=true,Source="MANUAL"}};

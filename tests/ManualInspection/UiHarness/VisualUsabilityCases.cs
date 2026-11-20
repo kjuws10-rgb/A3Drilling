@@ -91,7 +91,8 @@ internal static partial class Program
             fake.Replace(fake.Snapshot with { Version = fake.Snapshot.Version + 1, IsReadOnly = false }); Pump();
             var files = (Button)view.FindName("FilesButton"); Invoke(view, "Files_Click", files, new RoutedEventArgs()); Pump();
             Test("visual_file_menu_uses_same_flat_theme", files.ContextMenu!.Items.OfType<MenuItem>().All(item => item.OverridesDefaultStyle)); files.ContextMenu.IsOpen = false;
-            var selectionTools = Descendants(view).OfType<Button>().Single(button => button.Content?.ToString()?.StartsWith("선택 도구", StringComparison.Ordinal) == true);
+            var selectionTools = Descendants(view).OfType<Button>().Single(button => button.Content?.ToString()?.StartsWith("선택", StringComparison.Ordinal) == true
+                && button.ToolTip?.ToString()?.Contains("NG만", StringComparison.Ordinal) == true);
             Invoke(view, "SelectionTools_Click", selectionTools, new RoutedEventArgs()); Pump();
             Test("visual_selection_menu_uses_same_flat_theme", selectionTools.ContextMenu!.Items.OfType<MenuItem>().All(item => item.OverridesDefaultStyle)); selectionTools.ContextMenu.IsOpen = false;
 
@@ -141,7 +142,11 @@ internal static partial class Program
             Test("visual_invalid_zoom_origin_cannot_poison_pan", double.IsFinite(Field<Vector>(map, "_pan").X) && double.IsFinite(Field<Vector>(map, "_pan").Y));
             map.ResetView(); Pump();
 
-            foreach (var expander in Descendants(view).OfType<Expander>().ToArray()) expander.IsExpanded = true;
+            for (var pass = 0; pass < 3; pass++)
+            {
+                foreach (var expander in Descendants(view).OfType<Expander>().ToArray()) expander.IsExpanded = true;
+                Pump();
+            }
             Pump(); search.ApplyTemplate(); Pump();
             var searchInner = Descendants(search).OfType<UIElement>().FirstOrDefault(element => element.GetType().Name.Contains("TextBoxView", StringComparison.Ordinal));
             Test("visual_text_input_uses_real_inner_editor_event_source", searchInner is not null);
@@ -239,10 +244,12 @@ internal static partial class Program
                     var workspace = (ScrollViewer)view.FindName("WorkspaceScroll"); var inspector = (ScrollViewer)view.FindName("InspectorScroll");
                     var suffix = theme + "_" + layout.Label;
                     Test("visual_default_sections_collapsed_" + suffix, !((Expander)view.FindName("ResultsSection")).IsExpanded && !((Expander)view.FindName("ScatterSection")).IsExpanded);
-                    Test("visual_map_not_clipped_" + suffix, ((Border)map.Parent).ActualHeight + 1 >= map.ActualHeight + 2 && map.ActualHeight >= 79);
-                    Test("visual_no_horizontal_overflow_" + suffix, workspace.ScrollableWidth <= 1 && inspector.ScrollableWidth <= 1 && view.ActualWidth <= layout.Width + 1);
-                    if (layout.Label != "dpi150") Test("visual_no_default_vertical_scroll_" + suffix, workspace.ScrollableHeight <= 1 && inspector.ScrollableHeight <= 1,
-                        new { workspace.ScrollableHeight, inspectorScroll = inspector.ScrollableHeight });
+                    var actualMapFrame = (Border)map.Parent;
+                    Test("visual_map_not_clipped_" + suffix, actualMapFrame.ActualHeight - actualMapFrame.BorderThickness.Top - actualMapFrame.BorderThickness.Bottom
+                        - actualMapFrame.Padding.Top - actualMapFrame.Padding.Bottom + 1 >= map.ActualHeight && map.ActualHeight >= 79);
+                    Test("visual_no_horizontal_overflow_" + suffix, workspace.ScrollableWidth <= 1 && (!inspector.IsVisible || inspector.ScrollableWidth <= 1) && view.ActualWidth <= layout.Width + 1);
+                    if (layout.Label != "dpi150") Test("visual_no_default_vertical_scroll_" + suffix, workspace.ScrollableHeight <= 1 && (!inspector.IsVisible || inspector.ScrollableHeight <= 1),
+                        new { workspace.ScrollableHeight, inspectorScroll = inspector.ScrollableHeight, inspectorVisible = inspector.IsVisible });
                     var stop = (Button)view.FindName("StopButton"); var stopBounds = stop.TransformToAncestor(view).TransformBounds(new Rect(stop.RenderSize));
                     Test("visual_stop_button_visible_" + suffix, stop.IsVisible && stop.ActualHeight >= 30 && stopBounds.Left >= 0 && stopBounds.Right <= view.ActualWidth + 1 && stopBounds.Bottom <= view.ActualHeight + 1);
                     var context = (TextBlock)view.FindName("ContextText");
@@ -270,6 +277,7 @@ internal static partial class Program
             var heroSelection = heroPoints.Skip(1).Take(3).Select(point => point.Key).ToArray();
             Invoke(view, "ChangeSelection", new CManualInspectionSelectionEventArgs(heroSelection, heroSelection[0]));
             Set(view, "_representativeKey", heroPoints[5].Key); Refresh();
+            if (view.FindName("InspectorSection") is Expander inspectorSection) inspectorSection.IsExpanded = true;
             ((Expander)view.FindName("ReferenceSection")).IsExpanded = true;
             ((Expander)view.FindName("CorrectionSection")).IsExpanded = true; Pump();
             Render(view, "visual-dark-review-hero.png");
@@ -277,6 +285,7 @@ internal static partial class Program
             Render(map.ContextMenu!, "visual-dark-context-menu.png"); CloseMenu();
             ((Expander)view.FindName("ReferenceSection")).IsExpanded = false;
             ((Expander)view.FindName("CorrectionSection")).IsExpanded = false;
+            if (view.FindName("InspectorSection") is Expander inspectorForScatter) inspectorForScatter.IsExpanded = false;
             LoadResources("Light"); window.Height = 1050;
             ((Expander)view.FindName("ScatterSection")).IsExpanded = true;
             Set(view, "_scatterScope", "HEAD"); Set(view, "_scatterHead", 1); Refresh();

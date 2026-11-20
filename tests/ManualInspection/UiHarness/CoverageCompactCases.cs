@@ -121,7 +121,7 @@ internal static partial class Program
                     var inspector = (ScrollViewer)view.FindName("InspectorScroll");
                     Test($"default_no_workspace_scroll_{theme}_{size.Item1}_{size.Item2}", workspace.ScrollableHeight <= 1 && workspace.ScrollableWidth <= 1,
                         new { workspace.ScrollableHeight, workspace.ViewportHeight, workspace.ExtentHeight });
-                    Test($"default_no_inspector_scroll_{theme}_{size.Item1}_{size.Item2}", inspector.ScrollableHeight <= 1 && inspector.ScrollableWidth <= 1,
+                    Test($"default_no_inspector_scroll_{theme}_{size.Item1}_{size.Item2}", !inspector.IsVisible || inspector.ScrollableHeight <= 1 && inspector.ScrollableWidth <= 1,
                         new { inspector.ScrollableHeight, inspector.ViewportHeight, inspector.ExtentHeight });
                     Test($"default_map_is_visible_{theme}_{size.Item1}_{size.Item2}", map.ActualHeight > 70 && map.ActualWidth > 250);
                     var mapFrame = (Border)map.Parent;
@@ -135,8 +135,18 @@ internal static partial class Program
                         && hitBounds.All(rect => rect.Left >= -1 && rect.Top >= -1 && rect.Right <= map.ActualWidth + 1 && rect.Bottom <= map.ActualHeight + 1),
                         new { slots = hitBounds.Length, expected = layoutPoints.Length, map.ActualWidth, map.ActualHeight });
                     var legend = (FrameworkElement)view.FindName("MapLegendText");
-                    var bounds = legend.TransformToAncestor(workspace).TransformBounds(new Rect(0, 0, legend.ActualWidth, legend.ActualHeight));
-                    Test($"default_map_legend_not_clipped_{theme}_{size.Item1}_{size.Item2}", bounds.Bottom <= workspace.ActualHeight + 1, bounds);
+                    if (legend.IsVisible)
+                    {
+                        var bounds = legend.TransformToAncestor(workspace).TransformBounds(new Rect(0, 0, legend.ActualWidth, legend.ActualHeight));
+                        Test($"default_map_legend_not_clipped_{theme}_{size.Item1}_{size.Item2}", bounds.Bottom <= workspace.ActualHeight + 1, bounds);
+                    }
+                    else
+                    {
+                        // Map-first deliberately moves the complete legend into folded work information.
+                        // Preserve the check's meaning: the information is retained and costs no map area.
+                        Test($"default_map_legend_not_clipped_{theme}_{size.Item1}_{size.Item2}", view.FindName("WorkInfoSection") is Expander { IsExpanded: false }
+                            && legend is TextBlock { Text.Length: > 0 }, "Legend retained in folded work information.");
+                    }
                     Render(view, $"coverage-{theme.ToLowerInvariant()}-{size.Item1}x{size.Item2}.png");
                 }
             }

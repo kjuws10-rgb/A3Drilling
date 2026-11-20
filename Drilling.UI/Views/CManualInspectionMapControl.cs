@@ -9,12 +9,13 @@ using System.Windows.Input;
 using System.Windows.Media;
 
 public sealed class CManualInspectionSelectionEventArgs(
-    IReadOnlyList<string> keys, string? focusKey, bool additive = false, bool toggle = false) : EventArgs
+    IReadOnlyList<string> keys, string? focusKey, bool additive = false, bool toggle = false, bool clearFocus = false) : EventArgs
 {
     public IReadOnlyList<string> Keys { get; } = keys;
     public string? FocusKey { get; } = focusKey;
     public bool Additive { get; } = additive;
     public bool Toggle { get; } = toggle;
+    public bool ClearFocus { get; } = clearFocus;
 }
 
 public sealed class CManualInspectionOperationEventArgs(
@@ -52,6 +53,9 @@ public sealed class CManualInspectionMapControl : Control
     private bool _panning;
     private bool _additive;
     private bool _moved;
+    private sealed record ClickSelection(string[] Keys, string? FocusKey, long Version, string Scope);
+    private ClickSelection? _selectionBeforeClick;
+    private bool _canRestoreClickSelection;
     private Point _start;
     private Point _last;
     private Vector _startPan;
@@ -81,7 +85,7 @@ public sealed class CManualInspectionMapControl : Control
         ToolTipService.SetInitialShowDelay(this, 180);
         ToolTipService.SetShowDuration(this, 15000);
         AutomationProperties.SetName(this, "리뷰 측정 위치 논리 행렬");
-        AutomationProperties.SetHelpText(this, "행과 열의 논리 배치입니다. Ctrl 클릭으로 복수 선택, 드래그로 영역 선택, Ctrl 휠로 확대, Alt 방향키로 화면 이동, 우클릭으로 동작을 선택합니다.");
+        AutomationProperties.SetHelpText(this, "행과 열의 논리 배치입니다. Ctrl 클릭으로 복수 선택, 드래그로 영역 선택, Ctrl 휠로 확대, Alt 방향키로 화면 이동, 더블클릭으로 선택을 유지한 화면 맞춤, 우클릭으로 동작을 선택합니다.");
         SizeChanged += (_, _) => { _layoutDirty = true; InvalidateVisual(); };
         Unloaded += (_, _) => { CancelGesture(true); _tip.IsOpen = false; if (ContextMenu is not null) ContextMenu.IsOpen = false; };
     }
@@ -100,6 +104,9 @@ public sealed class CManualInspectionMapControl : Control
             pair.First.Key == pair.Second.Key && pair.First.CellNo == pair.Second.CellNo && pair.First.HeadNo == pair.Second.HeadNo
             && pair.First.Row == pair.Second.Row && pair.First.Column == pair.Second.Column && pair.First.BeamNo == pair.Second.BeamNo);
         var nextVisibleKeys = visiblePoints.Select(p => p.Key).ToHashSet(StringComparer.Ordinal);
+        if (!samePoints || !_visibleKeys.SetEquals(nextVisibleKeys) || _snapshot.Version != snapshot.Version
+            || _layoutSignature != snapshot.RunId + "|" + scopeSignature + "|" + allScopedPoints.Count)
+            InvalidateClickSelection();
         if (_gesture && (!sameGeometry || !_visibleKeys.SetEquals(nextVisibleKeys) || _snapshot.Version != snapshot.Version
             || _layoutSignature != snapshot.RunId + "|" + scopeSignature + "|" + allScopedPoints.Count))
             CancelGesture(true);
@@ -129,6 +136,7 @@ public sealed class CManualInspectionMapControl : Control
 
     public void ResetView()
     {
+        CancelGesture(false); _tip.IsOpen = false; _hoverKey = null;
         _zoom = 1; _pan = default;
         ViewChanged?.Invoke(this, EventArgs.Empty);
         InvalidateVisual();
@@ -169,8 +177,8 @@ public sealed class CManualInspectionMapControl : Control
         var groups = _all.GroupBy(p => (p.CellNo, p.HeadNo))
             .OrderBy(g => g.Key.CellNo).ThenBy(g => g.Key.HeadNo).ToArray();
         if (groups.Length == 0) return;
-        // A logical Row/Column matrix, not a drawing in stage millimetres. Pick a packing whose
-        // square slots use the viewport well, then preserve each group's actual matrix aspect.
+        // A logical Row/Column matrix, not a drawing in stage millimetres. Packing balances the
+        // readable slot size; each group's independent width/height then fills its allotted area.
         var shapes = groups.Select(g => (Columns: g.Select(p => p.Column).Distinct().Count(), Rows: g.Select(p => p.Row).Distinct().Count())).ToArray();
         var columns = 1; var bestPitch = 0d;
         var narrowestAspect = Math.Max(.05, shapes.Min(shape => (double)shape.Columns / Math.Max(1, shape.Rows)));
@@ -204,10 +212,9 @@ public sealed class CManualInspectionMapControl : Control
             var rowKeys = group.Select(p => p.Row).Distinct().OrderBy(x => x).ToArray();
             var columnMap = columnKeys.Select((key, index) => (key, index)).ToDictionary(x => x.key, x => x.index);
             var rowMap = rowKeys.Select((key, index) => (key, index)).ToDictionary(x => x.key, x => x.index);
-            var pitch = Math.Min(groupWidth / Math.Max(1, columnKeys.Length), Math.Max(0.01, groupHeight - title) / Math.Max(1, rowKeys.Length));
-            var tileWidth = pitch; var tileHeight = pitch;
-            var gridWidth = pitch * columnKeys.Length; var gridHeight = pitch * rowKeys.Length;
-            var gridX = gx + (groupWidth - gridWidth) / 2; var gridY = gy + title + (groupHeight - title - gridHeight) / 2;
+            var gridWidth = groupWidth; var gridHeight = Math.Max(.01, groupHeight - title);
+            var tileWidth = gridWidth / Math.Max(1, columnKeys.Length); var tileHeight = gridHeight / Math.Max(1, rowKeys.Length);
+            var gridX = gx; var gridY = gy + title;
             _frames.Add((new Rect(gx, gy, groupWidth, groupHeight), new Rect(gridX, gridY, gridWidth, gridHeight),
                 $"Cell {group.Key.CellNo}  ·  " + (group.Key.HeadNo > 0 ? $"H{group.Key.HeadNo:00}" : "미배정"), $"{rowKeys.Length}행 × {columnKeys.Length}열"));
             foreach (var bucket in group.GroupBy(p => (p.Row, p.Column)))
@@ -256,42 +263,51 @@ public sealed class CManualInspectionMapControl : Control
             if (!r.IntersectsWith(viewport)) continue;
             var p = _pointByKey.GetValueOrDefault(slot.Point.Key) ?? slot.Point;
             var minimum = Math.Min(r.Width, r.Height);
-            var center = new Point(r.Left + r.Width / 2, r.Top + r.Height / 2);
-            var radius = Math.Clamp(minimum * .18, .3, 5.2);
             var selected = _selected.Contains(p.Key); var hover = p.Key == _hoverKey; var focused = p.Key == _focusKey;
-            if (minimum > 13)
-                context.DrawRectangle(null, new Pen(line, .35), new Rect(r.Left + .6, r.Top + .6, Math.Max(.1, r.Width - 1.2), Math.Max(.1, r.Height - 1.2)));
-            if ((selected || hover) && minimum > 4)
-            {
-                var halo = Math.Min(minimum * .43, radius + (selected ? 4 : 3));
-                context.DrawEllipse(null, new Pen(Background ?? Brushes.White, selected ? 4.5 : 3), center, halo, halo);
-                context.DrawEllipse(null, new Pen(accent, selected ? 2 : 1), center, halo, halo);
-            }
             var brush = CManualInspectionDrawing.PointBrush(this, p, _colorMode, _snapshot);
+            // Screen-space gutters stay small at any zoom. Subpixel overview slots reduce the
+            // gutter proportionally, so a large dataset still has a visibly filled heat-map area.
+            var gap = Math.Min(1.5, minimum * .04);
+            var tile = new Rect(r.Left + gap / 2, r.Top + gap / 2, Math.Max(.001, r.Width - gap), Math.Max(.001, r.Height - gap));
+            var textBrush = TileTextBrush(brush);
+            context.DrawRectangle(brush, null, tile);
             if (p.IsMasked)
             {
-                var cross = Math.Max(.3, Math.Min(minimum * .25, 4)); var pen = new Pen(line, minimum > 8 ? 1.3 : .7);
-                context.DrawLine(pen, new(center.X - cross, center.Y - cross), new(center.X + cross, center.Y + cross));
-                context.DrawLine(pen, new(center.X + cross, center.Y - cross), new(center.X - cross, center.Y + cross));
+                if (minimum > 4)
+                {
+                    var inset = Math.Min(5, minimum * .2); var pen = new Pen(textBrush, minimum > 12 ? 1.1 : .6);
+                    context.DrawLine(pen, new(tile.Left + inset, tile.Top + inset), new(tile.Right - inset, tile.Bottom - inset));
+                    context.DrawLine(pen, new(tile.Right - inset, tile.Top + inset), new(tile.Left + inset, tile.Bottom - inset));
+                }
             }
-            else CManualInspectionDrawing.Marker(context, center, radius, brush, p.IsProxy ? "diamond" : p.UsesAppliedMeasurement ? "square" : "circle", false);
-            if (p.Key == _representative && minimum > 8)
-                CManualInspectionDrawing.Marker(context, center, Math.Min(minimum * .46, radius + 7),
-                    CManualInspectionDrawing.Color("#D18B00"), "diamond", true);
-            if (focused && minimum > 9)
+            if ((selected || hover) && minimum > 4)
             {
-                var length = Math.Min(minimum * .43, radius + 8); var focusPen = new Pen(Foreground, 1.1) { DashStyle = DashStyles.Dot };
-                context.DrawRectangle(null, focusPen, new Rect(center.X - length, center.Y - length, length * 2, length * 2));
+                var outline = Inset(tile, 1.4);
+                context.DrawRectangle(null, new Pen(textBrush, selected ? 3.8 : 2.2), outline);
+                context.DrawRectangle(null, new Pen(accent, selected ? 1.8 : 1), outline);
             }
-            if (!p.IsMasked && minimum > 27)
+            if (focused && minimum > 12)
             {
-                var mark = p.Key == _representative ? "★ " : p.WorkingJudge == "ERROR" ? "! " : p.WorkingJudge == "NG" ? "NG " : "";
-                var label = mark + "S" + p.ShotNo + (r.Width > 90 ? $" / B{p.BeamNo}" : "");
-                CManualInspectionDrawing.Text(context, this, label, new Point(r.Left + 2, Math.Min(r.Bottom - 13, center.Y + radius + 7)),
-                    9, Foreground, selected || focused, Math.Max(1, r.Width - 4));
+                var focusPen = new Pen(textBrush, 1.2) { DashStyle = DashStyles.Dot };
+                context.DrawRectangle(null, focusPen, Inset(tile, 4.5));
             }
-            else if (p.WorkingJudge is "NG" or "ERROR" && minimum > 10)
-                CManualInspectionDrawing.Text(context, this, p.WorkingJudge == "NG" ? "!" : "×", new Point(center.X + radius + 1, center.Y - radius - 5), 9, Foreground, true);
+            if (p.Key == _representative && minimum > 12)
+            {
+                context.DrawRectangle(null, new Pen(textBrush, 3.8), Inset(tile, 3));
+                context.DrawRectangle(null, new Pen(CManualInspectionDrawing.Color("#D18B00"), 2), Inset(tile, 3));
+            }
+            if (r.Width > 28 && r.Height > 18)
+            {
+                var mark = p.Key == _representative ? "★ " : p.IsMasked ? "× " : p.WorkingJudge == "ERROR" ? "! "
+                    : p.WorkingJudge == "NG" ? "NG " : p.IsProxy ? "◇ " : p.UsesAppliedMeasurement ? "□ "
+                    : !p.HasMeasurementHistory ? "· " : "";
+                var label = mark + "S" + p.ShotNo + (r.Width > 115 ? $" / B{p.BeamNo}" : "");
+                CManualInspectionDrawing.Text(context, this, label, new Point(tile.Left + 5, tile.Top + Math.Max(2, tile.Height / 2 - 7)),
+                    Math.Clamp(tile.Height / 3.3, 9, 12), textBrush, selected || focused, Math.Max(1, tile.Width - 10));
+            }
+            else if (minimum > 8 && (p.Key == _representative || p.IsMasked || p.WorkingJudge is "NG" or "ERROR" || !p.HasMeasurementHistory))
+                CManualInspectionDrawing.Text(context, this, p.Key == _representative ? "★" : p.IsMasked ? "×"
+                    : p.WorkingJudge is "NG" or "ERROR" ? "!" : "·", new Point(tile.Left + 2, tile.Top + 1), 9, textBrush, true);
             AddHit(p, r, viewport);
         }
         if (_slots.Count == 0)
@@ -310,6 +326,18 @@ public sealed class CManualInspectionMapControl : Control
 
     private Point Screen(Point point) => new(point.X * _zoom + _pan.X, point.Y * _zoom + _pan.Y);
     private Rect Screen(Rect rect) => new(Screen(rect.TopLeft), new Size(rect.Width * _zoom, rect.Height * _zoom));
+    private static Rect Inset(Rect rect, double value)
+    {
+        var inset = Math.Min(value, Math.Max(0, Math.Min(rect.Width, rect.Height) / 2 - .1));
+        return new Rect(rect.Left + inset, rect.Top + inset, Math.Max(.1, rect.Width - inset * 2), Math.Max(.1, rect.Height - inset * 2));
+    }
+    private static Brush TileTextBrush(Brush fill)
+    {
+        if (fill is not SolidColorBrush solid) return Brushes.Black;
+        static double Linear(byte channel) { var value = channel / 255d; return value <= .04045 ? value / 12.92 : Math.Pow((value + .055) / 1.055, 2.4); }
+        var luminance = .2126 * Linear(solid.Color.R) + .7152 * Linear(solid.Color.G) + .0722 * Linear(solid.Color.B);
+        return (luminance + .05) / .05 >= 1.05 / (luminance + .05) ? Brushes.Black : Brushes.White;
+    }
     private void AddHit(CManualInspectionUiPoint point, Rect rect, Rect viewport)
     {
         var index = _hits.Count; _hits.Add((point, rect));
@@ -334,13 +362,41 @@ public sealed class CManualInspectionMapControl : Control
     {
         base.OnMouseLeftButtonDown(e);
         Focus(); _tip.IsOpen = false;
+        if (TryResetOnDoubleClick(e.ClickCount)) { e.Handled = true; return; }
+        RememberSelectionBeforeClick();
         _gesture = true; _moved = false;
         _panning = IsPanTool || Keyboard.Modifiers.HasFlag(ModifierKeys.Alt);
+        if (_panning) InvalidateClickSelection();
         _additive = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
         _start = _last = e.GetPosition(this); _startPan = _pan;
         Cursor = _panning ? Cursors.ScrollAll : Cursors.Cross;
         CaptureMouse(); e.Handled = true;
     }
+
+    private bool TryResetOnDoubleClick(int clickCount)
+    {
+        if (clickCount < 2) return false;
+        var before = _canRestoreClickSelection && _selectionBeforeClick is { } captured
+            && captured.Version == _snapshot.Version && captured.Scope == _layoutSignature ? captured : null;
+        InvalidateClickSelection();
+        if (before is not null && (!_selected.SetEquals(before.Keys) || _focusKey != before.FocusKey))
+            SelectionRequested?.Invoke(this, new(before.Keys, before.FocusKey, clearFocus: before.FocusKey is null));
+        ResetView(); return true;
+    }
+
+    private void RememberSelectionBeforeClick()
+    {
+        _selectionBeforeClick = new(_selected.ToArray(), _focusKey, _snapshot.Version, _layoutSignature);
+        _canRestoreClickSelection = false;
+    }
+
+    private void CompleteClickSelectionTracking(bool panning, bool moved)
+    {
+        if (panning || moved) { InvalidateClickSelection(); return; }
+        _canRestoreClickSelection = _selectionBeforeClick is not null;
+    }
+
+    private void InvalidateClickSelection() { _selectionBeforeClick = null; _canRestoreClickSelection = false; }
 
     protected override void OnMouseMove(MouseEventArgs e)
     {
@@ -349,6 +405,7 @@ public sealed class CManualInspectionMapControl : Control
         if (_gesture)
         {
             _last = at; _moved |= (at - _start).Length > 4;
+            if (_moved) InvalidateClickSelection();
             if (_panning) _pan = _startPan + at - _start;
             InvalidateVisual(); e.Handled = true; return;
         }
@@ -372,6 +429,7 @@ public sealed class CManualInspectionMapControl : Control
         var panning = _panning; var moved = _moved; var additive = _additive;
         var end = e.GetPosition(this); _gesture = false;
         ReleaseMouseCapture(); Cursor = IsPanTool ? Cursors.ScrollAll : Cursors.Cross;
+        CompleteClickSelectionTracking(panning, moved);
         if (!panning)
         {
             if (moved)
@@ -492,8 +550,10 @@ public sealed class CManualInspectionMapControl : Control
 
     private void CancelGesture(bool restorePan)
     {
+        InvalidateClickSelection();
         if (restorePan && _gesture && _panning) _pan = _startPan;
         _gesture = false;
+        _panning = false; _moved = false;
         if (IsMouseCaptured) ReleaseMouseCapture();
         Cursor = IsPanTool ? Cursors.ScrollAll : Cursors.Cross;
         InvalidateVisual();

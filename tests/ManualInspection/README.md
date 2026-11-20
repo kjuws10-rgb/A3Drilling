@@ -32,3 +32,8 @@ Common 회귀는 대표값·작업 상태·원측정 보존, 계산/검증/저�
 ## 화면·그래픽 최신 후속
 
 [현재 시각/입력 검증](VISUAL_USABILITY_QA.md)은 798359e 기준의 새 `feature/manual-inspection-visual-polish-20261120`이다. 정식 Release0/0, 실제 Controller93와 WPF49/23/34/71/30/105=312개를 실행했다. source-linked preflight89는 중복/부분 이전 근거이며 최종 실제93과 합산하지 않는다. 앞선 엔진113/writer35/Backend16/projection53은 소스 동일성을 확인한 이전 Commit의 근거로 구분한다. 화면용 80ms coalescing은 모든 측정·최종/오류/STOP 표시·잔여 복구를 보존한다. 테스트 회수와 소스/DLL/그림 SHA는 최신 manifest를 따른다.
+
+
+## 2D 지도 중심 최신 후속
+
+[현재 지도 중심 검증](MAP_FIRST_QA.md)은 7c6cd31 기준 `feature/manual-inspection-map-first-20261120`이다. 실제 Controller93/93, WPF49/23/34/71/30/105/73=385/385, 전체 Release 경고0/오류0, 범위20개를 통과했다. 이전 UI312개는 삭제하지 않고 접기 위치·짧은 문구·명시적 선택 등 의도한 UI 변경에 따른 setup/기대만 조정했다. 보정 엔진/Backend/저장/Controller는 변경하지 않았다. 이전113/35/16/53은 재실행 수로 합산하지 않는다. 소스·Assembly·보고서·그림 SHA는 최신 validation.json을 따른다.
