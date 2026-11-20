@@ -1,0 +1,108 @@
+{
+  "schemaVersion": "a3-manual-inspection-validation/1",
+  "baseCommit": "334b3599651b2e8e0181fd4459bafaf3cddafff3",
+  "featureBranch": "feature/manual-inspection-11.19.0-20261120",
+  "verifiedDate": "2026-11-20",
+  "build": {
+    "errors": 0,
+    "solution": "Drilling.sln",
+    "logSha256": "c16a3af78a9a6f468e132f1d8581abce3f4f06e0c153ee8ccec261743756bed5",
+    "configuration": "Release",
+    "warnings": 0
+  },
+  "checks": {
+    "scope": {
+      "passed": true,
+      "count": 10
+    },
+    "bridgeWriter": {
+      "passed": true,
+      "count": 22
+    },
+    "attachmentHtmlOracle": {
+      "scope": "Original attachment browser oracle, separate from WPF and machine verification",
+      "count": 14,
+      "passed": true
+    },
+    "nativeUi": {
+      "passed": true,
+      "count": 49
+    },
+    "core": {
+      "passed": true,
+      "count": 111
+    },
+    "productionController": {
+      "assemblySha256": "689fd9763658623bc8b80acd8c0347c78461143b94749b77c1b534556b558d97",
+      "count": 38,
+      "loadedVendorAssemblies": [],
+      "passed": true
+    },
+    "nativeUiIntegration": {
+      "passed": true,
+      "count": 23
+    }
+  },
+  "attachmentSha256": "24ee7abc7a1b3818cfa2d80ea9f60b334ead1be17c65fbf1538d0a85310fedf0",
+  "productionSha256": {
+    "Drilling.Common/Review/CManualInspectionCoordinateBridge.cs": "faf320044ebb800f2f5216cf0900c2e23b6d12d8a2cb86e089825bc8d97d9344",
+    "Drilling.Common/Review/CReviewManager.cs": "9fae8dd64fb51ae99c6d3360fdf30f690fb55d4fbf381cd2716079a87398ee05",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs": "5ede0d6d2283ce4534b48988a81aae57d8a3f9ef064f20c4b85dfbee4279f83b",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs": "0f7091665b651f3c8099be15f73062b693670d30aaa9f42d7ce42a148d355bc3",
+    "Drilling.Common/Station/CStageReviewSequences.cs": "dc6b23b087399d5dff853ed47628c5edf156168df9ce9d971d02de1b7bfef179",
+    "Drilling.File/ReviewOffset/CReviewOffsetFile.cs": "d4e27d896b7d648c3d2236c71de22befa07e56ad2af4a67b3f191a38bc9f7241",
+    "Drilling.UI/CRootView.cs": "fe3e65ce811d26664d64ed1155bfe623bc547bddd9f785d3dd6ae3eb7ee16963",
+    "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs": "45c89e99ea8479cd8162e28a476c269fb7a0747c141902d0589fabaeb9793ab9",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "7bf6b61aaf622bb0f987778fff809d3169f5773c30a240e26520ad8a24a64bc0",
+    "Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs": "8e7a239bcbaf630383e9330fcb53ddb0cdf538111d8a1f754867524c1808164c",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.ManualInspection.cs": "12af934e028a18f1b714d7be9a3e777434f6b21e66b16184e294b5acccbe17df",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.cs": "6ade7f17327f10c19e7a979a5c3b4253b4ece212e988208996a1b9a2752d3e6c",
+    "Drilling.UI/Views/CCorrectionView.xaml": "ae9f6bbd40970212f2788a06d6e8fb5499496a153bb0d8e05a07f8b6850ae4f6",
+    "Drilling.UI/Views/CCorrectionView.xaml.cs": "b963c5748d9da1342a527f8b946c93ffcf4e483ed1568ecc514b2816fd1a1fec",
+    "Drilling.UI/Views/CManualInspectionMapControl.cs": "73c7d5c8c88b794d4f2833e4b1f827c5183752bfe50664534af96d4d45b33b0e",
+    "Drilling.UI/Views/CManualInspectionScatterControl.cs": "78ce5ed46c062af44a9ef4c1e7347198a0eb2a4112744ad2d163464656cee742",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "36890b0e8511c70138be105a137a1b19cd0804363a2918414d87170d7b9f09df",
+    "Drilling.UI/Views/CManualInspectionView.xaml": "265a177cae5e090ad193b08ddd204477b3844c20f46055e9e8d07a2f672f11b7",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "3354611b5687c80b280bcf1b471867ec2b4ca7d33463372aa056a0ab7e756db8"
+  },
+  "notExecuted": [
+    "Drilling.UI.App",
+    "CManager / equipment Root",
+    "vendor SDK",
+    "physical motion / PLC / Vision",
+    "AeroScript",
+    "laser processing"
+  ],
+  "sourceSettingsObservation": {
+    "purePlanPoints": 20740,
+    "maxAbsoluteStationaryFieldMm": 55.9815,
+    "excluded": 1215,
+    "halfFieldMm": 55,
+    "classification": "Existing source-setting observation, not equipment qualification",
+    "eligible": 19525,
+    "existingOutsideField": 90
+  },
+  "productionWorktreeSha256": {
+    "Drilling.Common/Review/CManualInspectionCoordinateBridge.cs": "faf320044ebb800f2f5216cf0900c2e23b6d12d8a2cb86e089825bc8d97d9344",
+    "Drilling.Common/Review/CReviewManager.cs": "c85d3783a09a8ed699cf23896710907f9306e72bed72a0060fda26972c478c94",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs": "5ede0d6d2283ce4534b48988a81aae57d8a3f9ef064f20c4b85dfbee4279f83b",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs": "0f7091665b651f3c8099be15f73062b693670d30aaa9f42d7ce42a148d355bc3",
+    "Drilling.Common/Station/CStageReviewSequences.cs": "49e1a43341978bc8ae28013cebce4827cb99e933b04df32aab4ad74d5a9402a7",
+    "Drilling.File/ReviewOffset/CReviewOffsetFile.cs": "837072d2fd9d6bd9ef7aa544338d8e6a963783e7920f0d65d556620c391ded88",
+    "Drilling.UI/CRootView.cs": "b3f201a4639014f7163347a8106945ae06dbc7d18dce4fb2851b67d33f43a7ba",
+    "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs": "45c89e99ea8479cd8162e28a476c269fb7a0747c141902d0589fabaeb9793ab9",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "7bf6b61aaf622bb0f987778fff809d3169f5773c30a240e26520ad8a24a64bc0",
+    "Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs": "8e7a239bcbaf630383e9330fcb53ddb0cdf538111d8a1f754867524c1808164c",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.ManualInspection.cs": "12af934e028a18f1b714d7be9a3e777434f6b21e66b16184e294b5acccbe17df",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.cs": "52ca27e9d9ad1fa5888dfc683a0c2246ca71b7d453f7bff5d1bcf1811f075600",
+    "Drilling.UI/Views/CCorrectionView.xaml": "850404c76dda72d2d741b74f07a8161966f6cd55d173697bebaf619ee79e296c",
+    "Drilling.UI/Views/CCorrectionView.xaml.cs": "aad7dd20f74ecfb6876c917e11ae1ef2e6494aad5d5c9ada9fb4ac9596c4e980",
+    "Drilling.UI/Views/CManualInspectionMapControl.cs": "73c7d5c8c88b794d4f2833e4b1f827c5183752bfe50664534af96d4d45b33b0e",
+    "Drilling.UI/Views/CManualInspectionScatterControl.cs": "78ce5ed46c062af44a9ef4c1e7347198a0eb2a4112744ad2d163464656cee742",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "36890b0e8511c70138be105a137a1b19cd0804363a2918414d87170d7b9f09df",
+    "Drilling.UI/Views/CManualInspectionView.xaml": "265a177cae5e090ad193b08ddd204477b3844c20f46055e9e8d07a2f672f11b7",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "3354611b5687c80b280bcf1b471867ec2b4ca7d33463372aa056a0ab7e756db8"
+  },
+  "hashScope": "productionSha256 is staged Git blob bytes (LF); productionWorktreeSha256 is the tested Windows worktree bytes. Checkout CRLF normalization can differ.",
+  "attachmentGitBlobSha256": "24ee7abc7a1b3818cfa2d80ea9f60b334ead1be17c65fbf1538d0a85310fedf0"
+}

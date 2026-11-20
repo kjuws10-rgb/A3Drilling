@@ -1,0 +1,1160 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>A3 리뷰 작업공간 · 측정과 보정</title><style>:root{--ink:#21394d;--muted:#6a8192;--line:#d9e4ec;--accent:#087f92;--accent-soft:#e8f5f7;--red:#ba5267;--green:#2b8461;--shadow:0 2px 8px #17344805}*{box-sizing:border-box}body{margin:0;background:#edf3f7;color:var(--ink);font:14px/1.6 "Segoe UI","Malgun Gothic",sans-serif}button,input,select{font:inherit}button{cursor:pointer}button:disabled{opacity:.44;cursor:not-allowed}button:focus-visible,input:focus-visible,select:focus-visible,canvas:focus-visible{outline:3px solid #63bdce;outline-offset:3px}h1,h2,h3,p{margin:0}h1{font-size:25px}h2{font-size:19px}h3{font-size:15px}a{color:var(--accent)}.app-header{background:white;border-bottom:1px solid var(--line);padding:21px max(22px,calc((100vw - 1530px)/2));display:flex;justify-content:space-between;gap:20px;align-items:center}.eyebrow{color:#138c9e;letter-spacing:1.8px;font-size:10px;font-weight:700}.app-header p{color:var(--muted);font-size:12px;margin-top:3px}.header-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.header-actions label{font-size:11px;color:var(--muted)}.header-actions select{margin-left:5px}.context{max-width:1570px;margin:auto;padding:11px 22px;font-size:11px;color:var(--muted);overflow-wrap:anywhere}.live{background:#173c4e;color:#d7eaf1;display:flex;align-items:center;gap:13px;padding:11px max(22px,calc((100vw - 1530px)/2));font-size:12px}.live strong{flex:1}.live span{font:12px Consolas,monospace}.live .btn{background:#244b5d;border-color:#3f6578;color:#e1eef4}.sim-settings{max-width:1530px;margin:11px auto;padding:0 22px;font-size:11px;color:var(--muted)}.sim-settings summary{cursor:pointer}.sim-settings .toolbar{margin-top:8px}.sim-settings label{display:flex;gap:7px;align-items:center}main{max-width:1570px;margin:auto;padding:16px 22px 30px}.btn{border:1px solid #c7d7e2;border-radius:5px;background:white;color:#36546a;padding:8px 12px;font-size:12px;min-height:35px;white-space:nowrap}.btn:hover:enabled{background:#edf8f9}.btn.primary{background:var(--accent);border-color:var(--accent);color:white}.btn.danger{border-color:#d6a7af;color:#a54458}.btn.slim{padding:5px 9px;font-size:11px;min-height:29px}.btn.active{background:var(--accent);color:white;border-color:var(--accent)}input:not([type=checkbox]),select{background:white;border:1px solid #c7d7e2;border-radius:5px;color:var(--ink);padding:7px;max-width:100%;min-height:34px}input[type=number]{width:100px}input[type=checkbox]{accent-color:var(--accent);width:15px;height:15px}label{max-width:100%}.toolbar{display:flex;align-items:end;flex-wrap:wrap;gap:9px}.toolbar label,.field{display:flex;flex-direction:column;gap:5px;font-size:11px;color:var(--muted)}.inline-check{display:flex;gap:6px;align-items:center;font-size:12px}.spacer{flex:1}.panel{background:white;border:1px solid var(--line);border-radius:7px;box-shadow:var(--shadow);padding:20px;min-width:0}.panel-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:14px}.small{font-size:11px}.muted,.subline{color:var(--muted)}.subline{font-size:11px;margin-top:9px}.section-gap{margin-top:13px}.note{padding:12px 14px;margin:12px 0;background:#eaf6f8;border-left:3px solid #4c9fab;font-size:12px;overflow-wrap:anywhere}.note p{margin-top:5px}.note.error{background:#fbecef;border-color:#c36c7b}.note.success{background:#ebf6ef;border-color:#66a684}.badge{display:inline-block;border-radius:4px;background:#e9f0f5;padding:2px 7px;font-size:10px;color:#637d8f;font-weight:700}.badge.ok{background:#ddf0e6;color:#2f7d59}.badge.ng,.badge.error{background:#f9e4ea;color:#aa4d62}.badge.manual{background:#f0e7fa;color:#8155a4}.badge.pending{background:#fff0d4;color:#986c24}.table-wrap{overflow:auto;max-width:100%;border:1px solid var(--line);border-radius:5px}.table-wrap.tall{max-height:420px}table{width:100%;border-collapse:collapse;white-space:nowrap;font-size:11px}th,td{text-align:left;padding:9px 11px;border-bottom:1px solid #e5edf2}th{position:sticky;top:0;background:#f2f7fa;color:#668092;font-weight:600;z-index:1}tr.clickable{cursor:pointer}tr.clickable:hover{background:#f0f8fa}tr.selected{background:#e4f4f7}.mono{font-family:Consolas,monospace}.pass{color:var(--green)}.fail{color:var(--red)}.button-stack{display:flex;flex-direction:column;gap:8px}.detail-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}.detail-actions .wide{grid-column:1/-1}.pagination{display:flex;justify-content:flex-end;gap:10px;align-items:center;margin-top:10px;font-size:11px;color:var(--muted)}.kv{display:grid;grid-template-columns:90px 1fr;gap:7px;font-size:11px}.kv dt{color:var(--muted)}.kv dd{margin:0;overflow-wrap:anywhere}.progress{height:6px;background:#dfeaf0;border-radius:4px;margin-top:7px;overflow:hidden}.progress>span{height:100%;display:block;background:#1399ab}.measure-job{padding:12px;background:#eff8f9;margin-top:12px}.measure-job>b,.measure-job>span{display:block;font-size:11px}.message{max-width:1526px;margin:12px auto 0;padding:11px 14px;background:#e5f2f6;border-radius:5px;font-size:12px;white-space:pre-line}.message:empty{display:none}.message.error{background:#fbe8ed;color:#913d51}.message.success{background:#e5f4eb;color:#287453}.correction-panel{margin:16px 0}.correction-panel .table-wrap{margin-top:12px}.copy-value{padding:12px;background:#e8f5f7;font-size:17px;border-radius:5px}.source-detail{background:#f3f7fa;padding:14px;max-height:55vh;overflow:auto;font:11px/1.6 Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere}dialog{color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:23px;max-width:min(1050px,95vw);max-height:90vh}dialog::backdrop{background:#15354799}.dialog-head{display:flex;justify-content:space-between;align-items:start;gap:22px;margin-bottom:15px}.dialog-head h2{font-size:20px}footer{padding:8px 22px 20px;text-align:center;font-size:10px;color:#7891a2}.level-badge{display:inline-block;border-left:3px solid var(--level-color);padding:1px 5px;font-size:10px;background:#f2f6f9}details>summary{cursor:pointer}.rw-context-menu .btn{white-space:normal}
+@media(max-width:900px){.app-header{align-items:start;flex-direction:column;padding:15px}.header-actions{width:100%}.context{padding:10px 15px}.live{padding:10px 15px;flex-wrap:wrap}.live strong{min-width:55%}main{padding:12px 15px}.panel{padding:15px}.message{margin:10px 15px 0}.sim-settings{padding:0 15px}.header-actions .btn{padding:7px 9px}.toolbar label{max-width:100%}}
+@media(max-width:450px){h1{font-size:22px}.header-actions{gap:5px}.header-actions label{display:block;width:100%}.header-actions select{width:calc(100% - 40px)}.live span{font-size:10px}.btn{font-size:11px}.context{font-size:10px}.toolbar{gap:7px}.correction-panel .toolbar>.btn{white-space:normal;flex:1;min-width:95px}}
+
+/* 리뷰 작업공간의 지도·측정·보정 공통 화면 */
+#rw-workspace{--rw-navy:#17394d;--rw-blue:#087d92;--rw-soft:#edf7f8;color:#203e52}
+#rw-workspace .rw-result-state{display:inline-block;font-size:11px;padding:2px 7px;border-radius:4px;background:#edf1f4;color:#4a687b}
+#rw-workspace .rw-result-ok{background:#def3e7;color:#1c704b}
+#rw-workspace .rw-result-ng{background:#fbe6eb;color:#a33547}
+#rw-workspace .rw-point-states{display:flex;gap:9px;flex-wrap:wrap;font-size:11px;margin:10px 0}
+#rw-workspace .rw-proxy-note{font-size:11px;line-height:1.65;color:#6f4c91;background:#f3eafa;border-left:3px solid #a17bbb;padding:8px 10px;overflow-wrap:anywhere}
+#rw-workspace .rw-scatter-source{display:flex;gap:6px;align-items:center;font-size:11px;color:#617b8c}
+#rw-workspace .rw-scatter-source select{font-size:11px;max-width:220px}
+.rw-context-menu{position:fixed;z-index:10000;min-width:265px;max-width:min(350px,calc(100vw - 16px));background:#fff;border:1px solid #b7ccd9;border-radius:8px;box-shadow:0 12px 32px #16344835;padding:6px;color:#24485e;font:13px/1.5 "Malgun Gothic","Segoe UI",sans-serif}
+.rw-context-heading{padding:8px 10px 10px;border-bottom:1px solid #dce8ef;margin-bottom:4px;display:flex;gap:8px;flex-wrap:wrap}
+.rw-context-heading small{display:block;flex-basis:100%;color:#647f91;font-size:11px;overflow-wrap:anywhere}
+.rw-context-heading span{font-size:10px;color:#7a8c96}
+.rw-context-menu [role=menuitem]{display:block;border:0;background:#fff;text-align:left;width:100%;padding:9px 10px;border-radius:5px;color:#274c62;cursor:pointer;font:inherit}
+.rw-context-menu [role=menuitem] strong{display:block;font-size:13px}
+.rw-context-menu [role=menuitem] small{display:block;font-size:11px;color:#688494;margin-top:2px}
+.rw-context-menu [role=menuitem]:hover,.rw-context-menu [role=menuitem]:focus-visible{background:#e9f6f8;outline:2px solid #8ac4d0;outline-offset:-2px}
+.rw-context-menu [role=menuitem]:disabled{opacity:.5;cursor:default}
+.rw-context-menu .rw-context-busy{font-size:11px;background:#fff5e2;color:#866329;padding:8px;margin:5px 0 0}
+#rw-workspace .rw-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:15px}
+#rw-workspace .rw-top label,#rw-workspace .rw-controls label{display:flex;flex-direction:column;gap:4px;font-size:11px;color:#617b8c}
+#rw-workspace .rw-top select{min-width:135px}
+#rw-workspace .rw-note{font-size:12px;color:#526d80;line-height:1.7;margin:8px 0}
+#rw-workspace .rw-tools{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+#rw-workspace .rw-tools .btn{min-height:32px}
+#rw-workspace .rw-inline{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#rw-workspace .rw-layout{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:16px;align-items:start}
+#rw-workspace .rw-main{min-width:0}
+#rw-workspace .rw-matrix-panel{padding:18px}
+#rw-workspace h2{font-size:19px;letter-spacing:-.3px}
+#rw-workspace h3{font-size:14px}
+#rw-workspace .rw-map-wrap{position:relative;overflow:hidden;border:1px solid #d8e5ed;border-radius:7px;background:#f8fbfd;margin-top:12px;isolation:isolate}
+#rw-workspace #position-map{width:100%;height:480px;display:block;touch-action:none;outline-offset:-4px;cursor:crosshair;background:transparent;border:0;border-radius:0}
+#rw-workspace #position-map:focus-visible{outline:3px solid #75c4d3}
+#rw-workspace .rw-map-wrap.rw-pan #position-map{cursor:grab}
+#rw-workspace .rw-map-wrap.rw-panning #position-map{cursor:grabbing}
+#rw-workspace .rw-marquee{position:absolute;display:none;border:1.5px solid #087d92;background:#087d9220;pointer-events:none;z-index:2}
+#rw-workspace .rw-map-tooltip{position:absolute;display:none;background:#163749ed;color:#fff;padding:8px 10px;border-radius:5px;max-width:250px;font-size:11px;pointer-events:none;white-space:pre-line;z-index:3}
+#rw-workspace .rw-shortcuts{display:flex;gap:6px 16px;flex-wrap:wrap;font-size:11px;color:#5b7586;padding-top:11px}
+#rw-workspace kbd{background:#f1f5f8;border:1px solid #d1dce4;border-bottom-width:2px;padding:1px 5px;border-radius:3px;font-family:inherit;color:#24495f;font-size:10px}
+#rw-workspace .rw-selection{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:12px 0 0;margin-top:11px;border-top:1px solid #e1eaf0;font-size:12px}
+#rw-workspace .rw-selection b{color:#076f83}
+#rw-workspace .rw-legend{display:flex;gap:5px 13px;flex-wrap:wrap;font-size:10px;color:#5b7384;margin:11px 0 0}
+#rw-workspace .rw-legend i{width:10px;height:10px;display:inline-block;vertical-align:middle;margin-right:4px;border-radius:2px}
+#rw-workspace .rw-reference{margin-top:15px;padding:15px 17px;border:1px solid #c2dae2;border-radius:7px;background:#f2fafb}
+#rw-workspace .rw-reference .rw-reference-steps{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+#rw-workspace .rw-reference .rw-reference-steps span{font-size:12px;color:#5b7687}
+#rw-workspace .rw-reference strong{font-size:13px}
+#rw-workspace .rw-reference .rw-reference-value{font-size:20px;color:#116578;line-height:1.4;font-variant-numeric:tabular-nums}
+#rw-workspace .rw-reference .rw-reference-key{font-size:11px;overflow-wrap:anywhere;color:#42677e}
+#rw-workspace .rw-reference .rw-reference-grid{display:grid;grid-template-columns:1fr auto;gap:15px;align-items:center}
+#rw-workspace .rw-detail{padding:17px;position:sticky;top:14px}
+#rw-workspace .rw-detail .point-title{font-size:17px;margin:6px 0}
+#rw-workspace .rw-detail .kv{grid-template-columns:83px minmax(0,1fr);font-size:11px}
+#rw-workspace .rw-detail .detail-actions{margin-top:12px}
+#rw-workspace .rw-detail details{margin-top:15px;padding-top:10px;border-top:1px solid #e1e9ee}
+#rw-workspace details>summary{font-size:12px;cursor:pointer;color:#41677d}
+#rw-workspace .rw-advanced{margin-left:auto;min-width:170px}
+#rw-workspace .rw-advanced[open]{width:100%;order:4;padding:11px;background:#f4f8fa;border-radius:5px}
+#rw-workspace .rw-controls{display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-top:10px}
+#rw-workspace .rw-controls input{width:200px}
+#rw-workspace .rw-stats-bar{display:flex;gap:9px 22px;flex-wrap:wrap;font-size:11px;color:#62798b;margin-bottom:12px}
+#rw-workspace .rw-stats-bar b{font-size:14px;color:#244c65;padding-left:5px}
+#rw-workspace .rw-scatter{margin-top:16px}
+#rw-workspace .rw-tabs{display:flex;gap:5px;border-bottom:1px solid #dce6ed;padding-bottom:11px;flex-wrap:wrap}
+#rw-workspace .rw-tabs button{font-size:12px;padding:9px 13px}
+#rw-workspace .rw-tabs .active{background:#087d92;color:#fff;border-color:#087d92}
+#rw-workspace .rw-scope-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0;font-size:12px}
+#rw-workspace .rw-scope-controls label{display:flex;align-items:center;gap:5px}
+#rw-workspace .rw-cell-chips{display:flex;flex-wrap:wrap;gap:6px}
+#rw-workspace .rw-cell-chip{padding:5px 8px;border:1px solid #cfdee7;border-radius:4px;background:#f8fbfc;font-size:11px;color:#56758b}
+#rw-workspace .rw-cell-chip:has(input:checked){background:#e5f4f6;border-color:#6ba9b5;color:#075f73}
+#rw-workspace .rw-scatter-grid{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:18px;align-items:start}
+#rw-workspace #error-scatter{width:100%;height:340px;border:1px solid #dce6ed;background:#fcfdfe;border-radius:5px;display:block}
+#rw-workspace .rw-metric-list{margin:0;display:grid;grid-template-columns:1fr auto;gap:8px;font-size:11px}
+#rw-workspace .rw-metric-list dt{color:#6e8291}#rw-workspace .rw-metric-list dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+#rw-workspace .rw-scope-table{max-height:190px;overflow:auto;margin-top:13px}
+#rw-workspace .rw-scope-table table{font-size:10px}
+#rw-workspace .rw-scope-table th,#rw-workspace .rw-scope-table td{padding:6px}
+#rw-workspace .rw-table-panel{margin-top:16px}
+#rw-workspace .rw-table-panel .table-wrap{max-height:360px}
+#rw-workspace .rw-filter-note{font-size:11px;background:#fff7e7;border:1px solid #ead7aa;padding:7px 10px;color:#8a672b;border-radius:4px;margin:9px 0}
+#rw-workspace .rw-empty{padding:24px;text-align:center;color:#6b8292}
+#rw-workspace .rw-excluded{font-size:10px;color:#7a8c98;line-height:1.7;margin:10px 0}
+@media(min-width:1700px){#rw-workspace .rw-layout{grid-template-columns:minmax(0,1fr) 310px}#rw-workspace #position-map{height:550px}}
+@media(max-width:1180px){#rw-workspace .rw-layout{grid-template-columns:minmax(0,1fr)}#rw-workspace .rw-detail{position:static}#rw-workspace .rw-detail .rw-detail-summary{display:grid;grid-template-columns:1fr 1fr;gap:18px}#rw-workspace .rw-detail .rw-detail-summary .kv{margin-top:0}#rw-workspace .rw-scatter-grid{grid-template-columns:minmax(0,1fr) 220px}}
+@media(max-width:760px){#rw-workspace .rw-matrix-panel,#rw-workspace .rw-detail{padding:13px}#rw-workspace #position-map{height:450px}#rw-workspace .rw-reference .rw-reference-grid{grid-template-columns:1fr}#rw-workspace .rw-scatter-grid{grid-template-columns:1fr}#rw-workspace #error-scatter{height:300px}#rw-workspace .rw-reference-value{font-size:18px}#rw-workspace .rw-detail .rw-detail-summary{grid-template-columns:1fr}#rw-workspace .rw-top{gap:9px}#rw-workspace .rw-top select{min-width:110px}#rw-workspace .rw-tabs button{flex:1;padding:8px 5px;font-size:11px}#rw-workspace .rw-shortcuts{gap:5px 10px;font-size:10px}#rw-workspace .rw-advanced{margin-left:0}#rw-workspace .rw-controls input{width:170px}}
+</style></head><body>
+<header class="app-header"><div><span class="eyebrow">A3 / REVIEW WORKSPACE</span><h1>리뷰 작업공간</h1><p>지도에서 선택하고, 이동·측정·보정을 한 곳에서 진행하세요.</p></div><div class="header-actions"><label>예제<select id="demo-select"><option value="normal">혼합 결과 · NG/미측정</option><option value="good">정상 측정 결과</option><option value="stress">10,000점</option></select></label><button type="button" class="btn" data-action="load-demo">예제 열기</button><button type="button" class="btn" data-action="session-download">세션 JSON 저장</button><span class="badge pending">SIM · 설비 미연결</span></div></header>
+<div class="context" id="context"></div><div class="live"><strong id="live-status">준비 중</strong><span id="live-position"></span><button type="button" class="btn" data-action="stop-measure" id="live-stop" disabled>중지</button></div>
+<details class="sim-settings"><summary>가상 동작 조건</summary><div class="toolbar"><label>배속<select id="sim-speed"><option value="1">1×</option><option value="4">4×</option><option value="16" selected>16×</option></select></label><label>오류 조건<select id="sim-fault"><option value="NONE">정상</option><option value="VISION_TIMEOUT">Vision 응답 누락</option><option value="PLC_STALE">PLC 응답 고착</option><option value="UID_MISMATCH">결과 식별 불일치</option></select></label><span>오류·중지 시 자동 보정이 적용되지 않는지 확인할 수 있습니다.</span></div></details>
+<div id="message" class="message" role="status" aria-live="polite"></div><main id="screen"></main><footer>단일 HTML · 오프라인 가상 측정/보정 · <span id="storage-state"></span></footer>
+<dialog id="detail-dialog"><div class="dialog-head"><h2 id="dialog-title"></h2><button type="button" class="btn" data-action="close-dialog">닫기</button></div><div id="dialog-body"></div></dialog>
+<script>(function (global) {
+  'use strict';
+  const JUDGES = new Set(['OK', 'NG', 'ERROR', 'UNMEASURED']);
+  const SOURCES = new Set(['MEASURED', 'INTERPOLATED', 'MANUAL', 'KEPT']);
+  const copy = value => JSON.parse(JSON.stringify(value));
+  const now = () => new Date().toISOString();
+  const defaults = () => ({ toleranceXUm: 5, toleranceYUm: 5, pixelMm: .0025, nResolution: 2, swapXY: false, invertX: false, invertY: false, maxDeltaUm: 30, maxTotalUm: 200, fieldMm: 5, shiftXUm: 0, shiftYUm: 0, reviewFollowsShift: false });
+  const number = (value, label) => {
+    if (value === null || value === undefined || typeof value === 'boolean' || String(value).trim() === '' || !Number.isFinite(Number(value))) throw new Error(`${label}: 빈 값이나 유효하지 않은 숫자는 사용할 수 없습니다.`);
+    return Number(value);
+  };
+  const integer = (value, label, min, max) => { const n = number(value, label); if (!Number.isInteger(n) || n < min || n > max) throw new Error(`${label}: ${min}~${max} 정수여야 합니다.`); return n; };
+  const identity = p => `C${String(p.cell).padStart(2, '0')}/H${String(p.head).padStart(2, '0')}/S${p.shot}/B${String(p.beam).padStart(2, '0')}`;
+  const hash = text => { let n = 2166136261; for (let i = 0; i < text.length; i++) { n ^= text.charCodeAt(i); n = Math.imul(n, 16777619); } return (n >>> 0).toString(16).padStart(8, '0'); };
+  const quote = value => { const s = value === null || value === undefined ? '' : String(value); return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  let serial = 0;
+  const uid = prefix => `${prefix}-${Date.now().toString(36)}-${(++serial).toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+  function parseCSV(text) {
+    if (typeof text !== 'string' || !text.trim()) throw new Error('CSV 내용이 비어 있습니다.');
+    const rows = []; let row = [], cell = '', quoted = false, ended = false;
+    text = text.replace(/^\uFEFF/, '');
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (quoted) { if (c === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else { quoted = false; ended = true; } } else cell += c; }
+      else if (c === '"') { if (cell !== '' || ended) throw new Error(`CSV ${rows.length + 1}행: 따옴표 위치가 잘못됐습니다.`); quoted = true; }
+      else if (c === ',') { row.push(cell); cell = ''; ended = false; }
+      else if (c === '\n' || c === '\r') { if (c === '\r' && text[i + 1] === '\n') i++; row.push(cell); if (row.some(v => v !== '')) rows.push(row); row = []; cell = ''; ended = false; }
+      else { if (ended && !/\s/.test(c)) throw new Error(`CSV ${rows.length + 1}행: 닫는 따옴표 뒤 문자가 있습니다.`); if (!ended) cell += c; }
+    }
+    if (quoted) throw new Error('CSV의 따옴표가 닫히지 않았습니다.');
+    row.push(cell); if (row.some(v => v !== '')) rows.push(row);
+    if (rows.length < 2) throw new Error('CSV 헤더와 결과 행이 필요합니다.');
+    const headers = rows.shift().map(h => h.trim().toUpperCase());
+    if (headers.some(h => !h) || new Set(headers).size !== headers.length) throw new Error('CSV 헤더가 비었거나 중복됐습니다.');
+    return rows.map((values, i) => { if (values.length !== headers.length) throw new Error(`CSV ${i + 2}행: 열 개수가 헤더와 다릅니다.`); const r = Object.create(null); headers.forEach((h, j) => r[h] = values[j].trim()); return r; });
+  }
+  class ReviewEngine {
+    constructor({ storageKey = 'A3_REVIEW_SIM_V1', restore = true } = {}) {
+      this.storageKey = storageKey; this._applied = new Set(); this._storage = null;
+      try { this._storage = global.localStorage || null; } catch (_) { }
+      let notice = '';
+      if (restore && this._storage) {
+        try { const stored = this._storage.getItem(storageKey); if (stored) { this._restore(JSON.parse(stored)); return; } }
+        catch (e) { notice = `저장 상태를 읽지 못해 새 SIM 예제로 시작했습니다: ${e.message}`; }
+      }
+      this.loadDemo(); if (notice) { this.log('STORAGE_RECOVERY', notice); this.save(); }
+    }
+    _active() { return this.state.revisions.find(r => r.id === this.state.activeRevisionId); }
+    _signature() { const s = this.state.settings; return JSON.stringify([s.pixelMm, s.nResolution, s.swapXY, s.invertX, s.invertY]); }
+    _value(key, revision = this._active()) { return revision?.values?.[key] || { x: 0, y: 0 }; }
+    _point(key) { const p = this.state.points.find(p => p.key === key); if (!p) throw new Error(`결과점을 찾을 수 없습니다: ${key}`); return p; }
+    _invalidate() { if (this.state.candidate) { this.state.candidate.validation = null; if (this.state.candidate.status !== 'APPLIED') this.state.candidate.status = 'DRAFT'; } }
+    _bias(cell, u, v) { return { x: 1.2 + .13 * (cell % 4) + .7 * Math.sin(u * Math.PI) + .55 * v, y: -1.4 + .11 * (cell % 5) + .5 * Math.cos(u * Math.PI) - .45 * v }; }
+    _raw(p, xUm, yUm) {
+      const s = this.state.settings, f = s.pixelMm * s.nResolution * 1000;
+      const tx = 320 + p.col * 3, ty = 240 + p.row * 3;
+      return { targetX: tx, targetY: ty, holeX: tx + xUm / f, holeY: ty + yUm / f, pixelMm: s.pixelMm, nResolution: s.nResolution, swapXY: s.swapXY, invertX: s.invertX, invertY: s.invertY, simulation: true, measurementRunId: this.state.runId, recipeId: this.state.recipeId };
+    }
+    _convert(raw) { let x = (raw.targetX - raw.holeX) * raw.pixelMm * raw.nResolution * 1000, y = (raw.targetY - raw.holeY) * raw.pixelMm * raw.nResolution * 1000; if (raw.swapXY) [x, y] = [y, x]; if (raw.invertX) x = -x; if (raw.invertY) y = -y; return { x, y }; }
+    _measured(p, physical, forceJudge) {
+      p.raw = this._raw(p, physical.x, physical.y); const error = this._convert(p.raw);
+      p.errorXUm = error.x; p.errorYUm = error.y; p.source = 'MEASURED';
+      p.judge = forceJudge || (Math.abs(error.x) <= this.state.settings.toleranceXUm && Math.abs(error.y) <= this.state.settings.toleranceYUm ? 'OK' : 'NG');
+      return p;
+    }
+    loadDemo(kind = 'normal', size = 'normal') {
+      if (!['normal', 'good', 'collision'].includes(kind) || !['normal', 'stress'].includes(size)) throw new Error('지원하는 SIM 예제 종류가 아닙니다.');
+      const covered = this.state?.covered || []; const runId = uid('SIM-RUN');
+      this.state = { schemaVersion: 1, recipeId: 'SIM_A3_REVIEW', glassId: uid('SIM-GLASS'), runId, points: [], settings: defaults(), candidate: null, revisions: [], activeRevisionId: '', preparedRevisionId: null, preparedScript: null, verification: null, logs: [], covered: covered.slice(), importInfo: { kind, size, recipeId: 'SIM_A3_REVIEW', lineage: true, simulation: true, legacy: false }, plan: null, labs: {}, fixture: { kind, size } };
+      const n = size === 'stress' ? 25 : 8, spacing = size === 'stress' ? .16 : .5;
+      for (let cell = 1; cell <= 16; cell++) for (let row = 0; row < n; row++) for (let col = 0; col < n; col++) {
+        const head = (cell - 1) % 8 + 1, shot = row * n + col + 1;
+        const physical = this._bias(cell, col / (n - 1), row / (n - 1));
+        const p = { cell, head, shot, beam: 11, row, col, xMm: ((cell - 1) % 4) * 40 + col * spacing, yMm: Math.floor((cell - 1) / 4) * 40 + row * spacing, scannerXmm: (col - (n - 1) / 2) * spacing, scannerYmm: (row - (n - 1) / 2) * spacing, errorXUm: null, errorYUm: null, physicalXUm: physical.x, physicalYUm: physical.y, judge: 'UNMEASURED', source: 'KEPT', masked: row === 0 && col === 0, attempts: [], raw: null };
+        if (kind === 'collision' && cell === 9) p.yMm = row * spacing;
+        p.key = identity(p); p.uid = runId + '/' + p.key;
+        if (!p.masked) {
+          if (kind === 'normal' && shot % 37 === 0) { p.judge = 'ERROR'; p.raw = { simulation: true, failure: 'SIM 촬영 오류', measurementRunId: runId, recipeId: this.state.recipeId }; }
+          else if (!(kind === 'normal' && shot % 23 === 0)) this._measured(p, kind === 'normal' && shot % 11 === 0 ? { x: 11 + cell / 10, y: physical.y } : physical);
+        }
+        this.state.points.push(p);
+      }
+      const revision = { id: uid('REV'), createdAt: now(), kind: 'INITIAL', values: Object.fromEntries(this.state.points.map(p => [p.key, { x: 0, y: 0 }])), parentId: null, sourceRunId: runId, candidateId: null, restoredFrom: null, reason: 'SIM 초기값' };
+      this.state.revisions = [revision]; this.state.activeRevisionId = revision.id;
+      this.log('LOAD_DEMO', `${kind} / ${size}: ${this.state.points.length}개 SIM 결과`); this.markCovered('R01'); this.save(); return this.state;
+    }
+    createPlan({ mode = 'FINE', scope = 'HEAD_CELL', lineCount = 3, reference = 'CENTER', cell = 0, head = 0, customRows = '' } = {}) {
+      mode = String(mode).toUpperCase(); scope = String(scope).toUpperCase(); reference = String(reference).toUpperCase();
+      if (!['FINE', 'ROUGH'].includes(mode) || !['HEAD', 'HEAD_CELL'].includes(scope) || ![1, 3, 5, 7].includes(Number(lineCount)) || !['FIRST', 'CENTER', 'LAST'].includes(reference)) throw new Error('검사 모드·범위·줄 수·대표 위치를 확인해 주세요.');
+      const targets = this.state.points.filter(p => !p.masked && (!Number(cell) || p.cell === Number(cell)) && (!Number(head) || p.head === Number(head)));
+      if (!targets.length) throw new Error('선택 범위에 검사할 점이 없습니다.');
+      let custom = null;
+      if (String(customRows).trim()) { custom = String(customRows).split(/[,\s]+/).map(x => integer(x, '사용자 행', 1, 10000) - 1); if (new Set(custom).size !== custom.length) throw new Error('사용자 행이 중복됐습니다.'); }
+      const groups = new Map(); targets.forEach(p => { const k = mode === 'ROUGH' && scope === 'HEAD' ? `H${p.head}` : `C${p.cell}/H${p.head}`; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(p); });
+      const keys = [], lineGroups = [];
+      for (const [group, pts] of groups) {
+        const rows = [...new Set(pts.map(p => p.row))].sort((a, b) => a - b);
+        let chosen;
+        if (mode === 'ROUGH') {
+          const yMin = Math.min(...pts.map(p => p.yMm)), yMax = Math.max(...pts.map(p => p.yMm)), y = reference === 'FIRST' ? yMin : reference === 'LAST' ? yMax : (yMin + yMax) / 2;
+          const ordered = pts.slice().sort((a, b) => Math.abs(a.yMm - y) - Math.abs(b.yMm - y) || a.xMm - b.xMm || a.cell - b.cell || a.shot - b.shot);
+          const p = ordered[0]; keys.push(p.key); lineGroups.push({ id: group, cell: p.cell, head: p.head, row: p.row, keys: [p.key] }); continue;
+        }
+        if (custom) { if (custom.some(r => !rows.includes(r))) throw new Error(`${group}: 선택한 행이 없거나 전부 Masking됐습니다.`); chosen = custom.slice().sort((a, b) => a - b); }
+        else if (Number(lineCount) === 1) chosen = [rows[Math.floor((rows.length - 1) / 2)]];
+        else { if (rows.length < Number(lineCount)) throw new Error(`${group}: 검사 가능한 행보다 요청한 줄 수가 많습니다.`); chosen = Array.from({ length: Number(lineCount) }, (_, i) => rows[Math.round(i * (rows.length - 1) / (Number(lineCount) - 1))]); }
+        chosen.forEach((r, i) => { const line = pts.filter(p => p.row === r).sort((a, b) => (i % 2 ? b.xMm - a.xMm : a.xMm - b.xMm)); keys.push(...line.map(p => p.key)); lineGroups.push({ id: `${group}/R${r + 1}`, cell: line[0].cell, head: line[0].head, row: r, keys: line.map(p => p.key) }); });
+      }
+      this.state.plan = { id: uid('PLAN'), mode, scope, lineCount: Number(lineCount), reference, cell: Number(cell), head: Number(head), customRows: String(customRows), keys, lineGroups, count: keys.length, estimatedSeconds: Math.round((keys.length * .08 + lineGroups.length * .4) * 10) / 10, description: `${mode} · ${scope} · ${mode === 'FINE' ? (custom ? custom.length : lineCount) + '줄 / Cell' : reference + ' 대표점'} · ${keys.length}점`, runId: this.state.runId };
+      this.log('CREATE_PLAN', this.state.plan.description); this.markCovered('R11'); this.save(); return this.state.plan;
+    }
+    measurePoint(key, scenario = 'recover', { deferSave = false } = {}) {
+      if (!['recover', 'same'].includes(scenario)) throw new Error('지원하는 가상 재측정 방식이 아닙니다.');
+      const p = this._point(key); if (p.masked) throw new Error('Masking된 Shot은 측정 대상에서 제외됩니다.');
+      const previous = { at: now(), judge: p.judge, errorXUm: p.errorXUm, errorYUm: p.errorYUm, raw: copy(p.raw), source: p.source };
+      p.attempts.push(previous);
+      if (scenario === 'same' && (p.judge === 'ERROR' || p.judge === 'UNMEASURED')) { this.log('REMEASURE_SAME', `${key}: ${p.judge} 유지`); this._invalidate(); if (!deferSave) this.save(); return p; }
+      const physical = scenario === 'same' && p.raw?.targetX !== undefined ? { x: (p.raw.holeX - p.raw.targetX) * p.raw.pixelMm * p.raw.nResolution * 1000, y: (p.raw.holeY - p.raw.targetY) * p.raw.pixelMm * p.raw.nResolution * 1000 } : { x: p.physicalXUm, y: p.physicalYUm };
+      this._measured(p, physical); this._invalidate(); this.log('REMEASURE', `${key} · SIM ${scenario} · ${p.judge}`, previous, { judge: p.judge, x: p.errorXUm, y: p.errorYUm }); this.markCovered('R08'); if (!deferSave) this.save(); return p;
+    }
+    _interpolate(anchors, y, axis, method) {
+      if (anchors.length === 1) return anchors[0][axis];
+      const exact = anchors.find(p => Math.abs(p.yMm - y) < 1e-9); if (exact) return exact[axis];
+      if (method === 'LINEAR') {
+        if (y <= anchors[0].yMm) return anchors[0][axis]; if (y >= anchors[anchors.length - 1].yMm) return anchors[anchors.length - 1][axis];
+        for (let i = 1; i < anchors.length; i++) if (y < anchors[i].yMm) { const a = anchors[i - 1], b = anchors[i]; return a[axis] + (b[axis] - a[axis]) * (y - a.yMm) / (b.yMm - a.yMm); }
+      }
+      const origin = anchors[0].yMm, span = anchors[anchors.length - 1].yMm - origin, at = (y - origin) / span;
+      return anchors.reduce((sum, p, i) => { const node = (p.yMm - origin) / span; let basis = 1; anchors.forEach((q, j) => { if (i !== j) basis *= (at - (q.yMm - origin) / span) / (node - (q.yMm - origin) / span); }); return sum + basis * p[axis]; }, 0);
+    }
+    makeCandidate({ mode = 'FINE', keys = [], simpleX = 0, simpleY = 0, method = 'LAGRANGE', reference = 'CENTER', reason = '' } = {}) {
+      mode = String(mode).toUpperCase(); method = String(method).toUpperCase();
+      if (!['SIMPLE', 'ROUGH', 'FINE'].includes(mode) || !['LAGRANGE', 'LINEAR'].includes(method)) throw new Error('보정 모드나 보간 방식을 확인해 주세요.');
+      if (!Array.isArray(keys) || new Set(keys).size !== keys.length) throw new Error('보정 대상 ID가 잘못됐거나 중복됐습니다.');
+      const selected = keys.length ? new Set(keys) : null;
+      if (selected) selected.forEach(k => this._point(k));
+      const targets = this.state.points.filter(p => !p.masked && (!selected || selected.has(p.key)));
+      if (!targets.length) throw new Error('보정 대상이 없습니다.');
+      if (mode === 'SIMPLE') { simpleX = number(simpleX, 'Simple X'); simpleY = number(simpleY, 'Simple Y'); }
+      const scope = this.state.plan?.mode === mode ? this.state.plan.scope : 'HEAD_CELL';
+      const planKeys = this.state.plan?.mode === mode && this.state.plan.runId === this.state.runId ? new Set(this.state.plan.keys) : null;
+      let allAnchors = this.state.points.filter(p => !p.masked && (planKeys ? planKeys.has(p.key) : !selected || selected.has(p.key)));
+      const pendingErrors = [], warnings = [], groups = new Map();
+      const groupKey = p => mode === 'ROUGH' ? (scope === 'HEAD' ? `H${p.head}` : `C${p.cell}/H${p.head}`) : `C${p.cell}/X${p.xMm.toFixed(6)}`;
+      const targetGroups = new Set(targets.map(groupKey));
+      allAnchors = allAnchors.filter(p => targetGroups.has(groupKey(p)));
+      if (mode === 'FINE') for (const p of allAnchors) {
+        if (p.judge !== 'OK' || p.source !== 'MEASURED' || !Number.isFinite(p.errorXUm) || !Number.isFinite(p.errorYUm)) { pendingErrors.push(`${p.key}: 실측 OK가 아닌 ${p.judge} 앵커는 FINE에 사용할 수 없습니다.`); continue; }
+        const k = groupKey(p); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(p);
+      }
+      if (mode === 'ROUGH') {
+        const sourceGroups = new Map(); allAnchors.forEach(p => { const k = groupKey(p); if (!sourceGroups.has(k)) sourceGroups.set(k, []); sourceGroups.get(k).push(p); });
+        sourceGroups.forEach((pts, k) => { const min = Math.min(...pts.map(p => p.yMm)), max = Math.max(...pts.map(p => p.yMm)), at = reference === 'FIRST' ? min : reference === 'LAST' ? max : (min + max) / 2; const p = pts.slice().sort((a, b) => Math.abs(a.yMm - at) - Math.abs(b.yMm - at) || a.xMm - b.xMm)[0]; if (p.judge === 'OK' && p.source === 'MEASURED') groups.set(k, [p]); else warnings.push(`${p.key}: ${p.judge} 대표점의 범위는 기존값을 유지합니다.`); });
+      }
+      groups.forEach((pts, k) => { pts.sort((a, b) => a.yMm - b.yMm); if (new Set(pts.map(p => p.yMm.toFixed(6))).size !== pts.length) pendingErrors.push(`${k}: 같은 Y 앵커가 중복됐습니다.`); });
+      const rows = targets.map(p => {
+        const base = this._value(p.key); let dx = 0, dy = 0, source = 'KEPT', anchors = [];
+        if (mode === 'SIMPLE') { dx = simpleX - base.x; dy = simpleY - base.y; source = 'MANUAL'; }
+        else { anchors = groups.get(groupKey(p)) || []; if (anchors.length) { dx = mode === 'ROUGH' ? anchors[0].errorXUm : this._interpolate(anchors, p.yMm, 'errorXUm', method); dy = mode === 'ROUGH' ? anchors[0].errorYUm : this._interpolate(anchors, p.yMm, 'errorYUm', method); source = anchors.some(a => a.key === p.key) ? 'MEASURED' : 'INTERPOLATED'; } }
+        return { key: p.key, cell: p.cell, head: p.head, shot: p.shot, source, baseX: base.x, baseY: base.y, deltaX: dx, deltaY: dy, finalX: base.x + dx, finalY: base.y + dy, anchors: anchors.map(a => a.key), manualReason: mode === 'SIMPLE' ? String(reason || '').trim() || 'Simple Key-in 입력값 대체' : '', method: mode === 'ROUGH' ? 'REPRESENTATIVE' : method };
+      });
+      const kept = rows.filter(r => r.source === 'KEPT').length; if (kept) warnings.push(`${kept}개 점은 유효한 앵커가 없어 기존값을 유지합니다.`);
+      this.state.candidate = { id: uid('CAND'), recipeId: this.state.recipeId, baseRevision: this.state.activeRevisionId, sourceRunId: this.state.runId, mode, method, scope, rows, status: 'DRAFT', validation: null, appliedRevision: null, createdAt: now(), signature: this._signature(), pendingErrors, warnings };
+      this.log('CANDIDATE', `${mode} · ${rows.length}점 · ${method}`); this.markCovered('R03'); this.save(); return this.state.candidate;
+    }
+    editCandidate(keys, { x, y, kind = 'absolute', reason = '' } = {}) {
+      const c = this.state.candidate; if (!c || c.status === 'APPLIED') throw new Error('편집할 미적용 후보가 없습니다.');
+      if (!Array.isArray(keys) || !keys.length || new Set(keys).size !== keys.length || !['absolute', 'delta', 'neighbor'].includes(kind)) throw new Error('편집할 점과 방식을 확인해 주세요.');
+      if (!String(reason).trim()) throw new Error('수동 편집 사유를 입력해 주세요.');
+      const byKey = new Map(c.rows.map(r => [r.key, r])); const changes = [];
+      for (const key of keys) {
+        const row = byKey.get(key); if (!row) throw new Error(`후보에 없는 점입니다: ${key}`);
+        const p = this._point(key); let vx, vy, neighbor = null;
+        if (kind === 'neighbor') {
+          neighbor = this.state.points.filter(q => q.key !== key && q.cell === p.cell && q.head === p.head && !q.masked && q.source === 'MEASURED' && q.judge === 'OK' && Number.isFinite(q.errorXUm) && Number.isFinite(q.errorYUm)).sort((a, b) => Math.hypot(a.xMm - p.xMm, a.yMm - p.yMm) - Math.hypot(b.xMm - p.xMm, b.yMm - p.yMm))[0];
+          if (!neighbor) throw new Error(`${key}: 같은 Cell/Head에 참고할 실측 OK 이웃이 없습니다.`); vx = neighbor.errorXUm; vy = neighbor.errorYUm;
+        } else { vx = number(x, '수동 X'); vy = number(y, '수동 Y'); }
+        changes.push({ row, vx, vy, neighbor });
+      }
+      changes.forEach(({ row, vx, vy, neighbor }) => { const before = copy(row); row.finalX = kind === 'absolute' ? vx : row.baseX + vx; row.finalY = kind === 'absolute' ? vy : row.baseY + vy; row.deltaX = row.finalX - row.baseX; row.deltaY = row.finalY - row.baseY; row.source = 'MANUAL'; row.manualReason = String(reason).trim(); row.manualKind = kind; row.referenceKey = neighbor?.key || null; this.log('MANUAL_CANDIDATE', row.key, before, row); });
+      c.pendingErrors = c.pendingErrors.filter(message => !keys.some(key => message.startsWith(key + ':'))); this._invalidate(); this.markCovered('R10'); this.save(); return c;
+    }
+    validateCandidate({ allowManual = false } = {}) {
+      const c = this.state.candidate, errors = [], warnings = []; let maxDelta = 0, maxTotal = 0;
+      if (!c) return { ok: false, errors: ['보정 후보가 없습니다.'], warnings, maxDelta, maxTotal };
+      if (c.status === 'APPLIED' || this._applied.has(c.id)) errors.push('이미 적용한 후보입니다. 같은 후보를 다시 누적할 수 없습니다.');
+      if (c.baseRevision !== this.state.activeRevisionId) errors.push('기준 Revision이 변경됐습니다. 최신 기준에서 다시 계산해 주세요.');
+      if (c.sourceRunId !== this.state.runId || c.recipeId !== this.state.recipeId) errors.push('측정 Run 또는 Recipe가 현재 후보와 다릅니다.');
+      if (c.signature !== this._signature()) errors.push('계산 후 환산/Flip 설정이 변경됐습니다. 다시 계산해야 합니다.');
+      if (this.state.importInfo?.lineage === false || this.state.importInfo?.recipeMismatch) errors.push('이 파일은 Recipe/Run/원본 측정 메타데이터가 부족하거나 Recipe가 다릅니다. 조회만 가능하며 적용할 수 없습니다.');
+      errors.push(...(c.pendingErrors || [])); warnings.push(...(c.warnings || []));
+      const seen = new Set(), pointMap = new Map(this.state.points.map(p => [p.key, p]));
+      for (const r of c.rows) {
+        if (seen.has(r.key)) errors.push(`${r.key}: 후보 ID가 중복됐습니다.`); seen.add(r.key);
+        const p = pointMap.get(r.key); if (!p || p.masked) { errors.push(`${r.key}: 없는 점 또는 Masking된 점입니다.`); continue; }
+        if (![r.baseX, r.baseY, r.deltaX, r.deltaY, r.finalX, r.finalY].every(Number.isFinite)) { errors.push(`${r.key}: 보정값이 유한한 숫자가 아닙니다.`); continue; }
+        const actual = this._value(r.key); if (Math.abs(actual.x - r.baseX) > 1e-7 || Math.abs(actual.y - r.baseY) > 1e-7 || Math.abs(r.baseX + r.deltaX - r.finalX) > 1e-7 || Math.abs(r.baseY + r.deltaY - r.finalY) > 1e-7) errors.push(`${r.key}: B + Δ = F 또는 기준값이 일치하지 않습니다.`);
+        if (r.source === 'MANUAL' && (!allowManual || !r.manualReason)) errors.push(`${r.key}: 수동 후보 허용과 사유 확인이 필요합니다. 원측정 판정은 바뀌지 않습니다.`);
+        if (!SOURCES.has(r.source)) errors.push(`${r.key}: 후보 출처가 잘못됐습니다.`);
+        for (const k of r.anchors || []) {
+          const a = pointMap.get(k);
+          if (!a || a.judge !== 'OK' || a.source !== 'MEASURED' || !Number.isFinite(a.errorXUm) || !Number.isFinite(a.errorYUm)) { errors.push(`${r.key}: 유효한 실측 OK 앵커가 아닙니다: ${k}`); continue; }
+          if (!a.raw || a.raw.measurementRunId !== this.state.runId || a.raw.recipeId !== this.state.recipeId) errors.push(`${k}: 원본 측정의 Run/Recipe 출처가 일치하지 않습니다.`);
+          else if (JSON.stringify([a.raw.pixelMm, a.raw.nResolution, !!a.raw.swapXY, !!a.raw.invertX, !!a.raw.invertY]) !== this._signature()) errors.push(`${k}: 원본 측정과 현재 환산/Flip 설정이 다릅니다. 동일 조건 재측정이 필요합니다.`);
+        }
+        maxDelta = Math.max(maxDelta, Math.abs(r.deltaX), Math.abs(r.deltaY)); maxTotal = Math.max(maxTotal, Math.abs(r.finalX), Math.abs(r.finalY));
+        if (Math.max(Math.abs(r.deltaX), Math.abs(r.deltaY)) > this.state.settings.maxDeltaUm) errors.push(`${r.key}: 이번 증감이 ${this.state.settings.maxDeltaUm} µm 제한을 초과했습니다.`);
+        if (Math.max(Math.abs(r.finalX), Math.abs(r.finalY)) > this.state.settings.maxTotalUm) errors.push(`${r.key}: 누적 총량이 ${this.state.settings.maxTotalUm} µm 제한을 초과했습니다.`);
+        const field = this._field(p, r.finalX, r.finalY); if (!field.ok) errors.push(`${r.key}: 최종 Scanner X/Y가 ±${this.state.settings.fieldMm / 2} mm 범위를 벗어납니다.`);
+      }
+      for (const p of this.state.points) if (!p.masked && !seen.has(p.key)) {
+        const value = this._value(p.key);
+        if (!this._field(p, value.x, value.y).ok) errors.push(`${p.key}: 선택 범위 밖 기존점도 최종 Scanner 범위를 벗어납니다. 전체 결과를 확인해 주세요.`);
+      }
+      if (!c.rows.length) errors.push('적용할 후보 행이 없습니다.');
+      const unique = [...new Set(errors)]; c.validation = { ok: unique.length === 0, errors: unique, warnings: [...new Set(warnings)], maxDelta, maxTotal, allowManual: !!allowManual, at: now(), signature: hash(JSON.stringify([c.rows, this.state.settings, this.state.activeRevisionId, this.state.runId])) }; c.status = c.validation.ok ? 'VALIDATED' : 'INVALID';
+      this.log('VALIDATE', c.validation.ok ? '후보 검증 OK' : `후보 검증 NG ${unique.length}건`); this.markCovered('R05'); this.save(); return c.validation;
+    }
+    _field(p, x, y) { const s = this.state.settings, finalX = p.scannerXmm + (x + s.shiftXUm) / 1000, finalY = p.scannerYmm + (y + s.shiftYUm) / 1000; return { ok: Number.isFinite(finalX) && Number.isFinite(finalY) && Math.abs(finalX) <= s.fieldMm / 2 + 1e-12 && Math.abs(finalY) <= s.fieldMm / 2 + 1e-12, xMm: finalX, yMm: finalY }; }
+    applyCandidate() {
+      const c = this.state.candidate; if (!c?.validation?.ok || c.status !== 'VALIDATED') throw new Error('현재 후보를 검증하고 모든 오류를 먼저 해결해 주세요.');
+      const previous = c.validation.signature; const validation = this.validateCandidate({ allowManual: c.validation.allowManual });
+      if (!validation.ok || previous !== validation.signature) throw new Error('검증 이후 조건이 변경됐거나 후보가 무효입니다. 다시 확인해 주세요.');
+      const values = copy(this._active().values); c.rows.forEach(r => values[r.key] = { x: r.finalX, y: r.finalY });
+      const revision = { id: uid('REV'), createdAt: now(), kind: c.mode, values, parentId: this.state.activeRevisionId, sourceRunId: this.state.runId, candidateId: c.id, restoredFrom: null, reason: `${c.mode} 후보 적용` };
+      this.state.revisions.push(revision); this.state.activeRevisionId = revision.id; this._applied.add(c.id); c.status = 'APPLIED'; c.appliedRevision = revision.id; this.state.verification = null;
+      this.log('APPLY', '새 활성 Revision 저장. 기존 Script와 이미 가공한 홀은 바뀌지 않습니다.', { revision: revision.parentId }, { revision: revision.id, candidate: c.id }); this.markCovered('R04'); this.save(); return revision;
+    }
+    restoreRevision(id, reason) {
+      if (!String(reason || '').trim()) throw new Error('복원 사유가 필요합니다.');
+      const target = this.state.revisions.find(r => r.id === id); if (!target) throw new Error('복원할 Revision이 없습니다.');
+      const revision = { id: uid('REV'), createdAt: now(), kind: 'RESTORE', values: copy(target.values), parentId: this.state.activeRevisionId, sourceRunId: this.state.runId, candidateId: null, restoredFrom: target.id, reason: String(reason).trim() };
+      this.state.revisions.push(revision); this.state.activeRevisionId = revision.id; this._invalidate(); this.state.verification = null; this.log('RESTORE', `이전 버전을 새 Revision으로 복원: ${reason}`, revision.parentId, revision.id); this.markCovered('R12'); this.save(); return revision;
+    }
+    prepare() {
+      const revision = this._active(), errors = [], coordinates = [];
+      for (const p of this.state.points.filter(p => !p.masked)) { const v = this._value(p.key, revision), field = this._field(p, v.x, v.y); if (!field.ok) errors.push(p.key); coordinates.push({ key: p.key, head: p.head, cell: p.cell, xMm: field.xMm, yMm: field.yMm, offsetXUm: v.x, offsetYUm: v.y }); }
+      if (errors.length) throw new Error(`최종 Scanner 범위를 벗어난 ${errors.length}점이 있어 준비를 차단했습니다. 첫 점: ${errors[0]}`);
+      if (!coordinates.length) throw new Error('가공할 유효한 점이 없어 준비할 수 없습니다.');
+      const data = { recipeId: this.state.recipeId, glassId: this.state.glassId, runId: this.state.runId, revisionId: revision.id, settings: copy(this.state.settings), coordinates };
+      const content = JSON.stringify(data); this.state.preparedScript = { ...data, id: uid('SIM-SCRIPT'), createdAt: now(), hash: hash(content), text: `// SIM ONLY / No device command\n// Recipe=${data.recipeId} Run=${data.runId} Revision=${revision.id}\n// ${coordinates.length} points; digest=${hash(content)}\n` + coordinates.slice(0, 100).map(p => `SIM_POINT ${p.key} X=${p.xMm.toFixed(6)}mm Y=${p.yMm.toFixed(6)}mm`).join('\n') + (coordinates.length > 100 ? '\n// Preview truncated; complete data is in coordinates.' : '') };
+      this.state.preparedRevisionId = revision.id; this.log('PREPARE', `SIM Script 준비: ${revision.id} / ${coordinates.length}점 / ${this.state.preparedScript.hash}`); this.markCovered('R17'); this.save(); return this.state.preparedScript;
+    }
+    verifyNewProcess() {
+      const script = this.state.preparedScript;
+      if (!script || this.state.preparedRevisionId !== this.state.activeRevisionId || script.runId !== this.state.runId || JSON.stringify(script.settings) !== JSON.stringify(this.state.settings)) throw new Error('현재 활성 Revision과 설정으로 먼저 새 가공 준비를 실행해 주세요.');
+      const revision = this._active(), shiftX = this.state.settings.reviewFollowsShift ? 0 : this.state.settings.shiftXUm, shiftY = this.state.settings.reviewFollowsShift ? 0 : this.state.settings.shiftYUm;
+      const rows = this.state.points.filter(p => !p.masked).map(p => { const v = this._value(p.key, revision); return { key: p.key, beforeX: p.physicalXUm + shiftX, beforeY: p.physicalYUm + shiftY, afterX: p.physicalXUm + v.x + shiftX, afterY: p.physicalYUm + v.y + shiftY }; });
+      const summary = values => { const axis = name => values.map(v => v[name]).filter(Number.isFinite), bx = axis('beforeX'), by = axis('beforeY'), ax = axis('afterX'), ay = axis('afterY'); const rms = (x, y) => Math.sqrt(x.reduce((s, v) => s + v * v, 0) / x.length + y.reduce((s, v) => s + v * v, 0) / y.length); return { count: values.length, beforeRmsUm: rms(bx, by), afterRmsUm: rms(ax, ay), maxAfterUm: Math.max(...ax.map(Math.abs), ...ay.map(Math.abs)), passCount: values.filter(v => Math.abs(v.afterX) <= this.state.settings.toleranceXUm && Math.abs(v.afterY) <= this.state.settings.toleranceYUm).length }; };
+      const holdouts = [];
+      for (const cell of [...new Set(this.state.points.map(p => p.cell))]) { const pts = this.state.points.filter(p => p.cell === cell && !p.masked); if (!pts.length) continue; for (const [u, v] of [[.27, .37], [.63, .71], [.43, .83]]) { const xs = pts.map(p => p.xMm), ys = pts.map(p => p.yMm), x = Math.min(...xs) + u * (Math.max(...xs) - Math.min(...xs)), y = Math.min(...ys) + v * (Math.max(...ys) - Math.min(...ys)); const near = pts.slice().sort((a, b) => Math.hypot(a.xMm - x, a.yMm - y) - Math.hypot(b.xMm - x, b.yMm - y)).slice(0, 4); let sx = 0, sy = 0, weights = 0; near.forEach(p => { const w = 1 / Math.max(.000001, Math.hypot(p.xMm - x, p.yMm - y)), offset = this._value(p.key, revision); sx += w * offset.x; sy += w * offset.y; weights += w; }); const b = this._bias(cell, u, v); holdouts.push({ key: `HOLDOUT-C${cell}-${u}-${v}`, cell, xMm: x, yMm: y, beforeX: b.x + shiftX, beforeY: b.y + shiftY, afterX: b.x + sx / weights + shiftX, afterY: b.y + sy / weights + shiftY, independent: true }); } }
+      this.state.verification = { id: uid('SIM-VERIFY'), createdAt: now(), newGlassId: uid('SIM-NEW-GLASS'), revisionId: revision.id, scriptHash: script.hash, originalMeasurementsUnchanged: true, simulationOnly: true, summary: summary(rows), holdoutSummary: summary(holdouts), points: rows, holdouts, note: '새 SIM 가공의 잔차와 독립 위치를 비교한 교육용 모델입니다. 실장비/공정 품질 합격을 의미하지 않습니다. 기존 홀과 원시 측정은 변경하지 않았습니다.' };
+      this.log('NEW_PROCESS_VERIFY', `새 SIM 가공 / 독립 검증점 ${holdouts.length}개`); this.markCovered('R14'); this.save(); return this.state.verification;
+    }
+    setSetting(key, value) {
+      if (!Object.prototype.hasOwnProperty.call(defaults(), key)) throw new Error('알 수 없는 설정입니다: ' + key);
+      const old = this.state.settings[key];
+      if (typeof defaults()[key] === 'boolean') { if (typeof value !== 'boolean') throw new Error('ON/OFF 설정값은 true/false여야 합니다.'); }
+      else { value = number(value, key); if (key === 'nResolution' && (!Number.isInteger(value) || value < 1 || value > 10000)) throw new Error('nResolution은 양의 정수여야 합니다.'); if (!['shiftXUm', 'shiftYUm'].includes(key) && value <= 0) throw new Error('허용오차·환산·범위 값은 0보다 커야 합니다.'); }
+      this.state.settings[key] = value; this._invalidate(); this.log('SETTING', key, old, value); this.save(); return value;
+    }
+    exportCSV() {
+      const headers = ['SCHEMA_VERSION', 'RECIPE_ID', 'GLASS_ID', 'RUN_ID', 'RESULT_STATUS', 'LINEAGE_VALID', 'CELL', 'HEAD', 'SHOT', 'BEAM', 'ROW', 'COL', 'X_MM', 'Y_MM', 'SCANNER_X_MM', 'SCANNER_Y_MM', 'ERROR_X_UM', 'ERROR_Y_UM', 'PHYSICAL_X_UM', 'PHYSICAL_Y_UM', 'JUDGE', 'RESULT_SOURCE', 'MASKED', 'RAW_JSON'];
+      const info = this.state.importInfo, recipe = info?.type === 'CSV' ? (info.recipeId === '미기록' ? '' : info.recipeId) : this.state.recipeId;
+      const status = info?.resultStatus === 'UNKNOWN' ? '' : info?.resultStatus || 'COMPLETED';
+      return '\uFEFF' + [headers.join(','), ...this.state.points.map(p => [1, recipe, this.state.glassId, this.state.runId, status, info?.lineage === false ? 0 : 1, p.cell, p.head, p.shot, p.beam, p.row, p.col, p.xMm, p.yMm, p.scannerXmm, p.scannerYmm, p.errorXUm, p.errorYUm, p.physicalXUm, p.physicalYUm, p.judge, p.source, p.masked ? 1 : 0, JSON.stringify(p.raw)].map(quote).join(','))].join('\r\n');
+    }
+    importCSV(text) {
+      const input = parseCSV(text), points = [], seen = new Set(), recipes = new Set(), runs = new Set(), glasses = new Set(), statuses = new Set(); let legacy = false;
+      input.forEach((r, i) => {
+        const line = i + 2, get = (...keys) => { for (const k of keys) if (r[k] !== undefined) return r[k]; return undefined; };
+        const cell = integer(get('CELL', 'CELL_NO', 'CELLID'), `${line}행 Cell`, 1, 50), head = integer(get('HEAD', 'HEAD_NO'), `${line}행 Head`, 1, 8);
+        let shot = get('SHOT', 'SHOT_NO', 'SHOT_NAME', 'SHOT_KEY'); if (!shot || !/^[A-Za-z0-9_.\-/]+$/.test(shot)) throw new Error(`${line}행 Shot 식별자가 잘못됐습니다.`); shot = /^\d+$/.test(shot) ? integer(shot, `${line}행 Shot`, 1, 10000000) : shot;
+        const beamText = get('BEAM', 'BEAM_NO'); if (beamText === undefined || beamText === '') legacy = true; const beam = beamText ? integer(beamText, `${line}행 Beam`, 1, 16) : 1;
+        const judgeText = get('JUDGE'); if (!judgeText) throw new Error(`${line}행 Judge가 비어 있습니다.`); const judge = judgeText === '미검사' ? 'UNMEASURED' : judgeText.toUpperCase(); if (!JUDGES.has(judge)) throw new Error(`${line}행: 알 수 없는 Judge '${judgeText}'는 OK로 바꿀 수 없습니다.`);
+        const ex = get('ERROR_X_UM'), ey = get('ERROR_Y_UM'); let x = null, y = null;
+        if (judge === 'OK' || judge === 'NG') { if (ex !== undefined && ey !== undefined) { x = number(ex, `${line}행 ErrorX µm`); y = number(ey, `${line}행 ErrorY µm`); } else { x = number(get('ERROR_X'), `${line}행 ErrorX mm`) * 1000; y = number(get('ERROR_Y'), `${line}행 ErrorY mm`) * 1000; legacy = true; } }
+        else { for (const [name, val] of [['ErrorX', ex], ['ErrorY', ey]]) if (val !== undefined && val !== '' && val !== '미검사') number(val, `${line}행 ${name}`); }
+        const src = get('RESULT_SOURCE', 'SOURCE'); const source = src ? src.toUpperCase() : ((judge === 'OK' || judge === 'NG') ? 'MEASURED' : 'KEPT'); if (!src) legacy = true; if (!SOURCES.has(source)) throw new Error(`${line}행: 지원하지 않는 출처 '${src}'입니다.`);
+        const optional = (names, fallback) => { const v = get(...names); if (v === undefined) { legacy = true; return fallback; } return number(v, `${line}행 ${names[0]}`); };
+        const row = integer(optional(['ROW'], 0), `${line}행 Row`, 0, 100000), col = integer(optional(['COL'], i), `${line}행 Col`, 0, 100000);
+        let raw = null; if (get('RAW_JSON')) { try { raw = JSON.parse(get('RAW_JSON')); } catch (_) { throw new Error(`${line}행 RAW_JSON 형식이 잘못됐습니다.`); } } else legacy = true;
+        if ((judge === 'OK' || judge === 'NG') && source === 'MEASURED') { if (!raw) legacy = true; else { ['targetX', 'targetY', 'holeX', 'holeY', 'pixelMm', 'nResolution'].forEach(k => number(raw[k], `${line}행 RAW ${k}`)); if (raw.pixelMm <= 0 || !Number.isInteger(raw.nResolution) || raw.nResolution < 1) throw new Error(`${line}행 RAW 환산계수가 잘못됐습니다.`); const converted = this._convert(raw); if (Math.abs(converted.x - x) > .00001 || Math.abs(converted.y - y) > .00001) throw new Error(`${line}행: RAW 환산값과 Error µm가 일치하지 않습니다.`); } }
+        const status = get('RESULT_STATUS') || ''; if (!status) legacy = true; else if (!['COMPLETED', 'PARTIAL', 'STOPPED', 'ERROR'].includes(status)) throw new Error(`${line}행: 알 수 없는 결과 완료 상태입니다.`); statuses.add(status);
+        if (get('LINEAGE_VALID') !== undefined && !['0', '1'].includes(get('LINEAGE_VALID'))) throw new Error(`${line}행 출처 유효 상태는 0/1이어야 합니다.`);
+        if (get('LINEAGE_VALID') === '0') legacy = true;
+        const recipe = get('RECIPE_ID') || '', run = get('RUN_ID') || '', glass = get('GLASS_ID') || ''; if (!recipe || !run || !glass || get('SCHEMA_VERSION') !== '1') legacy = true; recipes.add(recipe); runs.add(run); glasses.add(glass);
+        const masked = get('MASKED') === '1'; if (get('MASKED') !== undefined && !['0', '1'].includes(get('MASKED'))) throw new Error(`${line}행 Masked는 0/1이어야 합니다.`);
+        const p = { cell, head, shot, beam, row, col, xMm: optional(['X_MM', 'DESIGN_X'], col * .1), yMm: optional(['Y_MM', 'DESIGN_Y'], row * .1), scannerXmm: optional(['SCANNER_X_MM'], 0), scannerYmm: optional(['SCANNER_Y_MM'], 0), errorXUm: x, errorYUm: y, physicalXUm: optional(['PHYSICAL_X_UM'], x === null ? 0 : -x), physicalYUm: optional(['PHYSICAL_Y_UM'], y === null ? 0 : -y), judge, source, masked, attempts: [], raw };
+        p.key = identity(p); if (seen.has(p.key)) throw new Error(`${line}행: Cell/Head/Shot/Beam ID 중복: ${p.key}`); seen.add(p.key); points.push(p);
+      });
+      if (recipes.size > 1 || runs.size > 1 || glasses.size > 1 || statuses.size > 1) throw new Error('한 CSV에 서로 다른 Recipe/Run/Glass/완료 상태가 섞여 있습니다.');
+      const recipeId = [...recipes][0], incomingRun = [...runs][0], oldRecipe = this.state.recipeId, recipeMismatch = !!recipeId && recipeId !== oldRecipe;
+      this.state.runId = incomingRun || uid('LEGACY-RUN'); this.state.glassId = [...glasses][0] || 'LEGACY-UNKNOWN'; points.forEach(p => p.uid = this.state.runId + '/' + p.key); this.state.points = points; this.state.candidate = null; this.state.plan = null; this.state.verification = null;
+      const resultStatus = [...statuses][0] || 'UNKNOWN';
+      this.state.importInfo = { type: 'CSV', at: now(), recipeId: recipeId || '미기록', legacy, lineage: !legacy && !recipeMismatch && resultStatus === 'COMPLETED', recipeMismatch, resultStatus, pointCount: points.length, simulation: true, note: legacy ? '레거시/메타데이터 부족: 조회만 가능' : recipeMismatch ? '다른 Recipe: 조회만 가능' : resultStatus !== 'COMPLETED' ? '미완료 결과: 조회만 가능, 보정 적용 차단' : 'SIM 파일의 원본·단위·ID 검증 완료' };
+      this.log('IMPORT_CSV', this.state.importInfo.note); this.markCovered('R02'); this.markCovered('R06'); this.save(); return this.state.importInfo;
+    }
+    _restore(payload) {
+      if (!payload || payload.schemaVersion !== 1 || !payload.state || payload.state.schemaVersion !== 1) throw new Error('지원하는 상태 묶음 형식이 아닙니다.');
+      const s = payload.state; if (!Array.isArray(s.points) || !s.points.length || s.points.length > 100000 || !Array.isArray(s.revisions) || !s.revisions.length || !s.settings || !s.runId || !s.recipeId) throw new Error('상태 묶음의 필수 정보가 없습니다.');
+      const strict = (value, label) => { if (typeof value !== 'number' || !Number.isFinite(value)) throw new Error(`${label}: JSON에는 유한한 숫자로 저장해야 합니다.`); return value; };
+      const seen = new Set(); s.points.forEach(p => {
+        ['cell', 'head', 'beam', 'row', 'col'].forEach(k => strict(p[k], k)); integer(p.cell, 'Cell', 1, 50); integer(p.head, 'Head', 1, 8); integer(p.beam, 'Beam', 1, 16); integer(p.row, 'Row', 0, 100000); integer(p.col, 'Col', 0, 100000);
+        if (!p.shot || !/^[A-Za-z0-9_.\-/]+$/.test(String(p.shot)) || p.key !== identity(p) || p.uid !== s.runId + '/' + p.key || seen.has(p.key) || !JUDGES.has(p.judge) || !SOURCES.has(p.source) || typeof p.masked !== 'boolean') throw new Error('상태 묶음의 결과 ID/판정/출처가 잘못됐습니다.');
+        seen.add(p.key); ['xMm', 'yMm', 'scannerXmm', 'scannerYmm', 'physicalXUm', 'physicalYUm'].forEach(k => strict(p[k], k));
+        if (p.judge === 'OK' || p.judge === 'NG') {
+          strict(p.errorXUm, 'ErrorX'); strict(p.errorYUm, 'ErrorY');
+          if (p.source === 'MEASURED' && s.importInfo?.lineage !== false) {
+            if (!p.raw) throw new Error('실측 원본 RAW가 없는 상태는 적용 가능한 묶음으로 복원할 수 없습니다.');
+            ['targetX', 'targetY', 'holeX', 'holeY', 'pixelMm', 'nResolution'].forEach(k => strict(p.raw[k], 'RAW ' + k));
+            if (p.raw.pixelMm <= 0 || !Number.isInteger(p.raw.nResolution) || p.raw.nResolution <= 0) throw new Error('RAW 환산계수가 잘못됐습니다.');
+            const converted = this._convert(p.raw); if (Math.abs(converted.x - p.errorXUm) > .00001 || Math.abs(converted.y - p.errorYUm) > .00001) throw new Error('JSON의 원본 RAW와 환산 오차가 다릅니다.');
+          }
+        } else if (p.errorXUm !== null || p.errorYUm !== null) throw new Error('미측정/ERROR의 오차는 null이어야 합니다.');
+        if (!Array.isArray(p.attempts)) throw new Error('측정 이력 형식이 잘못됐습니다.');
+      });
+      const ids = new Set(); s.revisions.forEach(r => { if (!r.id || ids.has(r.id) || !r.values || typeof r.values !== 'object') throw new Error('Revision이 잘못됐거나 중복됐습니다.'); ids.add(r.id); Object.entries(r.values).forEach(([key, v]) => { if (['__proto__', 'constructor', 'prototype'].includes(key) || !v) throw new Error('잘못된 보정 ID입니다.'); strict(v.x, 'Revision X'); strict(v.y, 'Revision Y'); }); });
+      if (!ids.has(s.activeRevisionId)) throw new Error('활성 Revision을 찾을 수 없습니다.');
+      for (const [k, v] of Object.entries(defaults())) { if (typeof v === 'boolean') { if (typeof s.settings[k] !== 'boolean') throw new Error('잘못된 ON/OFF 설정입니다.'); } else { const n = strict(s.settings[k], k); if (!['shiftXUm', 'shiftYUm'].includes(k) && n <= 0) throw new Error('설정값은 양수여야 합니다.'); } }
+      if (!Number.isInteger(s.settings.nResolution)) throw new Error('nResolution은 정수여야 합니다.');
+      const applied = new Set([...(this._applied || []), ...(Array.isArray(payload.appliedCandidateIds) ? payload.appliedCandidateIds : []), ...s.revisions.map(r => r.candidateId).filter(Boolean)]);
+      if (s.candidate) { if (!Array.isArray(s.candidate.rows) || !s.candidate.id || !['SIMPLE', 'ROUGH', 'FINE'].includes(s.candidate.mode)) throw new Error('후보 형식이 잘못됐습니다.'); const candidateKeys = new Set(); s.candidate.rows.forEach(r => { if (!seen.has(r.key) || candidateKeys.has(r.key) || !SOURCES.has(r.source)) throw new Error('후보의 점 ID 또는 출처가 잘못됐습니다.'); candidateKeys.add(r.key); ['baseX', 'baseY', 'deltaX', 'deltaY', 'finalX', 'finalY'].forEach(k => strict(r[k], 'Candidate ' + k)); }); s.candidate.validation = null; s.candidate.status = applied.has(s.candidate.id) ? 'APPLIED' : 'DRAFT'; }
+      this.state = copy(s); this.state.logs = Array.isArray(s.logs) ? s.logs.slice(-1000) : []; this.state.covered = Array.isArray(s.covered) ? s.covered : []; this._applied = applied;
+    }
+    exportBundle() { this.markCovered('R15'); return JSON.stringify({ schemaVersion: 1, kind: 'A3_REVIEW_SIM_OFFLINE', exportedAt: now(), state: this.state, appliedCandidateIds: [...this._applied] }, null, 2); }
+    importBundle(text) { let payload; try { payload = JSON.parse(text); } catch (_) { throw new Error('JSON 상태 묶음 형식이 잘못됐습니다.'); } this._restore(payload); this.log('IMPORT_BUNDLE', 'SIM 상태 복원. 기존 적용 ID 보호는 유지합니다.'); this.save(); return this.state; }
+    log(action, detail, before = null, after = null) { if (!this.state) return; this.state.logs.push({ id: uid('LOG'), at: now(), action: String(action), detail: String(detail), before: before === undefined ? null : copy(before), after: after === undefined ? null : copy(after), runId: this.state.runId }); if (this.state.logs.length > 1000) this.state.logs.splice(0, this.state.logs.length - 1000); }
+    markCovered(id) { if (!this.state.covered.includes(id)) this.state.covered.push(id); }
+    save() { if (!this._storage) { this.state.persistence = { ok: false, detail: '브라우저 저장소 사용 불가. 상태 JSON 내려받기를 사용하세요.' }; return false; } try { this.state.persistence = { ok: true, at: now() }; this._storage.setItem(this.storageKey, JSON.stringify({ schemaVersion: 1, state: this.state, appliedCandidateIds: [...this._applied] })); return true; } catch (_) { this.state.persistence = { ok: false, detail: '저장 용량/권한 제한으로 상태를 보관하지 못했습니다. 상태 JSON을 내려받으세요.' }; return false; } }
+    reset() { if (this._storage) try { this._storage.removeItem(this.storageKey); } catch (_) { } this._applied = new Set(); return this.loadDemo(); }
+  }
+  global.ReviewEngine = ReviewEngine;
+})(globalThis);
+;
+(function (global) {
+  'use strict';
+  const MODES = new Set(['P2P', 'FLYING', 'MOVE', 'MEASURE']);
+  const FAULTS = new Set(['NONE', 'VISION_TIMEOUT', 'PLC_STALE', 'UID_MISMATCH']);
+    const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+  const clone = value => JSON.parse(JSON.stringify(value));
+  let serial = 0;
+  class ReviewRuntime {
+    constructor(engine, { onUpdate, onComplete, onError, clock } = {}) {
+      if (!engine || typeof engine.measurePoint !== 'function') throw new Error('가상 결과 엔진이 필요합니다.');
+      this.engine = engine;
+      this.callbacks = { onUpdate, onComplete, onError };
+      this.clock = clock || { now: () => Date.now(), setTimeout: (fn, ms) => global.setTimeout(fn, ms), clearTimeout: id => global.clearTimeout(id) };
+      this._timer = null; this._token = 0; this._steps = []; this._stepIndex = 0; this._elapsed = 0; this._uid = 2000;
+      this._baseCompleted = []; this._lastOptions = null; this._faultUsed = false;
+      this.state = this._fresh();
+    }
+    _fresh(position = { x: 0, y: 0 }, connections = { plc: true, vision: true }) {
+      return { status: 'IDLE', phase: 'IDLE', label: '대기', jobId: null, mode: null, key: null,
+        keys: [], completedKeys: [], remainingKeys: [], failedKey: null, position: clone(position), target: null,
+        busy: false, quality: connections.plc ? 'VALID' : 'STALE', speed: 4, elapsedSimMs: 0, totalSimMs: 0,
+        vision: { command: null, uid: null, expectedUid: null, receivedUid: null, status: 'IDLE', error: null },
+        signals: { able: !!connections.plc, start: false, complete: false }, connections: clone(connections),
+        trace: [], error: null, requestedCount: 0, expandedCount: 0, capturedKeys: [], route: [],
+        progress: 0, phaseProgress: 0, stepIndex: 0, stepCount: 0, operatorNote: '설계 평면의 가상 mm 좌표입니다.' };
+    }
+    isBusy() { return this.state.status === 'RUNNING' || this.state.status === 'PAUSED'; }
+    get canRetry() { return ['IDLE', 'STOPPED', 'ERROR'].includes(this.state.status) && !!this._lastOptions && this.state.remainingKeys.length > 0; }
+    _call(name, ...args) {
+      try { if (typeof this.callbacks[name] === 'function') this.callbacks[name](...args); }
+      catch (error) { this.state.callbackError = String(error?.message || error); }
+    }
+    _notify() { this._call('onUpdate', this.state); }
+    _trace(phase, message, channel = 'SEQUENCE', extra = {}) {
+      this.state.trace.push({ at: new Date().toISOString(), jobId: this.state.jobId, simMs: Math.round(this.state.elapsedSimMs), phase, message, channel, ...extra });
+      if (this.state.trace.length > 300) this.state.trace.splice(0, this.state.trace.length - 300);
+    }
+    _point(key) { const point = this.engine.state.points.find(p => p.key === key); if (!point) throw new Error(`검사점을 찾을 수 없습니다: ${key}`); return point; }
+    _coordinates(point) {
+      const s = this.engine.state.settings;
+      return { x: point.xMm + (s.reviewFollowsShift ? s.shiftXUm / 1000 : 0), y: point.yMm + (s.reviewFollowsShift ? s.shiftYUm / 1000 : 0) };
+    }
+    _sameContext() {
+      return this.engine.state.runId === this._runId && this.engine.state.recipeId === this._recipeId &&
+        this.engine.state.activeRevisionId === this._revisionId && JSON.stringify(this.engine.state.settings) === this._settings;
+    }
+    _settingsSnapshot() {
+      this._runId = this.engine.state.runId; this._recipeId = this.engine.state.recipeId;
+      this._revisionId = this.engine.state.activeRevisionId; this._settings = JSON.stringify(this.engine.state.settings);
+    }
+    _step(phase, label, duration, enter, update, exit) { this._steps.push({ phase, label, duration, enter, update, exit, entered: false }); }
+    _guardInput(key) {
+      this.state.key = key; this.state.failedKey = null;
+      if (!this.state.connections.plc) { this.state.quality = 'STALE'; throw this._error('PLC_OFFLINE', '가상 MELSEC 연결이 끊겼습니다. 위치/BUSY를 확인할 수 없어 진행하지 않았습니다.'); }
+      if (this.state.fault === 'PLC_STALE' && !this._faultUsed) {
+        this._faultUsed = true; this.state.quality = 'STALE';
+        this._trace('INPUT_STALE', '위치/BUSY의 새 수신이 없어 이동·측정을 차단했습니다.', 'MELSEC');
+        throw this._error('PLC_STALE', '가상 MELSEC 위치/BUSY가 STALE입니다. 새 입력 확인 전 측정 결과를 반영하지 않습니다.');
+      }
+      if (this.state.mode !== 'MOVE' && !this.state.connections.vision) throw this._error('VISION_OFFLINE', '가상 Vision이 연결되지 않아 이동·촬영 시작을 차단했습니다.');
+      this.state.quality = 'VALID'; this.state.signals.able = true;
+      this._trace('INPUT_VALID', `${key} · 위치/BUSY 정상 수신 확인`, 'MELSEC');
+    }
+    _error(code, message) { const error = new Error(message); error.code = code; return error; }
+    _request(command, label) {
+      if (!this.state.connections.vision) throw this._error('VISION_OFFLINE', '가상 Vision 연결이 끊겨 요청을 보내지 못했습니다.');
+      const uid = ++this._uid;
+      this.state.vision = { command, uid, expectedUid: uid, receivedUid: null, status: 'WAITING', requestAt: new Date().toISOString(), replyAt: null, error: null };
+      this._trace('VISION_SEND', `${label} 요청 · CMD=${command} / UID=${uid}`, 'VISION', { command, uid });
+    }
+    _reply({ faultable = true } = {}) {
+      const v = this.state.vision;
+      if (!this.state.connections.vision) throw this._error('VISION_OFFLINE', '가상 Vision 응답을 기다리던 중 연결이 끊겼습니다.');
+      if (faultable && this.state.fault === 'VISION_TIMEOUT' && !this._faultUsed) {
+        this._faultUsed = true; v.status = 'TIMEOUT'; v.error = '응답 시간 초과';
+        this._trace('VISION_TIMEOUT', `CMD=${v.command} / UID=${v.uid} 응답 시간 초과 · 미완료 결과 보존`, 'VISION');
+        throw this._error('VISION_TIMEOUT', `가상 Vision CMD=${v.command} / UID=${v.uid} 응답 시간이 초과됐습니다. 이 거래의 결과는 반영하지 않았습니다.`);
+      }
+      const mismatch = faultable && this.state.fault === 'UID_MISMATCH' && !this._faultUsed;
+      if (mismatch) this._faultUsed = true;
+      v.receivedUid = mismatch ? v.uid + 99 : v.uid;
+      if (v.receivedUid !== v.expectedUid) {
+        v.status = 'UID_MISMATCH'; v.error = '응답 식별자 불일치';
+        this._trace('VISION_REJECT', `기대 UID=${v.expectedUid} / 수신 UID=${v.receivedUid} · 다른 거래 응답 제외`, 'VISION');
+        throw this._error('UID_MISMATCH', `응답 UID가 다릅니다. 기대 ${v.expectedUid}, 수신 ${v.receivedUid}. 현재 거래의 측정값으로 사용하지 않았습니다.`);
+      }
+      v.status = 'RECEIVED'; v.replyAt = new Date().toISOString();
+      this._trace('VISION_RECV', `CMD=${v.command} / UID=${v.uid} 정상 응답`, 'VISION', { command: v.command, uid: v.uid });
+    }
+    _move(key, phase = 'MOVING', label = '목표 위치로 이동', settleMs = 100) {
+      const point = this._point(key), target = this._coordinates(point);
+      let from;
+      const distance = Math.hypot(target.x - this._plannedPosition.x, target.y - this._plannedPosition.y);
+      this._plannedPosition = clone(target);
+      const duration = 180 + Math.min(1100, distance / 120 * 1000);
+      this._step(phase, label, duration,
+        () => { this.state.key = key; this.state.target = target; from = clone(this.state.position); this.state.busy = true; this.state.signals.start = true; this.state.signals.complete = false; this._trace(phase, `${key} · X ${target.x.toFixed(3)} / Y ${target.y.toFixed(3)} mm`, 'MOTION'); },
+        progress => { const eased = progress * progress * (3 - 2 * progress); this.state.position = { x: from.x + (target.x - from.x) * eased, y: from.y + (target.y - from.y) * eased }; },
+        () => { this.state.position = clone(target); this.state.busy = false; this.state.signals.complete = true; this._trace('IN_POSITION', '도착 허용 범위 / BUSY OFF 확인', 'MELSEC'); });
+      this._step('SETTLING', '도착 후 안정화 확인', settleMs, () => { this.state.signals.start = false; }, null, () => this._trace('STABLE', '위치 안정화 완료', 'MOTION'));
+    }
+    _commit(keys) {
+      if (!this._sameContext()) throw this._error('CONTEXT_CHANGED', '측정 도중 Recipe·Run·보정 버전 또는 설정이 바뀌어 결과 반영을 차단했습니다.');
+      for (const key of keys) {
+        this.engine.measurePoint(key, this.state.scenario, { deferSave: true });
+        if (!this.state.completedKeys.includes(key)) this.state.completedKeys.push(key);
+        this._trace('RESULT_COMMIT', `${key} · ${this._point(key).judge} · 원시 값/이전 시도 보존`, 'RESULT');
+      }
+      const done = new Set(this.state.completedKeys); this.state.remainingKeys = this.state.keys.filter(key => !done.has(key));
+      this.state.progress = this.state.keys.length ? this.state.completedKeys.length / this.state.keys.length : 0;
+    }
+    _buildP2P(keys, mode) {
+      keys.forEach(key => {
+        this._step('INPUT_CHECK', 'MELSEC 위치/BUSY 새 수신 확인', 45, () => this._guardInput(key));
+        if (mode !== 'MEASURE') this._move(key, 'MOVING', '목표 위치로 이동', mode === 'P2P' ? 250 : 100);
+        if (mode !== 'MOVE') {
+          this._step('CAPTURE_REQUEST', 'Vision 정지 촬영 요청', 55, () => { this.state.key = key; this._request(1000, 'Mark Find Single 정지 촬영'); });
+          const wait = this.state.fault === 'VISION_TIMEOUT' && !this._faultUsed ? 850 : 170;
+          this._step('VISION_WAIT', 'Vision 검출·응답 대기', wait, null, null, () => this._reply());
+          this._step('RESULT_COMMIT', '측정 결과 검증·반영', 35, null, null, () => this._commit([key]));
+        } else this._step('MOVE_COMPLETE', '이동만 완료 · 측정값 유지', 30, null, null, () => {
+          if (!this.state.completedKeys.includes(key)) this.state.completedKeys.push(key);
+          this.state.remainingKeys = this.state.keys.filter(k => !this.state.completedKeys.includes(k));
+          this.state.progress = this.state.completedKeys.length / this.state.keys.length;
+          this._trace('MOVE_COMPLETE', '가상 위치만 이동했습니다. 원측정/시도 이력은 변경하지 않았습니다.', 'MOTION');
+        });
+      });
+    }
+    _buildFlying(keys) {
+      const groups = [];
+      for (const key of keys) {
+        const p = this._point(key), id = `${p.cell}|${p.head}|${p.row}`;
+        let group = groups.find(g => g.id === id); if (!group) { group = { id, points: [] }; groups.push(group); } group.points.push(p);
+      }
+      const routeKeys = [];
+      groups.forEach(group => {
+        const sorted = group.points.sort((a, b) => a.xMm - b.xMm);
+        const firstX = this._coordinates(sorted[0]).x, lastX = this._coordinates(sorted[sorted.length - 1]).x;
+        const pts = Math.abs(this._plannedPosition.x - firstX) <= Math.abs(this._plannedPosition.x - lastX) ? sorted : sorted.reverse();
+        const lineKeys = pts.map(p => p.key), first = lineKeys[0], last = lineKeys[lineKeys.length - 1];
+        routeKeys.push(...lineKeys);
+        this._step('INPUT_CHECK', 'Flying 행의 위치/BUSY 확인', 45, () => this._guardInput(first));
+        this._move(first, 'LINE_START_MOVE', 'Flying 행 시작 위치 이동');
+        this._step('IOF_PREPARE', 'Stage IOF 촬영좌표 전달', 100, () => this._trace('IOF_PREPARE', `고정된 촬영순서 ${lineKeys.length}점의 공통 IOF Buffer 전달 · 가상 신호`, 'MELSEC'));
+        this._step('IOF_READY', 'Stage IOF 준비 완료 확인', 160, null, null, () => this._trace('IOF_READY', 'Stage IOF 준비 완료·신호 정리 확인 후 Vision Ready 요청', 'MELSEC'));
+        this._step('FLY_READY_SEND', 'Flying Ready / 1001 요청', 55, () => this._request(1001, `C${pts[0].cell} H${pts[0].head} 행 ${pts[0].row + 1} 촬영 준비`));
+        this._step('FLY_READY_WAIT', 'Vision 촬영 준비 응답 대기', 130, null, null, () => this._reply({ faultable: false }));
+        const target = this._coordinates(this._point(last)); let from, captured;
+        const distance = Math.hypot(target.x - this._plannedPosition.x, target.y - this._plannedPosition.y);
+        this._plannedPosition = clone(target);
+        this._step('FLYING_SCAN', '연속 이동 · 위치 트리거 촬영', 240 + pts.length * 65 + distance / 120 * 1000,
+          () => { from = clone(this.state.position); captured = 0; this.state.target = target; this.state.busy = true; this.state.signals.start = true; this.state.signals.complete = false; this.state.capturedKeys = []; this._trace('FLYING_SCAN', `${lineKeys.length}개 트리거 위치 통과 · 행 결과는 1003 응답 후 반영`, 'MOTION'); },
+          progress => { this.state.position = { x: from.x + (target.x - from.x) * progress, y: from.y + (target.y - from.y) * progress }; const count = Math.min(lineKeys.length, Math.floor(progress * lineKeys.length)); while (captured < count) { const key = lineKeys[captured++]; this.state.key = key; this.state.capturedKeys.push(key); this._trace('TRIGGER', `${key} · 가상 트리거 촬영 ${captured}/${lineKeys.length}`, 'VISION'); } },
+          () => { this.state.position = clone(target); this.state.busy = false; this.state.signals.start = false; this.state.signals.complete = true; });
+        this._step('FLY_DONE_SEND', 'Flying Move Done / 1002 요청', 55, () => this._request(1002, 'Flying 이동 완료'));
+        this._step('FLY_DONE_WAIT', 'Vision 이동 완료 응답 대기', this.state.fault === 'VISION_TIMEOUT' ? 850 : 150, null, null, () => this._reply());
+        this._step('FLY_RESULT_SEND', 'Flying Result / 1003 요청', 55, () => this._request(1003, '행 검사 결과'));
+        this._step('FLY_RESULT_WAIT', '행 결과 식별자·길이 검증', 150, null, null, () => this._reply());
+        this._step('RESULT_COMMIT', '검증된 행 결과 반영', 45, null, null, () => { this._commit(lineKeys); this.state.signals.complete = false; });
+      });
+      this.state.route = routeKeys.map(key => ({ key, ...this._coordinates(this._point(key)) }));
+    }
+    start({ keys, mode = 'P2P', scenario = 'recover', fault = 'NONE', speed = 4, label = '' } = {}) {
+      if (this.isBusy()) throw new Error('진행 중인 작업을 중지하거나 완료한 뒤 새 작업을 시작하세요.');
+      if (!Array.isArray(keys) || !keys.length || new Set(keys).size !== keys.length) throw new Error('중복되지 않은 검사점 키를 선택해 주세요.');
+      if (!MODES.has(mode) || !FAULTS.has(fault) || !['recover', 'same'].includes(scenario)) throw new Error('가상 작업 방식·시나리오·오류 조건을 확인해 주세요.');
+      speed = Number(speed); if (![1, 4, 16].includes(speed)) throw new Error('체험 속도는 1배·4배·16배 중에서 선택하세요.');
+      const points = keys.map(key => this._point(key)); if (points.some(p => p.masked)) throw new Error('Masking된 Shot은 가상 이동·측정에서 제외해 주세요.');
+      if ((mode === 'MOVE' || mode === 'MEASURE') && keys.length !== 1) throw new Error('이동만/현재 위치 측정은 한 점을 선택해 주세요.');
+      if (mode === 'MEASURE') {
+        const target = this._coordinates(points[0]);
+        if (Math.hypot(this.state.position.x - target.x, this.state.position.y - target.y) > .005) throw new Error('현재 가상 위치가 선택점과 다릅니다. 먼저 이동만 또는 이동 후 측정을 실행하세요.');
+      }
+      let expanded = keys.slice();
+      if (mode === 'FLYING') {
+        const groups = new Set(points.map(p => `${p.cell}|${p.head}|${p.row}`));
+        expanded = this.engine.state.points.filter(p => !p.masked && groups.has(`${p.cell}|${p.head}|${p.row}`)).map(p => p.key);
+      }
+      const old = this.state, position = clone(old.position), connections = clone(old.connections), trace = old.trace.slice(-120);
+      this._cancelTimer(); this._token++; this._steps = []; this._stepIndex = 0; this._elapsed = 0; this._faultUsed = false;
+      this.state = this._fresh(position, connections); this.state.trace = trace;
+      Object.assign(this.state, { status: 'RUNNING', phase: 'QUEUED', label: '작업 시작 준비', jobLabel: String(label || mode), jobId: `SIM-JOB-${++serial}`, mode, scenario, fault, speed, keys: expanded, remainingKeys: expanded.slice(), requestedCount: keys.length, expandedCount: expanded.length, route: expanded.map(key => ({ key, ...this._coordinates(this._point(key)) })) });
+      this._lastOptions = { mode, scenario, speed, label: String(label || mode), keys: expanded.slice() }; this._settingsSnapshot(); this._plannedPosition = clone(position);
+      this._trace('START', `${mode} 시작 · 선택 ${keys.length}점 / 실제 ${expanded.length}점 · 체험 ${speed}배`, 'OPERATOR');
+      if (mode === 'FLYING') this._buildFlying(expanded); else this._buildP2P(expanded, mode);
+      this.state.stepCount = this._steps.length; this.state.totalSimMs = this._steps.reduce((sum, step) => sum + step.duration, 0);
+      this.engine.log('SIM_JOB_START', `${mode} · ${expanded.length}점`, undefined, { jobId: this.state.jobId, fault, speed });
+      this._lastTick = this.clock.now(); this._notify(); this._schedule(); return this.state;
+    }
+    _enterStep() {
+      const step = this._steps[this._stepIndex]; if (!step || this.state.status !== 'RUNNING') return;
+      this.state.phase = step.phase; this.state.label = step.label; this.state.phaseProgress = 0; this.state.stepIndex = this._stepIndex;
+      step.entered = true; if (step.enter) step.enter(); if (step.update) step.update(0);
+    }
+    _cancelTimer() { if (this._timer !== null) { this.clock.clearTimeout(this._timer); this._timer = null; } }
+    _schedule() { if (this.state.status !== 'RUNNING') return; const token = this._token; this._timer = this.clock.setTimeout(() => { this._timer = null; if (token !== this._token) return; this._tick(token); }, 30); }
+    _tick(token) {
+      if (token !== this._token || this.state.status !== 'RUNNING') return;
+      const now = this.clock.now(); let budget = Math.max(0, now - this._lastTick) * this.state.speed; this._lastTick = now;
+      try {
+        if (!this._sameContext()) throw this._error('CONTEXT_CHANGED', '작업 중 데이터/설정이 바뀌어 이전 거래의 진행을 중지했습니다.');
+        let iterations = 0;
+        while (budget >= 0 && this.state.status === 'RUNNING' && token === this._token) {
+          const step = this._steps[this._stepIndex]; if (!step) { this._complete(); break; }
+          if (!step.entered) this._enterStep();
+          const used = Math.min(budget, step.duration - this._elapsed);
+          this._elapsed += used; this.state.elapsedSimMs += used; budget -= used;
+          this.state.phaseProgress = clamp(this._elapsed / step.duration, 0, 1); if (step.update) step.update(this.state.phaseProgress);
+          if (this._elapsed + 1e-8 < step.duration) break;
+          if (step.exit) step.exit();
+          if (token !== this._token || this.state.status !== 'RUNNING') break;
+          this._stepIndex++; this._elapsed = 0;
+          if (this._stepIndex >= this._steps.length) { this._complete(); break; }
+          this._enterStep(); if (budget <= 0 || ++iterations > 200) break;
+        }
+      } catch (error) { this._fail(error); }
+      this._notify(); this._schedule();
+    }
+    _complete() {
+      this._cancelTimer(); this.state.status = 'COMPLETE'; this.state.phase = 'COMPLETE'; this.state.label = '작업 완료';
+      this.state.busy = false; this.state.signals.start = false; this.state.signals.complete = true; this.state.progress = 1; this.state.phaseProgress = 1;
+      this._trace('COMPLETE', `${this.state.mode} 완료 · ${this.state.completedKeys.length}점`, 'SEQUENCE');
+      this.engine.log('SIM_JOB_COMPLETE', `${this.state.mode} · ${this.state.completedKeys.length}점`, undefined, { jobId: this.state.jobId, simMs: this.state.elapsedSimMs });
+      this.engine.save(); this._call('onComplete', this.state);
+    }
+    _fail(error) {
+      this._cancelTimer(); this._token++;
+      this.state.status = 'ERROR'; this.state.phase = 'ERROR'; this.state.label = '오류로 중지'; this.state.failedKey = this.state.key;
+      this.state.busy = false; this.state.signals.start = false; this.state.signals.complete = false;
+      this.state.error = { code: error.code || 'SIM_ERROR', message: error.message || String(error), at: new Date().toISOString() };
+      this._trace('ERROR', this.state.error.message, 'ALARM', { code: this.state.error.code });
+      this.engine.log('SIM_JOB_ERROR', this.state.error.message, undefined, { code: this.state.error.code, done: this.state.completedKeys.length, remaining: this.state.remainingKeys.length });
+      this.engine.save(); this._call('onError', error, this.state);
+    }
+    pause() {
+      if (this.state.status !== 'RUNNING') throw new Error('진행 중인 작업만 일시정지할 수 있습니다.');
+      this._cancelTimer(); this.state.status = 'PAUSED'; this._trace('PAUSE', '현재 단계에서 일시정지했습니다. 결과와 위치를 보존합니다.', 'OPERATOR');
+      this.engine.log('SIM_JOB_PAUSE', this.state.jobId); this._notify(); return this.state;
+    }
+    resume() {
+      if (this.state.status !== 'PAUSED') throw new Error('일시정지한 작업이 없습니다.');
+      if (!this._sameContext()) { const error = this._error('CONTEXT_CHANGED', '일시정지 중 데이터/설정이 바뀌었습니다. 남은 점을 새 거래로 다시 실행하세요.'); this._fail(error); this._notify(); return this.state; }
+      this.state.status = 'RUNNING'; this._lastTick = this.clock.now(); this._trace('RESUME', '멈췄던 단계부터 계속 진행합니다.', 'OPERATOR');
+      this.engine.log('SIM_JOB_RESUME', this.state.jobId); this._notify(); this._schedule(); return this.state;
+    }
+    stop(reason = '작업자 중지') {
+      if (!this.isBusy()) return this.state;
+      this._cancelTimer(); this._token++; this.state.status = 'STOPPED'; this.state.label = '작업 중지'; this.state.phase = 'STOPPED';
+      this.state.busy = false; this.state.signals.start = false; this.state.signals.complete = false;
+      this._trace('STOP', `${reason} · 완료 ${this.state.completedKeys.length} / 남음 ${this.state.remainingKeys.length}점`, 'OPERATOR');
+      this.engine.log('SIM_JOB_STOP', reason, undefined, { done: this.state.completedKeys.length, remaining: this.state.remainingKeys.length }); this.engine.save(); this._notify(); return this.state;
+    }
+    reset() {
+      if (this.isBusy()) throw new Error('진행 중인 작업을 먼저 중지한 뒤 가상 알람을 초기화하세요.');
+      this._cancelTimer(); this._token++;
+      this.state.error = null; this.state.status = 'IDLE'; this.state.phase = 'IDLE'; this.state.label = '대기 · 남은 점 재시작 가능'; this.state.failedKey = null;
+      this.state.busy = false; this.state.signals.start = false; this.state.signals.complete = false;
+      this.state.quality = this.state.connections.plc ? 'VALID' : 'STALE'; this.state.vision.status = 'IDLE'; this.state.vision.error = null;
+      this._trace('RESET', '알람/출력 상태만 초기화했습니다. 완료·남은 점과 측정/보정 데이터는 유지됩니다.', 'OPERATOR'); this.engine.log('SIM_JOB_RESET', '데이터/보정 유지'); this.engine.save(); this._notify(); return this.state;
+    }
+    retryRemaining({ speed = this.state.speed, fault = 'NONE' } = {}) {
+      if (this.isBusy()) throw new Error('작업 중에는 남은 점을 다시 시작할 수 없습니다.');
+      if (!this._lastOptions || !this.state.remainingKeys.length) throw new Error('다시 실행할 남은 검사점이 없습니다.');
+      const previousCompleted = this.state.completedKeys.slice(), allKeys = this.state.keys.slice(), previousMode = this._lastOptions.mode;
+      const remaining = this.state.remainingKeys.slice();
+      // A failed Flying row is retried as one whole row; a completed row is never added again.
+      const state = this.start({ ...this._lastOptions, keys: remaining, speed, fault });
+      state.keys = allKeys; state.completedKeys = previousCompleted; state.remainingKeys = remaining;
+      state.requestedCount = remaining.length; state.expandedCount = remaining.length;
+      state.progress = previousCompleted.length / allKeys.length;
+      state.route = allKeys.map(key => ({ key, ...this._coordinates(this._point(key)) }));
+      this._trace('RETRY', `${previousMode} · 이미 완료한 ${previousCompleted.length}점은 건너뛰고 남은 ${remaining.length}점부터 재시작`, 'OPERATOR');
+      this._notify(); return state;
+    }
+    updateSpeed(speed) {
+      speed = Number(speed); if (![1, 4, 16].includes(speed)) throw new Error('체험 속도는 1배·4배·16배 중에서 선택하세요.');
+      this.state.speed = speed; this._lastTick = this.clock.now(); this._trace('SPEED', `가상 시간 진행 ${speed}배로 변경`, 'OPERATOR'); this._notify(); return this.state;
+    }
+    setConnection(channel, connected) {
+      channel = String(channel).toLowerCase();
+      if (!['plc', 'vision'].includes(channel)) throw new Error('가상 연결 종류를 확인해 주세요.');
+      this.state.connections[channel] = !!connected;
+      if (channel === 'plc') { this.state.quality = connected ? 'VALID' : 'STALE'; this.state.signals.able = !!connected; }
+      this._trace('CONNECTION', `가상 ${channel === 'plc' ? 'MELSEC' : 'Vision'} 연결 ${connected ? '정상' : '끊김'}`, 'OPERATOR');
+      if (!connected && this.isBusy()) this._fail(this._error(channel === 'plc' ? 'PLC_OFFLINE' : 'VISION_OFFLINE', `가상 ${channel === 'plc' ? 'MELSEC' : 'Vision'} 연결이 끊겨 작업을 중지했습니다.`));
+      this._notify(); return this.state;
+    }
+    setPosition(x, y) {
+      if (this.isBusy()) throw new Error('작업 중에는 수동 위치를 변경할 수 없습니다.');
+      if (![x, y].every(Number.isFinite)) throw new Error('가상 위치는 유효한 mm 숫자로 입력해 주세요.');
+      this.state.position = { x, y }; this.state.target = { x, y }; this._trace('MANUAL_POSITION', `가상 수동 위치 X ${x.toFixed(3)} / Y ${y.toFixed(3)} mm`, 'MOTION'); this._notify(); return this.state;
+    }
+    snapshot() {
+      return { ...clone(this.state), context: {
+        runId: this._runId ?? this.engine.state.runId,
+        recipeId: this._recipeId ?? this.engine.state.recipeId,
+        revisionId: this._revisionId ?? this.engine.state.activeRevisionId,
+        settingsJSON: this._settings ?? JSON.stringify(this.engine.state.settings)
+      } };
+    }
+    restoreInterrupted(snapshot) {
+      if (this.isBusy()) throw new Error('진행 중인 거래를 덮어쓸 수 없습니다. 먼저 중지하세요.');
+      if (!snapshot || typeof snapshot !== 'object' || !['RUNNING', 'PAUSED', 'STOPPED', 'ERROR'].includes(snapshot.status)) throw new Error('복원할 미완료 거래의 상태가 올바르지 않습니다.');
+      const context = snapshot.context;
+      if (!context || typeof context !== 'object' || typeof context.settingsJSON !== 'string') throw new Error('미완료 거래의 실행 기준이 기록되지 않았습니다. 자동 복원하지 않고 새 작업 기준 확인이 필요합니다.');
+      if (context.runId !== this.engine.state.runId || context.recipeId !== this.engine.state.recipeId || context.revisionId !== this.engine.state.activeRevisionId || context.settingsJSON !== JSON.stringify(this.engine.state.settings)) throw new Error('미완료 거래의 Recipe·Run·보정 버전·설정이 현재 자료와 다릅니다. 이전 거래를 이어서 실행할 수 없습니다.');
+      if (!MODES.has(snapshot.mode) || !['recover', 'same'].includes(snapshot.scenario)) throw new Error('미완료 거래의 측정 방식이 올바르지 않습니다.');
+      const finitePosition = p => p && typeof p.x === 'number' && Number.isFinite(p.x) && typeof p.y === 'number' && Number.isFinite(p.y);
+      if (!finitePosition(snapshot.position) || (snapshot.target !== null && snapshot.target !== undefined && !finitePosition(snapshot.target))) throw new Error('미완료 거래의 가상 위치가 올바르지 않습니다.');
+      const pointMap = new Map(this.engine.state.points.map(p => [p.key, p]));
+      const checkKeys = (keys, label) => {
+        if (!Array.isArray(keys) || keys.length > this.engine.state.points.length || keys.some(k => typeof k !== 'string' || !pointMap.has(k) || pointMap.get(k).masked) || new Set(keys).size !== keys.length) throw new Error(`미완료 거래의 ${label} 키가 중복됐거나 현재 검사점과 다릅니다.`);
+        return keys.slice();
+      };
+      const keys = checkKeys(snapshot.keys, '전체'), completed = checkKeys(snapshot.completedKeys, '완료'), remaining = checkKeys(snapshot.remainingKeys, '남은 점');
+      const all = new Set(keys), done = new Set(completed), pending = new Set(remaining);
+      if (!keys.length || !remaining.length || completed.length + remaining.length !== keys.length || completed.some(k => !all.has(k) || pending.has(k)) || remaining.some(k => !all.has(k))) throw new Error('미완료 거래의 완료·남은 점 목록이 서로 겹치거나 전체 검사점과 맞지 않습니다.');
+      if ((snapshot.mode === 'MOVE' || snapshot.mode === 'MEASURE') && keys.length !== 1) throw new Error('단일 이동·현재 위치 측정의 복원 대상은 한 점이어야 합니다.');
+      if (snapshot.mode === 'FLYING') {
+        const groups = new Map();
+        keys.forEach(key => { const p = pointMap.get(key), id = `${p.cell}|${p.head}|${p.row}`; if (!groups.has(id)) groups.set(id, []); groups.get(id).push(key); });
+        groups.forEach((line, id) => {
+          const full = this.engine.state.points.filter(p => !p.masked && `${p.cell}|${p.head}|${p.row}` === id).map(p => p.key);
+          if (line.length !== full.length || full.some(k => !all.has(k)) || (line.some(k => done.has(k)) && line.some(k => pending.has(k)))) throw new Error('Flying 거래는 행 전체를 한 번에 반영합니다. 행 일부만 완료된 목록은 복원할 수 없습니다.');
+        });
+      }
+      if (![1, 4, 16].includes(snapshot.speed) || typeof snapshot.elapsedSimMs !== 'number' || !Number.isFinite(snapshot.elapsedSimMs) || snapshot.elapsedSimMs < 0) throw new Error('미완료 거래의 배속·진행 시간이 올바르지 않습니다.');
+      const connections = snapshot.connections;
+      if (!connections || typeof connections.plc !== 'boolean' || typeof connections.vision !== 'boolean') throw new Error('미완료 거래의 가상 연결 상태가 올바르지 않습니다.');
+      const trace = Array.isArray(snapshot.trace) ? snapshot.trace.slice(-299).filter(t => t && typeof t.phase === 'string' && typeof t.message === 'string' && typeof t.at === 'string').map(t => clone(t)) : [];
+      const restored = this._fresh(snapshot.position, connections);
+      Object.assign(restored, {
+        status: 'STOPPED', phase: 'STOPPED', label: '중단 거래 복원 · 남은 점 재실행 대기',
+        jobId: typeof snapshot.jobId === 'string' ? snapshot.jobId : `SIM-RESTORED-${++serial}`,
+        jobLabel: typeof snapshot.jobLabel === 'string' ? snapshot.jobLabel : snapshot.mode,
+        mode: snapshot.mode, scenario: snapshot.scenario, fault: 'NONE', keys, completedKeys: completed, remainingKeys: remaining,
+        key: all.has(snapshot.key) ? snapshot.key : remaining[0], failedKey: all.has(snapshot.failedKey) ? snapshot.failedKey : null,
+        target: snapshot.target ? clone(snapshot.target) : null, speed: snapshot.speed, elapsedSimMs: snapshot.elapsedSimMs,
+        totalSimMs: typeof snapshot.totalSimMs === 'number' && Number.isFinite(snapshot.totalSimMs) && snapshot.totalSimMs >= snapshot.elapsedSimMs ? snapshot.totalSimMs : snapshot.elapsedSimMs,
+        trace, progress: completed.length / keys.length, quality: snapshot.quality === 'STALE' || !connections.plc ? 'STALE' : 'VALID',
+        requestedCount: keys.length, expandedCount: keys.length,
+        capturedKeys: Array.isArray(snapshot.capturedKeys) ? snapshot.capturedKeys.filter(k => all.has(k)) : [],
+        route: keys.map(key => ({ key, ...this._coordinates(pointMap.get(key)) })),
+        error: snapshot.error && typeof snapshot.error.message === 'string' ? clone(snapshot.error) : null,
+        restoredFromStatus: snapshot.status, restoredInterrupted: true
+      });
+      restored.signals = { able: !!connections.plc, start: false, complete: false };
+      restored.busy = false;
+      // No outstanding Vision request survives a browser reopen. Historical IDs remain visible only as cancelled trace metadata.
+      if (snapshot.vision && typeof snapshot.vision === 'object') {
+        restored.vision = { ...clone(snapshot.vision), status: 'CANCELLED', error: '중단 거래의 이전 응답은 수신·반영하지 않습니다.' };
+      }
+      this._cancelTimer(); this._token++; this._steps = []; this._stepIndex = 0; this._elapsed = 0; this._faultUsed = false;
+      this.state = restored; this._lastOptions = { mode: restored.mode, scenario: restored.scenario, speed: restored.speed, label: restored.jobLabel, keys: keys.slice() };
+      this._settingsSnapshot();
+      if (Number.isSafeInteger(snapshot.vision?.uid) && snapshot.vision.uid > 0) this._uid = Math.max(this._uid, snapshot.vision.uid);
+      this._trace('SESSION_REOPEN', `중단 거래 복원 · 완료 ${completed.length} / 남은 ${remaining.length}점 · 자동 실행 없음`, 'OPERATOR');
+      this.engine.log('SIM_JOB_RESTORE_INTERRUPTED', '이전 거래의 완료점은 유지하고 남은 점을 새 거래로 재실행할 수 있습니다.', undefined, { previousStatus: snapshot.status, completed: completed.length, remaining: remaining.length });
+      this.engine.save(); this._notify(); return this.state;
+    }
+    dispose() { this._cancelTimer(); this._token++; if (this.isBusy()) { this.state.status = 'STOPPED'; this.state.busy = false; this.state.signals.start = false; this.state.signals.complete = false; } }
+  }
+  global.ReviewRuntime = ReviewRuntime;
+})(typeof globalThis === 'object' ? globalThis : window);
+;
+(function(g){'use strict';
+ const colors=['#2e9076','#b88b2a','#ca754a','#be4f68'];
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const defaults=()=>({metric:'MAX_AXIS',bounds:[2,5,10],names:['미세','관찰','주의','집중 확인']});
+ function validate(c){if(!c||!['MAX_AXIS','RADIAL'].includes(c.metric)||!Array.isArray(c.bounds)||c.bounds.length!==3||!Array.isArray(c.names)||c.names.length!==4)throw Error('오차 수준은 지표 1개·경계 3개·이름 4개로 설정하세요.');if(c.bounds.some((x,i)=>!Number.isFinite(x)||x<=0||(i&&x<=c.bounds[i-1])))throw Error('레벨 경계는 0보다 큰 숫자를 작은 순서로 입력하세요.');if(c.names.some(x=>typeof x!=='string'||!x.trim()||x.length>20)||new Set(c.names.map(x=>x.trim())).size!==4)throw Error('네 레벨의 이름을 중복 없이 1~20자로 입력하세요.');return {metric:c.metric,bounds:c.bounds.slice(),names:c.names.map(x=>x.trim())}}
+ function config(E){try{return validate(E.state.reviewLevels||defaults())}catch{return defaults()}}
+ function classify(p,E){if(!p||p.masked)return{index:-1,name:p?.masked?'Masking 제외':'자료 없음',value:null,color:'#a5b5c0'};if(!Number.isFinite(p.errorXUm)||!Number.isFinite(p.errorYUm))return{index:-1,name:'수치 없음',value:null,color:'#a5b5c0'};const c=config(E),value=c.metric==='RADIAL'?Math.hypot(p.errorXUm,p.errorYUm):Math.max(Math.abs(p.errorXUm),Math.abs(p.errorYUm));let index=c.bounds.findIndex(x=>value<=x);if(index<0)index=3;return{index,name:c.names[index],value,color:colors[index]}}
+ function badge(p,E){const x=classify(p,E);return `<span class="level-badge" style="--level-color:${x.color}" title="${x.value===null?'유효한 오차 수치 없음':x.value.toFixed(3)+' µm'}">${x.index<0?'—':'L'+(x.index+1)} ${esc(x.name)}</span>`}
+ function ranges(c){return [`0 ≤ e ≤ ${c.bounds[0]}`,`${c.bounds[0]} < e ≤ ${c.bounds[1]}`,`${c.bounds[1]} < e ≤ ${c.bounds[2]}`,`${c.bounds[2]} < e`].map(x=>x+' µm')}
+ function summary(points,E){const c=config(E),counts=[0,0,0,0];points.forEach(p=>{const x=classify(p,E);if(x.index>=0)counts[x.index]++});return `<div class="panel level-summary"><div class="panel-head"><div><h3>오차 수준 · 공차 OK/NG와 별도로 봅니다</h3><p class="small muted">지표 e = ${c.metric==='RADIAL'?'√(ΔX²+ΔY²)':'max(|ΔX|, |ΔY|)'} · 유효 수치만 분류 · 원측정 Judge는 그대로</p></div><button class="btn slim" data-action="levels-open">레벨 범위·이름 편집</button></div><div class="level-grid">${counts.map((v,i)=>`<div style="--level-color:${colors[i]}"><small>L${i+1} · ${esc(c.names[i])}</small><b>${v}점</b><span>${ranges(c)[i]}</span></div>`).join('')}</div></div>`}
+ function form(E){const c=config(E);return `<p>축별 tolerance는 OK/NG를 결정합니다. 여기서는 현재 오차가 어느 정도인지 별도 등급으로 보여줍니다. 설정을 바꿔도 기존 측정값과 판정은 바뀌지 않습니다.</p><label class="field section-gap">수준을 나눌 지표<select id="level-metric"><option value="MAX_AXIS" ${c.metric==='MAX_AXIS'?'selected':''}>큰 축 오차 · max(|ΔX|, |ΔY|)</option><option value="RADIAL" ${c.metric==='RADIAL'?'selected':''}>원점 거리 · √(ΔX²+ΔY²)</option></select></label><div class="table-wrap section-gap"><table><thead><tr><th>수준</th><th>표시 이름</th><th>상한 µm</th></tr></thead><tbody>${c.names.map((name,i)=>`<tr><td>L${i+1}</td><td><input id="level-name-${i}" value="${esc(name)}" maxlength="20" aria-label="L${i+1} 이름"></td><td>${i<3?`<input type="number" id="level-bound-${i}" value="${c.bounds[i]}" step=".1" min=".001" aria-label="L${i+1} 상한">`:'상한 없음'}</td></tr>`).join('')}</tbody></table></div><p class="note">경계는 앞 레벨의 상한에 포함합니다: [0, 첫 상한], (첫 상한, 두 번째 상한] 순서입니다. 2/5/10 µm는 초기 SIM 예시이며 자유롭게 바꿀 수 있습니다.</p><div class="toolbar section-gap"><button class="btn primary" data-action="levels-save">범위 검증 후 적용</button><button class="btn" data-action="close-dialog">취소</button></div>`}
+ g.ReviewLevels={defaults,validate,config,classify,badge,summary,form};
+})(globalThis);
+;
+/* 단일 리뷰 작업공간: 측정·작업 결과·보정과 원측정 이력을 구분합니다. */
+globalThis.ReviewWorkspace=(()=>{
+ 'use strict';
+ const colors=['#237caa','#a66399','#35987b','#b58b34','#6d75b7','#b56f55','#3b939f','#7c893b'];
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const n=(v,d=2)=>Number.isFinite(v)?v.toFixed(d):'—';
+ const s=(v,d=2)=>Number.isFinite(v)?(v>=0?'+':'')+v.toFixed(d):'—';
+ const button=(a,t,c='',extra='')=>`<button type="button" class="btn ${c}" data-rw-action="${a}" ${extra}>${t}</button>`;
+ const unique=xs=>[...new Set(xs)].sort((a,b)=>Number(a)-Number(b));
+ const eligible=p=>!!p&&!p.masked&&!p.proxySource&&['OK','NG'].includes(p.judge)&&p.source==='MEASURED'&&Number.isFinite(p.errorXUm)&&Number.isFinite(p.errorYUm);
+ let context=null,frame=0,menuNode=null;
+ function state(E,ui){
+  if(!ui.rw)ui.rw={};const rw=ui.rw;
+  if(rw.resetRunId!==E.state.runId){
+   Object.assign(rw,{resetRunId:E.state.runId,representativeKey:null,scatterScope:'CELL',scatterHead:0,scatterCells:new Set([ui.cell||E.state.points[0]?.cell||1]),scatterData:'WORKING',zoom:1,panX:0,panY:0,color:'judge',tool:'SELECT',hits:[],scatterMetrics:null,layoutSignature:null});
+   const keys=new Set(E.state.points.map(p=>p.key));ui.selected=new Set([...ui.selected].filter(k=>keys.has(k)));if(ui.focus&&!keys.has(ui.focus))ui.focus=null;
+  }
+  if(!(rw.scatterCells instanceof Set))rw.scatterCells=new Set(Array.isArray(rw.scatterCells)?rw.scatterCells:[]);
+  if(!['CELL','HEAD','CELLS'].includes(rw.scatterScope))rw.scatterScope='CELL';
+  if(!['WORKING','ORIGINAL'].includes(rw.scatterData))rw.scatterData='WORKING';
+  return rw;
+ }
+ function rerender(api,focusMap=false){const x=window.scrollX,y=window.scrollY;api.render();window.scrollTo(x,y);if(focusMap)document.getElementById('position-map')?.focus({preventScroll:true})}
+ function referenceValues(E,rw,api){
+  const p=E.state.points.find(p=>p.key===rw.representativeKey);if(!p)return null;
+  const c=E.state.candidate,row=c?.status!=='APPLIED'?c?.rows.find(r=>r.key===p.key):null,b=api.active()?.values?.[p.key]||{x:0,y:0};
+  return {p,x:row?row.finalX:b.x+p.errorXUm,y:row?row.finalY:b.y+p.errorYUm,from:row?'기존 후보':'측정값에서 계산',base:b,row};
+ }
+ function legend(E,ui,api,heads){
+  const rw=ui.rw;let items;
+  if(rw.color==='head')items=heads.map(h=>`<span><i style="background:${colors[(Math.max(1,h)-1)%8]}"></i>Head ${h}</span>`).join('');
+  else if(rw.color==='source')items=[['#3b9870','실측'],['#77a6cd','보간'],['#a482be','수동 후보'],['#dbe4ea','기존 유지']].map(([c,t])=>`<span><i style="background:${c}"></i>${t}</span>`).join('');
+  else if(rw.color==='level'&&typeof ReviewLevels!=='undefined'){
+   const cfg=ReviewLevels.config(E),cs=['#2e9076','#b88b2a','#ca754a','#be4f68'];items=cfg.names.map((name,i)=>`<span><i style="background:${cs[i]}"></i>L${i+1} ${esc(name)} · ${i<3?'≤ '+cfg.bounds[i]:'> '+cfg.bounds[2]} µm</span>`).join('')+api.btn('levels-open','레벨 범위 편집','slim');
+  }else items=[['#3b9870','OK'],['#d16776','NG'],['#d39a45','수신 오류 !'],['#dbe4ea','미측정 ·']].map(([c,t])=>`<span><i style="background:${c}"></i>${t}</span>`).join('');
+  return items+'<span><i style="background:#eff2f5"></i>Masking ×</span><span>파란 테두리: 선택</span><span>★: 대표값</span><span>◇: 대표값 복사</span>'+(rw.color!=='judge'?'<span>작업 판정은 클릭 정보·표에서 확인</span>':'');
+ }
+ function html(E,ui,api){
+  const rw=state(E,ui),pts=api.filtered(),p=api.getPoint(),all=E.state.points,cells=unique(all.map(p=>p.cell)),heads=unique(all.map(p=>p.head)),r=referenceValues(E,rw,api),st=api.stats(pts);
+  ui.page=Math.min(ui.page,Math.max(0,Math.ceil(pts.length/50)-1));
+  const selectable=new Set(all.filter(p=>!p.masked).map(p=>p.key)),targetCount=[...ui.selected].filter(k=>k!==rw.representativeKey&&selectable.has(k)).length;
+  const vals=api.active()?.values?.[p?.key]||{x:0,y:0},candidateRow=E.state.candidate?.rows.find(r=>r.key===p?.key);
+  const original=p?.originalMeasurement||p;
+  const filters=ui.head||ui.judge!=='ALL'||ui.source!=='ALL'||ui.query;
+  return `<div id="rw-workspace">
+   <div class="rw-top"><label>보고 싶은 Cell<select id="filter-cell" data-rw-input="cell">${api.options([0,...cells],ui.cell,x=>x?'Cell '+x:'전체 Cell')}</select></label><label>결과 표시<select id="filter-judge" data-rw-input="judge">${api.options(['ALL','OK','NG','ERROR','UNMEASURED'],ui.judge,x=>({ALL:'전체 결과',OK:'OK',NG:'NG',ERROR:'수신 오류',UNMEASURED:'미측정'}[x]))}</select></label><span class="rw-note">먼저 지도에서 대상을 고르세요.</span><details class="rw-advanced" ${rw.advanced?'open':''}><summary>검색·표시 세부 설정</summary><div class="rw-controls"><label>Head<select id="filter-head" data-rw-input="head">${api.options([0,...heads],ui.head,x=>x?'Head '+x:'전체 Head')}</select></label><label>후보 출처<select id="filter-source" data-rw-input="source">${api.options(['ALL','MEASURED','INTERPOLATED','MANUAL','KEPT'],ui.source)}</select></label><label>키 검색<input id="filter-query" data-rw-input="query" value="${esc(ui.query)}" placeholder="C1, H01, S3 또는 고유 키"></label><label>표 정렬<select id="result-sort" data-rw-input="sort">${api.options(['shot','cell','error'],ui.sortKey,x=>({shot:'Shot 순',cell:'Cell 순',error:'편차 크기 순'}[x]))}</select></label>${button('reset-filters','세부 필터 초기화','slim')}</div></details></div>
+   <div class="rw-layout"><div class="rw-main"><section class="panel rw-matrix-panel">
+    <div class="panel-head"><div><h2>2D 측정 결과 지도</h2><p class="rw-note">행·열 배치에서 위치를 선택하고, 선택한 값은 아래 표에서 확인합니다.</p></div><div class="rw-tools">${button('zoom-out','−','slim','aria-label="지도 축소"')}${button('zoom-reset',Math.round(rw.zoom*100)+'% · 맞춤','slim','id="rw-zoom-reset"')}${button('zoom-in','+','slim','aria-label="지도 확대"')}<select id="rw-color" data-rw-input="color" aria-label="지도 색상 기준"><option value="judge" ${rw.color==='judge'?'selected':''}>판정 색상</option><option value="level" ${rw.color==='level'?'selected':''}>오차 레벨</option><option value="head" ${rw.color==='head'?'selected':''}>Head 색상</option><option value="source" ${rw.color==='source'?'selected':''}>후보 출처</option></select>${button('tool',rw.tool==='PAN'?'이동 도구':'선택 도구','slim '+(rw.tool==='PAN'?'active':''),'aria-pressed="'+(rw.tool==='PAN')+'"')}</div></div>
+    ${filters?'<p class="rw-filter-note">세부 필터가 적용되어 지도·표의 일부 위치만 보입니다. 산포도는 별도의 범위를 사용합니다.</p>':''}
+    <div class="rw-map-wrap ${rw.tool==='PAN'?'rw-pan':''}"><canvas id="position-map" tabindex="0" aria-label="2D 측정 결과 지도. Ctrl 클릭 다중 선택, 드래그 영역 선택, Ctrl 휠 확대 축소, Alt 방향키 화면 이동"></canvas><div class="rw-marquee"></div><div class="rw-map-tooltip" role="tooltip"></div></div>
+    <div class="rw-shortcuts"><span><kbd>클릭</kbd> 한 점</span><span><kbd>Ctrl</kbd> + 클릭 여러 점</span><span><kbd>드래그</kbd> 사각형 선택</span><span><kbd>Ctrl</kbd> + 휠 확대·축소</span><span><kbd>Alt</kbd> + 드래그 / 방향키 화면 이동</span><span><kbd>우클릭</kbd> 이동·측정·보정</span></div>
+    <div class="rw-legend">${legend(E,ui,api,heads)}</div>
+    <div class="rw-selection"><b>선택 <span id="rw-selected-count">${ui.selected.size}</span>점</b><span class="muted">지도 ${pts.length.toLocaleString()}점 · 전체 ${all.length.toLocaleString()}점</span>${button('select-ng','보이는 NG 선택','slim')}${button('select-all','보이는 점 전체 선택','slim')}${button('clear','해제','slim')}<span class="spacer"></span>${button('context','선택 작업 ▾','',!ui.selected.size?'disabled':'')}${api.btn('remeasure-selected','선택점 재측정','primary',ui.job?'disabled':'')}</div>
+   </section>
+   <section class="rw-reference"><div class="rw-reference-steps"><strong>대표값과 같은 오프셋·판정</strong><span>① 대표점 지정 → ② 대상 선택 → ③ 내용 확인</span></div><div class="rw-reference-grid"><div>${r?`<div class="rw-reference-key">★ ${esc(r.p.key)} <span class="rw-result-state ${r.p.judge==='OK'?'rw-result-ok':'rw-result-ng'}">${esc(r.p.judge)}</span></div><div class="rw-reference-value">${s(r.x,3)} / ${s(r.y,3)} <small>µm</small></div><p class="rw-note">대표 최종 보정 X / Y · 대표 편차 ${s(r.p.errorXUm,3)} / ${s(r.p.errorYUm,3)} µm</p>`:'<p class="rw-note">실측 OK 또는 NG 점을 클릭한 뒤 <b>대표값으로 지정</b>하세요.</p>'}</div><div class="rw-tools">${button('representative','선택한 점을 대표값으로','',!eligible(p)?'disabled':'')}${r?button('reference-clear','대표 해제','slim'):''}${button('copy','같은 오프셋·상태 적용 · '+targetCount+'점','primary',!r||!targetCount?'disabled':'')}${ui.rwCopyUndo&&api.copyUndo?button('copy-undo','직전 복사 되돌리기','slim'):''}</div></div><p class="rw-note">선택 위치의 <b>최종 보정 F·표시 편차·작업 판정</b>이 대표값을 따릅니다. 원측정은 별도 이력으로 보존하고 ◇ 대표값 복사로 표시합니다. 아래에서 보정 검증·적용까지 진행합니다.</p></section>
+   ${api.correctionHTML?api.correctionHTML():''}
+   <section class="panel rw-scatter"><div class="panel-head"><h2>측정 산포도</h2><label class="rw-scatter-source">표시값<select id="rw-scatter-data" data-rw-input="scatter-data"><option value="WORKING" ${rw.scatterData==='WORKING'?'selected':''}>작업 결과 · 대표값 반영</option><option value="ORIGINAL" ${rw.scatterData==='ORIGINAL'?'selected':''}>원측정 기록</option></select></label></div><div class="rw-tabs" role="tablist" aria-label="산포도 범위">${[['CELL','현재 셀 전체'],['HEAD','전체 셀 · Head별'],['CELLS','선택 셀들']].map(([k,v])=>button('scatter-'+k,v,rw.scatterScope===k?'active':'','role="tab" aria-selected="'+(rw.scatterScope===k)+'"')).join('')}</div>
+    <div class="rw-scope-controls">${rw.scatterScope==='HEAD'?`<label>Head<select id="rw-scatter-head" data-rw-input="scatter-head">${api.options([0,...heads],rw.scatterHead,x=>x?'Head '+x:'모든 Head 겹쳐 보기')}</select></label><span class="muted">지도 Cell·판정 필터와 관계없이 모든 Cell에서 모읍니다.</span>`:rw.scatterScope==='CELLS'?`<div class="rw-cell-chips">${cells.map(c=>`<label class="rw-cell-chip"><input type="checkbox" data-rw-cell="${c}" ${rw.scatterCells.has(c)?'checked':''}>C${c}</label>`).join('')}</div>${button('cells-from-selection','선택점의 Cell 가져오기','slim')}${button('cells-all','모든 셀','slim')}${button('cells-clear','비우기','slim')}`:`<b>Cell ${ui.cell||p?.cell||cells[0]||'—'} 전체</b><span class="muted">지도에서 고른 점이나 NG 필터와 관계없이 셀 전체를 봅니다.</span>`}</div>
+    <div class="rw-scatter-grid"><div><canvas id="error-scatter" aria-label="측정 편차 산포도"></canvas><div id="rw-scatter-legend" class="rw-legend"></div></div><div><dl id="rw-scatter-metrics" class="rw-metric-list"></dl><p id="rw-scatter-excluded" class="rw-excluded"></p><div id="rw-scatter-groups" class="rw-scope-table"></div></div></div>
+   </section>
+   <section class="panel rw-table-panel"><div class="panel-head"><h2>측정 결과</h2>${api.btn('csv-download','현재 결과 CSV','slim')}</div><div class="rw-stats-bar"><span>OK<b>${st.ok}</b></span><span>NG<b>${st.ng}</b></span><span>오류<b>${st.error}</b></span><span>미측정<b>${st.missing}</b></span></div>${api.pointTable(pts.slice(ui.page*50,ui.page*50+50))}<div class="pagination">${api.btn('page-prev','이전','slim',ui.page===0?'disabled':'')}<span>${ui.page+1} / ${Math.max(1,Math.ceil(pts.length/50))} 페이지</span>${api.btn('page-next','다음','slim',(ui.page+1)*50>=pts.length?'disabled':'')}</div></section></div>
+   <aside class="panel rw-detail"><div class="rw-detail-summary"><div><small class="muted">최근 클릭한 위치</small><h2 class="point-title">${p?`Cell ${p.cell} · Head ${p.head}`:'선택 없음'}</h2><p class="small">${p?`Shot ${p.shot} · Beam ${p.beam}`:'지도에서 점을 선택하세요.'}</p>${p?`<div class="rw-point-states"><span>작업 판정 <b class="rw-result-state ${p.judge==='OK'?'rw-result-ok':p.judge==='NG'?'rw-result-ng':''}">${esc(p.judge)}</b></span><span>원측정 <b>${esc(original?.judge)}</b></span></div><p class="rw-note">작업 ΔX / ΔY<br><strong>${s(p.errorXUm,3)} / ${s(p.errorYUm,3)} µm</strong><br>원측정 ${s(original?.errorXUm,3)} / ${s(original?.errorYUm,3)} µm</p>${p.proxySource?`<p class="rw-proxy-note"><b>◇ 대표값 복사 · MANUAL</b><br>기준 ${esc(p.proxySource.referenceKey)}<br>새 실측이 아닌 대표값을 사용 중입니다.</p>`:''}`:''}</div>${p?`<dl class="kv"><dt>현재 보정 B</dt><dd>${s(vals.x,3)} / ${s(vals.y,3)} µm</dd><dt>후보 보정 F</dt><dd>${candidateRow?s(candidateRow.finalX,3)+' / '+s(candidateRow.finalY,3)+' µm':'후보 없음'}</dd><dt>설계 X / Y</dt><dd>${n(p.xMm,3)} / ${n(p.yMm,3)} mm</dd><dt>대표 여부</dt><dd>${p.key===rw.representativeKey?'★ 대표값':'대상 위치'}</dd></dl>`:''}</div>
+    ${p?`<div class="detail-actions">${api.btn('move','이동만')}${api.btn('move-measure','이동 후 측정','primary')}${api.btn('move-measure-correct','이동 후 측정 & 보정','primary wide')}${button('context','선택 작업 ▾','wide')}${api.btn('show-point','원시 값·측정 이력','wide')}${api.btn('correction-focus','보정 검증·적용 보기','wide')}</div><p class="rw-note">Alt 조작은 <b>화면 보기 이동</b>입니다. 이동·측정·보정은 위 버튼이나 지도·표의 우클릭 메뉴에서 실행합니다.</p><details><summary>측정 옵션·추가 동작</summary><div class="rw-controls"><label>획득 방식<select id="measurement-mode"><option value="P2P" ${ui.measurementMode!=='FLYING'?'selected':''}>P2P · 선택점</option><option value="FLYING" ${ui.measurementMode==='FLYING'?'selected':''}>Flying · 해당 행 전체</option></select></label><label>가상 상황<select id="measurement-scenario"><option value="recover" ${ui.measureScenario!=='same'?'selected':''}>검출 오류 회복 예제</option><option value="same" ${ui.measureScenario==='same'?'selected':''}>같은 편차 유지</option></select></label></div><div class="button-stack section-gap">${api.btn('measure','현재 위치 측정')}${api.btn('runtime-retry','잔여 재실행','',E.state.operationIncomplete?.remainingKeys?.length?'':'disabled')}${api.btn('stop-measure','중지','danger',ui.job?'':'disabled')}</div><p class="rw-note">Flying은 선택점이 포함된 Cell·Head·행 전체로 넓어집니다. 실행 전 대상 범위를 확인합니다.</p><p class="small mono">${esc(p.key)}</p></details>`:''}${api.jobPanel()}
+   </aside></div></div>`;
+ }
+ function canvas(id){const el=document.getElementById(id);if(!el)return null;const rect=el.getBoundingClientRect(),dpr=Math.min(2,devicePixelRatio||1);el.width=Math.round(rect.width*dpr);el.height=Math.round(rect.height*dpr);const ctx=el.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);return{el,ctx,w:rect.width,h:rect.height}}
+ function color(p,E,ui){if(p.masked)return'#eff2f5';if(ui.rw.color==='head')return colors[(Math.max(1,p.head)-1)%8];if(ui.rw.color==='level'&&typeof ReviewLevels!=='undefined')return ReviewLevels.classify(p,E).color;if(ui.rw.color==='source'){const source=ui.candidateByKey?.get(p.key)?.source||p.source;return{MEASURED:'#3b9870',INTERPOLATED:'#77a6cd',MANUAL:'#a482be',KEPT:'#dbe4ea'}[source]||'#dbe4ea'}return {OK:'#3b9870',NG:'#d16776',ERROR:'#d39a45',UNMEASURED:'#dbe4ea'}[p.judge]||'#dbe4ea'}
+ function layout(points,w,h,allPoints){
+  // Keep the original Cell/Head grid and Beam subslots even when result filters hide points.
+  // Filtering changes visibility only; it must never pack remaining NG/query matches together.
+  const visible=new Set(points.map(p=>p.key)),groups=new Map();allPoints.forEach(p=>{const key=p.cell+'|'+p.head;if(!groups.has(key))groups.set(key,{cell:p.cell,head:p.head,points:[]});groups.get(key).points.push(p)});
+  const gs=[...groups.values()].sort((a,b)=>a.cell-b.cell||a.head-b.head),columns=gs.length>1?Math.min(gs.length,w>750?4:w>430?2:1):1,rows=Math.max(1,Math.ceil(gs.length/columns)),gap=17,margin=20;
+  const gw=(w-margin*2-gap*(columns-1))/columns,gh=(h-margin*2-gap*(rows-1))/rows,rects=[],labels=[];
+  gs.forEach((g,index)=>{const gx=margin+(index%columns)*(gw+gap),gy=margin+Math.floor(index/columns)*(gh+gap),cols=unique(g.points.map(p=>p.col)),rs=unique(g.points.map(p=>p.row)),colMap=new Map(cols.map((v,i)=>[v,i])),rowMap=new Map(rs.map((v,i)=>[v,i]));const titleH=gs.length>1?22:20,tileW=gw/Math.max(1,cols.length),tileH=(gh-titleH)/Math.max(1,rs.length),buckets=new Map();
+   g.points.forEach(p=>{const k=p.row+'|'+p.col;if(!buckets.has(k))buckets.set(k,[]);buckets.get(k).push(p)});labels.push({x:gx,y:gy+13,text:'Cell '+g.cell+' · H'+g.head});
+   buckets.forEach(ps=>{ps.sort((a,b)=>a.beam-b.beam||a.key.localeCompare(b.key));const subCols=Math.ceil(Math.sqrt(ps.length)),subRows=Math.ceil(ps.length/subCols);ps.forEach((p,j)=>{if(!visible.has(p.key))return;const x=gx+colMap.get(p.col)*tileW+(j%subCols)*tileW/subCols,y=gy+titleH+rowMap.get(p.row)*tileH+Math.floor(j/subCols)*tileH/subRows;rects.push({key:p.key,p,x,y,w:tileW/subCols,h:tileH/subRows})})});
+  });return{rects,labels};
+ }
+ function draw(E,ui,api){
+  closeContextMenu();const root=document.getElementById('rw-workspace');if(!root)return;const rw=state(E,ui),map=canvas('position-map');if(!map)return;
+  const pts=api.filtered(),allPoints=E.state.points.filter(p=>(!ui.cell||p.cell===ui.cell)&&(!ui.head||p.head===ui.head)),signature=ui.cell+'|'+ui.head+'|'+allPoints.length;
+  if(rw.layoutSignature!==signature){rw.zoom=1;rw.panX=rw.panY=0;rw.layoutSignature=signature}
+  const geometry=layout(pts,map.w,map.h,allPoints);rw.hits=[];context={E,ui,api,map,geometry,root,gesture:null};
+  paintMap(context);drawScatter(E,ui,api);bindRoot(context);bindMap(context);
+ }
+ function paintMap(c){
+  const {map,geometry,E,ui}=c,rw=ui.rw,ctx=map.ctx,z=rw.zoom;
+  ctx.clearRect(0,0,map.w,map.h);ctx.fillStyle='#f8fbfd';ctx.fillRect(0,0,map.w,map.h);rw.hits=[];
+  ctx.save();ctx.beginPath();ctx.rect(0,0,map.w,map.h);ctx.clip();
+  for(const label of geometry.labels){const x=label.x*z+rw.panX,y=label.y*z+rw.panY;ctx.fillStyle='#43657b';ctx.font='600 11px "Malgun Gothic",sans-serif';if(y>-10&&y<map.h+10)ctx.fillText(label.text,x,y)}
+  for(const a of geometry.rects){const x=a.x*z+rw.panX,y=a.y*z+rw.panY,w=a.w*z,h=a.h*z;if(x+w<0||y+h<0||x>map.w||y>map.h)continue;const p=a.p,gap=Math.max(.6,Math.min(3,Math.min(w,h)*.1)),selected=ui.selected.has(a.key),reference=a.key===rw.representativeKey;ctx.fillStyle=color(p,E,ui);ctx.fillRect(x+gap/2,y+gap/2,Math.max(.5,w-gap),Math.max(.5,h-gap));
+   if(p.masked&&w>5&&h>5){ctx.strokeStyle='#b8c5ce';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x+3,y+3);ctx.lineTo(x+w-3,y+h-3);ctx.moveTo(x+w-3,y+3);ctx.lineTo(x+3,y+h-3);ctx.stroke()}
+   if(selected){ctx.strokeStyle='#fff';ctx.lineWidth=4;ctx.strokeRect(x+1.5,y+1.5,w-3,h-3);ctx.strokeStyle='#075e86';ctx.lineWidth=2;ctx.strokeRect(x+1.5,y+1.5,w-3,h-3)}
+   if(reference){ctx.strokeStyle='#d18b00';ctx.lineWidth=3;ctx.strokeRect(x+3,y+3,w-6,h-6)}
+   if(w>22&&h>19){ctx.font=Math.min(12,Math.max(9,h/3))+'px "Malgun Gothic",sans-serif';ctx.fillStyle=p.masked?'#8498a6':p.judge==='UNMEASURED'?'#607889':'#153e4e';const symbol=reference?'★ ':p.proxySource?'◇ ':p.judge==='ERROR'?'! ':p.judge==='UNMEASURED'?'· ':'';ctx.fillText(symbol+(w>50?'S':'')+p.shot+(w>95?' / B'+p.beam:''),x+5,y+h*.6,Math.max(1,w-8))}
+   rw.hits.push({key:a.key,x,y,w,h,masked:!!p.masked});
+  }
+  ctx.restore();if(!geometry.rects.length){ctx.fillStyle='#6d8292';ctx.font='14px "Malgun Gothic",sans-serif';ctx.fillText('표시할 위치가 없습니다. Cell 또는 필터를 바꿔보세요.',20,45)}
+  const reset=document.getElementById('rw-zoom-reset');if(reset)reset.textContent=Math.round(z*100)+'% · 맞춤';
+ }
+ function local(ev,el){const r=el.getBoundingClientRect();return{x:ev.clientX-r.left,y:ev.clientY-r.top}}
+ function hitAt(rw,p){return rw.hits.find(a=>p.x>=a.x&&p.x<a.x+a.w&&p.y>=a.y&&p.y<a.y+a.h)}
+ function zoomAt(c,factor,x,y){const rw=c.ui.rw,old=rw.zoom,next=Math.max(.4,Math.min(12,old*factor));rw.panX=x-(x-rw.panX)*next/old;rw.panY=y-(y-rw.panY)*next/old;rw.zoom=next;paintMap(c)}
+ function bindMap(c){
+  const {map,ui,api,root}=c,rw=ui.rw,wrap=map.el.parentElement,marquee=wrap.querySelector('.rw-marquee'),tip=wrap.querySelector('.rw-map-tooltip');
+  const hide=()=>{marquee.style.display='none';tip.style.display='none';wrap.classList.remove('rw-panning')};
+  map.el.onpointerdown=ev=>{if(ev.button!==0)return;const p=local(ev,map.el);map.el.focus({preventScroll:true});tip.style.display='none';c.gesture={start:p,last:p,alt:ev.altKey||rw.tool==='PAN',add:ev.ctrlKey||ev.metaKey,moved:false,panX:rw.panX,panY:rw.panY,selection:new Set(ui.selected),pointerId:ev.pointerId};map.el.setPointerCapture(ev.pointerId);ev.preventDefault();ev.stopPropagation()};
+  map.el.onpointermove=ev=>{const p=local(ev,map.el),g=c.gesture;if(g){g.last=p;g.moved=g.moved||Math.hypot(p.x-g.start.x,p.y-g.start.y)>4;if(g.alt){rw.panX=g.panX+p.x-g.start.x;rw.panY=g.panY+p.y-g.start.y;wrap.classList.add('rw-panning');if(!frame)frame=requestAnimationFrame(()=>{frame=0;if(context===c)paintMap(c)})}else if(g.moved){marquee.style.display='block';marquee.style.left=Math.min(p.x,g.start.x)+'px';marquee.style.top=Math.min(p.y,g.start.y)+'px';marquee.style.width=Math.abs(p.x-g.start.x)+'px';marquee.style.height=Math.abs(p.y-g.start.y)+'px'}return}
+   const a=hitAt(rw,p);if(!a){tip.style.display='none';return}const point=c.E.state.points.find(q=>q.key===a.key);tip.textContent=`${a.key}\n${point?.judge||''} · ΔX ${s(point?.errorXUm,3)} / ΔY ${s(point?.errorYUm,3)} µm${point?.masked?'\nMasking · 측정 선택 제외':''}`;tip.style.display='block';tip.style.left=Math.min(map.w-235,Math.max(3,p.x+12))+'px';tip.style.top=Math.min(map.h-75,p.y+15)+'px';
+  };
+  map.el.onpointerup=ev=>{const g=c.gesture;if(!g||g.pointerId!==ev.pointerId)return;const p=local(ev,map.el);c.gesture=null;hide();if(map.el.hasPointerCapture(ev.pointerId))map.el.releasePointerCapture(ev.pointerId);ev.preventDefault();ev.stopPropagation();if(g.alt){paintMap(c);return}
+   if(g.moved){const minX=Math.min(g.start.x,p.x),maxX=Math.max(g.start.x,p.x),minY=Math.min(g.start.y,p.y),maxY=Math.max(g.start.y,p.y),chosen=rw.hits.filter(a=>!a.masked&&a.x+a.w/2>=minX&&a.x+a.w/2<=maxX&&a.y+a.h/2>=minY&&a.y+a.h/2<=maxY);ui.selected=g.add?g.selection:new Set();chosen.forEach(a=>ui.selected.add(a.key));if(chosen.length)ui.focus=chosen[chosen.length-1].key;
+   }else{const a=hitAt(rw,p);if(a?.masked){api.announce('Masking 위치는 측정 대상으로 선택하지 않습니다.');return}if(a){ui.focus=a.key;if(g.add){ui.selected.has(a.key)?ui.selected.delete(a.key):ui.selected.add(a.key)}else ui.selected=new Set([a.key])}else if(!g.add)ui.selected.clear()}
+   ui.multi=false;rerender(api,true);
+  };
+  map.el.onpointercancel=()=>{const g=c.gesture;if(g?.alt){rw.panX=g.panX;rw.panY=g.panY}c.gesture=null;hide();paintMap(c)};
+  map.el.onlostpointercapture=()=>{if(c.gesture){c.gesture=null;hide()}};
+  map.el.onpointerleave=()=>{if(!c.gesture)tip.style.display='none'};
+  map.el.onclick=ev=>{ev.preventDefault();ev.stopPropagation()};
+  map.el.onwheel=ev=>{if(!ev.ctrlKey)return;ev.preventDefault();ev.stopPropagation();const p=local(ev,map.el);zoomAt(c,Math.exp(-Math.sign(ev.deltaY)*.14),p.x,p.y)};
+  // Explicit passive:false prevents Ctrl+wheel from reaching browser page zoom.
+  map.el.addEventListener('wheel',ev=>{if(ev.ctrlKey)ev.preventDefault()},{passive:false});
+ }
+ function metric(points){
+  const valid=[],excluded={masked:0,unmeasured:0,error:0,invalid:0};
+  for(const p of points){if(p.masked)excluded.masked++;else if(p.judge==='UNMEASURED')excluded.unmeasured++;else if(p.judge==='ERROR')excluded.error++;else if(!Number.isFinite(p.errorXUm)||!Number.isFinite(p.errorYUm))excluded.invalid++;else valid.push(p)}
+  let sumX=0,sumY=0,max=0;for(const p of valid){sumX+=p.errorXUm;sumY+=p.errorYUm;max=Math.max(max,Math.hypot(p.errorXUm,p.errorYUm))}const meanX=valid.length?sumX/valid.length:null,meanY=valid.length?sumY/valid.length:null;let sx=0,sy=0;for(const p of valid){sx+=(p.errorXUm-meanX)**2;sy+=(p.errorYUm-meanY)**2}
+  return{total:points.length,count:valid.length,proxyCount:points.filter(p=>!!p.proxySource).length,meanX,meanY,sigmaX:valid.length?Math.sqrt(sx/valid.length):null,sigmaY:valid.length?Math.sqrt(sy/valid.length):null,max:valid.length?max:null,excluded,valid};
+ }
+ function drawScatter(E,ui,api){
+  const rw=ui.rw,all=E.state.points,focus=api.getPoint(),cell=ui.cell||focus?.cell||all[0]?.cell;
+  const range=rw.scatterScope==='CELL'?all.filter(p=>p.cell===cell):rw.scatterScope==='HEAD'?all.filter(p=>!rw.scatterHead||p.head===rw.scatterHead):all.filter(p=>rw.scatterCells.has(p.cell));
+  const points=rw.scatterData==='ORIGINAL'?range.map(p=>{const o=p.originalMeasurement;if(!o)return p;return{...p,judge:o.judge,errorXUm:o.errorXUm,errorYUm:o.errorYUm,source:o.source,proxySource:null}}):range;
+  const m=metric(points),c=canvas('error-scatter');if(!c)return;const groupType=rw.scatterScope==='HEAD'?'head':'cell',groups=unique(points.map(p=>p[groupType])),byGroup=groups.map(group=>({group,...metric(points.filter(p=>p[groupType]===group))}));
+  rw.scatterMetrics={scope:rw.scatterScope,data:rw.scatterData,proxyCount:m.proxyCount,cell:rw.scatterScope==='CELL'?cell:null,head:rw.scatterScope==='HEAD'?rw.scatterHead:null,cells:rw.scatterScope==='CELLS'?[...rw.scatterCells].sort((a,b)=>a-b):null,total:m.total,count:m.count,meanX:m.meanX,meanY:m.meanY,sigmaX:m.sigmaX,sigmaY:m.sigmaY,max:m.max,excluded:m.excluded,pointKeys:m.valid.map(p=>p.key),groups:byGroup.map(({valid,...r})=>r)};
+  const tolX=E.state.settings.toleranceXUm,tolY=E.state.settings.toleranceYUm;let maxAxis=Math.max(5,tolX*1.3,tolY*1.3);m.valid.forEach(p=>maxAxis=Math.max(maxAxis,Math.abs(p.errorXUm)*1.12,Math.abs(p.errorYUm)*1.12));const power=10**Math.floor(Math.log10(maxAxis)),lim=Math.ceil(maxAxis/power*2)/2*power,pad={l:47,r:22,t:27,b:35},size=Math.min(c.w-pad.l-pad.r,c.h-pad.t-pad.b),sx=size/(lim*2),sy=sx,cx=pad.l+(c.w-pad.l-pad.r)/2,cy=pad.t+(c.h-pad.t-pad.b)/2,ctx=c.ctx;
+  ctx.clearRect(0,0,c.w,c.h);ctx.font='10px "Malgun Gothic",sans-serif';
+  for(let k=-2;k<=2;k++){const v=lim*k/2,x=cx+v*sx,y=cy-v*sy;ctx.strokeStyle=k?'#edf1f4':'#bbcdd9';ctx.lineWidth=k?1:1.3;ctx.beginPath();ctx.moveTo(x,cy-size/2);ctx.lineTo(x,cy+size/2);ctx.moveTo(cx-size/2,y);ctx.lineTo(cx+size/2,y);ctx.stroke();ctx.fillStyle='#758b9c';ctx.fillText(n(v,lim<2?1:0),x-8,cy+size/2+17);ctx.fillText(n(v,lim<2?1:0),cx-size/2-31,y+3)}
+  ctx.strokeStyle='#b99a5b';ctx.lineWidth=1.3;ctx.setLineDash([4,4]);ctx.strokeRect(cx-tolX*sx,cy-tolY*sy,tolX*2*sx,tolY*2*sy);ctx.setLineDash([]);ctx.fillStyle='#536e84';ctx.fillText('ΔX (µm)',c.w-62,c.h-10);ctx.fillText('ΔY (µm)',10,16);ctx.fillStyle='#9e8756';ctx.fillText('점선: 공차 ±'+n(tolX,1)+' / ±'+n(tolY,1),cx-size/2,14);
+  const scatterHits=[];for(const p of m.valid){const group=p[groupType],index=groups.indexOf(group),x=cx+p.errorXUm*sx,y=cy-p.errorYUm*sy,c=colors[(groupType==='head'?Math.max(0,p.head-1):index)%colors.length];ctx.fillStyle=c;ctx.strokeStyle=c;ctx.globalAlpha=.72;ctx.beginPath();if(p.proxySource){ctx.moveTo(x,y-4);ctx.lineTo(x+4,y);ctx.lineTo(x,y+4);ctx.lineTo(x-4,y);ctx.closePath();ctx.lineWidth=1.4;ctx.stroke()}else{ctx.arc(x,y,ui.selected.has(p.key)?4:2.4,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1;if(ui.selected.has(p.key)){ctx.strokeStyle='#173a5a';ctx.lineWidth=1.3;ctx.stroke()}scatterHits.push({key:p.key,x,y})}
+  if(m.count){const x=cx+m.meanX*sx,y=cy-m.meanY*sy;ctx.strokeStyle='#162f46';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x-6,y);ctx.lineTo(x+6,y);ctx.moveTo(x,y-6);ctx.lineTo(x,y+6);ctx.stroke()}else{ctx.fillStyle='#637e91';ctx.font='13px "Malgun Gothic",sans-serif';ctx.textAlign='center';ctx.fillText(rw.scatterScope==='CELLS'&&!rw.scatterCells.size?'산포도를 볼 Cell을 위에서 선택하세요.':'이 범위에 유효한 측정값이 없습니다.',c.w/2,c.h/2-12);ctx.textAlign='left'}
+  document.getElementById('rw-scatter-legend').innerHTML=groups.map((group,i)=>`<span><i style="background:${colors[(groupType==='head'?Math.max(0,group-1):i)%colors.length]}"></i>${groupType==='head'?'H':'Cell '}${group}</span>`).join('')+'<span>＋ 평균 · 중심 (0,0): 목표</span>'+(rw.scatterData==='WORKING'?'<span>● 실측값 · ◇ 대표값 복사</span>':'<span>원측정 기록만 표시</span>');
+  document.getElementById('rw-scatter-metrics').innerHTML=[['전체 위치',m.total+'점'],[rw.scatterData==='WORKING'?'표시한 작업값':'유효 원측정값',m.count+'점'],...(rw.scatterData==='WORKING'?[['대표값 복사',m.proxyCount+'점']]:[]),['평균 ΔX / ΔY',s(m.meanX,3)+' / '+s(m.meanY,3)],['표준편차 σX / σY',n(m.sigmaX,3)+' / '+n(m.sigmaY,3)],['최대 벡터 편차',n(m.max,3)+' µm']].map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('');
+  document.getElementById('rw-scatter-excluded').textContent=`산포도 제외: Masking ${m.excluded.masked} · 미측정 ${m.excluded.unmeasured} · 수신 오류 ${m.excluded.error} · 수치 없음 ${m.excluded.invalid}점. ${rw.scatterData==='WORKING'?'대표값 복사는 실측과 다른 ◇ 표식으로 집계합니다.':'복사 전의 원측정 편차·판정으로 집계합니다.'} 평균·표준편차 단위는 µm이며 σ는 모집단 기준입니다.`;
+  document.getElementById('rw-scatter-groups').innerHTML=byGroup.length?'<table><thead><tr><th>범위</th><th>측정점</th><th>평균 X/Y µm</th></tr></thead><tbody>'+byGroup.map(g=>`<tr><td>${groupType==='head'?'H':'C'}${g.group}</td><td>${g.count}</td><td>${s(g.meanX)} / ${s(g.meanY)}</td></tr>`).join('')+'</tbody></table>':'';
+  c.el.onclick=ev=>{const p=local(ev,c.el);let best=null,distance=11;scatterHits.forEach(h=>{const d=Math.hypot(h.x-p.x,h.y-p.y);if(d<distance){best=h;distance=d}});if(!best)return;const point=all.find(p=>p.key===best.key);if(ev.ctrlKey||ev.metaKey){ui.selected.has(best.key)?ui.selected.delete(best.key):ui.selected.add(best.key)}else ui.selected=new Set([best.key]);ui.focus=best.key;if(point&&ui.cell&&ui.cell!==point.cell){ui.cell=point.cell;ui.head=0;ui.judge='ALL';ui.source='ALL';ui.query=''}rerender(api);ev.stopPropagation()};
+ }
+ function closeContextMenu(){if(menuNode){menuNode.remove();menuNode=null}}
+ function openContextMenu(c,x,y,key=null){
+  closeContextMenu();const {E,ui,api}=c,pointMap=new Map(E.state.points.map(p=>[p.key,p]));
+  if(key){const p=pointMap.get(key);if(!p||p.masked){api.announce('Masking 위치는 이동·측정·보정 대상에서 제외됩니다.');return}if(!ui.selected.has(key))ui.selected=new Set([key]);ui.focus=key;rerender(api);c=context||c;}
+  if(!ui.selected.size){const p=api.getPoint();if(!p||p.masked){api.announce('먼저 작업할 위치를 선택하세요.');return}ui.selected=new Set([p.key]);ui.focus=p.key;rerender(api);c=context||c;}
+  const keys=[...ui.selected].filter(k=>pointMap.has(k)&&!pointMap.get(k).masked),excluded=ui.selected.size-keys.length;
+  if(!keys.length){api.announce('선택 범위에 작업할 수 있는 위치가 없습니다.');return}
+  const runId=E.state.runId,revision=E.state.activeRevisionId,busy=!!ui.job||!!api.R?.isBusy?.()||!!ui.scenarioBusy;
+  const menu=document.createElement('div');menu.id='rw-context-menu';menu.className='rw-context-menu';menu.setAttribute('role','menu');menu.setAttribute('aria-label','선택 위치 작업');
+  menu.innerHTML=`<div class="rw-context-heading"><b>선택 ${keys.length}점</b>${excluded?`<span>Masking ${excluded}점 제외</span>`:''}<small>${esc(key||ui.focus||keys[0])}</small></div>${[['MOVE','이동만','선택 위치로 순서대로 이동'],['P2P','이동 후 측정','이동·정착 후 새 결과 취득'],['MEASURE_CORRECT','이동 후 측정 & 보정','새 측정으로 보정 검토까지 진행']].map(([kind,title,note])=>`<button type="button" role="menuitem" data-rw-context="${kind}" ${busy?'disabled':''}><strong>${title}</strong><small>${note}</small></button>`).join('')}${busy?'<p class="rw-context-busy">진행 중인 작업이 끝난 뒤 실행하세요.</p>':''}`;
+  document.body.appendChild(menu);menuNode=menu;
+  const rect=menu.getBoundingClientRect();menu.style.left=Math.max(8,Math.min(x,window.innerWidth-rect.width-8))+'px';menu.style.top=Math.max(8,Math.min(y,window.innerHeight-rect.height-8))+'px';
+  menu.onclick=ev=>{const b=ev.target.closest('[data-rw-context]');ev.preventDefault();ev.stopPropagation();if(!b||b.disabled)return;const kind=b.dataset.rwContext;
+   try{if(E.state.runId!==runId||E.state.activeRevisionId!==revision)throw Error('메뉴를 연 뒤 작업 기준이 바뀌었습니다. 다시 선택하세요.');closeContextMenu();const p=api.contextAction?.(kind,keys.slice());if(p?.catch)p.catch(e=>api.announce(e.message||String(e),'error'));}catch(e){api.announce(e.message||String(e),'error')}
+  };
+  menu.onkeydown=ev=>{const items=[...menu.querySelectorAll('[role="menuitem"]:not(:disabled)')],i=items.indexOf(document.activeElement);if(['ArrowDown','ArrowUp','Home','End'].includes(ev.key)){ev.preventDefault();ev.stopPropagation();const index=ev.key==='Home'?0:ev.key==='End'?items.length-1:ev.key==='ArrowDown'?(i+1)%items.length:(i-1+items.length)%items.length;items[index]?.focus()}else if(ev.key==='Escape'){ev.preventDefault();ev.stopPropagation();closeContextMenu();context?.map.el.focus({preventScroll:true})}};
+  menu.querySelector('[role="menuitem"]:not(:disabled)')?.focus({preventScroll:true});
+ }
+ function bindRoot(c){const {root,ui,E,api}=c,rw=ui.rw;
+  root.oncontextmenu=ev=>{let key=null;if(ev.target===c.map.el){const a=hitAt(rw,local(ev,c.map.el));key=a?.key}else key=ev.target.closest('tr[data-key]')?.dataset.key;if(!key)return;ev.preventDefault();ev.stopPropagation();c.gesture=null;root.querySelector('.rw-marquee').style.display='none';openContextMenu(c,ev.clientX,ev.clientY,key)};
+  root.onclick=ev=>{const b=ev.target.closest('[data-rw-action]');if(!b)return;ev.stopPropagation();if(b.disabled)return;const a=b.dataset.rwAction;try{
+   if(a==='zoom-in'||a==='zoom-out'){zoomAt(c,a==='zoom-in'?1.25:.8,c.map.w/2,c.map.h/2);return}
+   if(a==='zoom-reset'){rw.zoom=1;rw.panX=rw.panY=0;paintMap(c);return}
+   if(a==='tool'){rw.tool=rw.tool==='PAN'?'SELECT':'PAN';rerender(api);return}
+   if(a==='select-all'||a==='select-ng'){ui.selected=new Set(api.filtered().filter(p=>!p.masked&&(a!=='select-ng'||p.judge==='NG')).map(p=>p.key));ui.multi=false}
+   else if(a==='clear')ui.selected.clear();
+   else if(a==='representative'){const p=api.getPoint();if(!eligible(p))throw Error('대표값 복사본이 아닌 유효한 실측 OK 또는 NG 점을 먼저 클릭하세요.');rw.representativeKey=p.key;api.announce('대표값을 지정했습니다. Ctrl 클릭 또는 드래그로 다른 대상 위치를 선택하세요.','success')}
+   else if(a==='reference-clear')rw.representativeKey=null;
+   else if(a==='copy'){api.copyPreview();return}
+   else if(a==='copy-undo'){api.copyUndo?.();return}
+   else if(a==='context'){const r=b.getBoundingClientRect();openContextMenu(c,r.left,r.bottom+4);return}
+   else if(a.startsWith('scatter-'))rw.scatterScope=a.slice(8);
+   else if(a==='cells-from-selection'){rw.scatterCells=new Set(E.state.points.filter(p=>ui.selected.has(p.key)).map(p=>p.cell));if(!rw.scatterCells.size)api.announce('먼저 지도에서 측정 위치를 선택하세요.')}
+   else if(a==='cells-all')rw.scatterCells=new Set(E.state.points.map(p=>p.cell));
+   else if(a==='cells-clear')rw.scatterCells.clear();
+   else if(a==='reset-filters'){ui.head=0;ui.judge='ALL';ui.source='ALL';ui.query='';ui.page=0}
+   rerender(api);
+  }catch(e){api.announce(e.message||String(e),'error')}};
+  root.onchange=ev=>{const el=ev.target;if(el.matches('[data-rw-cell]')){ev.stopPropagation();const cell=Number(el.dataset.rwCell);el.checked?rw.scatterCells.add(cell):rw.scatterCells.delete(cell);rerender(api);return}const key=el.dataset.rwInput;if(!key)return;ev.stopPropagation();if(key==='cell'){ui.cell=Number(el.value);ui.page=0}else if(key==='head'){ui.head=Number(el.value);ui.page=0}else if(key==='judge'){ui.judge=el.value;ui.page=0}else if(key==='source'){ui.source=el.value;ui.page=0}else if(key==='query'){ui.query=el.value;ui.page=0}else if(key==='sort'){ui.sortKey=el.value;ui.page=0}else if(key==='color')rw.color=el.value;else if(key==='scatter-head')rw.scatterHead=Number(el.value);else if(key==='scatter-data')rw.scatterData=el.value;rerender(api)};
+  root.querySelector('.rw-advanced')?.addEventListener('toggle',ev=>{rw.advanced=ev.target.open});
+ }
+ document.addEventListener('keydown',ev=>{const c=context;if(!c||c.ui.view!=='workspace'||!document.getElementById('rw-workspace'))return;
+  if(menuNode&&ev.key==='Escape'){ev.preventDefault();ev.stopImmediatePropagation();closeContextMenu();c.map.el.focus({preventScroll:true});return}
+  if((ev.shiftKey&&ev.key==='F10')||ev.key==='ContextMenu'){if(ev.target.closest('dialog'))return;ev.preventDefault();ev.stopImmediatePropagation();const r=(ev.target.closest('tr[data-key]')||c.map.el).getBoundingClientRect();openContextMenu(c,r.left+20,r.top+Math.min(40,r.height/2),ev.target.closest('tr[data-key]')?.dataset.key);return}
+  if(ev.target.closest('input,textarea,select,dialog,[contenteditable=true]'))return;if(ev.altKey&&['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(ev.key)){ev.preventDefault();ev.stopImmediatePropagation();closeContextMenu();const step=ev.shiftKey?100:40,rw=c.ui.rw;if(ev.key==='ArrowLeft')rw.panX-=step;if(ev.key==='ArrowRight')rw.panX+=step;if(ev.key==='ArrowUp')rw.panY-=step;if(ev.key==='ArrowDown')rw.panY+=step;paintMap(c);return}if(ev.key==='Escape'&&c.gesture){const g=c.gesture;if(g.alt){c.ui.rw.panX=g.panX;c.ui.rw.panY=g.panY}c.gesture=null;c.root.querySelector('.rw-marquee').style.display='none';paintMap(c);ev.preventDefault();ev.stopImmediatePropagation()}},true);
+ document.addEventListener('pointerdown',ev=>{if(menuNode&&!menuNode.contains(ev.target))closeContextMenu()},true);
+ document.addEventListener('scroll',closeContextMenu,true);window.addEventListener('resize',closeContextMenu);
+ window.addEventListener('blur',()=>{closeContextMenu();const c=context;if(!c?.gesture)return;const g=c.gesture;if(g.alt){c.ui.rw.panX=g.panX;c.ui.rw.panY=g.panY}c.gesture=null;c.root.querySelector('.rw-marquee')?.style.setProperty('display','none');c.map.el.parentElement.classList.remove('rw-panning');paintMap(c)});
+ return{html,draw,eligible,referenceValues,metric};
+})();
+
+;
+(()=>{'use strict';
+const STORAGE='a3-review-workspace-only-20261116',clone=v=>JSON.parse(JSON.stringify(v??null)),now=()=>new Date().toISOString();
+const $=id=>document.getElementById(id),h=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num=(v,d=2)=>Number.isFinite(v)?v.toFixed(d):'—',sign=(v,d=2)=>Number.isFinite(v)?(v>=0?'+':'')+v.toFixed(d):'—';
+const btn=(a,t,c='',extra='')=>`<button type="button" class="btn ${c}" data-action="${a}" ${extra}>${t}</button>`;
+const options=(vals,current,label)=>vals.map(v=>`<option value="${h(v)}" ${String(v)===String(current)?'selected':''}>${h(label?label(v):v)}</option>`).join('');
+const value=(id,fallback='')=>$(id)?.value??fallback;
+const E=new ReviewEngine({storageKey:STORAGE,restore:true});let R,rendering=false,updateAt=0,opSerial=0;
+const ui={view:'workspace',cell:1,head:0,judge:'ALL',source:'ALL',query:'',sortKey:'shot',sortDir:1,page:0,selected:new Set(),focus:null,multi:false,measurementMode:'P2P',measureScenario:'recover',speed:16,fault:'NONE',job:null,operation:null,allowManual:false,lastMessage:null,rwCopyUndo:null};
+function active(){return E.state.revisions.find(r=>r.id===E.state.activeRevisionId)}
+function point(key){return E.state.points.find(p=>p.key===key)}
+function workingSnapshot(p){return{judge:p.judge,errorXUm:p.errorXUm,errorYUm:p.errorYUm,source:p.source,proxySource:clone(p.proxySource)}}
+function measurementSnapshot(p){return{at:now(),judge:p.judge,errorXUm:p.errorXUm,errorYUm:p.errorYUm,source:p.source,raw:clone(p.raw),attemptCount:p.attempts?.length||0}}
+function initializePoints(){E.state.workspace||={};E.state.workspace.appliedMeasurements||={};for(const p of E.state.points){
+ if(!p.proxySource){p.originalMeasurement||=measurementSnapshot(p);continue}
+ const o=p.originalMeasurement,q=p.proxySource;let valid=!!o&&['OK','NG','ERROR','UNMEASURED'].includes(o.judge)&&p.source==='MANUAL'&&['OK','NG'].includes(p.judge)&&[p.errorXUm,p.errorYUm,q.finalX,q.finalY].every(Number.isFinite)&&q.referenceJudge===p.judge&&q.referenceErrorXUm===p.errorXUm&&q.referenceErrorYUm===p.errorYUm&&q.runId===E.state.runId&&q.referenceKey!==p.key&&!!point(q.referenceKey)&&!!q.reason;
+ if(valid&&['OK','NG'].includes(o.judge)){const raw=o.raw;valid=o.source==='MEASURED'&&!!raw&&raw.measurementRunId===E.state.runId&&raw.recipeId===E.state.recipeId&&[raw.targetX,raw.targetY,raw.holeX,raw.holeY,raw.pixelMm,raw.nResolution,o.errorXUm,o.errorYUm].every(Number.isFinite)&&raw.pixelMm>0&&raw.nResolution>0;if(valid){const converted=E._convert(raw);valid=Math.abs(converted.x-o.errorXUm)<1e-6&&Math.abs(converted.y-o.errorYUm)<1e-6}}
+ if(!valid){E.state.importInfo||={};E.state.importInfo.lineage=false;ui.restoreWarning='복사 출처 또는 원측정 기록이 불완전해 조회 전용으로 열었습니다.';p.originalMeasurement||={at:null,judge:'UNKNOWN',errorXUm:null,errorYUm:null,source:'UNKNOWN',raw:null,missing:true};}
+}}
+const directMeasure=E.measurePoint.bind(E);
+E.measurePoint=function(key,scenario='recover',opts={}){
+ const p=point(key),before=clone(p),oldOriginal=clone(p.originalMeasurement||measurementSnapshot(p));
+ if(p.proxySource){const o=p.originalMeasurement;p.raw=clone(o.raw);p.judge=o.judge;p.errorXUm=o.errorXUm;p.errorYUm=o.errorYUm;p.source=o.source;delete p.proxySource;}
+ try{const measured=directMeasure(key,scenario,{...opts,deferSave:true});measured.measurementHistory||=[];measured.measurementHistory.push({at:now(),original:oldOriginal,working:workingSnapshot(before)});delete measured.proxySource;measured.originalMeasurement=measurementSnapshot(measured);if(!opts.deferSave)E.save();return measured;}
+ catch(error){const i=E.state.points.findIndex(p=>p.key===key);E.state.points[i]=before;throw error;}
+};
+function sourceFingerprint(keys=E.state.points.map(p=>p.key)){const set=new Set(keys);return JSON.stringify({run:E.state.runId,recipe:E.state.recipeId,revision:E.state.activeRevisionId,settings:E.state.settings,importInfo:E.state.importInfo,points:E.state.points.filter(p=>set.has(p.key)).map(p=>({key:p.key,cell:p.cell,head:p.head,row:p.row,col:p.col,x:p.xMm,y:p.yMm,sx:p.scannerXmm,sy:p.scannerYmm,judge:p.judge,source:p.source,ex:p.errorXUm,ey:p.errorYUm,raw:p.raw,attempts:p.attempts?.length||0,proxy:p.proxySource,original:p.originalMeasurement}))})}
+function measurementToken(p){return JSON.stringify([E.state.runId,p.key,p.raw])}
+function busy(){return !!ui.job||R?.isBusy()||ui.operation?.status==='RUNNING'}
+function guardIdle(){if(busy())throw Error('동작 중입니다. 완료 또는 중지 후 조작하세요.');}
+function incomplete(){return E.state.operationIncomplete?.runId===E.state.runId&&E.state.operationIncomplete.remainingKeys?.length>0}
+function displaySource(p){return p.proxySource?'MANUAL':ui.candidateByKey?.get(p.key)?.source||p.source}
+function filtered(){const q=ui.query.toLowerCase();return E.state.points.filter(p=>(!ui.cell||p.cell===ui.cell)&&(!ui.head||p.head===ui.head)&&(ui.judge==='ALL'||p.judge===ui.judge)&&(ui.source==='ALL'||displaySource(p)===ui.source)&&(!q||`${p.key} C${p.cell} H${String(p.head).padStart(2,'0')} S${p.shot}`.toLowerCase().includes(q))).sort((a,b)=>(ui.sortKey==='error'?(Math.hypot(a.errorXUm||0,a.errorYUm||0)-Math.hypot(b.errorXUm||0,b.errorYUm||0)):(a[ui.sortKey]-b[ui.sortKey]))*ui.sortDir||a.cell-b.cell||a.shot-b.shot)}
+function getPoint(){return point(ui.focus)||E.state.points.find(p=>ui.selected.has(p.key))||filtered().find(p=>!p.masked)||filtered()[0]}
+function stats(ps){const valid=ps.filter(p=>Number.isFinite(p.errorXUm)&&Number.isFinite(p.errorYUm));return{all:ps.length,ok:ps.filter(p=>p.judge==='OK').length,ng:ps.filter(p=>p.judge==='NG').length,error:ps.filter(p=>p.judge==='ERROR').length,missing:ps.filter(p=>p.judge==='UNMEASURED').length,measured:valid.length,meanX:valid.length?valid.reduce((s,p)=>s+p.errorXUm,0)/valid.length:null,meanY:valid.length?valid.reduce((s,p)=>s+p.errorYUm,0)/valid.length:null}}
+function focusPoint(key,append=false){if(!point(key))return;ui.focus=key;if(append){ui.selected.has(key)?ui.selected.delete(key):ui.selected.add(key)}else ui.selected=new Set([key]);render()}
+function rawMotion(p,axis){const r=p?.originalMeasurement?.raw||p?.raw,k=axis==='x'?'X':'Y';return Number.isFinite(r?.['hole'+k])&&Number.isFinite(r?.['target'+k])?(r['hole'+k]-r['target'+k])*r.pixelMm*r.nResolution*1000:null}
+function announce(text,type='info'){ui.lastMessage={text,type};$('message').textContent=text;$('message').className='message '+type;}
+function showDialog(title,body){$('dialog-title').textContent=title;$('dialog-body').innerHTML=body;$('detail-dialog').showModal()}
+function closeDialog(){ui.pendingCopy=null;ui.pendingApply=null;ui.pendingOperation=null;$('detail-dialog').close()}
+function handleError(e){announce(e.message||String(e),'error');if($('detail-dialog').open){let p=$('dialog-error');if(!p){p=document.createElement('p');p.id='dialog-error';p.className='note error';p.setAttribute('role','alert');$('dialog-body').prepend(p)}p.textContent=e.message||String(e)}}
+function pointTable(ps){return `<div class="table-wrap tall"><table id="measurement-table"><thead><tr><th>선택</th><th>Cell / Head / Shot / Beam</th><th>작업판정</th><th>원측정판정</th><th>작업 ΔX / ΔY µm</th><th>원측정 ΔX / ΔY µm</th><th>상태 출처</th><th>최종 후보 F µm</th><th>대표 키</th></tr></thead><tbody>${ps.map(p=>{const o=p.originalMeasurement||p,r=E.state.candidate?.rows.find(r=>r.key===p.key);return`<tr data-key="${h(p.key)}" class="clickable ${ui.selected.has(p.key)?'selected':''}"><td><input type="checkbox" data-select="${h(p.key)}" aria-label="${h(p.key)} 선택" ${ui.selected.has(p.key)?'checked':''}></td><td>C${p.cell} / H${p.head} / S${p.shot} / B${p.beam}</td><td><span class="badge ${p.judge.toLowerCase()}">${h(p.judge)}</span></td><td>${h(o.judge)}</td><td>${sign(p.errorXUm)} / ${sign(p.errorYUm)}</td><td>${sign(o.errorXUm)} / ${sign(o.errorYUm)}</td><td>${p.proxySource?'<span class="badge manual">대표값 복사</span>':p.source==='MEASURED'?'직접 측정':'미측정/오류'}</td><td>${r?sign(r.finalX,3)+' / '+sign(r.finalY,3):'—'}</td><td class="mono">${h(p.proxySource?.referenceKey||'—')}</td></tr>`}).join('')}</tbody></table></div>`}
+function jobPanel(){return ui.job?`<div class="measure-job"><b>${h(ui.job.label)}</b><span>${ui.job.done} / ${ui.job.keys.length}점</span><div class="progress"><span style="width:${ui.job.keys.length?ui.job.done/ui.job.keys.length*100:0}%"></span></div></div>`:ui.lastJob?`<p class="subline">${h(ui.lastJob)}</p>`:''}
+function baseRow(p){const b=active().values[p.key]||{x:0,y:0};return{key:p.key,cell:p.cell,head:p.head,shot:p.shot,source:'KEPT',baseX:b.x,baseY:b.y,deltaX:0,deltaY:0,finalX:b.x,finalY:b.y,anchors:[],manualReason:'',method:'DIRECT'}}
+function guardCandidateBase(c){if(c.recipeId!==E.state.recipeId||c.sourceRunId!==E.state.runId||c.baseRevision!==E.state.activeRevisionId||c.signature!==E._signature())throw Error('후보의 작업 기준이 달라졌습니다. 최신 결과로 다시 계산하세요.');const seen=new Set();for(const r of c.rows){const b=active().values[r.key]||{x:0,y:0};if(seen.has(r.key)||!point(r.key)||![r.baseX,r.baseY,r.finalX,r.finalY].every(Number.isFinite)||Math.abs(r.baseX-b.x)>1e-7||Math.abs(r.baseY-b.y)>1e-7)throw Error('후보에 중복·잘못된 기준값이 있습니다.');seen.add(r.key)}}
+function makeDirectCandidate(keys){
+ const unique=[...new Set(keys)].filter(k=>point(k)&&!point(k).masked);if(!unique.length)throw Error('보정할 측정 위치를 선택하세요.');
+ if(E.state.candidate&&E.state.candidate.status!=='APPLIED'){E.state.workspace.candidateBackups||=[];E.state.workspace.candidateBackups.push({at:now(),candidate:clone(E.state.candidate)});}
+ const c=E.makeCandidate({mode:'SIMPLE',keys:unique,simpleX:0,simpleY:0,reason:'작업공간 점별 보정'});c.method='DIRECT';c.pendingErrors=[];c.warnings=[];
+ c.rows=unique.map(k=>{const p=point(k),r=baseRow(p);if(p.proxySource){Object.assign(r,{source:'MANUAL',finalX:p.proxySource.finalX,finalY:p.proxySource.finalY,referenceKey:p.proxySource.referenceKey,manualReason:p.proxySource.reason,manualKind:'REFERENCE_COPY',method:'REFERENCE_COPY'});r.deltaX=r.finalX-r.baseX;r.deltaY=r.finalY-r.baseY;}
+ else if(p.source==='MEASURED'&&Number.isFinite(p.errorXUm)&&Number.isFinite(p.errorYUm)){Object.assign(r,{source:'MEASURED',deltaX:p.errorXUm,deltaY:p.errorYUm,finalX:r.baseX+p.errorXUm,finalY:r.baseY+p.errorYUm,anchors:[k],measurementToken:measurementToken(p)});}
+ else c.pendingErrors.push(`${k}: 직접 측정 또는 유효한 대표 복사가 필요합니다.`);return r;});
+ c.sourceFingerprint=sourceFingerprint(c.rows.map(r=>r.key));E.log('WORKSPACE_CANDIDATE','선택 위치의 점별 보정 후보 계산',undefined,{keys:unique});ui.rwCopyUndo=null;E.save();return c;
+}
+function validateCurrent(allowManual=ui.allowManual){
+ if(incomplete())throw Error('미완료 측정의 남은 점을 완료하거나 새 예제로 작업 기준을 정한 뒤 보정을 검증·적용하세요.');
+ const c=E.state.candidate;if(!c)throw Error('먼저 선택점 보정을 계산하세요.');guardCandidateBase(c);
+ const extra=[];if(!c.sourceFingerprint||c.sourceFingerprint!==sourceFingerprint(c.rows.map(r=>r.key)))extra.push('계산 뒤 측정·상태·설정이 바뀌었습니다. 다시 계산하세요.');
+ for(const r of c.rows){const p=point(r.key);if(p.proxySource&&p.judge!=='OK')extra.push(`${r.key}: 대표를 따른 작업판정이 NG입니다. 정상 대표 또는 새 측정을 확인하세요.`);if(r.source==='MEASURED'&&E.state.workspace.appliedMeasurements[r.key]===r.measurementToken&&Math.max(Math.abs(r.deltaX),Math.abs(r.deltaY))>1e-9)extra.push(`${r.key}: 같은 기판/Run의 동일 측정은 재누적하지 않습니다. 새 가공 결과 또는 새 Run을 사용하세요.`);}
+ const v=E.validateCandidate({allowManual});if(extra.length){v.errors=[...new Set([...v.errors,...extra])];v.ok=false;c.status='INVALID';E.save()}return v;
+}
+function applyCurrent(){const c=E.state.candidate,v=validateCurrent(ui.allowManual);if(!v.ok)throw Error(v.errors.join('\n'));const revision=E.applyCandidate();for(const r of c.rows)if(r.source==='MEASURED'&&r.measurementToken)E.state.workspace.appliedMeasurements[r.key]=r.measurementToken;E.state.workspace.lastApplied={at:now(),revisionId:revision.id,candidateId:c.id,keys:c.rows.map(r=>r.key)};ui.rwCopyUndo=null;E.save();return revision;}
+function correctionHTML(){const c=E.state.candidate,v=c?.validation,rows=c?.rows||[],blocked=busy()||incomplete(),selectedCount=[...ui.selected].filter(k=>point(k)&&!point(k).masked).length;return `<section class="panel correction-panel" id="inline-correction"><div class="panel-head"><div><h2>보정 계산 · 검증 · 적용</h2><p class="small muted">선택점 ${selectedCount}개 · 현재 보정 <b>${h(E.state.activeRevisionId)}</b></p></div><span class="badge ${c?.status==='APPLIED'?'ok':'pending'}">${h(c?.status||'후보 없음')}</span></div><div class="toolbar">${btn('candidate-build','① 선택점 보정 계산','',blocked?'disabled':'')}${btn('candidate-validate','② 후보 검증','',!c||c.status==='APPLIED'||blocked?'disabled':'')}${btn('candidate-apply','③ 보정 적용·저장','primary',!v?.ok||c?.status!=='VALIDATED'||blocked?'disabled':'')}${btn('revision-undo','직전 보정 원복','',E.state.revisions.length<2||busy()?'disabled':'')}</div>${incomplete()?'<p class="note error">미완료 측정이 있습니다. 잔여 재실행 후 보정을 검증·적용하세요.</p>':''}<label class="inline-check section-gap"><input type="checkbox" id="allow-manual" ${ui.allowManual?'checked':''}>대표값 복사 등 수동 보정 후보를 포함하여 검토</label><p class="small muted">직접 측정은 현재값 B + 측정 편차, 대표 복사는 지정한 최종 F를 사용합니다. 같은 직접 측정의 중복 누적은 차단합니다.</p>${c?`<div class="table-wrap"><table id="candidate-table"><thead><tr><th>대상</th><th>출처</th><th>현재 B µm</th><th>증감 Δ µm</th><th>적용 후 F µm</th></tr></thead><tbody>${rows.slice(0,8).map(r=>`<tr><td>${h(r.key)}</td><td>${h(r.source)}</td><td>${sign(r.baseX,3)} / ${sign(r.baseY,3)}</td><td>${sign(r.deltaX,3)} / ${sign(r.deltaY,3)}</td><td>${sign(r.finalX,3)} / ${sign(r.finalY,3)}</td></tr>`).join('')}</tbody></table></div>${rows.length>8?`<p class="small">처음 8점 표시 / 전체 ${rows.length}점 적용</p>`:''}`:'<p class="note">지도에서 대상을 고른 뒤 계산하거나 대표값을 복사하세요. 우클릭의 ‘이동 후 측정 & 보정’은 새 측정이 모두 정상일 때 이 과정을 이어서 실행합니다.</p>'}${v?`<div class="note ${v.ok?'success':'error'}"><b>${v.ok?'검증 통과':'검증 차단'}</b>${v.errors.slice(0,8).map(e=>'<div>'+h(e)+'</div>').join('')}<p>최대 증감 ${num(v.maxDelta,3)} / 총량 ${num(v.maxTotal,3)} µm</p></div>`:''}<details class="section-gap"><summary>보정 한계·적용 이력</summary><div class="toolbar"><label>증감 상한 µm<input id="limit-delta" type="number" value="${E.state.settings.maxDeltaUm}" step="1"></label><label>총량 상한 µm<input id="limit-total" type="number" value="${E.state.settings.maxTotalUm}" step="1"></label><label>Scanner Field mm<input id="limit-field" type="number" value="${E.state.settings.fieldMm}" step=".1"></label>${btn('limits-save','한계 설정 반영','slim',busy()?'disabled':'')}</div><ul class="small">${E.state.revisions.slice(-8).reverse().map(r=>`<li>${h(r.createdAt)} · ${h(r.id)} · ${h(r.reason)}</li>`).join('')}</ul></details></section>`}
+function updateHeader(){const s=R.state,op=ui.operation;$('context').textContent=`Recipe ${E.state.recipeId} · Run ${E.state.runId} · 활성 보정 ${E.state.activeRevisionId}`;$('live-status').textContent=busy()?`${op?.label||s.jobLabel} · ${s.label}`:ui.lastJob||'대기 · 지도에서 위치를 선택하세요.';$('live-position').textContent=`X ${num(s.position.x,3)} / Y ${num(s.position.y,3)} mm`;$('live-stop').disabled=!busy();for(const id of ['sim-speed','sim-fault','demo-select','measurement-mode','measurement-scenario'])if($(id))$(id).disabled=!!busy();if(!E.state.persistence?.ok)$('storage-state').textContent='브라우저 저장 제한 · 세션 JSON 저장을 이용하세요.';else $('storage-state').textContent='작업 상태 로컬 자동 보관';}
+function api(){return{filtered,pointTable,active,getPoint,stats,jobPanel,btn,options,h,num,sign,rawMotion,R,render,announce,displaySource,focusPoint,copyPreview,copyUndo,contextAction,correctionHTML}}
+function render(){if(rendering)return;rendering=true;try{ui.candidateByKey=new Map((E.state.candidate?.rows||[]).map(r=>[r.key,r]));$('screen').innerHTML=ReviewWorkspace.html(E,ui,api());ReviewWorkspace.draw(E,ui,api());updateHeader();window.simApp={engine:E,runtime:R,ui,render,contextAction,copyPreview,makeDirectCandidate,validateCurrent,applyCurrent,sourceFingerprint};}finally{rendering=false}}
+function syncIncomplete(s){if(s.mode!=='MOVE'&&s.remainingKeys?.length&&['RUNNING','PAUSED','ERROR','STOPPED'].includes(s.status))E.state.operationIncomplete={runId:E.state.runId,status:s.status,remainingKeys:s.remainingKeys.slice(),completedKeys:s.completedKeys.slice()};else if(s.mode!=='MOVE'&&s.status==='COMPLETE')delete E.state.operationIncomplete;}
+function finishOperation(status,error){const op=ui.operation;if(!op)return;op.status=status;op.finishedAt=now();if(error)op.error=error.message||String(error);ui.job=null;ui.lastJob=`${op.label} · ${status==='COMPLETE'?'완료':status==='STOPPED'?'중지':'차단/오류'} · ${op.completedKeys.length}/${op.keys.length}점`;E.state.workspace.lastOperation=clone(op);E.save();announce(error?op.error:ui.lastJob,error?'error':status==='COMPLETE'?'success':'info');render();}
+function executeNextMove(){const op=ui.operation;R.start({keys:[op.keys[op.completedKeys.length]],mode:'MOVE',scenario:ui.measureScenario,speed:ui.speed,fault:ui.fault,label:op.label});op.runtimeJobId=R.state.jobId;}
+function completeRuntime(s){try{syncIncomplete(s);const op=ui.operation;if(!op||op.status!=='RUNNING'||op.runtimeJobId!==s.jobId)return;
+ if(op.kind==='MOVE'){op.completedKeys.push(op.keys[op.completedKeys.length]);if(op.completedKeys.length<op.keys.length){ui.job.done=op.completedKeys.length;executeNextMove();return}finishOperation('COMPLETE');return}
+ op.completedKeys=s.completedKeys.slice();if(op.kind!=='MEASURE_CORRECT'){finishOperation('COMPLETE');return}
+ if(op.runId!==E.state.runId||op.recipeId!==E.state.recipeId||op.revisionBefore!==E.state.activeRevisionId||op.settings!==JSON.stringify(E.state.settings)||s.remainingKeys.length||op.keys.length!==s.completedKeys.length||op.keys.some(k=>!s.completedKeys.includes(k)))throw Error('작업 기준 또는 측정 완료 범위가 달라 자동 보정을 차단했습니다.');
+ for(const k of op.keys){const p=point(k);if(p.proxySource||p.source!=='MEASURED'||p.judge!=='OK'||![p.errorXUm,p.errorYUm].every(Number.isFinite)||p.attempts.length<=op.attemptsBefore[k]||p.raw?.measurementRunId!==op.runId||p.raw?.recipeId!==op.recipeId)throw Error(`${k}: 새 직접 측정이 OK가 아니므로 자동 보정을 적용하지 않았습니다.`)}
+ makeDirectCandidate(op.keys);const v=validateCurrent(false);if(!v.ok)throw Error('자동 보정 검증 차단: '+v.errors.join(' / '));ui.allowManual=false;const r=applyCurrent();op.revisionAfter=r.id;op.candidateId=E.state.candidate.id;finishOperation('COMPLETE');
+ }catch(error){E.log('AUTO_CORRECTION_BLOCKED',error.message);finishOperation('CORRECTION_BLOCKED',error)}}
+function initRuntime(){if(R)R.dispose();R=new ReviewRuntime(E,{onUpdate:s=>{if(!R)return;ui.position={...s.position,key:s.key};if(ui.job&&ui.operation?.kind!=='MOVE')ui.job.done=s.completedKeys.length;syncIncomplete(s);updateHeader();if(performance.now()-updateAt>180){updateAt=performance.now();document.querySelectorAll('.measure-job .progress>span').forEach(p=>p.style.width=(ui.job?ui.job.done/ui.job.keys.length*100:0)+'%');}},onComplete:completeRuntime,onError:(e,s)=>{syncIncomplete(s);finishOperation('ERROR',e)}});}
+function contextAction(kind,keys,{retry=false}={}){try{saveInputs();
+ guardIdle();if(!['MOVE','P2P','FLYING','MEASURE_CORRECT','MEASURE'].includes(kind))throw Error('지원하지 않는 작업입니다.');const requested=[...new Set(keys)],valid=requested.filter(k=>point(k)&&!point(k).masked);if(!valid.length)throw Error('실행할 위치가 없습니다. Masking 영역은 제외됩니다.');if(incomplete()&&!retry)throw Error('중지된 측정의 남은 점이 있습니다. 잔여 재실행 또는 새 예제를 이용하세요.');
+ const label={MOVE:'이동만',P2P:'이동 후 측정',FLYING:'Flying · 선택한 행 전체 측정',MEASURE_CORRECT:'이동 후 측정 & 보정',MEASURE:'현재 위치 측정'}[kind];
+ ui.pendingOperation={kind,keys:valid,retry,scenario:ui.measureScenario,speed:ui.speed,fault:ui.fault,runId:E.state.runId,recipeId:E.state.recipeId,revision:E.state.activeRevisionId,settings:JSON.stringify(E.state.settings),pointContext:JSON.stringify(valid.map(k=>({key:k,x:point(k).xMm,y:point(k).yMm,masked:point(k).masked})))};
+ showDialog(label+' · 실행 범위',`<div id="operation-preview"><p><b>${valid.length}점</b> · ${h(valid.slice(0,6).join(' / '))}${valid.length>6?' …':''}</p>${requested.length>valid.length?`<p>Masking/없는 위치 ${requested.length-valid.length}점 제외</p>`:''}<div class="note">${kind==='MOVE'?'선택 위치를 순서대로 이동합니다. 측정값과 보정은 변경하지 않습니다.':kind==='MEASURE_CORRECT'?'선택 위치를 새로 측정한 뒤 전부 OK인 경우에만 점별 보정을 검증하고 새 활성 버전에 저장합니다. NG·오류·중지 시 자동 보정은 적용하지 않습니다. 기존 미적용 후보가 있다면 기록으로 보관한 뒤 이번 선택 범위 후보로 교체합니다.':'선택 위치의 원측정을 갱신합니다. 보정값은 그대로입니다.'}</div><p class="small">배속 ${ui.speed}× · 가상 조건 ${h(ui.fault)} · ${ui.measureScenario==='same'?'같은 실측 편차 유지':'검출 회복 예제'}</p><div class="toolbar">${btn('operation-confirm',label+' 시작','primary')}${btn('close-dialog','취소')}</div></div>`);
+ }catch(e){handleError(e)}}
+function confirmOperation(){guardIdle();saveInputs();const p=ui.pendingOperation;if(!p||p.runId!==E.state.runId||p.recipeId!==E.state.recipeId||p.revision!==E.state.activeRevisionId||p.settings!==JSON.stringify(E.state.settings)||p.scenario!==ui.measureScenario||p.speed!==ui.speed||p.fault!==ui.fault||p.pointContext!==JSON.stringify(p.keys.map(k=>({key:k,x:point(k)?.xMm,y:point(k)?.yMm,masked:point(k)?.masked}))))throw Error('미리 본 작업 기준이 바뀌었습니다. 다시 선택하세요.');if(p.retry){const remaining=E.state.operationIncomplete?.remainingKeys||[];if(JSON.stringify(remaining)!==JSON.stringify(p.keys))throw Error('남은 측정 범위가 바뀌었습니다.');delete E.state.operationIncomplete;}else if(incomplete())throw Error('미완료 측정이 생겨 실행을 차단했습니다.');const kind=p.kind,keys=p.keys.slice(),label={MOVE:'이동만',P2P:'이동 후 측정',FLYING:'Flying · 선택한 행 전체 측정',MEASURE_CORRECT:'이동 후 측정 & 보정',MEASURE:'현재 위치 측정'}[kind];closeDialog();
+ const op=ui.operation={id:'OP-'+(++opSerial)+'-'+Date.now(),kind,label,keys,completedKeys:[],status:'RUNNING',runId:E.state.runId,recipeId:E.state.recipeId,revisionBefore:E.state.activeRevisionId,settings:JSON.stringify(E.state.settings),attemptsBefore:Object.fromEntries(keys.map(k=>[k,point(k).attempts?.length||0])),startedAt:now()};ui.job={keys,done:0,label};
+ try{if(kind==='MOVE')executeNextMove();else{R.start({keys,mode:kind==='MEASURE'?'MEASURE':kind==='FLYING'?'FLYING':'P2P',scenario:ui.measureScenario,speed:ui.speed,fault:ui.fault,label});op.runtimeJobId=R.state.jobId;}render();}catch(e){finishOperation('ERROR',e);throw e;}}
+function stopOperation(){if(!busy())return;R.stop();syncIncomplete(R.state);finishOperation('STOPPED');}
+function retryRemaining(){guardIdle();const keys=E.state.operationIncomplete?.remainingKeys?.slice();if(!keys?.length)throw Error('남은 측정점이 없습니다.');ui.fault='NONE';contextAction('P2P',keys,{retry:true});}
+function loadDemo(kind){guardIdle();E.loadDemo(kind==='stress'?'normal':kind,kind==='stress'?'stress':'normal');initializePoints();ui.selected.clear();ui.focus=null;ui.cell=1;ui.head=0;ui.judge='ALL';ui.source='ALL';ui.query='';ui.page=0;ui.rwCopyUndo=null;ui.operation=null;ui.lastJob=null;ui.allowManual=false;initRuntime();E.save();announce('새 가상 예제를 열었습니다.','success');render()}
+function download(name,text,type='text/plain;charset=utf-8'){const a=document.createElement('a'),u=URL.createObjectURL(new Blob([text],{type}));a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),500)}
+function exportResults(){const q=x=>'"'+String(x??'').replace(/"/g,'""')+'"',header=['KEY','WORK_JUDGE','WORK_DX_UM','WORK_DY_UM','ORIGINAL_JUDGE','ORIGINAL_DX_UM','ORIGINAL_DY_UM','STATE_SOURCE','REFERENCE_KEY','ACTIVE_X_UM','ACTIVE_Y_UM','ORIGINAL_RAW_JSON'];return'\uFEFF'+[header,...filtered().map(p=>{const o=p.originalMeasurement||p,b=active().values[p.key]||{x:0,y:0};return[p.key,p.judge,p.errorXUm,p.errorYUm,o.judge,o.errorXUm,o.errorYUm,p.proxySource?'REPRESENTATIVE_COPY':p.source,p.proxySource?.referenceKey||'',b.x,b.y,JSON.stringify(o.raw)]})].map(r=>r.map(q).join(',')).join('\r\n')}
+function saveInputs(){ui.measurementMode=value('measurement-mode',ui.measurementMode);ui.measureScenario=value('measurement-scenario',ui.measureScenario);}
+document.addEventListener('click',ev=>{const b=ev.target.closest('[data-action]');if(!b){const row=ev.target.closest('tr[data-key]');if(row&&!ev.target.closest('input'))focusPoint(row.dataset.key,ev.ctrlKey||ev.metaKey);return}if(b.disabled)return;saveInputs();const a=b.dataset.action;try{
+ if(a==='close-dialog'){closeDialog();return}if(a==='copy-confirm'){copyConfirm();return}if(a==='operation-confirm'){confirmOperation();return}if(a==='load-demo'){loadDemo(value('demo-select','normal'));return}if(a==='stop-measure'){stopOperation();return}if(a==='runtime-retry'){retryRemaining();return}
+ if(a==='move'||a==='measure'||a==='move-measure'||a==='move-measure-correct'){const p=getPoint();if(!p)throw Error('위치를 선택하세요.');contextAction({move:'MOVE',measure:'MEASURE','move-measure':'P2P','move-measure-correct':'MEASURE_CORRECT'}[a],[p.key]);return}
+ if(a==='remeasure-selected'){let keys=[...ui.selected];if(ui.measurementMode==='FLYING'){const groups=new Set(keys.map(point).filter(Boolean).map(p=>`${p.cell}|${p.head}|${p.row}`));keys=E.state.points.filter(p=>!p.masked&&groups.has(`${p.cell}|${p.head}|${p.row}`)).map(p=>p.key)}contextAction(ui.measurementMode==='FLYING'?'FLYING':'P2P',keys);return}if(a==='correction-focus'){$('inline-correction').scrollIntoView({behavior:'smooth',block:'center'});return}
+ if(a==='show-point'){const p=getPoint();showDialog('선택 위치 · 원측정과 변경 이력',`<h3>${h(p.key)}</h3><div class="note">작업판정 ${h(p.judge)} · 원측정 ${h(p.originalMeasurement?.judge||p.judge)} · ${p.proxySource?'대표값 복사 '+h(p.proxySource.referenceKey):'직접 측정/원기록'}</div><pre class="source-detail">${h(JSON.stringify({working:workingSnapshot(p),originalMeasurement:p.originalMeasurement,attempts:p.attempts,measurementHistory:p.measurementHistory,copyHistory:p.copyHistory},null,2))}</pre>`);return}
+ if(a==='csv-download'){download('A3_Review_Workspace_Result.csv',exportResults(),'text/csv;charset=utf-8');return}if(a==='session-download'){E.save();download('A3_Review_Workspace_Session.json',E.exportBundle(),'application/json');return}
+ if(a==='page-prev'){ui.page=Math.max(0,ui.page-1)}else if(a==='page-next'){ui.page++}else if(a==='levels-open'){showDialog('오차 레벨 설정',ReviewLevels.form(E));return}else if(a==='levels-save'){guardIdle();E.state.reviewLevels=ReviewLevels.validate({metric:value('level-metric'),bounds:[0,1,2].map(i=>Number(value('level-bound-'+i))),names:[0,1,2,3].map(i=>value('level-name-'+i))});closeDialog();E.save();}
+ else if(a==='candidate-build'){guardIdle();if(incomplete())throw Error('남은 측정을 완료하세요.');makeDirectCandidate([...ui.selected]);announce('선택점 보정 후보를 계산했습니다. 검증 후 적용하세요.','success')}
+ else if(a==='candidate-validate'){guardIdle();const v=validateCurrent();announce(v.ok?'보정 후보 검증을 통과했습니다.':v.errors.join('\n'),v.ok?'success':'error')}
+ else if(a==='candidate-apply'){guardIdle();const v=validateCurrent();if(!v.ok)throw Error(v.errors.join('\n'));ui.pendingApply={candidateId:E.state.candidate.id,candidate:JSON.stringify(E.state.candidate),source:sourceFingerprint(),revision:E.state.activeRevisionId};showDialog('보정 적용·저장',`<p>선택 후보 <b>${E.state.candidate.rows.length}점</b>을 새 활성 보정 버전에 저장합니다.</p><p>원측정 기록과 작업판정은 변경하지 않습니다.</p><div class="toolbar">${btn('apply-confirm','검증한 보정 적용·저장','primary')}${btn('close-dialog','취소')}</div>`);return}
+ else if(a==='apply-confirm'){guardIdle();const p=ui.pendingApply;if(!p||p.candidateId!==E.state.candidate?.id||p.candidate!==JSON.stringify(E.state.candidate)||p.source!==sourceFingerprint()||p.revision!==E.state.activeRevisionId)throw Error('검토 뒤 보정 기준이 바뀌었습니다. 다시 검증하세요.');const rev=applyCurrent();closeDialog();announce('보정 적용·저장 완료: '+rev.id,'success')}
+ else if(a==='revision-undo'){guardIdle();const current=active(),previous=E.state.revisions.find(r=>r.id===current.parentId);if(!previous)throw Error('원복할 직전 보정이 없습니다.');E.restoreRevision(previous.id,'사용자 요청 직전 보정 원복');ui.rwCopyUndo=null;announce('직전 보정값을 새 버전으로 원복했습니다.','success')}
+ else if(a==='limits-save'){guardIdle();const dx=Number(value('limit-delta')),total=Number(value('limit-total')),field=Number(value('limit-field'));if(![dx,total,field].every(n=>Number.isFinite(n)&&n>0))throw Error('보정 한계는 0보다 큰 숫자여야 합니다.');E.setSetting('maxDeltaUm',dx);E.setSetting('maxTotalUm',total);E.setSetting('fieldMm',field);announce('한계를 변경했습니다. 후보를 다시 계산·검증하세요.')}
+ render();
+ }catch(e){handleError(e)}});
+document.addEventListener('change',ev=>{const x=ev.target;try{if(x.matches('[data-select]')){x.checked?ui.selected.add(x.dataset.select):ui.selected.delete(x.dataset.select);ui.focus=x.dataset.select;render()}else if(x.id==='allow-manual'){guardIdle();ui.allowManual=x.checked;if(E.state.candidate){E.state.candidate.validation=null;E.state.candidate.status='DRAFT';E.save()}render()}else if(x.id==='measurement-scenario'){guardIdle();ui.measureScenario=x.value}else if(x.id==='measurement-mode'){guardIdle();ui.measurementMode=x.value}else if(x.id==='sim-speed'){guardIdle();ui.speed=Number(x.value)}else if(x.id==='sim-fault'){guardIdle();ui.fault=x.value}}catch(e){handleError(e);render()}});
+document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&$('detail-dialog').open){closeDialog();return}if(ev.key==='Escape'&&busy()){ev.preventDefault();stopOperation()}});
+let resizeTimer;window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>ReviewWorkspace.draw(E,ui,api()),100)});
+function copyGuard(){guardIdle();if(incomplete())throw Error('중지·오류로 남은 측정점을 먼저 완료하거나 새 예제를 여세요.');if(E.state.importInfo?.lineage===false||E.state.importInfo?.recipeMismatch)throw Error('조회 전용 자료는 보정할 수 없습니다.');}
+function copyContext(){
+ const ref=point(ui.rw?.representativeKey);if(!ReviewWorkspace.eligible(ref))throw Error('직접 측정한 OK 또는 NG 점을 대표값으로 지정하세요. 복사본은 대표점으로 사용할 수 없습니다.');
+ if(ref.raw?.measurementRunId!==E.state.runId||ref.raw?.recipeId!==E.state.recipeId)throw Error('대표 원측정의 Run·Recipe가 현재와 다릅니다.');
+ const requested=[...ui.selected].filter(k=>k!==ref.key);if(!requested.length)throw Error('대표점 이외에 상태와 오프셋을 복사할 대상을 선택하세요.');
+ if(requested.some(k=>!point(k)))throw Error('자료에 없는 선택점이 있습니다.');
+ const excluded=requested.filter(k=>point(k).masked),keys=requested.filter(k=>!point(k).masked);if(!keys.length)throw Error('선택 대상이 모두 Masking 영역입니다.');
+ const c=E.state.candidate,editing=!!c&&c.status!=='APPLIED';if(editing)guardCandidateBase(c);
+ const row=editing?c.rows.find(r=>r.key===ref.key):null,b=active().values[ref.key]||{x:0,y:0};
+ const x=row?row.finalX:b.x+ref.errorXUm,y=row?row.finalY:b.y+ref.errorYUm;if(!Number.isFinite(x)||!Number.isFinite(y))throw Error('대표 보정값이 올바르지 않습니다.');
+ return{refKey:ref.key,keys,excluded,x,y,judge:ref.judge,errorXUm:ref.errorXUm,errorYUm:ref.errorYUm,editing,fingerprint:JSON.stringify({source:sourceFingerprint(),candidate:c,selection:[...ui.selected].sort(),refKey:ref.key,x,y})};
+}
+function copyPreview(){try{
+ copyGuard();const q=copyContext();ui.pendingCopy=q;
+ const rows=q.keys.slice(0,10).map(k=>{const p=point(k),b=active().values[k]||{x:0,y:0};return`<tr><td>${h(k)}</td><td>${h(p.judge)} → <b>${h(q.judge)}</b></td><td>${sign(p.errorXUm)} / ${sign(p.errorYUm)} → ${sign(q.errorXUm)} / ${sign(q.errorYUm)}</td><td>${sign(q.x,3)} / ${sign(q.y,3)}</td><td>${sign(q.x-b.x,3)} / ${sign(q.y-b.y,3)}</td></tr>`}).join('');
+ showDialog('대표 상태와 오프셋을 함께 복사',`<div id="copy-preview"><p>대표 <b>${h(q.refKey)}</b> → 대상 <b>${q.keys.length}점</b>${q.excluded.length?` · Masking ${q.excluded.length}점 제외`:''}</p><div class="copy-value">작업판정 <b class="${q.judge==='OK'?'pass':'fail'}">${h(q.judge)}</b> · 최종 F <b>${sign(q.x,3)} / ${sign(q.y,3)} µm</b></div><p>선택 위치의 작업 편차와 판정도 대표값을 따릅니다. 원측정 기록은 별도로 남고, 복사 결과는 <b>대표값 복사 · MANUAL</b>로 표시합니다.</p><div class="table-wrap"><table><thead><tr><th>대상</th><th>작업판정</th><th>작업편차 X/Y · µm</th><th>같은 최종 F · µm</th><th>점별 증감 Δ · µm</th></tr></thead><tbody>${rows}</tbody></table></div>${q.keys.length>10?`<p class="small">처음 10점 / 전체 ${q.keys.length}점</p>`:''}<p class="note">${q.editing?'기존 미적용 후보를 보존하면서 선택 대상만 변경합니다.':'선택 대상만 포함하는 새 수동 후보를 만듭니다.'} 대표점 자체는 복사 대상에서 제외합니다. ${q.judge==='NG'?'대표가 NG이므로 대상도 NG입니다. 상태 복사 후에도 NG는 검증·적용을 통과하지 못합니다.':'화면의 OK는 대표를 따른 작업판정이며 새 직접 측정이 아닙니다.'} 활성 보정은 이 화면의 검증·적용에서 저장합니다.</p><details><summary>복사 사유</summary><label class="field">기록할 사유<input id="copy-reason" value="사용자가 지정한 대표 상태와 최종 오프셋 동일 반영"></label></details><div class="toolbar section-gap">${btn('copy-confirm',`${q.keys.length}점 상태·후보에 반영`,'primary')}${btn('close-dialog','취소')}</div></div>`);
+ }catch(e){announce(e.message,'error');}}
+function copyConfirm(){
+ copyGuard();const old=ui.pendingCopy;if(!old)throw Error('복사 내용을 먼저 확인하세요.');const q=copyContext();if(q.fingerprint!==old.fingerprint)throw Error('검토 중 측정·선택·보정 기준이 바뀌었습니다. 다시 검토하세요.');
+ const reason=value('copy-reason').trim();if(!reason)throw Error('복사 사유를 입력하세요.');
+ const before=clone(E.state.candidate),pointsBefore=Object.fromEntries(q.keys.map(k=>[k,clone(point(k))])),logsBefore=E.state.logs.slice();
+ try{
+  if(!q.editing)E.makeCandidate({mode:'SIMPLE',keys:q.keys,simpleX:0,simpleY:0,reason});else{E.state.candidate=clone(E.state.candidate);const c=E.state.candidate,present=new Set(c.rows.map(r=>r.key));q.keys.filter(k=>!present.has(k)).forEach(k=>c.rows.push(baseRow(point(k))));}
+  const at=now();for(const k of q.keys){const p=point(k);p.copyHistory||(p.copyHistory=[]);p.copyHistory.push({at,before:workingSnapshot(p),referenceKey:q.refKey,reason});p.originalMeasurement||=measurementSnapshot(p);p.errorXUm=q.errorXUm;p.errorYUm=q.errorYUm;p.judge=q.judge;p.source='MANUAL';p.proxySource={referenceKey:q.refKey,referenceJudge:q.judge,referenceErrorXUm:q.errorXUm,referenceErrorYUm:q.errorYUm,finalX:q.x,finalY:q.y,at,reason,runId:E.state.runId};}
+  E.editCandidate(q.keys,{x:q.x,y:q.y,kind:'absolute',reason:reason+' · 대표 '+q.refKey});
+  const c=E.state.candidate,set=new Set(q.keys);for(const r of c.rows)if(set.has(r.key)){r.anchors=[];r.referenceKey=q.refKey;r.method='REFERENCE_COPY';r.manualKind='REFERENCE_COPY';delete r.measurementToken;}
+  c.sourceFingerprint=sourceFingerprint(c.rows.map(r=>r.key));E.log('REFERENCE_STATE_COPY','대표 F·작업편차·판정 복사; 원측정 보존',undefined,{referenceKey:q.refKey,keys:q.keys,judge:q.judge,x:q.x,y:q.y,reason});
+  ui.rwCopyUndo={before,pointsBefore,afterCandidate:JSON.stringify(c),afterSource:sourceFingerprint(),runId:E.state.runId,revision:E.state.activeRevisionId};ui.pendingCopy=null;ui.allowManual=true;E.save();closeDialog();announce(`${q.keys.length}점의 작업판정·편차·오프셋을 대표값으로 맞췄습니다. 원측정은 보존했습니다.`,'success');render();
+ }catch(e){E.state.candidate=before;for(const [k,p]of Object.entries(pointsBefore)){const i=E.state.points.findIndex(x=>x.key===k);E.state.points[i]=p;}E.state.logs=logsBefore;E.save();throw e;}
+}
+function copyUndo(){try{
+ copyGuard();const u=ui.rwCopyUndo;if(!u)throw Error('되돌릴 대표 복사가 없습니다.');
+ if(u.runId!==E.state.runId||u.revision!==E.state.activeRevisionId||u.afterCandidate!==JSON.stringify(E.state.candidate)||u.afterSource!==sourceFingerprint())throw Error('복사 뒤 측정·설정·후보·활성 보정이 바뀌었습니다. 간편 되돌리기를 차단했습니다.');
+ E.state.candidate=u.before;for(const[k,p]of Object.entries(u.pointsBefore)){const i=E.state.points.findIndex(x=>x.key===k);E.state.points[i]=p;}ui.rwCopyUndo=null;E.log('REFERENCE_COPY_UNDO','직전 상태·오프셋 복사를 되돌림');E.save();announce('직전 복사를 되돌려 작업판정·편차·후보를 복원했습니다.','success');render();
+ }catch(e){announce(e.message,'error');}}
+
+initializePoints();initRuntime();if(E.state.operationIncomplete?.remainingKeys?.length)announce('이전 작업의 남은 측정점이 있습니다. 잔여 재실행하거나 새 예제를 여세요.','error');else if(ui.restoreWarning)announce(ui.restoreWarning,'error');render();E.save();
+})();
+</script></body></html>

@@ -221,6 +221,49 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
         }
     }
 
+    /// <summary>Compare-and-save for the new tab. All existing save/rollback entry points retain their behavior.</summary>
+    public override async Task<ST_REVIEW_OFFSET_FILE_DATA> SaveNewIfUnchanged(
+        string recipeId, string expectedLatestFilePath, IReadOnlyList<ST_REVIEW_OFFSET_ROW> rows,
+        string sourceResultFile, CancellationToken cancellationToken = default)
+    {
+        await _fileLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var id = RequireRecipeId(recipeId, "Manual Inspection 저장");
+            var latest = LoadLatestCore(id, cancellationToken);
+            static string Full(string path) => string.IsNullOrWhiteSpace(path) ? "" : Path.GetFullPath(path);
+            if (!Full(latest.FilePath).Equals(Full(expectedLatestFilePath), StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("활성 Review Offset이 변경되었습니다. 최신 기준으로 다시 계산하세요.");
+            var source = NormalizeSourceIdentity(sourceResultFile, requireExistingFile: true);
+            var existing = FindSourceApplicationAcrossHistory(id, source, cancellationToken);
+            if (existing is not null) throw new CReviewOffsetDuplicateSourceException(existing);
+            var at = _now(); var historyPath = GetApplyHistoryPath(id, at);
+            var history = LoadApplyHistory(historyPath, cancellationToken);
+            var saved = SaveNewCore(id, rows, cancellationToken, at);
+            try
+            {
+                var application = new ST_REVIEW_OFFSET_SOURCE_APPLICATION(source, saved.FileName, at, Path.GetFullPath(historyPath));
+                AppendApplyHistory(historyPath, history, application, cancellationToken);
+                UpdateRecipeApplyHistoryCache(id, application);
+                // Return the actual six-decimal-mm representation without new I/O/cancellation
+                // after the authoritative file+history commit has succeeded.
+                return saved with { Rows = saved.Rows.Select(row => row with
+                {
+                    ReviewOffsetX = double.Parse(FormatDouble(row.ReviewOffsetX), CultureInfo.InvariantCulture),
+                    ReviewOffsetY = double.Parse(FormatDouble(row.ReviewOffsetY), CultureInfo.InvariantCulture)
+                }).ToArray() };
+            }
+            catch (Exception historyError)
+            {
+                try { if (System.IO.File.Exists(saved.FilePath)) System.IO.File.Delete(saved.FilePath); }
+                catch (Exception cleanupError)
+                { throw new AggregateException("Manual Inspection 이력 실패 후 신규 Offset 정리에도 실패했습니다.", historyError, cleanupError); }
+                throw new IOException("적용 이력 저장 실패로 신규 Offset을 취소했습니다.", historyError);
+            }
+        }
+        finally { _fileLock.Release(); }
+    }
+
     private ST_REVIEW_OFFSET_FILE_DATA SaveNewCore(
         string recipeId,
         IReadOnlyList<ST_REVIEW_OFFSET_ROW> rows,

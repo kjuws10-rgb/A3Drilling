@@ -1,0 +1,159 @@
+namespace Drilling.UI.Views;
+
+using System.Globalization;
+
+/// <summary>
+/// The native workspace reads an immutable projection and delegates every operation to
+/// its controller. Painting, selection and panning never call a motion/vision driver.
+/// </summary>
+public interface IManualInspectionController
+{
+    CManualInspectionUiSnapshot Snapshot { get; }
+    event EventHandler? Changed;
+    Task ExecuteAsync(EN_MANUAL_INSPECTION_UI_ACTION action, CManualInspectionUiRequest request,
+        CancellationToken cancellationToken = default);
+}
+
+public enum EN_MANUAL_INSPECTION_UI_ACTION
+{
+    LoadCurrentRecipe, LoadResultFile, Refresh, NewSimulation, ImportSession, ExportSession,
+    ExportCsv, Move, MoveMeasure, MoveMeasureCorrect, Measure, RetryRemaining, Stop,
+    Calculate, Validate, Apply, Rollback, CopyReference, UndoCopy, UpdateLimits, SetAllowManual, UpdateLevels, ShowPoint
+}
+
+/// <summary>All offsets/errors in this UI contract are micrometres; positions are millimetres.</summary>
+public sealed record CManualInspectionUiPoint
+{
+    public string Key { get; init; } = "";
+    public int CellNo { get; init; }
+    public int HeadNo { get; init; }
+    public int ShotNo { get; init; }
+    public int BeamNo { get; init; }
+    public int Row { get; init; }
+    public int Column { get; init; }
+    public bool IsMasked { get; init; }
+    public double DesignXmm { get; init; }
+    public double DesignYmm { get; init; }
+    public string WorkingJudge { get; init; } = "UNMEASURED";
+    public string OriginalJudge { get; init; } = "UNMEASURED";
+    public double? WorkingXUm { get; init; }
+    public double? WorkingYUm { get; init; }
+    public double? OriginalXUm { get; init; }
+    public double? OriginalYUm { get; init; }
+    public double BaseXUm { get; init; }
+    public double BaseYUm { get; init; }
+    public double? CandidateXUm { get; init; }
+    public double? CandidateYUm { get; init; }
+    /// <summary>Engine-resolved reference F; consumed raw must resolve to B, not B + the same raw again.</summary>
+    public double? ReferenceFinalXUm { get; init; }
+    public double? ReferenceFinalYUm { get; init; }
+    public string Source { get; init; } = "KEPT";
+    public bool IsProxy { get; init; }
+    public string ReferenceKey { get; init; } = "";
+    public string MeasurementToken { get; init; } = "";
+    public string Details { get; init; } = "";
+    public bool CanBeReference => !IsMasked && !IsProxy && Source == "MEASURED"
+        && WorkingJudge is "OK" or "NG" && Finite(WorkingXUm) && Finite(WorkingYUm);
+    public string Identity => $"C{CellNo} / H{HeadNo:00} / S{ShotNo} / B{BeamNo}";
+    public string WorkingErrorText => Pair(WorkingXUm, WorkingYUm);
+    public string OriginalErrorText => Pair(OriginalXUm, OriginalYUm);
+    public string BaseOffsetText => Pair(BaseXUm, BaseYUm);
+    public string CandidateOffsetText => CandidateXUm.HasValue && CandidateYUm.HasValue
+        ? Pair(CandidateXUm, CandidateYUm) : "—";
+    public string SourceText => IsProxy ? "◇ 대표값 복사 · MANUAL" : Source == "MEASURED" ? "직접 측정" : Source == "IMPORTED" ? "불러온 측정 · IMPORTED" : Source;
+    public string ReferenceText => string.IsNullOrEmpty(ReferenceKey) ? "—" : ReferenceKey;
+    public static bool Finite(double? value) => value.HasValue && double.IsFinite(value.Value);
+    public static string Number(double? value, bool sign = false) => Finite(value)
+        ? value!.Value.ToString(sign ? "+0.000;-0.000;0.000" : "0.000", CultureInfo.InvariantCulture) : "—";
+    public static string Pair(double? x, double? y) => $"{Number(x, true)} / {Number(y, true)}";
+}
+
+public sealed record CManualInspectionUiCandidateRow
+{
+    public string Key { get; init; } = "";
+    public string Source { get; init; } = "";
+    public double BaseXUm { get; init; }
+    public double BaseYUm { get; init; }
+    public double DeltaXUm { get; init; }
+    public double DeltaYUm { get; init; }
+    public double FinalXUm { get; init; }
+    public double FinalYUm { get; init; }
+    public string BaseText => CManualInspectionUiPoint.Pair(BaseXUm, BaseYUm);
+    public string DeltaText => CManualInspectionUiPoint.Pair(DeltaXUm, DeltaYUm);
+    public string FinalText => CManualInspectionUiPoint.Pair(FinalXUm, FinalYUm);
+}
+
+public sealed record CManualInspectionUiRevision
+{
+    public string Id { get; init; } = "";
+    public string CreatedAt { get; init; } = "";
+    public string Reason { get; init; } = "";
+    public string DisplayText => $"{CreatedAt} · {Id} · {Reason}";
+}
+
+/// <summary>
+/// Version changes whenever the operation/candidate/source/active revision changes.
+/// A request captured by a dialog or context menu must be rejected if its version is stale.
+/// </summary>
+public sealed record CManualInspectionUiSnapshot
+{
+    public long Version { get; init; }
+    public string RecipeId { get; init; } = "—";
+    public string RunId { get; init; } = "—";
+    public string ActiveRevisionId { get; init; } = "—";
+    public string SourcePath { get; init; } = "";
+    public bool IsSimulation { get; init; }
+    public bool IsBusy { get; init; }
+    public bool IsReadOnly { get; init; }
+    public bool HasIncomplete { get; init; }
+    public int RemainingCount { get; init; }
+    public int CompletedCount { get; init; }
+    public int TotalCount { get; init; }
+    /// <summary>Last target with verified arrival, not a live motor feedback poll. NaN means unknown.</summary>
+    public double StageXmm { get; init; } = double.NaN;
+    public double StageYmm { get; init; } = double.NaN;
+    public string StatusText { get; init; } = "현재 Recipe 또는 측정 결과를 불러오세요.";
+    public string Message { get; init; } = "";
+    public string PersistenceText { get; init; } = "작업 상태 · 로컬 파일 보관";
+    public IReadOnlyList<CManualInspectionUiPoint> Points { get; init; } = [];
+    public IReadOnlyList<CManualInspectionUiCandidateRow> CandidateRows { get; init; } = [];
+    public IReadOnlyList<CManualInspectionUiRevision> Revisions { get; init; } = [];
+    public string CandidateStatus { get; init; } = "후보 없음";
+    public bool ValidationPassed { get; init; }
+    public bool CanApply { get; init; }
+    public bool CanRollback { get; init; }
+    public bool CanUndoCopy { get; init; }
+    public bool AllowManual { get; init; }
+    public IReadOnlyList<string> ValidationErrors { get; init; } = [];
+    public IReadOnlyList<string> ValidationWarnings { get; init; } = [];
+    public double MaxCandidateDeltaUm { get; init; }
+    public double MaxCandidateTotalUm { get; init; }
+    public double ToleranceXUm { get; init; } = 5;
+    public double ToleranceYUm { get; init; } = 5;
+    public double DeltaLimitUm { get; init; } = 100;
+    public double TotalLimitUm { get; init; } = 1000;
+    public double ScannerFieldMm { get; init; } = 10;
+    public string LevelMetric { get; init; } = "MAX_AXIS";
+    public IReadOnlyList<double> LevelBoundsUm { get; init; } = [5, 10, 20];
+    public IReadOnlyList<string> LevelNames { get; init; } = ["정상", "관찰", "주의", "점검"];
+}
+
+public sealed record CManualInspectionUiRequest
+{
+    public long ExpectedVersion { get; init; }
+    public IReadOnlyList<string> Keys { get; init; } = [];
+    public string? FocusKey { get; init; }
+    public string? ReferenceKey { get; init; }
+    public string MeasurementMode { get; init; } = "P2P";
+    public string Scenario { get; init; } = "recover";
+    public string Fault { get; init; } = "NONE";
+    public double Speed { get; init; } = 1;
+    public bool AllowManual { get; init; }
+    public string Reason { get; init; } = "";
+    public double? DeltaLimitUm { get; init; }
+    public double? TotalLimitUm { get; init; }
+    public double? ScannerFieldMm { get; init; }
+    public string? LevelMetric { get; init; }
+    public IReadOnlyList<double>? LevelBoundsUm { get; init; }
+    public IReadOnlyList<string>? LevelNames { get; init; }
+}

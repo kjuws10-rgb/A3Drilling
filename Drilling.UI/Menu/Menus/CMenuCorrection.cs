@@ -95,7 +95,7 @@
             = CRecipeConfirmDialog.ShowDuplicateOffsetConfirmation;
 
         private CancellationTokenSource? _roughCancellation;
-        internal bool BlocksMenuNavigation => Review?.BlocksMenuNavigation == true
+        internal bool BlocksMenuNavigation => ManualInspection.IsBusy || Review?.BlocksMenuNavigation == true
             || _isReviewOperationRunning
             || _fineCancellation is { IsCancellationRequested: false }
             || _roughCancellation is { IsCancellationRequested: false }
@@ -140,6 +140,9 @@
             _alignOffsetLogFile = alignOffsetLogFile;
             _defaultManager = defaultManager;
             _defaultScriptFile = defaultScriptFile;
+            ManualInspection = new CManualInspectionController(new CManualInspectionBackend(
+                reviewManager, recipeManager, settingManager, reviewResultFile, reviewOffsetFile,
+                selectedRecipeIdProvider, defaultManager, GuardManualInspection), statusReporter);
             ReviewData = new CReviewDataPanel(
                 _reviewResultFile,
                 _reviewOffsetFile,
@@ -264,7 +267,12 @@
             get => _selectedReviewTabIndex;
             set
             {
-                var normalized = Math.Clamp(value, 0, 1);
+                var normalized = Math.Clamp(value, 0, 2);
+                if (_selectedReviewTabIndex == 2 && normalized != 2 && ManualInspection.IsBusy)
+                {
+                    OnPropertyChanged(nameof(SelectedReviewTabIndex));
+                    return;
+                }
                 if (_selectedReviewTabIndex == normalized)
                     return;
 
@@ -554,10 +562,13 @@
             {
                 var showSimple = _selectedReviewTabIndex == 0;
                 var showInspection = _selectedReviewTabIndex == 1;
+                var showManualInspection = _selectedReviewTabIndex == 2;
                 var showRough = showInspection && Review?.IsRoughInspectionMode == true;
                 var showFine = showInspection && Review?.IsFineInspectionMode == true;
                 try
                 {
+                    if (showManualInspection)
+                        await ManualInspection.EnsureLoaded(cancellationToken);
                     if (showInspection)
                     {
                         if (Review is not null)
@@ -2685,6 +2696,7 @@
 #region Alarm
         public override async Task StopForHeavyAlarm()
         {
+            var manualInspectionStop = ManualInspection.StopAsync();
             if (Review is not null)
                 await Review.StopForHeavyAlarm();
             _roughCancellation?.Cancel();
@@ -2693,6 +2705,7 @@
             if (_isReviewOperationRunning)
                 _reviewManager.Stop();
             if (_defaultStopped is { } stopped) await stopped.Task.WaitAsync(TimeSpan.FromSeconds(15));
+            await manualInspectionStop;
         }
 
 #endregion

@@ -4394,6 +4394,16 @@ namespace Drilling.Common.Review
     {
         public abstract string RootPath { get; }
 
+        /// <summary>
+        /// New Manual Inspection transaction: check the active revision under the writer's own lock
+        /// before appending a new file and its source history. Existing correction callers are unchanged.
+        /// Unsupported stores must fail closed rather than silently use a non-atomic Load/Save pair.
+        /// </summary>
+        public virtual Task<ST_REVIEW_OFFSET_FILE_DATA> SaveNewIfUnchanged(
+            string recipeId, string expectedLatestFilePath, IReadOnlyList<ST_REVIEW_OFFSET_ROW> rows,
+            string sourceResultFile, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException("이 저장소는 Manual Inspection의 활성 Revision 확인 저장을 지원하지 않습니다.");
+
         public abstract Task<ST_REVIEW_OFFSET_FILE_DATA> LoadLatest(string recipeId, CancellationToken cancellationToken = default);
         public abstract Task<ST_REVIEW_OFFSET_FILE_DATA> SaveNew(string recipeId, IReadOnlyList<ST_REVIEW_OFFSET_ROW> rows, CancellationToken cancellationToken = default);
         public abstract Task<ST_REVIEW_OFFSET_SOURCE_APPLICATION?> FindSourceApplication(

@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <ProductionRoot Condition="'$(ProductionRoot)' == ''">$(MSBuildThisFileDirectory)..\..\..\</ProductionRoot>
+    <ManualSourceRoot Condition="'$(ManualSourceRoot)' == ''">$(ProductionRoot)</ManualSourceRoot>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="Contracts.cs" />
+    <Compile Include="$(ManualSourceRoot)/Drilling.Common/Review/CManualInspectionCoordinateBridge.cs" Link="Production/CManualInspectionCoordinateBridge.cs" />
+    <Compile Include="$(ManualSourceRoot)/Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs" Link="Production/CManualInspectionModels.cs" />
+    <Compile Include="$(ProductionRoot)/Drilling.Common/Recipe/CShotCoordinatePlanBuilder.cs" Link="Production/CShotCoordinatePlanBuilder.cs" />
+    <Compile Include="$(ProductionRoot)/Drilling.Common/Recipe/CCellPatternCalculator.cs" Link="Production/CCellPatternCalculator.cs" />
+    <Compile Include="$(ProductionRoot)/Drilling.Common/Managers/CAlignKeyMarginSettings.cs" Link="Production/CAlignKeyMarginSettings.cs" />
+    <Compile Include="$(ProductionRoot)/Drilling.File/ReviewOffset/CReviewOffsetFile.cs" Link="Production/CReviewOffsetFile.cs" />
+    <Compile Include="$(ProductionRoot)/Drilling.File/Parser/CCsvParser.cs" Link="Production/CCsvParser.cs" />
+  </ItemGroup>
+</Project>

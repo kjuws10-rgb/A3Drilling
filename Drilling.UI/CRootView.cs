@@ -827,6 +827,12 @@
 
         private bool CheckStageMotionOwnership(Action<string, string> warn, string operation)
         {
+            if (_menus.TryGetValue(EN_MENU.Correction, out var correctionMenu)
+                && correctionMenu is CMenuCorrection { ManualInspection.IsBusy: true })
+            {
+                warn("작업 진행 중", "Manual Inspection 동작/보정 저장을 완료하거나 STOP 정리가 끝난 후 전환하세요.");
+                return false;
+            }
             var manualMovePending = _menus.TryGetValue(EN_MENU.Manual, out var menu)
                 && menu is CMenuManual manual && manual.IsManualStageMovePending;
             if (!manualMovePending && !_interfaceManager.StageReviewSequences.IsActive)
@@ -2641,6 +2647,10 @@
             }
 
             correctionMenu.ConfigureReview(reviewMenu);
+            correctionMenu.ManualInspectionBlockReason = () => _operationMode != EN_SYSTEM_MODE.Manual
+                ? "MANUAL 모드에서만 Manual Inspection을 실행할 수 있습니다."
+                : _pmLockStatus.IsLocked ? "PM 잠금을 해제한 후 실행하세요."
+                : _autoCycleState != EN_AUTO_CYCLE_STATE.Ready ? "MAIN Cycle이 진행 중입니다." : null;
             foreach (var menu in menus)
                 menu.OperationAllowed = CheckHeavyAlarmForOperation;
             reviewMenu.OperationAllowed = CheckHeavyAlarmForOperation;

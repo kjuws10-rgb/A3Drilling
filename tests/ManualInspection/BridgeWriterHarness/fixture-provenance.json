@@ -1,0 +1,37 @@
+{
+  "scope": "Production pure planner/writer/coordinate bridge are linked. Contracts are source-derived fixture DTOs, pure interpolation dependency and isolated original VisionErrorToStageOffset, with no manager/device construction.",
+  "linked": [
+    {
+      "path": "Drilling.Common/Recipe/CShotCoordinatePlanBuilder.cs",
+      "sha256": "18c6b5e5afc1fdb76dafc1fd6bc33a810af4a84492b53c686eef336adb989831"
+    },
+    {
+      "path": "Drilling.Common/Recipe/CCellPatternCalculator.cs",
+      "sha256": "2d09557b69d8cf7e03b380e9adf01f5938a8d0b9f7bdf79dff397778013431fd"
+    },
+    {
+      "path": "Drilling.Common/Managers/CAlignKeyMarginSettings.cs",
+      "sha256": "1d5a5568cadfa7d9c22efe92232696811c540a7535f971bc50cdeb845f216f37"
+    },
+    {
+      "path": "Drilling.File/ReviewOffset/CReviewOffsetFile.cs",
+      "sha256": "837072d2fd9d6bd9ef7aa544338d8e6a963783e7920f0d65d556620c391ded88"
+    },
+    {
+      "path": "Drilling.File/Parser/CCsvParser.cs",
+      "sha256": "8d9850f57f3552310d7aec82c11c7a08ab13b30c9a0e6daf8ee9e649077fb644"
+    }
+  ],
+  "visionMethodSha256": "f62b142d6534c3eae52efde25186684ca75d0f12b8c293602ad0c93618f113ae",
+  "sourceManagerSha256": "c85d3783a09a8ed699cf23896710907f9306e72bed72a0060fda26972c478c94",
+  "manualSources": [
+    {
+      "path": "Drilling.Common/Review/CManualInspectionCoordinateBridge.cs",
+      "sha256": "faf320044ebb800f2f5216cf0900c2e23b6d12d8a2cb86e089825bc8d97d9344"
+    },
+    {
+      "path": "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs",
+      "sha256": "5ede0d6d2283ce4534b48988a81aae57d8a3f9ef064f20c4b85dfbee4279f83b"
+    }
+  ]
+}
