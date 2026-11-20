@@ -60,6 +60,8 @@ public sealed record ST_MANUAL_POINT(
     public ST_MANUAL_MEASUREMENT? OriginalMeasurement { get; init; }
     public ST_MANUAL_PROXY? ProxySource { get; init; }
     public long MeasurementVersion { get; init; }
+    /// <summary>External file observation time, including EDITED values whose original raw is unknown.</summary>
+    public DateTimeOffset? ExternalObservedAt { get; init; }
     public string OffsetKey => $"C{CellNo}/S{ShotNo}";
     public bool HasFiniteError => ErrorXUm is double x && ErrorYUm is double y && double.IsFinite(x) && double.IsFinite(y);
     public bool IsDirectMeasurement => ProxySource is null && Source == "MEASURED";

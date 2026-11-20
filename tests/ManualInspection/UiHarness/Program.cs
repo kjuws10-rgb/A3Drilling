@@ -33,15 +33,15 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
-        if (args.Length is < 2 or > 3 || args.Length == 3 && args[2] != "--integration-impact") { Console.Error.WriteLine("Usage: UiHarness <repository/Drilling.UI> <private-output> [--integration-impact]"); return 2; }
+        if (args.Length is < 2 or > 3 || args.Length == 3 && args[2] is not ("--integration-impact" or "--sync-levels")) { Console.Error.WriteLine("Usage: UiHarness <repository/Drilling.UI> <private-output> [--integration-impact|--sync-levels]"); return 2; }
         _uiSource = Path.GetFullPath(args[0]); _output = Path.GetFullPath(args[1]); Directory.CreateDirectory(_output);
         _application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-        if (args.Length == 3) return IntegrationImpact();
+        if (args.Length == 3) return args[2] == "--sync-levels" ? SyncLevels() : IntegrationImpact();
         try
         {
             LoadResources("Light");
             var fake = new FakeController(Snapshot(240));
-            var view = new CManualInspectionView { DataContext = fake };
+            var view = new CManualInspectionView { DataContext = fake, ConfirmationForTesting = (_,_,_) => true };
             var window = new Window { Width = 1490, Height = 1060, Content = view, Left = -20000, Top = -20000, ShowInTaskbar = false, ShowActivated = false, WindowStyle = WindowStyle.None };
             window.Show(); Pump(); view.UpdateLayout();
             Test("native_view_loaded", view.IsLoaded);
@@ -52,8 +52,8 @@ internal static class Program
             Test("theme_light_background", ResourceColor("PanelBackgroundBrush") == "#FFFFFFFF");
             LoadResources("Dark"); Pump(); view.InvalidateVisual(); view.UpdateLayout(); Render(view, "native-dark.png");
             Test("theme_dark_background", ResourceColor("PanelBackgroundBrush") == "#FF20262D");
-            ((FrameworkElement)view.FindName("CorrectionSection")).BringIntoView(); Pump(); Render(view, "native-correction-dark.png");
-            ((FrameworkElement)view.FindName("ScatterPlot")).BringIntoView(); Pump(); Render(view, "native-scatter-dark.png");
+            ((Expander)view.FindName("CorrectionSection")).IsExpanded = true; Pump(); ((FrameworkElement)view.FindName("CorrectionSection")).BringIntoView(); Pump(); Render(view, "native-correction-dark.png");
+            ((Expander)view.FindName("ScatterSection")).IsExpanded = true; Pump(); ((FrameworkElement)view.FindName("ScatterPlot")).BringIntoView(); Pump(); Render(view, "native-scatter-dark.png");
             ((FrameworkElement)view.FindName("ResultGrid")).BringIntoView(); Pump(); Render(view, "native-results-dark.png");
             ((ScrollViewer)view.FindName("WorkspaceScroll")).ScrollToTop(); Pump();
             var map = (CManualInspectionMapControl)view.FindName("PositionMap");
@@ -109,9 +109,9 @@ internal static class Program
             Test("original_scatter_drops_proxy_mark", scatter.Metrics.ProxyCount == 0);
             Set(view, "_judge", "ALL"); Set(view, "_cell", 0); Invoke(view, "Refresh");
             var before = fake.Calls.Count; ((Button)view.FindName("LoadRecipeButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Pump();
-            Test("load_recipe_request_uses_controller", fake.Calls.Count == before + 1 && fake.Calls[^1].Action == EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);
+            Test("refresh_request_uses_controller", fake.Calls.Count == before + 1 && fake.Calls[^1].Action == EN_MANUAL_INSPECTION_UI_ACTION.Refresh);
             Test("request_has_current_version", fake.Calls[^1].Request.ExpectedVersion == fake.Snapshot.Version);
-            Test("real_mode_hides_injection", ((Expander)view.FindName("SimulationOptions")).Visibility == Visibility.Collapsed);
+            Test("real_mode_has_no_injection_ui", view.FindName("SimulationOptions") is null);
             var callsBeforeStale = fake.Calls.Count;
             ((Task)Invoke(view, "ConfirmOperation", EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasureCorrect, new[] { key1 }, fake.Snapshot.Version - 1, "P2P")!).GetAwaiter().GetResult();
             Test("stale_context_rejected_before_dialog", fake.Calls.Count == callsBeforeStale && ((TextBlock)view.FindName("MessageText")).Text.Contains("바뀌"));
@@ -145,7 +145,7 @@ internal static class Program
             Test("ten_thousand_points_retained", fake.Snapshot.Points.Count == 10000 && Field<Dictionary<string, CManualInspectionUiPoint>>(view, "_points").Count == 10000);
             Test("ten_thousand_fit_does_not_crop_groups", ((IList)Private(map, "_hits")).Count == 10000, new { hits = ((IList)Private(map, "_hits")).Count });
             Test("ten_thousand_native_layout_completes", watch.Elapsed.TotalSeconds < 12, new { milliseconds = watch.Elapsed.TotalMilliseconds });
-            Test("sim_injection_explicit", ((Expander)view.FindName("SimulationOptions")).Visibility == Visibility.Visible);
+            Test("sim_mode_has_no_injection_ui", view.FindName("SimulationOptions") is null);
             window.Width = 1120; window.Height = 820; Pump(); view.UpdateLayout(); Render(view, "native-1120-dark.png");
             Test("compact_native_layout_finite", double.IsFinite(map.ActualWidth) && map.ActualWidth > 200 && scatter.ActualWidth > 150);
             window.Close(); _application.Shutdown();
@@ -164,7 +164,7 @@ internal static class Program
             var initial = Snapshot(80);
             var points = initial.Points.Select((p, i) => i == 1 ? p with { Source = "IMPORTED", IsProxy = false } : p).ToArray();
             var fake = new FakeController(initial with { Version = 41, Points = points });
-            var view = new CManualInspectionView { DataContext = fake };
+            var view = new CManualInspectionView { DataContext = fake, ConfirmationForTesting = (_,_,_) => true };
             var window = new Window { Width = 1490, Height = 900, Content = view, Left = -20000, Top = -20000, ShowInTaskbar = false, ShowActivated = false, WindowStyle = WindowStyle.None };
             window.Show(); Pump();
             Test("arrival_label_not_live_motor_feedback", ((TextBlock)view.FindName("StagePositionText")).Text.Contains("마지막 도착 확인"));
@@ -176,10 +176,10 @@ internal static class Program
             Test("imported_filter_exact_source", Field<IReadOnlyList<CManualInspectionUiPoint>>(view, "_filtered").Select(p => p.Key).SequenceEqual([points[1].Key]));
             Test("imported_not_a_native_reference", !points[1].CanBeReference && points[1].SourceText.Contains("IMPORTED"));
             var color = (ComboBox)view.FindName("ColorFilter");
-            color.SelectedItem = color.Items.Cast<object>().Single(x => (string?)x.GetType().GetProperty("Value")!.GetValue(x) == "source"); Pump();
-            Test("imported_source_color_distinct", ((SolidColorBrush)CManualInspectionDrawing.PointBrush(view, points[1], "source", fake.Snapshot)).Color.ToString() == "#FF7899A8");
+            color.SelectedItem = color.Items.Cast<object>().Single(x => (string?)x.GetType().GetProperty("Value")!.GetValue(x) == "applied"); Pump();
+            Test("imported_result_does_not_invent_active_offset", ((SolidColorBrush)CManualInspectionDrawing.PointBrush(view, points[1] with { HasAppliedOffset = false }, "applied", fake.Snapshot)).Color.ToString() == "#FFDBE4EA");
             var legend = (WrapPanel)view.FindName("MapLegendItems");
-            Test("imported_source_legend", legend.Children.OfType<StackPanel>().SelectMany(p => p.Children.OfType<TextBlock>()).Any(t => t.Text.Contains("불러온")));
+            Test("applied_legend_marks_unapplied", legend.Children.OfType<StackPanel>().SelectMany(p => p.Children.OfType<TextBlock>()).Any(t => t.Text.Contains("미적용")));
             Test("imported_table_preserves_original", points[1].OriginalJudge == "OK" && points[1].OriginalXUm == initial.Points[1].OriginalXUm);
             Invoke(view, "PointHistory_Click", view, new RoutedEventArgs()); Pump();
             Test("raw_history_uses_controller_full_history", fake.Calls.Count == 1 && fake.Calls[0].Action == EN_MANUAL_INSPECTION_UI_ACTION.ShowPoint && fake.Calls[0].Request.FocusKey == points[1].Key);
@@ -208,11 +208,11 @@ internal static class Program
             Test("impact_checks_send_no_motion_or_correction", fake.Calls.All(c => c.Action == EN_MANUAL_INSPECTION_UI_ACTION.ShowPoint));
             Invoke(view, "Files_Click", view, new RoutedEventArgs());
             var files = ((Button)view.FindName("FilesButton")).ContextMenu!;
-            Test("real_profile_cannot_open_SIM_fixture", !files.Items.OfType<MenuItem>().Single(item => item.Header.ToString()!.Contains("SIM")).IsEnabled);
+            Test("real_profile_has_no_SIM_fixture_action", files.Items.OfType<MenuItem>().All(item => !item.Header.ToString()!.Contains("SIM")));
             files.IsOpen = false;
             fake.Replace(fake.Snapshot with { Version = 46, IsSimulation = true });
             Invoke(view, "Files_Click", view, new RoutedEventArgs()); files = ((Button)view.FindName("FilesButton")).ContextMenu!;
-            Test("explicit_SIM_profile_allows_fixture", files.Items.OfType<MenuItem>().Single(item => item.Header.ToString()!.Contains("SIM")).IsEnabled);
+            Test("SIM_profile_has_no_fixture_action", files.Items.OfType<MenuItem>().All(item => !item.Header.ToString()!.Contains("SIM")));
             files.IsOpen = false;
             Render(view, "native-imported-filter-dark.png");
             window.Close(); _application.Shutdown();
@@ -224,6 +224,86 @@ internal static class Program
         Console.WriteLine(JsonSerializer.Serialize(new { result.passed, result.tests, result.failures })); return _failures == 0 ? 0 : 1;
     }
     private static bool Rejects(Action action) { try { action(); return false; } catch (InvalidOperationException) { return true; } }
+    private static int SyncLevels()
+    {
+        try
+        {
+            LoadResources("Dark");
+            var initial=Snapshot(160) with { Version=100, SynchronizationText="최근 Rough/Fine 결과를 자동 반영했습니다.", ImportedResultCount=2 };
+            var fake=new FakeController(initial);
+            var confirmations=new List<(string Title,string Description,string Button)>();
+            var accept=false;
+            var view=new CManualInspectionView{DataContext=fake,ConfirmationForTesting=(title,description,button)=>{confirmations.Add((title,description,button));return accept;}};
+            var window=new Window{Width=1490,Height=1060,Content=view,Left=-20000,Top=-20000,ShowInTaskbar=false,ShowActivated=false,WindowStyle=WindowStyle.None};
+            window.Show();Pump();
+            var map=(CManualInspectionMapControl)view.FindName("PositionMap");
+            Test("default_color_is_applied_offset",Field<string>(view,"_color")=="applied");
+            Test("only_three_color_concepts",((ComboBox)view.FindName("ColorFilter")).Items.Count==3);
+            Test("advanced_sections_initially_closed",new[]{"ReferenceSection","CorrectionSection","SettingsSection","ScatterSection"}.All(n=>!((Expander)view.FindName(n)).IsExpanded));
+            Test("simulation_and_duplicate_motion_controls_removed",new[]{"SimulationOptions","SimulationDemoButton","MoveButton","MoveMeasureCorrectButton","SideStopButton","PanToolButton","LoadResultButton"}.All(n=>view.FindName(n)is null));
+            Test("automatic_synchronization_description_visible",((TextBlock)view.FindName("StatusText")).Text.Contains("Rough/Fine"));
+            fake.Replace(initial with{Version=101,SyncPending=true});Pump();
+            Test("deferred_synchronization_is_explicit",((TextBlock)view.FindName("StatusText")).Text.Contains("새 결과 대기"));
+            var sample=initial.Points[2] with{HasAppliedOffset=true,BaseXUm=7,BaseYUm=-2,WorkingJudge="UNMEASURED",WorkingXUm=null,WorkingYUm=null};
+            string Brush(CManualInspectionUiPoint p,string mode="applied",CManualInspectionUiSnapshot? snapshot=null)=>((SolidColorBrush)CManualInspectionDrawing.PointBrush(view,p,mode,snapshot??initial)).Color.ToString();
+            var originSamples=new[]{sample with{CellNo=1,HeadNo=1,DisplayedMeasurementOrigin="ROUGH"},sample with{CellNo=2,HeadNo=8,DisplayedMeasurementOrigin="FINE"},sample with{CellNo=3,HeadNo=4,IsProxy=true,Source="MANUAL"}};
+            Test("same_applied_level_across_cells_heads_and_sources",originSamples.Select(p=>Brush(p)).Distinct().Single()=="#FFB88B2A");
+            Test("unmeasured_but_applied_point_has_level",CManualInspectionDrawing.AppliedLevel(sample,initial)==1);
+            Test("applied_zero_is_level_one",Brush(sample with{BaseXUm=0,BaseYUm=0})=="#FF2E9076");
+            Test("missing_offset_is_gray_not_false_zero",Brush(sample with{HasAppliedOffset=false,BaseXUm=0,BaseYUm=0})=="#FFDBE4EA");
+            Test("draft_final_never_colors_active_map",Brush(sample with{BaseXUm=1,CandidateXUm=99,CandidateYUm=99})=="#FF2E9076");
+            Test("active_level_ignores_measurement_judge",new[]{"OK","NG","ERROR","UNMEASURED"}.Select(j=>Brush(sample with{WorkingJudge=j})).Distinct().Count()==1);
+            Test("measurement_level_excludes_failed_response",Brush(sample with{WorkingJudge="ERROR",WorkingXUm=1,WorkingYUm=1},"level")=="#FFDBE4EA");
+            Test("measurement_and_applied_share_inclusive_bounds",Brush(sample with{WorkingJudge="OK",WorkingXUm=5,WorkingYUm=0},"level")==Brush(sample with{BaseXUm=5,BaseYUm=0}));
+            Test("level_upper_ranges_distinct",new[]{5d,10d,20d,20.001}.Select(x=>Brush(sample with{BaseXUm=x,BaseYUm=0})).Distinct().Count()==4);
+            Test("radial_metric_uses_common_policy",Brush(sample with{BaseXUm=4,BaseYUm=4},snapshot:initial with{LevelMetric="RADIAL"})=="#FFB88B2A"&&Brush(sample with{BaseXUm=4,BaseYUm=4})=="#FF2E9076");
+            Test("invalid_level_policy_fails_to_gray",Brush(sample,snapshot:initial with{LevelBoundsUm=[5,5,20]})=="#FFDBE4EA");
+            var snapshot=initial with{Version=102,Points=initial.Points.Select((p,i)=>i==0?p with{DisplayedMeasurementOrigin="FINE · 기타 메뉴",MeasurementSourcePath="synthetic/Fine.csv",HasAppliedOffset=true,AppliedLevel=1,BaseXUm=7}:p).ToArray()};
+            fake.Replace(snapshot);Pump();Set(view,"_focusKey",snapshot.Points[0].Key);Invoke(view,"Refresh");
+            Test("point_details_show_external_measurement_origin",((TextBlock)view.FindName("PointDetailsText")).Text.Contains("FINE · 기타 메뉴")&&((TextBlock)view.FindName("PointDetailsText")).Text.Contains("synthetic/Fine.csv"));
+            Test("point_details_separate_applied_B",((TextBlock)view.FindName("PointAppliedText")).Text.Contains("적용 보정 B")&&((TextBlock)view.FindName("PointAppliedText")).Text.Contains("L2"));
+            var before=fake.Calls.Count;
+            ((Button)view.FindName("LoadRecipeButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();
+            Test("refresh_cancel_sends_no_request",fake.Calls.Count==before&&confirmations.Last().Description.Contains("미적용 후보"));
+            Test("refresh_confirmation_explains_no_machine_effect",confirmations.Last().Description.Contains("이동하지")&&confirmations.Last().Button.Contains("확인"));
+            accept=true;((Button)view.FindName("LoadRecipeButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();
+            Test("refresh_accept_keeps_expected_version",fake.Calls.Count==before+1&&fake.Calls.Last().Action==EN_MANUAL_INSPECTION_UI_ACTION.Refresh&&fake.Calls.Last().Request.ExpectedVersion==102);
+            accept=false;var key=snapshot.Points[1].Key;Invoke(view,"ChangeSelection",new CManualInspectionSelectionEventArgs([key],key));
+            ((Task)Invoke(view,"ConfirmOperation",EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasureCorrect,new[]{key},102L,"P2P")!).GetAwaiter().GetResult();
+            Test("measurement_correction_description_requires_fresh_all_OK",confirmations.Last().Description.Contains("새 직접 측정 OK")&&confirmations.Last().Description.Contains("자동 보정하지"));
+            Test("operation_cancel_sends_no_device_request",fake.Calls.Count==before+1);
+            accept=true;((Button)view.FindName("MoveMeasureButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();
+            Test("primary_measurement_uses_selected_keys",fake.Calls.Last().Action==EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure&&fake.Calls.Last().Request.Keys.SequenceEqual([key]));
+            var callCount=fake.Calls.Count;((Button)view.FindName("StopButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();
+            Test("stop_is_immediate_without_confirmation",fake.Calls.Count==callCount+1&&fake.Calls.Last().Action==EN_MANUAL_INSPECTION_UI_ACTION.Stop);
+            Test("calculate_description_does_not_claim_saved",CManualInspectionView.DescribeAction(EN_MANUAL_INSPECTION_UI_ACTION.Calculate,snapshot,3).Contains("저장하지"));
+            Test("retry_description_no_implicit_correction",CManualInspectionView.DescribeAction(EN_MANUAL_INSPECTION_UI_ACTION.RetryRemaining,snapshot with{RemainingCount=3},0).Contains("재개하지"));
+            var recent=new CManualInspectionUiResultFile("synthetic/other-fine.csv","Fine · synthetic", "G",DateTimeOffset.UtcNow,"FINE");
+            fake.Replace(snapshot with{Version=103,RecentResults=[recent]});accept=true;
+            ((Task)Invoke(view,"OpenRecentResults")!).GetAwaiter().GetResult();Pump();
+            Test("recent_result_uses_selected_path_without_picker",fake.Calls.Last().Action==EN_MANUAL_INSPECTION_UI_ACTION.LoadResultFile&&fake.Calls.Last().Request.ResultPath==recent.Path&&fake.Calls.Last().Request.ExpectedVersion==103);
+            Test("recent_result_description_distinguishes_viewing",confirmations.Last().Description.Contains("이동·보정 적용을 실행하지"));
+            Invoke(view,"Files_Click",view,new RoutedEventArgs());var menu=((Button)view.FindName("FilesButton")).ContextMenu!;
+            Test("more_menu_has_recent_results_and_no_SIM",menu.Items.OfType<MenuItem>().Any(x=>x.Header.ToString()!.Contains("최근 측정"))&&menu.Items.OfType<MenuItem>().All(x=>!x.Header.ToString()!.Contains("SIM")));menu.IsOpen=false;
+            var oldLevel=CManualInspectionDrawing.AppliedLevel(sample,initial);var changed=initial with{LevelBoundsUm=[10,20,30]};
+            Test("new_common_bounds_recolor_existing_offsets",oldLevel==1&&CManualInspectionDrawing.AppliedLevel(sample,changed)==0);
+            fake.Replace(snapshot with{Version=104,LevelBoundsUm=[10,20,30]});Pump();Set(view,"_focusKey",snapshot.Points[0].Key);Invoke(view,"Refresh");
+            var firstRow=((IEnumerable)((DataGrid)view.FindName("ResultGrid")).ItemsSource).Cast<object>().First();
+            Test("table_and_detail_use_same_current_level_scale",firstRow.GetType().GetProperty("AppliedLevelText")!.GetValue(firstRow)?.ToString()=="L1"&&((TextBlock)view.FindName("PointAppliedText")).Text.Contains("L1"));
+            Set(view,"_focusKey",snapshot.Points[1].Key);Invoke(view,"Refresh");
+            view.ConfirmationForTesting=(_,_,_)=>{fake.Replace(fake.Snapshot with{Version=105});return true;};
+            Invoke(view,"SetReference_Click",view,new RoutedEventArgs());
+            Test("representative_confirmation_rejects_changed_source_version",Field<string?>(view,"_representativeKey")is null&&((TextBlock)view.FindName("MessageText")).Text.Contains("기준이 바뀌"));
+            view.ConfirmationForTesting=(_,_,_)=>false;
+            ((ScrollViewer)view.FindName("WorkspaceScroll")).ScrollToTop();Pump();Render(view,"simplified-dark.png");
+            LoadResources("Light");Pump();Render(view,"simplified-light.png");
+            ((Expander)view.FindName("ReferenceSection")).IsExpanded=true;((Expander)view.FindName("CorrectionSection")).IsExpanded=true;Pump();Render(view,"simplified-expanded-light.png");
+            window.Close();_application.Shutdown();
+        }
+        catch(Exception e){Test("sync_levels_unhandled",false,e.ToString());}
+        var result=new{schemaVersion="a3-manual-inspection-ui-sync-levels/1",passed=_failures==0,tests=Checks.Count,failures=_failures,scope="Native WPF with fake controller, applied/measurement Level policy, simplified controls and real description/confirmation dispatch. No equipment app or SDK.",checks=Checks};
+        File.WriteAllText(Path.Combine(_output,"ui-sync-levels-results.json"),JsonSerializer.Serialize(result,new JsonSerializerOptions{WriteIndented=true}));Console.WriteLine(JsonSerializer.Serialize(new{result.passed,result.tests,result.failures}));return _failures==0?0:1;
+    }
     private static void LoadResources(string theme)
     {
         _application.Resources.Clear(); _application.Resources.MergedDictionaries.Clear();
@@ -248,7 +328,7 @@ internal static class Program
             WorkingJudge = i % 11 == 0 ? "NG" : "OK", OriginalJudge = "OK", WorkingXUm = i % 8 - 3.5,
             WorkingYUm = (i % 5 - 2) * 1.2, OriginalXUm = i % 8 - 3.5, OriginalYUm = (i % 5 - 2) * 1.2,
             Source = i % 23 == 0 ? "MANUAL" : "MEASURED", IsProxy = i % 23 == 0, ReferenceKey = i % 23 == 0 ? "C1:H1:S2:B11" : "",
-            BaseXUm = 2, BaseYUm = -1, Details = "Synthetic test measurement only; DESIGN µm."
+            BaseXUm = i%4*7, BaseYUm = -1, HasAppliedOffset=i%7!=0, AppliedLevel=i%4, DisplayedMeasurementOrigin=i%2==0?"ROUGH · 합성 시험":"FINE · 합성 시험",MeasurementSourcePath="synthetic/measurement.csv",Details = "Synthetic test measurement only; DESIGN µm."
         }).ToArray();
         return new CManualInspectionUiSnapshot { Version = 7, RecipeId = "A3_QA", RunId = "native-qa", ActiveRevisionId = "QA-R0001", Points = points,
             StatusText = "독립 WPF 테스트 · 실제 설비 연결 없음", PersistenceText = "QA · 임시 출력만 사용" };

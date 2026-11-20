@@ -143,6 +143,9 @@
             ManualInspection = new CManualInspectionController(new CManualInspectionBackend(
                 reviewManager, recipeManager, settingManager, reviewResultFile, reviewOffsetFile,
                 selectedRecipeIdProvider, defaultManager, GuardManualInspection), statusReporter);
+            ManualInspection.EnableAutomaticUpdates();
+            if (System.Windows.Application.Current is { } application)
+                application.Exit += (_, _) => ManualInspection.DisableAutomaticUpdates();
             ReviewData = new CReviewDataPanel(
                 _reviewResultFile,
                 _reviewOffsetFile,

@@ -42,6 +42,12 @@ public sealed record CManualInspectionUiPoint
     public double? OriginalYUm { get; init; }
     public double BaseXUm { get; init; }
     public double BaseYUm { get; init; }
+    /// <summary>An actual active offset row exists, including an explicitly saved zero row.</summary>
+    public bool HasAppliedOffset { get; init; }
+    public int? AppliedLevel { get; init; }
+    public double? AppliedMetricUm { get; init; }
+    public string DisplayedMeasurementOrigin { get; init; } = "";
+    public string MeasurementSourcePath { get; init; } = "";
     public double? CandidateXUm { get; init; }
     public double? CandidateYUm { get; init; }
     /// <summary>Engine-resolved reference F; consumed raw must resolve to B, not B + the same raw again.</summary>
@@ -91,6 +97,33 @@ public sealed record CManualInspectionUiRevision
     public string DisplayText => $"{CreatedAt} · {Id} · {Reason}";
 }
 
+public sealed record CManualInspectionUiResultFile(string Path, string DisplayText, string GlassId,
+    DateTimeOffset SavedAt, string Origin);
+
+/// <summary>One inclusive Level scale for every Cell/Head and for measured/applied views. No device calls.</summary>
+public static class CManualInspectionLevels
+{
+    public static double? Metric(double? x, double? y, string metric)
+    {
+        if (x is not double a || y is not double b || !double.IsFinite(a) || !double.IsFinite(b)) return null;
+        a = Math.Abs(a); b = Math.Abs(b);
+        if (metric == "MAX_AXIS") return Math.Max(a, b);
+        if (metric != "RADIAL") return null;
+        var high = Math.Max(a, b); var low = Math.Min(a, b);
+        var value = high == 0 ? 0 : high * Math.Sqrt(1 + (low / high) * (low / high));
+        return double.IsFinite(value) ? value : null;
+    }
+
+    public static int? Evaluate(double? x, double? y, string metric, IReadOnlyList<double> bounds)
+    {
+        var value = Metric(x, y, metric);
+        if (value is null || bounds.Count != 3 || bounds.Any(n => !double.IsFinite(n) || n <= 0)
+            || bounds[0] >= bounds[1] || bounds[1] >= bounds[2]) return null;
+        for (var i = 0; i < bounds.Count; i++) if (value.Value <= bounds[i]) return i;
+        return 3;
+    }
+}
+
 /// <summary>
 /// Version changes whenever the operation/candidate/source/active revision changes.
 /// A request captured by a dialog or context menu must be rejected if its version is stale.
@@ -115,6 +148,10 @@ public sealed record CManualInspectionUiSnapshot
     public string StatusText { get; init; } = "현재 Recipe 또는 측정 결과를 불러오세요.";
     public string Message { get; init; } = "";
     public string PersistenceText { get; init; } = "작업 상태 · 로컬 파일 보관";
+    public bool SyncPending { get; init; }
+    public string SynchronizationText { get; init; } = "같은 Recipe·기판의 최근 측정 결과와 활성 보정을 자동으로 확인합니다.";
+    public int ImportedResultCount { get; init; }
+    public IReadOnlyList<CManualInspectionUiResultFile> RecentResults { get; init; } = [];
     public IReadOnlyList<CManualInspectionUiPoint> Points { get; init; } = [];
     public IReadOnlyList<CManualInspectionUiCandidateRow> CandidateRows { get; init; } = [];
     public IReadOnlyList<CManualInspectionUiRevision> Revisions { get; init; } = [];
@@ -144,6 +181,7 @@ public sealed record CManualInspectionUiRequest
     public IReadOnlyList<string> Keys { get; init; } = [];
     public string? FocusKey { get; init; }
     public string? ReferenceKey { get; init; }
+    public string? ResultPath { get; init; }
     public string MeasurementMode { get; init; } = "P2P";
     public string Scenario { get; init; } = "recover";
     public string Fault { get; init; } = "NONE";

@@ -18,6 +18,8 @@
             "INSPECTION_METHOD", 
             "RUN_TYPE",
             "RESULT_STATUS", 
+            "STAGE_SIMULATION",
+            "VISION_SIMULATION",
             "TOTAL_COUNT", 
             "RULE", 
             "RULE_SCOPE", 
@@ -81,8 +83,14 @@
 
             var fullPath = Path.GetFullPath(path);
             var metadataRow = sourceRows[0];
+            if (sourceRows.Select(row => ReadFirstText(row, "GLASS_ID", "GLASS_NAME")).Distinct(StringComparer.OrdinalIgnoreCase).Count() != 1
+                || sourceRows.Select(row => ReadOptionalDouble(row, "SHIFT_OFFSET_X")).Distinct().Count() != 1
+                || sourceRows.Select(row => ReadOptionalDouble(row, "SHIFT_OFFSET_Y")).Distinct().Count() != 1)
+                throw new InvalidDataException("Review Result의 기판/Shift 기준이 행마다 다릅니다. 혼합 결과를 표시·적용하지 않습니다.");
             return Task.FromResult(new ST_REVIEW_RESULT_FILE_DATA(fullPath, Path.GetFileName(fullPath), recipeIds[0], rows.Max(row => row.SavedAt), rows)
             {
+                IsStageSimulation = ReadConsistentMode(sourceRows, "STAGE_SIMULATION", "StageSimulation"),
+                IsVisionSimulation = ReadConsistentMode(sourceRows, "VISION_SIMULATION", "VisionSimulation"),
                 GlassId = ReadFirstText(metadataRow, "GLASS_ID", "GLASS_NAME"),
                 InspectionMethod = ReadFirstText(metadataRow, "INSPECTION_METHOD", "METHOD"),
                 RunType = ReadFirstText(metadataRow, "RUN_TYPE", "ORIGIN"),
@@ -100,6 +108,14 @@
                 ShiftOffsetX = ReadOptionalDouble(metadataRow, "SHIFT_OFFSET_X"),
                 ShiftOffsetY = ReadOptionalDouble(metadataRow, "SHIFT_OFFSET_Y")
             });
+        }
+
+        private static bool? ReadConsistentMode(IEnumerable<IReadOnlyDictionary<string, string>> rows, params string[] names)
+        {
+            static bool? Parse(string value) => value.Trim().ToUpperInvariant() switch
+            { "ON" or "TRUE" or "1" => true, "OFF" or "FALSE" or "0" => false, _ => null };
+            var values = rows.Select(row => Parse(ReadFirstText(row, names))).Distinct().ToArray();
+            return values.Length == 1 ? values[0] : null;
         }
 
         public override Task Save(ST_REVIEW_RESULT_DATA result, CancellationToken cancellationToken = default)
@@ -541,6 +557,8 @@
                 ["INSPECTION_METHOD"] = result.InspectionMethod,
                 ["RUN_TYPE"] = plan.ResultType,
                 ["RESULT_STATUS"] = NormalizeResultStatus(result.ResultStatus),
+                ["STAGE_SIMULATION"] = result.IsStageSimulation.HasValue ? result.IsStageSimulation.Value ? "ON" : "OFF" : "",
+                ["VISION_SIMULATION"] = result.IsVisionSimulation.HasValue ? result.IsVisionSimulation.Value ? "ON" : "OFF" : "",
                 ["TOTAL_COUNT"] = Math.Max(result.TotalCount, plan.ReviewPoints.Count).ToString(CultureInfo.InvariantCulture),
                 ["RULE"] = metadata.Rule,
                 ["RULE_SCOPE"] = metadata.RuleScope,

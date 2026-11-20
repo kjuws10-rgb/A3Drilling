@@ -8,12 +8,14 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Program.cs" />
+    <Compile Include="SyncCases.cs" />
   </ItemGroup>
   <ItemGroup Condition="'$(UseActualAssemblies)' != 'true'">
     <Compile Include="Contracts.cs" />
     <Compile Include="../../../Drilling.Common/Review/ManualInspection/*.cs" Link="Production/%(Filename)%(Extension)" />
     <Compile Include="../../../Drilling.UI/Menu/Menus/CManualInspectionController.cs" Link="Production/CManualInspectionController.cs" />
     <Compile Include="../../../Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs" Link="Production/CManualInspectionReplayBackend.cs" />
+    <Compile Include="../../../Drilling.UI/Menu/Menus/CManualInspectionUpdateMonitor.cs" Link="Production/CManualInspectionUpdateMonitor.cs" />
     <Compile Include="../../../Drilling.UI/Views/CManualInspectionUiContract.cs" Link="Production/CManualInspectionUiContract.cs" />
   </ItemGroup>
   <ItemGroup Condition="'$(UseActualAssemblies)' == 'true'">

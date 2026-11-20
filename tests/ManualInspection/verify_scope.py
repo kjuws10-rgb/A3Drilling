@@ -1,17 +1,19 @@
-"""Verify the additive feature scope against 11.19.0. Does not run equipment code."""
+"""Verify the synchronization feature against its prior Manual Inspection branch. No equipment execution."""
 import argparse
 import hashlib
 import json
+import re
 from pathlib import Path
 import subprocess
 import xml.etree.ElementTree as ET
 
-BASE = "334b3599651b2e8e0181fd4459bafaf3cddafff3"
+BASE = "a062c701d825c925a8ba74184bc8eff98dce0ab6"
 ROOT = Path(__file__).resolve().parents[2]
 EXISTING = {
     "Drilling.Common/Review/CReviewManager.cs",
     "Drilling.Common/Station/CStageReviewSequences.cs",
     "Drilling.File/ReviewOffset/CReviewOffsetFile.cs",
+    "Drilling.File/ReviewResult/CReviewResultFile.cs",
     "Drilling.UI/CRootView.cs",
     "Drilling.UI/Menu/Menus/CMenuCorrection.cs",
     "Drilling.UI/Views/CCorrectionView.xaml",
@@ -19,11 +21,13 @@ EXISTING = {
 }
 NEW = {
     "Drilling.Common/Review/CManualInspectionCoordinateBridge.cs",
+    "Drilling.Common/Review/CManualInspectionResultProjection.cs",
     "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs",
     "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
     "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs",
     "Drilling.UI/Menu/Menus/CManualInspectionController.cs",
     "Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs",
+    "Drilling.UI/Menu/Menus/CManualInspectionUpdateMonitor.cs",
     "Drilling.UI/Menu/Menus/CMenuCorrection.ManualInspection.cs",
     "Drilling.UI/Views/CManualInspectionMapControl.cs",
     "Drilling.UI/Views/CManualInspectionScatterControl.cs",
@@ -56,11 +60,20 @@ def main():
     check("changed_paths_scoped", all(p in EXISTING | NEW or p.startswith(("tests/ManualInspection/", "docs/ManualInspection/")) for p in paths))
     check("all_new_production_files_present", all((ROOT / p).is_file() for p in NEW))
     check("configuration_data_sdk_and_themes_unchanged", not any(p.startswith(("Config/", "Data/", "Drilling.UI/Theme")) or p.endswith(".dll") for p in paths))
-    # Shared manager/writer methods are additions; every original source line remains in order.
+    # Existing control/save behavior stays intact; the ordinary result save additionally records mode.
     for path in sorted(p for p in EXISTING if p.startswith(("Drilling.Common/", "Drilling.File/"))):
         original = git("show", f"{BASE}:{path}").decode("utf-8-sig").splitlines()
+        if path == "Drilling.Common/Review/CReviewManager.cs":
+            original = [line for line in original if "await reviewResultFile.Save(new ST_REVIEW_RESULT_DATA(" not in line]
         current = iter((ROOT / path).read_text(encoding="utf-8-sig").splitlines())
         check("original_lines_retained:" + path, all(any(line == candidate for candidate in current) for line in original))
+    manager_path = "Drilling.Common/Review/CReviewManager.cs"
+    def result_method(text):
+        body = text.split("private async Task SaveResultForProduct", 1)[1].split("private async Task SaveProgressToProduct", 1)[0]
+        return re.sub(r"\s+", "", re.sub(r"await reviewResultFile.Save\(.*?ConfigureAwait\(false\);", "<RESULT_SAVE>", body, count=1, flags=re.S))
+    check("ordinary_review_control_flow_unchanged_outside_mode_metadata",
+          result_method(git("show", f"{BASE}:{manager_path}").decode("utf-8-sig"))
+          == result_method((ROOT / manager_path).read_text(encoding="utf-8-sig")))
     path = "Drilling.UI/Views/CCorrectionView.xaml"
     old_xml = ET.fromstring(git("show", f"{BASE}:{path}"))
     new_xml = ET.parse(ROOT / path).getroot()

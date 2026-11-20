@@ -1614,7 +1614,12 @@ namespace Drilling.Common.Review
         {
             var savedAt = DateTimeOffset.Now;
             var resultFileRows = GetMeasuredResultRows(results);
-            await reviewResultFile.Save(new ST_REVIEW_RESULT_DATA(plan, resultFileRows, savedAt, reviewProductId ?? "", plan.InspectionMethod) { ResultStatus = "COMPLETED", TotalCount = plan.ReviewPoints.Count, TargetFilePath = null }, cancellationToken).ConfigureAwait(false);
+            await reviewResultFile.Save(new ST_REVIEW_RESULT_DATA(plan, resultFileRows, savedAt, reviewProductId ?? "", plan.InspectionMethod)
+            {
+                ResultStatus = "COMPLETED", TotalCount = plan.ReviewPoints.Count, TargetFilePath = null,
+                IsStageSimulation = IsReviewDeviceSimulation(EN_EQP_MODULE.Melsec, GetReviewStageDeviceNo()),
+                IsVisionSimulation = IsReviewSimulation()
+            }, cancellationToken).ConfigureAwait(false);
             LastSavedResultPath = reviewResultFile.LastSavedPath;
             WriteReviewLog("RESULT_FILE_SAVED", "Review result file saved.");
             if (string.IsNullOrWhiteSpace(reviewProductId) || productManager is null)
@@ -4252,6 +4257,8 @@ namespace Drilling.Common.Review
     );
     public sealed record ST_REVIEW_RESULT_DATA(ST_REVIEW_PLAN Plan, IReadOnlyList<ST_REVIEW_PLAN_POINT> Results, DateTimeOffset SavedAt, string GlassId = "", string InspectionMethod = "P2P")
     {
+        public bool? IsStageSimulation { get; init; }
+        public bool? IsVisionSimulation { get; init; }
         public string ResultStatus { get; init; } = "COMPLETED";
         public int TotalCount { get; init; }
         public string? TargetFilePath { get; init; }
@@ -4270,6 +4277,9 @@ namespace Drilling.Common.Review
     }
     public sealed record ST_REVIEW_RESULT_FILE_DATA(string FilePath, string FileName, string RecipeId, DateTimeOffset SavedAt, IReadOnlyList<ST_REVIEW_RESULT_FILE_ROW> Rows)
     {
+        /// <summary>Null for legacy/mixed/unknown files; these must not be auto-merged as live measurements.</summary>
+        public bool? IsStageSimulation { get; init; }
+        public bool? IsVisionSimulation { get; init; }
         public string GlassId { get; init; } = "";
         public string InspectionMethod { get; init; } = "";
         public string RunType { get; init; } = "";

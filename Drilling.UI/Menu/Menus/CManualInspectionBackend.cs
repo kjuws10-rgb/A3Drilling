@@ -21,6 +21,7 @@ public interface IManualInspectionBackend
     string StateDirectory { get; }
     IReadOnlyDictionary<string, ST_MANUAL_OFFSET> LastSavedValues => new Dictionary<string, ST_MANUAL_OFFSET>();
     IReadOnlyList<KeyValuePair<string, string>> ConsumedMeasurements => [];
+    IReadOnlyList<string> WatchRoots => [];
     Task<CManualInspectionSource> LoadAsync(string? resultPath, CancellationToken token, IReadOnlyList<string>? displayKeys = null);
     Task EnsureCurrentAsync(CManualInspectionSource source, CancellationToken token);
     void GuardOperation();
@@ -41,7 +42,15 @@ public sealed record CManualInspectionSource(
     string SourcePath, string Description)
 {
     public bool ReadOnly { get; init; }
+    /// <summary>Explicitly stored offsets, including zero rows. Missing rows are not invented as applied.</summary>
+    public IReadOnlySet<string> AppliedOffsetKeys { get; init; } = new HashSet<string>(StringComparer.Ordinal);
+    public IReadOnlyDictionary<string, CManualInspectionImportedResult> ImportedResults { get; init; }
+        = new Dictionary<string, CManualInspectionImportedResult>(StringComparer.Ordinal);
+    public IReadOnlyList<ST_REVIEW_RESULT_CATALOG_ITEM> RecentResults { get; init; } = [];
+    public string ObservationFingerprint { get; init; } = "";
 }
+
+public sealed record CManualInspectionImportedResult(string Path, DateTimeOffset SavedAt, string Origin);
 
 public sealed record CManualInspectionMeasurement(string Key, ST_MANUAL_MEASUREMENT Measurement,
     double ReviewXmm, double StageYmm);
@@ -63,12 +72,14 @@ public sealed class CManualInspectionBackend(
     private Dictionary<int, ST_REVIEW_PLAN> _plans = [];
     private Dictionary<string, ST_HEAD_SHOT_POINT> _shots = new(StringComparer.Ordinal);
     private Dictionary<string, ST_MANUAL_OFFSET> _baseline = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, CachedResult> _resultCache = new(StringComparer.OrdinalIgnoreCase);
     private string _sourceRun = "";
     private double _shiftX, _shiftY;
     public IReadOnlyDictionary<string, ST_MANUAL_OFFSET> LastSavedValues { get; private set; } = new Dictionary<string, ST_MANUAL_OFFSET>();
     public IReadOnlyList<KeyValuePair<string, string>> ConsumedMeasurements { get; private set; } = [];
     public bool IsSimulation => manager?.Interface().IsSimulation == true && manager.Motion().IsSimulation;
     public string StateDirectory => Path.Combine(Directory.GetParent(results.RootPath)?.FullName ?? results.RootPath, "ManualInspection");
+    public IReadOnlyList<string> WatchRoots => [results.RootPath, offsets.RootPath];
 
     public void GuardOperation()
     {
@@ -88,7 +99,7 @@ public sealed class CManualInspectionBackend(
         var selected = selectedRecipe();
         _recipe = (await recipes.LoadRecipes(token)).SingleOrDefault(r => r.Id.Equals(selected, StringComparison.OrdinalIgnoreCase))
             ?? throw new InvalidOperationException("현재 선택된 Recipe가 없습니다. Recipe를 선택한 후 불러오세요.");
-        var file = string.IsNullOrWhiteSpace(resultPath) ? null : await results.Load(resultPath, token);
+        var file = string.IsNullOrWhiteSpace(resultPath) ? null : await ReadResult(resultPath, token);
         if (file is not null && !file.RecipeId.Equals(_recipe.Id, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("측정 결과와 현재 Recipe가 다릅니다. 다른 Recipe의 위치로 이동하지 않습니다.");
         _parameters = Parameters(_recipe);
@@ -97,7 +108,52 @@ public sealed class CManualInspectionBackend(
         var split = Int(_parameters, "SPLITED_BEAM_COUNT");
         if (split <= 0) throw new InvalidOperationException("SPLITED_BEAM_COUNT를 확인하세요.");
         var defaultBeam = Math.Min(11, checked(split * split));
-        var beamNos = file?.Rows.Select(r => r.BeamNo > 0 ? r.BeamNo : file.BeamNo).Append(defaultBeam).Distinct().ToArray() ?? [defaultBeam];
+        var completion = manager?.Station().LastCompletedManualMof;
+        var product = manager?.Product().Current;
+        // The persisted completion record has no Glass/Recipe key. A completion predating this
+        // product cannot supply its Shift or prove its result run.
+        if (product?.CreatedAt is DateTimeOffset productCreated && completion?.CompletedAt < productCreated)
+            completion = null;
+        var currentGlass = product is not null && product.RecipeId.Equals(_recipe.Id, StringComparison.OrdinalIgnoreCase)
+            ? product.GlassId : "";
+        var minimumTime = product?.CreatedAt;
+        if (completion is not null && (minimumTime is null || completion.CompletedAt > minimumTime)) minimumTime = completion.CompletedAt;
+        var currentFrame = new ST_MANUAL_RESULT_FRAME(_recipe.Id, currentGlass, minimumTime,
+            completion?.ShiftOffsetX ?? 0, completion?.ShiftOffsetY ?? 0, IsSimulation);
+        var catalog = (await results.ListCorrectionResults(token))
+            .Where(item => item.RecipeId.Equals(_recipe.Id, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(item => item.SavedAt).ThenBy(item => item.FilePath, StringComparer.OrdinalIgnoreCase).ToArray();
+        var external = new List<ST_MANUAL_EXTERNAL_RESULT>();
+        var rejectedFiles = 0;
+        var rejectedRows = 0;
+        if (file is null && currentFrame.IsLinked)
+        {
+            foreach (var item in catalog)
+            {
+                token.ThrowIfCancellationRequested();
+                if (!item.GlassId.Equals(currentGlass, StringComparison.OrdinalIgnoreCase)
+                    || item.SavedAt < minimumTime || item.ResultStatus == "INVALID") continue;
+                try
+                {
+                    var candidate = await ReadResult(item.FilePath, token);
+                    if (!CManualInspectionResultProjection.IsSameFrame(currentFrame, candidate)
+                        || candidate.Rows.Any(row => (row.BeamNo > 0 ? row.BeamNo : candidate.BeamNo) is var b && (b < 1 || b > split * split)))
+                    { rejectedFiles++; continue; }
+                    if (!candidate.Rows.Any(row => row.DesignX.HasValue && row.DesignY.HasValue
+                        && row.ResultSource is "MEASURED" or "EDITED" or "MANUAL" or "ERROR")) continue;
+                    var origin = string.Join(" · ", new[] { item.ResultType, candidate.Rule, candidate.Origin, candidate.RunType }
+                        .Where(text => !string.IsNullOrWhiteSpace(text)).Distinct(StringComparer.OrdinalIgnoreCase));
+                    external.Add(new(candidate, origin));
+                }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidDataException or FormatException or OverflowException)
+                { rejectedFiles++; }
+            }
+        }
+        var beamNos = (file is not null ? file.Rows.Select(r => r.BeamNo > 0 ? r.BeamNo : file.BeamNo)
+            : external.SelectMany(item => item.File.Rows.Where(row => row.DesignX.HasValue && row.DesignY.HasValue
+                && row.ResultSource is "MEASURED" or "EDITED" or "MANUAL" or "ERROR")
+                .Select(row => row.BeamNo > 0 ? row.BeamNo : item.File.BeamNo)))
+            .Append(defaultBeam).Distinct().ToArray();
         var requestedKeys = displayKeys?.ToHashSet(StringComparer.Ordinal);
         if (displayKeys is not null)
         {
@@ -107,7 +163,6 @@ public sealed class CManualInspectionBackend(
             beamNos = beamNos.Concat(extra).Distinct().ToArray();
         }
         if (beamNos.Any(b => b < 1 || b > split * split)) throw new InvalidOperationException("결과 파일의 Beam 번호가 현재 Recipe 범위를 벗어납니다.");
-        var completion = manager?.Station().LastCompletedManualMof;
         _shiftX = file?.ShiftOffsetX ?? completion?.ShiftOffsetX ?? 0;
         _shiftY = file?.ShiftOffsetY ?? completion?.ShiftOffsetY ?? 0;
         _parameters["SHIFT_OFFSET_X"] = _shiftX.ToString("R", CultureInfo.InvariantCulture);
@@ -117,6 +172,7 @@ public sealed class CManualInspectionBackend(
         _shots = process.Shots.ToDictionary(s => OffsetKey(s.CellNo, s.CellShotNo), StringComparer.Ordinal);
         var baselineByRow = _latest.Rows.ToDictionary(r => $"{r.CellId}:{Normalize(r.ShotId)}", StringComparer.OrdinalIgnoreCase);
         var fileRows = new Dictionary<string, ST_REVIEW_RESULT_FILE_ROW>(StringComparer.OrdinalIgnoreCase);
+        var observations = new Dictionary<string, ST_MANUAL_IMPORTED_OBSERVATION>(StringComparer.OrdinalIgnoreCase);
         if (file is not null)
         {
             foreach (var row in file.Rows)
@@ -124,13 +180,20 @@ public sealed class CManualInspectionBackend(
                 var beam = row.BeamNo > 0 ? row.BeamNo : file.BeamNo;
                 var key = $"{row.CellNo}:{Normalize(row.ShotName)}:B{beam}";
                 if (!fileRows.TryAdd(key, row)) throw new InvalidDataException($"동일 Cell/Shot/Beam 결과가 중복됐습니다: {key}");
+                observations[key] = new(row, file.FilePath, file.RunType.Length > 0 ? file.RunType : "직접 연 결과");
             }
+        }
+        else
+        {
+            var projection = CManualInspectionResultProjection.Merge(currentFrame, external, _plans.Values.SelectMany(p => p.Points));
+            rejectedFiles += projection.RejectedFileCount;
+            observations = new(projection.Rows, StringComparer.OrdinalIgnoreCase);
+            foreach (var pair in observations) fileRows[pair.Key] = pair.Value.Row;
+            rejectedRows = projection.RejectedRowCount;
         }
         var actualRun = RunIdentity();
         _sourceRun = actualRun;
-        var currentGlass = manager?.Product().Current?.GlassId ?? "";
-        var linkedGlass = file is null || (!string.IsNullOrWhiteSpace(currentGlass)
-            && file.GlassId.Equals(currentGlass, StringComparison.OrdinalIgnoreCase));
+        var linkedGlass = file is null || CManualInspectionResultProjection.IsSameFrame(currentFrame, file);
         // Old CSV rows are IMPORTED, never native MEASURED anchors. Only a fresh native direct
         // measurement or a current representative may replace their working value.
         var lineage = linkedGlass;
@@ -138,6 +201,8 @@ public sealed class CManualInspectionBackend(
         { LineageValid = lineage, SourceResultPath = file?.FilePath ?? "" };
         var points = new List<ST_MANUAL_POINT>();
         var bases = new Dictionary<string, ST_MANUAL_OFFSET>(StringComparer.Ordinal);
+        var appliedKeys = new HashSet<string>(StringComparer.Ordinal);
+        var imported = new Dictionary<string, CManualInspectionImportedResult>(StringComparer.Ordinal);
         _targets.Clear(); _baseline.Clear();
         var matched = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var beam in beamNos)
@@ -164,11 +229,15 @@ public sealed class CManualInspectionBackend(
                   Masked = !target.Use || target.HeadNo <= 0 || target.ExclusionReason.Length > 0 };
                 var basis = baselineByRow.TryGetValue($"{target.CellNo}:{Normalize(matrix)}", out var offset)
                     ? CManualInspectionCoordinateBridge.FromFile(offset, _parameters, Math.Max(1, target.HeadNo)) : ST_MANUAL_OFFSET.Zero;
+                if (offset is not null) appliedKeys.Add(key);
+                if (observations.TryGetValue(rowKey, out var observation))
+                    imported[key] = new(observation.FilePath, observation.Row.SavedAt, observation.Origin);
                 if (row is not null && row.Judge is "OK" or "NG")
                 {
                     var design = CManualInspectionCoordinateBridge.FromStage(row.ErrorX, row.ErrorY, _parameters, Math.Max(1, target.HeadNo));
                     var measurement = Measurement(context, key, target.HeadNo, row.Judge, design,
-                        row.ErrorX, row.ErrorY, FormattableString.Invariant($"Stage-mm:{row.ErrorX:R},{row.ErrorY:R};Judge:{row.Judge}"));
+                        row.ErrorX, row.ErrorY, FormattableString.Invariant($"Stage-mm:{row.ErrorX:R},{row.ErrorY:R};Judge:{row.Judge}"))
+                        with { MeasuredAt = row.SavedAt };
                     p = p with { Judge = row.Judge, Source = "IMPORTED", ErrorXUm = design.XUm, ErrorYUm = design.YUm,
                         // An EDITED/MANUAL legacy row has a known working value, but its missing
                         // original raw must not be invented from that value.
@@ -176,7 +245,8 @@ public sealed class CManualInspectionBackend(
                 }
                 else if (row is not null && row.Judge == "ERROR") p = p with { Judge = "ERROR", Source = "IMPORTED",
                     OriginalMeasurement = new("ERROR", null, null, "", context.RecipeId, context.RunId, context.CoordinateSignature)
-                    { RawData = "IMPORTED ERROR · 원본 수신 실패, 숫자 편차 없음" } };
+                    { RawData = "IMPORTED ERROR · 원본 수신 실패, 숫자 편차 없음", MeasuredAt = row.SavedAt } };
+                if (row is not null && p.Source == "IMPORTED") p = p with { ExternalObservedAt = row.SavedAt };
                 points.Add(p); bases[key] = basis; _targets[key] = target;
                 _baseline[p.OffsetKey] = basis;
             }
@@ -199,9 +269,47 @@ public sealed class CManualInspectionBackend(
         ConsumedMeasurements = consumed.AsReadOnly();
         return new(context, points, bases, limits, Field, plan.ToleranceX * 1000, plan.ToleranceY * 1000,
             file?.FilePath ?? "", $"Beam {defaultBeam} · Shift {_shiftX:0.###}/{_shiftY:0.###} mm · DESIGN µm · {points.Count:N0}점"
-                + (file is null ? "" : " · IMPORTED: 기존값 직접 적용 금지, 새 측정 후 보정"))
-        { ReadOnly = !lineage };
+                + (imported.Count == 0 ? "" : $" · 다른 경로 결과 {imported.Count:N0}점 연결 · IMPORTED 조회값")
+                + (file is null && !currentFrame.IsLinked ? " · 현재 기판/회차 미확인: 결과는 목록에서 선택 조회" : "")
+                + (rejectedFiles == 0 && rejectedRows == 0 ? "" : $" · 불일치/읽기 실패 {rejectedFiles:N0}파일/{rejectedRows:N0}행 자동 제외"))
+        { ReadOnly = !lineage, AppliedOffsetKeys = appliedKeys, ImportedResults = imported,
+          RecentResults = catalog, ObservationFingerprint = ObservationFingerprint(external, file, _latest, context.CoordinateSignature) };
     }
+
+    private async Task<ST_REVIEW_RESULT_FILE_DATA> ReadResult(string path, CancellationToken token)
+    {
+        var fullPath = Path.GetFullPath(path);
+        // A copied replacement can preserve file time and length. Compare bytes as well, so a
+        // filesystem change event cannot keep showing an old cache entry for the same pathname.
+        var (stamp, beforeDigest) = await Task.Run(() => (FileStamp(fullPath), System.IO.File.Exists(fullPath) ? DigestFile(fullPath) : ""), token);
+        if (_resultCache.TryGetValue(fullPath, out var cached) && stamp.Length > 0 && cached.Stamp == stamp && cached.Sha256 == beforeDigest)
+            return cached.File;
+        var loaded = await Task.Run(() => results.Load(fullPath, token), token);
+        var (after, digest) = await Task.Run(() => (FileStamp(fullPath), System.IO.File.Exists(fullPath)
+            ? DigestFile(fullPath) : Digest(JsonSerializer.Serialize(loaded))), token);
+        if (stamp != after) throw new IOException("측정 결과가 저장 중입니다. 저장 완료 후 다시 연결합니다.");
+        if (beforeDigest.Length > 0 && digest != beforeDigest) throw new IOException("측정 결과 내용이 변경 중입니다. 저장 완료 후 다시 연결합니다.");
+        if (stamp.Length > 0) _resultCache[fullPath] = new(stamp, loaded, digest);
+        return loaded;
+    }
+
+    private string ObservationFingerprint(IReadOnlyList<ST_MANUAL_EXTERNAL_RESULT> external,
+        ST_REVIEW_RESULT_FILE_DATA? explicitFile, ST_REVIEW_OFFSET_FILE_DATA latest, string coordinateSignature)
+    {
+        var paths = external.Select(item => item.File.FilePath).Concat(explicitFile is null ? [] : new[] { explicitFile.FilePath })
+            .Append(latest.FilePath).Where(path => !string.IsNullOrWhiteSpace(path)).Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(path => path, StringComparer.OrdinalIgnoreCase);
+        return Digest(coordinateSignature + "\n" + string.Join("\n", paths.Select(path => Path.GetFullPath(path) + "|"
+            + FileStamp(path) + "|" + (_resultCache.TryGetValue(Path.GetFullPath(path), out var cached) ? cached.Sha256
+                : System.IO.File.Exists(path) ? DigestFile(path) : ""))));
+    }
+
+    private static string FileStamp(string path)
+    {
+        var info = new FileInfo(path);
+        return info.Exists ? info.Length.ToString(CultureInfo.InvariantCulture) + ":" + info.LastWriteTimeUtc.Ticks.ToString(CultureInfo.InvariantCulture) : "";
+    }
+    private sealed record CachedResult(string Stamp, ST_REVIEW_RESULT_FILE_DATA File, string Sha256);
 
     public async Task EnsureCurrentAsync(CManualInspectionSource source, CancellationToken token)
     {

@@ -1,5 +1,7 @@
 # 독립 소스·정책 검토 기록
 
+이 파일은 첫 Manual Inspection `a062c701`의 검증 기록이다. 이후 결과 동기화·공통 Level·화면 단순화의 현재 검증은 [SYNC_QA.md](SYNC_QA.md)와 `docs/ManualInspection/validation.json`을 따른다. 이전 시험 수를 후속 소스의 재실행 결과로 합산하지 않는다.
+
 사용자 첨부 HTML 전체와 11.19.0 기반 신규 Manual Inspection을 대조했다. 기존 Correction 화면은 교체하지 않는다. 아래 검증은 서로 다른 경계이며 한 종류의 시험으로 합산하지 않는다.
 
 | 검증 경계 | 결과 | 실제 사용한 구현 / 대체한 외부 경계 |

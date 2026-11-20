@@ -34,6 +34,10 @@ public sealed class CManualInspectionController : IManualInspectionController
     private string[] _levelNames = ["정상", "관찰", "주의", "점검"];
     private DateTimeOffset _lastCheckpoint;
     private string _simulationScenario = "normal";
+    private bool _syncPending, _syncQueued, _explicitResultView;
+    private string _synchronizationText = "같은 Recipe·기판의 최근 측정과 활성 보정을 자동 확인합니다.";
+    private CManualInspectionUpdateMonitor? _updateMonitor;
+    private Dictionary<string, CManualInspectionImportedResult> _displayedImports = new(StringComparer.Ordinal);
     public CManualInspectionUiSnapshot Snapshot { get; private set; } = new();
     public event EventHandler? Changed;
     public bool IsBusy => _busy || _engine.IsBusy;
@@ -46,9 +50,93 @@ public sealed class CManualInspectionController : IManualInspectionController
 
     public async Task EnsureLoaded(CancellationToken token = default)
     {
-        if (_source is not null || IsBusy) return;
+        if (_source is not null) { await SynchronizeExternalAsync(token); return; }
+        if (IsBusy) return;
         await ExecuteAsync(EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe,
             new() { ExpectedVersion = Snapshot.Version }, token);
+    }
+
+    /// <summary>Application-lifetime notifications; they never start a device operation.</summary>
+    public void EnableAutomaticUpdates()
+    {
+        if (_updateMonitor is not null || _production.WatchRoots.Count == 0) return;
+        try { _updateMonitor = new CManualInspectionUpdateMonitor(_production.WatchRoots, () =>
+        {
+            var dispatcher = Application.Current?.Dispatcher;
+            if (dispatcher is null || dispatcher.HasShutdownStarted) return;
+            dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(async () =>
+            {
+                try { await SynchronizeExternalAsync(); }
+                catch (Exception e) { _synchronizationText = "자동 갱신 대기 · " + e.Message; Publish(reusePoints: true); }
+            }));
+        }); }
+        catch (Exception e) { _synchronizationText = "자동 갱신 연결 확인 필요 · 새로고침 사용 가능 · " + e.Message; Publish(reusePoints: true); }
+    }
+
+    public void DisableAutomaticUpdates() { _updateMonitor?.Dispose(); _updateMonitor = null; }
+
+    /// <summary>
+    /// Read-only refresh requested by another menu/file save or by tab activation. Do not reenter the
+    /// mutable production adapter during motion/write, or replace pending work without confirmation.
+    /// </summary>
+    public async Task SynchronizeExternalAsync(CancellationToken cancellationToken = default)
+    {
+        var dispatcher = Application.Current?.Dispatcher;
+        if (dispatcher is not null && !dispatcher.CheckAccess())
+        { await dispatcher.InvokeAsync(() => SynchronizeExternalAsync(cancellationToken)).Task.Unwrap(); return; }
+        if (_source is null || _backend != _production) return;
+        if (_explicitResultView)
+        { _synchronizationText = "선택한 파일 조회 유지 · 현재 기판의 최신 결과는 결과 새로고침에서 확인하세요."; Publish(reusePoints: true); return; }
+        _syncQueued = true;
+        if (IsBusy || _engine.HasIncompleteMeasurements || _engine.Candidate is { State: not EN_MANUAL_CANDIDATE_STATE.Applied })
+        {
+            _syncPending = true;
+            _synchronizationText = IsBusy ? "새 결과 확인 대기 · 현재 동작 정리 후 갱신합니다."
+                : _engine.HasIncompleteMeasurements ? "새 결과 확인 대기 · 미완료 측정은 보존했습니다. 잔여 측정을 먼저 완료하세요."
+                : "새 결과 확인 대기 · 미적용 후보를 보존했습니다. 결과 새로고침에서 확인 후 갱신하세요.";
+            Publish(reusePoints: true); return;
+        }
+        if (!await _command.WaitAsync(0, cancellationToken)) { _syncPending = true; Publish(reusePoints: true); return; }
+        _busy = true; _syncQueued = false; _idle = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        _cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        try
+        {
+            await LoadSource(null, _cancellation.Token, automatic: true);
+            _syncPending = false;
+            _synchronizationText = "최근 측정·활성 보정 동기화 " + DateTimeOffset.Now.ToString("HH:mm:ss")
+                + " · 측정 없는 위치도 실제 적용값으로 Level 표시";
+        }
+        catch (OperationCanceledException)
+        {
+            if (_source is not null) _source = _source with { ReadOnly = true };
+            _syncPending = true; _synchronizationText = "동기화 중지 · 새로고침 완료 전 조회 전용";
+            throw;
+        }
+        catch (Exception e)
+        {
+            if (_source is not null) _source = _source with { ReadOnly = true };
+            _syncPending = true; _synchronizationText = "동기화 확인 필요 · " + e.Message;
+        }
+        finally
+        {
+            _busy = false; _cancellation?.Dispose(); _cancellation = null;
+            try { SaveLocalSession(); } catch (Exception e) { _persistence = "자동 보관 실패 · " + e.Message; }
+            Publish(); _idle?.TrySetResult(); _command.Release();
+            ScheduleQueuedSynchronization();
+        }
+    }
+
+    private void ScheduleQueuedSynchronization()
+    {
+        if (!_syncQueued || _engine.HasIncompleteMeasurements
+            || _engine.Candidate is { State: not EN_MANUAL_CANDIDATE_STATE.Applied }) return;
+        var dispatcher = Application.Current?.Dispatcher;
+        if (dispatcher is null || dispatcher.HasShutdownStarted) return;
+        dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(async () =>
+        {
+            try { await SynchronizeExternalAsync(); }
+            catch (OperationCanceledException) { }
+        }));
     }
 
     public async Task ExecuteAsync(EN_MANUAL_INSPECTION_UI_ACTION action, CManualInspectionUiRequest request,
@@ -79,7 +167,7 @@ public sealed class CManualInspectionController : IManualInspectionController
                 case EN_MANUAL_INSPECTION_UI_ACTION.Refresh:
                     await LoadSource(null, token); break;
                 case EN_MANUAL_INSPECTION_UI_ACTION.LoadResultFile:
-                    var result = ChooseFile(false, "csv");
+                    var result = request.ResultPath ?? ChooseFile(false, "csv");
                     if (result is not null) await LoadSource(result, token); break;
                 case EN_MANUAL_INSPECTION_UI_ACTION.NewSimulation:
                     if (!_production.IsSimulation) throw new InvalidOperationException("실제 설비 모드에서는 SIM 예제를 열 수 없습니다.");
@@ -144,26 +232,43 @@ public sealed class CManualInspectionController : IManualInspectionController
             _busy = false; _waitForControlStop = false; _cancellation?.Dispose(); _cancellation = null;
             try { SaveLocalSession(); } catch (Exception e) { _persistence = "자동 보관 실패 · " + e.Message; }
             Publish(); _report(_status); _idle?.TrySetResult(); _command.Release();
+            if (_syncQueued && !_engine.HasIncompleteMeasurements
+                && _engine.Candidate is not { State: not EN_MANUAL_CANDIDATE_STATE.Applied })
+                await SynchronizeExternalAsync();
         }
     }
 
-    private async Task LoadSource(string? path, CancellationToken token, bool keepBackend = false)
+    private async Task LoadSource(string? path, CancellationToken token, bool keepBackend = false, bool automatic = false)
     {
+        var previous = _source is not null ? _engine.CaptureSession() : null;
+        if (previous is not null) SaveLocalSession();
         if (!keepBackend) _backend = _production;
         _status = "실제 Recipe·Setting·보정·측정 위치를 확인하는 중…"; Publish();
         var next = await _backend.LoadAsync(path, token);
+        if (automatic && _source is not null && !_source.ReadOnly
+            && next.ObservationFingerprint.Length > 0 && next.ObservationFingerprint == _source.ObservationFingerprint
+            && SameFrame(_source.Context, next.Context))
+        { _source = next; ReconcileDisplayedImports(next); return; }
+        var sameFrame = previous is not null && SameFrame(previous.Context, next.Context);
         _engine.Load(next.Context, next.Points, next.Values, next.Limits, next.FieldEvaluator);
-        _source = next; _allowManual = false;
+        _source = next; _allowManual = false; _explicitResultView = path is not null;
         _stageX = _stageY = double.NaN;
         var saved = SessionPath();
-        if (path is null && System.IO.File.Exists(saved))
+        if (path is null && (sameFrame || System.IO.File.Exists(saved)))
         {
             try
             {
-                var bundle = JsonSerializer.Deserialize<SessionBundle>(await System.IO.File.ReadAllTextAsync(saved, token))
-                    ?? throw new InvalidDataException("빈 보관 자료");
-                _engine.RestoreSession(bundle.Session, next.Context, next.Points, next.Values, next.FieldEvaluator);
-                RestoreOptions(bundle); _status = "같은 Recipe/Run/활성 보정의 작업 상태를 복구했습니다. 자동 동작은 시작하지 않습니다.";
+                if (sameFrame)
+                    _engine.RestoreSession(ExpandSession(previous!, next), next.Context, next.Points, next.Values, next.FieldEvaluator);
+                else
+                {
+                    var bundle = JsonSerializer.Deserialize<SessionBundle>(await System.IO.File.ReadAllTextAsync(saved, token))
+                        ?? throw new InvalidDataException("빈 보관 자료");
+                    _engine.RestoreSession(ExpandSession(bundle.Session, next), next.Context, next.Points, next.Values, next.FieldEvaluator);
+                    RestoreOptions(bundle);
+                }
+                _engine.MergeImportedObservations(next.Points, next.ImportedResults.ToDictionary(p => p.Key, p => p.Value.SavedAt));
+                _status = "최근 외부 측정과 같은 기준의 작업 상태를 함께 표시했습니다. 자동 동작은 시작하지 않습니다.";
             }
             catch (OperationCanceledException) { throw; }
             catch (Exception e)
@@ -175,6 +280,52 @@ public sealed class CManualInspectionController : IManualInspectionController
         }
         else _status = next.Description + (next.ReadOnly ? " · 다른 기판 자료 조회 전용" : " · 실제 설정 기준");
         _engine.SeedConsumedMeasurements(_backend.ConsumedMeasurements);
+        if (!sameFrame) _displayedImports.Clear();
+        ReconcileDisplayedImports(next);
+        _syncPending = _engine.HasIncompleteMeasurements && next.ImportedResults.Count > 0;
+        if (automatic) _syncQueued |= _syncPending;
+        else _syncQueued = _syncPending;
+        _synchronizationText = path is null ? "최근 측정·현재 활성 보정 표시 · " + next.Description
+            : "선택 결과 조회 · " + next.SourcePath;
+        if (_syncPending) _synchronizationText = "외부 결과 확인 대기 · 미완료 측정을 보존했습니다. 잔여 측정 후 갱신합니다.";
+    }
+
+    private static bool SameFrame(ST_MANUAL_CONTEXT left, ST_MANUAL_CONTEXT right) => left.RecipeId == right.RecipeId
+        && left.RunId == right.RunId && left.RevisionId == right.RevisionId && left.CoordinateSignature == right.CoordinateSignature;
+
+    private void ReconcileDisplayedImports(CManualInspectionSource next)
+    {
+        var incoming = next.Points.ToDictionary(p => p.Key, StringComparer.Ordinal);
+        var reconciled = new Dictionary<string, CManualInspectionImportedResult>(StringComparer.Ordinal);
+        foreach (var point in _engine.Points.Where(p => p.Source == "IMPORTED" && p.ProxySource is null))
+        {
+            if (incoming.TryGetValue(point.Key, out var fresh) && next.ImportedResults.TryGetValue(point.Key, out var metadata)
+                && point.Judge == fresh.Judge && point.ErrorXUm == fresh.ErrorXUm && point.ErrorYUm == fresh.ErrorYUm
+                && point.OriginalMeasurement == fresh.OriginalMeasurement
+                && (point.ExternalObservedAt ?? point.OriginalMeasurement?.MeasuredAt) == metadata.SavedAt) reconciled[point.Key] = metadata;
+            else if (_displayedImports.TryGetValue(point.Key, out var kept)) reconciled[point.Key] = kept;
+        }
+        _displayedImports = reconciled;
+    }
+
+    /// <summary>Add only newly visible, real Beam slots to a saved display; all old geometry is still verified by the engine.</summary>
+    private static ST_MANUAL_SESSION ExpandSession(ST_MANUAL_SESSION session, CManualInspectionSource next)
+    {
+        var existing = session.Points.ToDictionary(p => p.Key, StringComparer.Ordinal);
+        var added = next.Points.Where(p => !existing.ContainsKey(p.Key)).ToArray();
+        if (added.Length == 0) return session;
+        IReadOnlyDictionary<string, ST_MANUAL_OFFSET> Extend(IReadOnlyDictionary<string, ST_MANUAL_OFFSET> values)
+        {
+            var result = values.ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal);
+            var byOffset = session.Points.GroupBy(p => p.OffsetKey).ToDictionary(g => g.Key, g => values[g.First().Key], StringComparer.Ordinal);
+            foreach (var point in added) result[point.Key] = byOffset.GetValueOrDefault(point.OffsetKey, next.Values[point.Key]);
+            return result;
+        }
+        return session with
+        {
+            Points = session.Points.Concat(added).ToArray(), ActiveValuesByPointKey = Extend(session.ActiveValuesByPointKey),
+            Revisions = session.Revisions.Select(r => r with { ValuesByPointKey = Extend(r.ValuesByPointKey) }).ToArray()
+        };
     }
 
     private async Task Current(CancellationToken token)
@@ -265,7 +416,12 @@ public sealed class CManualInspectionController : IManualInspectionController
             var revision = await _backend.SaveAsync(_source!, snapshot.ValuesByPointKey, identity, snapshot.Rows, token, snapshot.ConsumedMeasurements);
             _engine.CommitApplied(snapshot, revision, "Manual Inspection 검증된 보정 적용",
                 _backend.LastSavedValues.Count > 0 ? _backend.LastSavedValues : null);
-            _source = _source! with { Context = _engine.Context!, Values = _engine.ActiveOffsets };
+            var written = snapshot.Rows.Where(r => r.Base != r.Final).Select(r => r.OffsetKey).ToHashSet(StringComparer.Ordinal);
+            _source = _source! with
+            {
+                Context = _engine.Context!, Values = _engine.ActiveOffsets,
+                AppliedOffsetKeys = _source.AppliedOffsetKeys.Concat(_source.Points.Where(p => written.Contains(p.OffsetKey)).Select(p => p.Key)).ToHashSet(StringComparer.Ordinal)
+            };
             _status = "보정 적용·저장 완료 · 새 Revision · 기존 파일/원측정 보존";
         }
         catch { _engine.AbortApply(snapshot); throw; }
@@ -339,6 +495,7 @@ public sealed class CManualInspectionController : IManualInspectionController
         _engine.RestoreSession(bundle.Session, next.Context, next.Points, next.Values, next.FieldEvaluator);
         _engine.SeedConsumedMeasurements(_backend.ConsumedMeasurements);
         _source = next; RestoreOptions(bundle); _status = "실제 Recipe/Run/보정과 대조해 세션을 불러왔습니다. 자동 동작은 재개하지 않습니다.";
+        _displayedImports.Clear(); ReconcileDisplayedImports(next);
     }
 
     private async Task ExportSession(CancellationToken token)
@@ -407,6 +564,12 @@ public sealed class CManualInspectionController : IManualInspectionController
                 DesignXmm=p.XMm,DesignYmm=p.YMm,WorkingJudge=p.Judge,OriginalJudge=p.OriginalMeasurement?.Judge ?? (p.Source == "IMPORTED" ? "UNKNOWN" : "UNMEASURED"),
                 WorkingXUm=p.ErrorXUm,WorkingYUm=p.ErrorYUm,OriginalXUm=p.OriginalMeasurement?.ErrorXUm,OriginalYUm=p.OriginalMeasurement?.ErrorYUm,
                 BaseXUm=b.XUm,BaseYUm=b.YUm,CandidateXUm=f?.XUm,CandidateYUm=f?.YUm,Source=p.Source,IsProxy=p.ProxySource is not null,
+                HasAppliedOffset=_source?.AppliedOffsetKeys.Contains(p.Key)==true,
+                AppliedLevel=!p.Masked && _source?.AppliedOffsetKeys.Contains(p.Key)==true ? CManualInspectionLevels.Evaluate(b.XUm,b.YUm,_levelMetric,_levelBounds) : null,
+                AppliedMetricUm=!p.Masked && _source?.AppliedOffsetKeys.Contains(p.Key)==true ? CManualInspectionLevels.Metric(b.XUm,b.YUm,_levelMetric) : null,
+                DisplayedMeasurementOrigin=p.ProxySource is not null ? "대표값 복사 · " + p.ProxySource.ReferenceKey
+                    : p.Source=="MEASURED" ? "직접 측정 · Manual Inspection" : _displayedImports.GetValueOrDefault(p.Key)?.Origin ?? "",
+                MeasurementSourcePath=p.Source=="IMPORTED" ? _displayedImports.GetValueOrDefault(p.Key)?.Path ?? "" : "",
                 ReferenceFinalXUm=reference?.XUm,ReferenceFinalYUm=reference?.YUm,
                 ReferenceKey=p.ProxySource?.ReferenceKey ?? "",MeasurementToken=p.OriginalMeasurement?.RawToken ?? "",
                 Details=$"DESIGN µm · {p.Judge}\n원측정: {p.OriginalMeasurement?.RawData}\n{p.ProxySource?.Reason}"
@@ -417,6 +580,9 @@ public sealed class CManualInspectionController : IManualInspectionController
         {
             Version=++_version,RecipeId=c?.RecipeId ?? "—",RunId=c?.RunId ?? "—",ActiveRevisionId=c?.RevisionId ?? "—",
             SourcePath=_source?.SourcePath ?? "",IsSimulation=_backend.IsSimulation,IsBusy=IsBusy,
+            SyncPending=_syncPending,SynchronizationText=_synchronizationText,ImportedResultCount=_source?.ImportedResults.Count ?? 0,
+            RecentResults=_source?.RecentResults.Select(r=>new CManualInspectionUiResultFile(r.FilePath,
+                $"{r.SavedAt.ToLocalTime():MM-dd HH:mm:ss} · {r.ResultType} · {r.GlassId} · {r.FileName}",r.GlassId,r.SavedAt,r.Source+" / "+r.ResultType)).ToArray() ?? [],
             IsReadOnly=_source?.ReadOnly == true || c?.LineageValid == false,HasIncomplete=_engine.HasIncompleteMeasurements,
             RemainingCount=op?.RemainingKeys.Count ?? 0,CompletedCount=op?.CompletedKeys.Count ?? 0,TotalCount=op?.Keys.Count ?? 0,
             StageXmm=_stageX,StageYmm=_stageY,StatusText=_status,Message=_message,PersistenceText=_persistence,Points=points,

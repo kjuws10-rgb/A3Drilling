@@ -40,7 +40,7 @@ public sealed class CManualInspectionMapControl : Control
     private CManualInspectionUiSnapshot _snapshot = new();
     private string? _representative;
     private string? _focusKey;
-    private string _colorMode = "judge";
+    private string _colorMode = "applied";
     private string _layoutSignature = "";
     private bool _layoutDirty = true;
     private bool _gesture;
@@ -265,7 +265,9 @@ public sealed class CManualInspectionMapControl : Control
         _hoverKey = point?.Key;
         _tip.SetResourceReference(Control.BackgroundProperty, "PreviewHoverTipBackgroundBrush");
         _tip.SetResourceReference(Control.ForegroundProperty, "PreviewHoverTipTextBrush");
-        _tip.Content = point is null ? null : $"{point.Key}\n{point.WorkingJudge} · ΔX/Y {point.WorkingErrorText} µm" +
+        _tip.Content = point is null ? null : $"{point.Key}\n측정 {point.WorkingJudge} · 편차 {point.WorkingErrorText} µm\n" +
+            (point.HasAppliedOffset ? $"적용 보정 B {point.BaseOffsetText} µm · {(CManualInspectionDrawing.AppliedLevel(point,_snapshot) >= 0 ? "L"+(CManualInspectionDrawing.AppliedLevel(point,_snapshot)+1) : "Level 확인 필요")}" : "활성 보정 미적용") +
+            (string.IsNullOrWhiteSpace(point.DisplayedMeasurementOrigin) ? "" : "\n측정 출처: " + point.DisplayedMeasurementOrigin) +
             (point.IsMasked ? "\nMasking · 측정 선택 제외" : point.IsProxy ? $"\n◇ 대표값 복사: {point.ReferenceKey}" : "");
         _tip.IsOpen = point is not null;
     }
@@ -403,20 +405,21 @@ internal static class CManualInspectionDrawing
     internal static Brush Resource(FrameworkElement owner, string key, Brush fallback) => owner.TryFindResource(key) as Brush ?? fallback;
     internal static int Level(CManualInspectionUiPoint point, CManualInspectionUiSnapshot snapshot)
     {
-        if (point.IsMasked || !CManualInspectionUiPoint.Finite(point.WorkingXUm) || !CManualInspectionUiPoint.Finite(point.WorkingYUm)) return -1;
-        var x = point.WorkingXUm!.Value; var y = point.WorkingYUm!.Value;
-        var value = snapshot.LevelMetric == "RADIAL" ? Math.Sqrt(x * x + y * y) : Math.Max(Math.Abs(x), Math.Abs(y));
-        for (var i = 0; i < Math.Min(3, snapshot.LevelBoundsUm.Count); i++) if (value <= snapshot.LevelBoundsUm[i]) return i;
-        return 3;
+        if (point.IsMasked || point.WorkingJudge is not ("OK" or "NG")) return -1;
+        return CManualInspectionLevels.Evaluate(point.WorkingXUm, point.WorkingYUm, snapshot.LevelMetric, snapshot.LevelBoundsUm) ?? -1;
     }
+    internal static int AppliedLevel(CManualInspectionUiPoint point, CManualInspectionUiSnapshot snapshot) => point.IsMasked || !point.HasAppliedOffset ? -1
+        : CManualInspectionLevels.Evaluate(point.BaseXUm, point.BaseYUm, snapshot.LevelMetric, snapshot.LevelBoundsUm) ?? -1;
     internal static Brush PointBrush(FrameworkElement owner, CManualInspectionUiPoint point, string mode, CManualInspectionUiSnapshot snapshot)
     {
         if (point.IsMasked) return Resource(owner, "ReviewMaskBackgroundBrush", Color("#EFF2F5"));
+        if (mode == "applied") return LevelBrush(AppliedLevel(point, snapshot));
         if (mode == "head") return Color(HeadColors[Math.Max(0, point.HeadNo - 1) % HeadColors.Length]);
-        if (mode == "level") return Level(point, snapshot) switch { 0 => Color("#2E9076"), 1 => Color("#B88B2A"), 2 => Color("#CA754A"), 3 => Color("#BE4F68"), _ => Color("#DBE4EA") };
+        if (mode == "level") return LevelBrush(Level(point, snapshot));
         if (mode == "source") return point.Source switch { "MEASURED" => Color("#3B9870"), "IMPORTED" => Color("#7899A8"), "INTERPOLATED" => Color("#77A6CD"), "MANUAL" => Color("#A482BE"), _ => Color("#DBE4EA") };
         return point.WorkingJudge switch { "OK" => Color("#3B9870"), "NG" => Color("#D16776"), "ERROR" => Color("#D39A45"), _ => Color("#DBE4EA") };
     }
+    private static Brush LevelBrush(int level) => Color(level switch { 0 => "#2E9076", 1 => "#B88B2A", 2 => "#CA754A", 3 => "#BE4F68", _ => "#DBE4EA" });
     internal static void Text(DrawingContext drawing, FrameworkElement owner, string text, Point origin,
         double size, Brush? color, bool bold = false, double maxWidth = double.PositiveInfinity)
     {

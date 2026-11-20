@@ -23,7 +23,7 @@
     }
   ],
   "visionMethodSha256": "f62b142d6534c3eae52efde25186684ca75d0f12b8c293602ad0c93618f113ae",
-  "sourceManagerSha256": "c85d3783a09a8ed699cf23896710907f9306e72bed72a0060fda26972c478c94",
+  "sourceManagerSha256": "4ea3719f3383893c65aeac18f8766eb65961593817fd49573d2b0ba455fcf1cf",
   "manualSources": [
     {
       "path": "Drilling.Common/Review/CManualInspectionCoordinateBridge.cs",
@@ -31,7 +31,8 @@
     },
     {
       "path": "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs",
-      "sha256": "5ede0d6d2283ce4534b48988a81aae57d8a3f9ef064f20c4b85dfbee4279f83b"
+      "sha256": "744e1765794968cc60384c168bfb3b752ca88d072b477513dc0390918a14cd2c"
     }
-  ]
+  ],
+  "hashScope": "Tested Windows source bytes; the extracted Vision converter is unchanged. Compiler input files are linked from the current repository."
 }

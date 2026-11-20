@@ -94,6 +94,46 @@ public sealed class CManualInspectionWorkspace
     public ST_MANUAL_POINT GetPoint(string key) => _points.TryGetValue(key, out var point)
         ? point : throw new InvalidOperationException($"작업공간에 없는 위치입니다: {key}");
 
+    /// <summary>
+    /// Refresh display observations after reconciling the actual Recipe/Run/offset revision. Imported
+    /// CSV values remain IMPORTED, never native correction anchors. A same-value save notification
+    /// from our own measurement cannot downgrade its direct raw. Older observations cannot erase a
+    /// newer native measurement or representative copy; all replaced values remain in point history.
+    /// </summary>
+    public int MergeImportedObservations(IEnumerable<ST_MANUAL_POINT> observations,
+        IReadOnlyDictionary<string, DateTimeOffset> observedAtByKey)
+    {
+        GuardIdle(); RequireLoaded();
+        if (HasIncompleteMeasurements) return 0;
+        var replacements = new List<(ST_MANUAL_POINT Before, ST_MANUAL_POINT After)>();
+        foreach (var incoming in observations)
+        {
+            if (incoming.Source != "IMPORTED" || !observedAtByKey.TryGetValue(incoming.Key, out var observedAt)) continue;
+            var previous = GetPoint(incoming.Key); ValidatePoint(incoming);
+            if (previous.CellNo != incoming.CellNo || previous.HeadNo != incoming.HeadNo || previous.ShotNo != incoming.ShotNo
+                || previous.BeamNo != incoming.BeamNo || previous.Row != incoming.Row || previous.Column != incoming.Column
+                || previous.XMm != incoming.XMm || previous.YMm != incoming.YMm || previous.Masked != incoming.Masked)
+                throw new InvalidOperationException("외부 관측의 실제 위치 기준이 다릅니다.");
+            if (previous.Masked || incoming.Judge == "UNMEASURED") continue;
+            if (incoming.OriginalMeasurement is { } raw) ValidateMeasurement(raw, Context!);
+            var existingAt = previous.ProxySource?.CopiedAt
+                ?? (previous.Source == "IMPORTED" ? previous.ExternalObservedAt : null)
+                ?? previous.OriginalMeasurement?.MeasuredAt ?? DateTimeOffset.MinValue;
+            if (observedAt < existingAt) continue;
+            if (previous.Judge == incoming.Judge && previous.ErrorXUm == incoming.ErrorXUm && previous.ErrorYUm == incoming.ErrorYUm
+                && (previous.Source == "MEASURED" || previous.Source == "IMPORTED" && previous.OriginalMeasurement == incoming.OriginalMeasurement
+                    && previous.ExternalObservedAt == observedAt)) continue;
+            replacements.Add((previous, incoming with { MeasurementVersion = previous.MeasurementVersion + 1, ExternalObservedAt = observedAt }));
+        }
+        foreach (var (before, after) in replacements)
+        {
+            _points[after.Key] = after;
+            AddHistory(before, after, "EXTERNAL_OBSERVATION", "같은 기준의 최신 외부 측정 표시; 직접 보정 앵커로 승인하지 않음");
+        }
+        if (replacements.Count > 0) { Changed(); Log("EXTERNAL_OBSERVATION", $"외부 측정 {replacements.Count}점 표시 갱신"); }
+        return replacements.Count;
+    }
+
     public void SetLimits(ST_MANUAL_LIMITS limits)
     {
         GuardIdle(); RequireLoaded(); ValidateLimits(limits); Limits = limits; Changed();
@@ -127,7 +167,7 @@ public sealed class CManualInspectionWorkspace
         {
             Judge = measurement.Judge, Source = "MEASURED", ErrorXUm = measurement.ErrorXUm,
             ErrorYUm = measurement.ErrorYUm, OriginalMeasurement = measurement, ProxySource = null,
-            MeasurementVersion = point.MeasurementVersion + 1
+            MeasurementVersion = point.MeasurementVersion + 1, ExternalObservedAt = null
         };
         AddHistory(point, _points[key], "MEASURE", "직접 재측정; 이전 원측정/작업상태 보존");
         Changed(); Log("MEASURE", $"{key}: {measurement.Judge}; 원측정 기록 갱신");
