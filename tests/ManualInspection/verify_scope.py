@@ -1,4 +1,4 @@
-"""Verify Review integration hardening scope and preservation. No equipment execution."""
+"""Verify Manual Inspection visual polish scope and preservation. No equipment execution."""
 import argparse
 import hashlib
 import json
@@ -7,7 +7,7 @@ from pathlib import Path
 import subprocess
 import xml.etree.ElementTree as ET
 
-BASE = "4cbf259a16cd04bdab0bf6f76cd4591c681c109f"
+BASE = "798359edaba1afb24977ea81185c0086d7fd57b3"
 ROOT = Path(__file__).resolve().parents[2]
 EXISTING = {
     "Drilling.Common/Review/CReviewManager.cs",
@@ -74,6 +74,12 @@ def main():
           for p in ["Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs",
                     "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
                     "Drilling.Common/Review/CManualInspectionCoordinateBridge.cs"]))
+    for path in ["Drilling.UI/Menu/Menus/CManualInspectionBackend.cs",
+                 "Drilling.UI/Menu/Menus/CManualInspectionUpdateMonitor.cs",
+                 "Drilling.Common/Review/CManualInspectionResultProjection.cs",
+                 "Drilling.File/ReviewOffset/CReviewOffsetFile.cs"]:
+        check("verified_integration_unchanged:" + path,
+              git("rev-parse", f"{BASE}:{path}").strip() == git("hash-object", path).strip())
     manager_path = "Drilling.Common/Review/CReviewManager.cs"
     def result_method(text):
         body = text.split("private async Task SaveResultForProduct", 1)[1].split("private async Task SaveProgressToProduct", 1)[0]

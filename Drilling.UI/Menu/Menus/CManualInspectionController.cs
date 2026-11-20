@@ -22,6 +22,9 @@ public sealed class CManualInspectionController : IManualInspectionController
     private readonly CManualInspectionWorkspace _engine = new();
     private readonly SemaphoreSlim _command = new(1, 1);
     private readonly Action<string> _report;
+    private readonly TimeProvider _presentationTime;
+    private long _lastProgressTimestamp;
+    private bool _hasProgressTimestamp, _pendingPointPublication;
     private CManualInspectionSource? _source;
     private CancellationTokenSource? _cancellation;
     private TaskCompletionSource? _idle;
@@ -46,8 +49,9 @@ public sealed class CManualInspectionController : IManualInspectionController
     public Action<string, string> ShowDetails { get; set; } = (title, text) =>
         Popup.CRecipeConfirmDialog.ShowWarning(title, text);
 
-    public CManualInspectionController(IManualInspectionBackend backend, Action<string>? report = null)
-    { _production = _backend = backend; _report = report ?? (_ => { }); Publish(); }
+    public CManualInspectionController(IManualInspectionBackend backend, Action<string>? report = null,
+        TimeProvider? presentationTime = null)
+    { _production = _backend = backend; _report = report ?? (_ => { }); _presentationTime = presentationTime ?? TimeProvider.System; Publish(); }
 
     public async Task EnsureLoaded(CancellationToken token = default)
     {
@@ -368,6 +372,7 @@ public sealed class CManualInspectionController : IManualInspectionController
             _ => flying ? EN_MANUAL_OPERATION_KIND.Flying : EN_MANUAL_OPERATION_KIND.MoveMeasure
         };
         var operation = _engine.BeginOperation(_engine.PreviewOperation(kind, keys, retry));
+        _hasProgressTimestamp = false; _pendingPointPublication = false;
         try
         {
             if (_backend is CManualInspectionReplayBackend replay) replay.Configure(request with { Keys = keys, Fault = retry ? "NONE" : request.Fault });
@@ -382,17 +387,20 @@ public sealed class CManualInspectionController : IManualInspectionController
                 _engine.MarkOperationPointCompleted(operation.Id, value.Key);
                 _stageX = value.ReviewXmm; _stageY = value.StageYmm;
                 _status = $"{_engine.Operation!.CompletedKeys.Count:N0} / {operation.Keys.Count:N0}점 · {value.Key} · {value.Measurement.Judge}";
-                Publish();
+                PublishProgress(pointsChanged: true, force: _engine.Operation.CompletedKeys.Count == 1
+                    || _engine.Operation.CompletedKeys.Count == operation.Keys.Count);
                 if (DateTimeOffset.UtcNow - _lastCheckpoint > TimeSpan.FromSeconds(2)) SaveLocalSession();
             });
-            void Progress(string text) => OnUi(() => { _status = text; Publish(reusePoints: true); });
+            void Progress(string text) => OnUi(() => { _status = text; PublishProgress(pointsChanged: false); });
             if (flying) await _backend.ExecuteFlyingAsync(_source!, keys, Received, Progress, token);
             else foreach (var key in operation.Keys)
             {
                 token.ThrowIfCancellationRequested();
                 var value = await _backend.ExecutePointAsync(_source!, key, kind, Progress, token);
                 if (kind == EN_MANUAL_OPERATION_KIND.Move)
-                { _engine.MarkOperationPointCompleted(operation.Id, key); _stageX = value.ReviewXmm; _stageY = value.StageYmm; Publish(reusePoints: true); }
+                { _engine.MarkOperationPointCompleted(operation.Id, key); _stageX = value.ReviewXmm; _stageY = value.StageYmm;
+                  PublishProgress(pointsChanged: false, force: _engine.Operation!.CompletedKeys.Count == 1
+                      || _engine.Operation.CompletedKeys.Count == operation.Keys.Count); }
                 else Received(value);
             }
             var completed = _engine.CompleteOperation(operation.Id);
@@ -469,7 +477,9 @@ public sealed class CManualInspectionController : IManualInspectionController
         if (errors.Count > 0) _stopRequestError = string.Join(" / ", errors);
         _status = "STOP 요청 · 이동/측정 정리 완료를 기다립니다."
             + (_stopRequestError.Length > 0 ? "\nSTOP 요청 확인 필요 · " + _stopRequestError : "");
-        _message = _status; Publish(reusePoints: true);
+        // A burst may have pending display updates: show every already-recorded point while the
+        // device is stopping, without waiting for its potentially delayed cleanup return.
+        _message = _status; Publish();
     }
     public async Task StopAsync()
     {
@@ -589,6 +599,19 @@ public sealed class CManualInspectionController : IManualInspectionController
     public sealed record SessionBundle(int SchemaVersion, bool Simulation, string Scenario, ST_MANUAL_SESSION Session,
         bool AllowManual, string LevelMetric, double[] LevelBounds, string[] LevelNames);
 
+    private void PublishProgress(bool pointsChanged, bool force = false)
+    {
+        // Flying may deliver a complete saved row as a burst. Record every measurement immediately,
+        // but avoid rebuilding/repainting the entire matrix once per received point. This clock
+        // affects presentation only, never equipment timing, tokens, validation or file commits.
+        _pendingPointPublication |= pointsChanged;
+        var now = _presentationTime.GetTimestamp();
+        if (!force && _hasProgressTimestamp
+            && _presentationTime.GetElapsedTime(_lastProgressTimestamp, now) < TimeSpan.FromMilliseconds(80)) return;
+        _lastProgressTimestamp = now; _hasProgressTimestamp = true;
+        Publish(reusePoints: !_pendingPointPublication);
+    }
+
     private void Publish(bool reusePoints = false)
     {
         var c = _engine.Context; var candidate = _engine.Candidate; var bases = _engine.ActiveOffsets;
@@ -618,6 +641,7 @@ public sealed class CManualInspectionController : IManualInspectionController
                 Details=$"DESIGN µm · {p.Judge}\n원측정: {p.OriginalMeasurement?.RawData}\n{p.ProxySource?.Reason}"
             };
         }).ToArray();
+        if (!reusePoints) _pendingPointPublication = false;
         var op = _engine.Operation; var validation = candidate?.Validation;
         Snapshot = new()
         {

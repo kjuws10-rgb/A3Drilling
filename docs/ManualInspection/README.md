@@ -1,8 +1,21 @@
 # MANUAL INSPECTION · 결과 동기화·공통 Level
 
-## 다른 Review 경로 교차검증 후속
+## 현재 화면·그래픽 개선판
 
-현재 브랜치는 `feature/manual-inspection-review-hardening-20261120`이며 기준은 `4cbf259a16cd04bdab0bf6f76cd4591c681c109f`다. master에는 병합하지 않는다. [발견사항·수정·검증·현장 확인](../../tests/ManualInspection/HARDENING_QA.md)에 경계별 근거를 정리했다.
+현재 브랜치는 `feature/manual-inspection-visual-polish-20261120`이며 바로 이전 안정화 Commit `798359edaba1afb24977ea81185c0086d7fd57b3`를 기반으로 한다. master에는 병합하지 않는다.
+
+지도·산포도·선택/대표 표시·테마 메뉴·키보드 입력과 큰 데이터 화면 갱신을 다듬었다. 기존 보정 로직과 저장·원복 안전 경계는 유지한다. [화면 변경·사용법·검증 범위](../../tests/ManualInspection/VISUAL_USABILITY_QA.md)를 참조한다.
+
+실제 WPF 합성 데이터 미리보기: [Dark 작업화면](images/visual-dark.png) · [Light Head 산포도](images/visual-light-scatter.png) · [우클릭 메뉴](images/visual-context-dark.png) · [작은 화면](images/visual-compact-dark.png). 실제 장비 캡처가 아니다. 지도는 행·열 논리 배치이며 실제 기판 mm 축척과 구분한다.
+
+화면 검사 **312/312**, 실제 Assembly Controller **93/93**, 전체 Release 경고·오류 **0/0**을 확인했다. 4,000점 지도에서 120점 결과 burst를 빠짐없이 기록하며 전체 지도 투영은 5회로 묶는 결정적 회귀를 통과했다. 이는 화면 처리 관찰이며 장비 Tact/정밀도 보증이 아니다.
+
+아래 앞선 안정화 기록의 엔진113/writer35/Backend16/projection53은 해당 소스를 바꾸지 않은 이전 Commit의 근거다. 현재 변경의 재실행 수에 합산하지 않는다. 실제 모니터 DPI 전환·활성 창 메뉴 방향키 포커스 이동은 별도 확인 항목이며, 비활성 화면 테스트에서 확인하지 못한 두 방향키 사례는 통과 수에서 제외했다.
+
+
+## 이전 Review 경로 교차검증 안정화 기록
+
+당시 브랜치는 `feature/manual-inspection-review-hardening-20261120`이며 기준은 `4cbf259a16cd04bdab0bf6f76cd4591c681c109f`다. master에는 병합하지 않는다. [발견사항·수정·검증·현장 확인](../../tests/ManualInspection/HARDENING_QA.md)에 경계별 근거를 정리했다.
 
 같은 경로의 보정 파일 교체, 저장 경합·시계 역전·이력 저장 실패, 다른 Review 메뉴의 원복 후 소비 증거, 회차 재사용·로딩 중 기준 변경, STOP·화면 callback 오류, 세션 재연결과 대표 복사 출처를 보완했다. 기존 측정 이력·Level·접기 정책과 다른 Correction 화면/좌표 계산·장비 시퀀스는 유지한다.
 
@@ -12,7 +25,7 @@
 사용자 첨부 [Review Workspace HTML](Reference/A3_Review_Workspace.html)의 작업공간을 **Correction → Review → MANUAL INSPECTION**에 별도 WPF 탭으로 구현했다. 기존 SIMPLE / INSPECTION, Default·Simple·Rough·Fine·Review Data 화면과 계산 방식은 유지한다. 기존 Light/Dark 테마의 패널·버튼·콤보·표를 사용한다.
 
 - 기준: 바로 이전 보정 이력 후속 `4cbf259a16cd04bdab0bf6f76cd4591c681c109f`. 원래 구현은 11.19.0+누락 Log 추적 수정 `334b359`에 기반한다.
-- 브랜치: `feature/manual-inspection-review-hardening-20261120`. **master 병합·배포는 하지 않았다.**
+- 이전 안정화 브랜치: `feature/manual-inspection-review-hardening-20261120`. **master 병합·배포는 하지 않았다.**
 - 빌드: Windows / .NET 8 Windows Desktop, `dotnet build Drilling.sln -c Release`.
 - 시험은 독립 하네스에서 진행했다. 실제 설비용 App·Root·장비 Manager·벤더 SDK·모션·AeroScript는 실행하지 않았다.
 
@@ -124,7 +137,7 @@ flowchart LR
 
 파일 저장 정밀도는 0.000001 mm(0.001 µm)이며 기존 가공 소비 코드는 0.001 mm(1 µm)로 반올림한다. 새 탭은 이 기존 가공 동작을 변경하지 않는다. Field 검사는 실제 소비할 반올림값·REVIEW_OFFSET_SCALE과 현재 Default/First/Align/Shift 기여를 사용한다. MOF Stage 추종 성분을 정지 Field 오차로 오인하지 않는다. 이 검사는 장비 실제 소프트리밋·동역학 검증을 대신하지 않는다.
 
-## 확인한 결과와 남은 현장 항목
+## 이전 안정화 검증 결과와 현장 항목
 
 | 검증 | 결과 |
 | --- | --- |

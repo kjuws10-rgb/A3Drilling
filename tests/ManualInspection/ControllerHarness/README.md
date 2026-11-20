@@ -28,3 +28,6 @@ dotnet run --project tests/ManualInspection/ControllerHarness/ControllerHarness.
 두 모드를 전환할 때 restore의 `UseActualAssemblies` 값을 실행 모드와 맞춰야 한다. 잘못된 모드의 assets로 `--no-restore`를 실행하면 전이 참조 누락 또는 소스/Assembly 타입 중복이 생길 수 있다.
 
 출력 JSON은 검사 이름별 결과, 실제 Controller Assembly SHA-256, 로드된 벤더 Assembly 목록을 포함한다. 합성값의 수치 일관성과 소프트웨어 상태 전이 검증이며 모션 도달 정밀도·Vision/트리거·실물 보정 성능을 확인한 결과가 아니다.
+
+
+`PresentationCases.cs`는 실제 Controller의 화면용 TimeProvider만 결정적으로 고정/진행시킨다. 4,000점 지도/120점 Flying burst에서 전점 기록·최초/최종 표시·전체 투영 5회, 오류 후 잔여 재측정, 진행 시계 경계, STOP 후 지연 정리 중 미게시 점의 즉시 표시와 Busy 유지를 확인한다. 이 시계는 설비 타이밍·토큰·파일 저장을 대체하지 않는다. 최신 실제 Assembly 검사는93개이며 source-link preflight와 중복 합산하지 않는다.

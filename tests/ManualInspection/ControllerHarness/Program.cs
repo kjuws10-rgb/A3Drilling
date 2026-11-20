@@ -78,10 +78,11 @@ internal static partial class Program
         await RunSynchronizationChecks();
         await RunCoverageChecks();
         await RunHardeningChecks();
+        await RunPresentationChecks();
         await Check("generic_sta_application_and_no_loaded_vendor_assemblies",async()=>{True(Application.Current.GetType()==typeof(Application));True(!VendorAssemblies().Any());await Task.CompletedTask;});
         var path=args.Length==2&&args[0]=="--report"?args[1]:Path.Combine(AppContext.BaseDirectory,"controller-results.json");Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         var assembly=typeof(CManualInspectionController).Assembly;
-        await File.WriteAllTextAsync(path,JsonSerializer.Serialize(new{schemaVersion="a3-manual-inspection-controller-tests/1",passed=Failed==0,count=Results.Count,failed=Failed,tests=Results,controllerAssembly=assembly.GetName().Name,controllerAssemblySha256=Convert.ToHexString(SHA256.HashData(await File.ReadAllBytesAsync(assembly.Location))).ToLowerInvariant(),loadedVendorAssemblies=VendorAssemblies(),scope="Actual new production Controller+Common+UI contract; synthetic async fake Backend. Generic WPF Application/STA only; Drilling.UI.App/Root/device Manager not constructed. No SDK/motion/PLC/Vision executed."},new JsonSerializerOptions{WriteIndented=true}));
+        await File.WriteAllTextAsync(path,JsonSerializer.Serialize(new{schemaVersion="a3-manual-inspection-controller-tests/1",passed=Failed==0,count=Results.Count,failed=Failed,tests=Results,presentation=PresentationObservations,controllerAssembly=assembly.GetName().Name,controllerAssemblySha256=Convert.ToHexString(SHA256.HashData(await File.ReadAllBytesAsync(assembly.Location))).ToLowerInvariant(),loadedVendorAssemblies=VendorAssemblies(),scope="Actual new production Controller+Common+UI contract; synthetic async fake Backend. Generic WPF Application/STA only; Drilling.UI.App/Root/device Manager not constructed. No SDK/motion/PLC/Vision executed."},new JsonSerializerOptions{WriteIndented=true}));
         Console.WriteLine($"Controller tests: {Results.Count-Failed}/{Results.Count} passed. Report: {path}");return Failed==0?0:1;
     }
     private static string[] VendorAssemblies()=>AppDomain.CurrentDomain.GetAssemblies().Select(a=>a.GetName().Name??"").Where(n=>new[]{"Aerotech","Automation1","ACS.SPii","Newport.XPS","CmdLib","DeviceIOLib","NpEthernet","NpSerial","UsbDllWrap"}.Any(s=>n.Contains(s,StringComparison.OrdinalIgnoreCase))).ToArray();
@@ -99,6 +100,7 @@ internal static partial class Program
         public Func<CManualInspectionSource,CancellationToken,Task>? LoadHook;
         public Func<CancellationToken,Task>? SaveHook;
         public Action? StopHook;
+        public Action<string>? PointHook;
         public bool CancellationCallbackThrows;
         public IReadOnlyList<string> WatchRoots { get; set; } = [];
         public IReadOnlyList<KeyValuePair<string,string>> ConsumedMeasurements=>ReceiptSeeds;
@@ -114,7 +116,7 @@ internal static partial class Program
         public Task EnsureCurrentAsync(CManualInspectionSource source,CancellationToken t){t.ThrowIfCancellationRequested();if(Stale)throw new InvalidOperationException("Changed native context");return Task.CompletedTask;}
         public async Task<CManualInspectionMeasurement> ExecutePointAsync(CManualInspectionSource s,string key,EN_MANUAL_OPERATION_KIND kind,Action<string>progress,CancellationToken token)
         {
-            Executed.Add(key);Entered.TrySetResult();if(Hold){using var registration=CancellationCallbackThrows?token.Register(()=>throw new IOException("Synthetic cancellation callback failure")):default;try{await Task.Delay(Timeout.Infinite,token);}catch(OperationCanceledException){CancelObserved.TrySetResult();await Release.Task;throw;}}
+            Executed.Add(key);PointHook?.Invoke(key);Entered.TrySetResult();if(Hold){using var registration=CancellationCallbackThrows?token.Register(()=>throw new IOException("Synthetic cancellation callback failure")):default;try{await Task.Delay(Timeout.Infinite,token);}catch(OperationCanceledException){CancelObserved.TrySetResult();await Release.Task;throw;}}
             token.ThrowIfCancellationRequested();if(key==FailKey)throw new TimeoutException("Synthetic missing response");var p=s.Points.First(p=>p.Key==key);var m=new ST_MANUAL_MEASUREMENT(NewJudge,NewX,-.25,"NEW-RAW-"+NewX,s.Context.RecipeId,s.Context.RunId,s.Context.CoordinateSignature){RawData="Synthetic new raw"};return new(key,m,p.XMm,p.YMm);
         }
         public async Task ExecuteFlyingAsync(CManualInspectionSource s,IReadOnlyList<string>keys,Action<CManualInspectionMeasurement>measured,Action<string>progress,CancellationToken token){FlyingKeys.AddRange(keys);foreach(var k in keys)measured(await ExecutePointAsync(s,k,EN_MANUAL_OPERATION_KIND.Flying,progress,token));}

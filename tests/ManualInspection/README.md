@@ -27,3 +27,8 @@ Common 회귀는 대표값·작업 상태·원측정 보존, 계산/검증/저�
 ## 현재 Review 교차검증
 
 [현재 검토·수정·현장 한계](HARDENING_QA.md)를 참조한다. 정식 Release 0/0, 엔진113·writer35·Backend16·실제 Controller89·외부projection53·WPF49/23/34/71/30·scope15를 실행했다. 실제 Controller와 source-link86은 중복 합산하지 않는다. 세부 Source/DLL/report SHA는 [manifest](../../docs/ManualInspection/validation.json)에 있다. BackendReadHarness는 실제 새 Adapter와 Recipe/Setting/Review 순수 planner 및 CSV writer를 연결하지만, 장비 Manager/Root/SDK는 생성하지 않는다.
+
+
+## 화면·그래픽 최신 후속
+
+[현재 시각/입력 검증](VISUAL_USABILITY_QA.md)은 798359e 기준의 새 `feature/manual-inspection-visual-polish-20261120`이다. 정식 Release0/0, 실제 Controller93와 WPF49/23/34/71/30/105=312개를 실행했다. source-linked preflight89는 중복/부분 이전 근거이며 최종 실제93과 합산하지 않는다. 앞선 엔진113/writer35/Backend16/projection53은 소스 동일성을 확인한 이전 Commit의 근거로 구분한다. 화면용 80ms coalescing은 모든 측정·최종/오류/STOP 표시·잔여 복구를 보존한다. 테스트 회수와 소스/DLL/그림 SHA는 최신 manifest를 따른다.

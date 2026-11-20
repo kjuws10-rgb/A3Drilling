@@ -3,6 +3,8 @@ namespace Drilling.UI.Views;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Automation;
+using System.Windows.Automation.Peers;
 using System.Windows.Input;
 using System.Windows.Media;
 
@@ -36,7 +38,10 @@ public sealed class CManualInspectionMapControl : Control
     private HashSet<string> _selected = new(StringComparer.Ordinal);
     private readonly List<Slot> _slots = [];
     private readonly List<(CManualInspectionUiPoint Point, Rect Bounds)> _hits = [];
-    private readonly List<(Point Origin, string Text, double Height)> _labels = [];
+    private readonly List<(Rect Bounds, Rect Grid, string Title, string Extents)> _frames = [];
+    private readonly Dictionary<(int X, int Y), List<int>> _hitBuckets = [];
+    private Dictionary<string, CManualInspectionUiPoint> _pointByKey = new(StringComparer.Ordinal);
+    private HashSet<string> _visibleKeys = new(StringComparer.Ordinal);
     private CManualInspectionUiSnapshot _snapshot = new();
     private string? _representative;
     private string? _focusKey;
@@ -75,9 +80,13 @@ public sealed class CManualInspectionMapControl : Control
         ToolTip = _tip;
         ToolTipService.SetInitialShowDelay(this, 180);
         ToolTipService.SetShowDuration(this, 15000);
+        AutomationProperties.SetName(this, "리뷰 측정 위치 논리 행렬");
+        AutomationProperties.SetHelpText(this, "행과 열의 논리 배치입니다. Ctrl 클릭으로 복수 선택, 드래그로 영역 선택, Ctrl 휠로 확대, Alt 방향키로 화면 이동, 우클릭으로 동작을 선택합니다.");
         SizeChanged += (_, _) => { _layoutDirty = true; InvalidateVisual(); };
         Unloaded += (_, _) => { CancelGesture(true); _tip.IsOpen = false; if (ContextMenu is not null) ContextMenu.IsOpen = false; };
     }
+
+    protected override AutomationPeer OnCreateAutomationPeer() => new CManualInspectionSurfacePeer(this);
 
     public void Configure(CManualInspectionUiSnapshot snapshot,
         IReadOnlyList<CManualInspectionUiPoint> allScopedPoints,
@@ -85,9 +94,21 @@ public sealed class CManualInspectionMapControl : Control
         string? focusKey, string? representativeKey, string colorMode, string scopeSignature)
     {
         if (ContextMenu?.IsOpen == true) ContextMenu.IsOpen = false;
+        var samePoints = ReferenceEquals(_all, allScopedPoints) || _all.Count == allScopedPoints.Count
+            && _all.Zip(allScopedPoints).All(pair => ReferenceEquals(pair.First, pair.Second));
+        var sameGeometry = samePoints || _all.Count == allScopedPoints.Count && _all.Zip(allScopedPoints).All(pair =>
+            pair.First.Key == pair.Second.Key && pair.First.CellNo == pair.Second.CellNo && pair.First.HeadNo == pair.Second.HeadNo
+            && pair.First.Row == pair.Second.Row && pair.First.Column == pair.Second.Column && pair.First.BeamNo == pair.Second.BeamNo);
+        var nextVisibleKeys = visiblePoints.Select(p => p.Key).ToHashSet(StringComparer.Ordinal);
+        if (_gesture && (!sameGeometry || !_visibleKeys.SetEquals(nextVisibleKeys) || _snapshot.Version != snapshot.Version
+            || _layoutSignature != snapshot.RunId + "|" + scopeSignature + "|" + allScopedPoints.Count))
+            CancelGesture(true);
+        if (!samePoints || _snapshot.Version != snapshot.Version) { _hoverKey = null; _tip.IsOpen = false; }
         _snapshot = snapshot;
         _all = allScopedPoints;
         _visible = visiblePoints;
+        if (!samePoints) _pointByKey = allScopedPoints.ToDictionary(p => p.Key, StringComparer.Ordinal);
+        _visibleKeys = nextVisibleKeys;
         _selected = new HashSet<string>(selectedKeys, StringComparer.Ordinal);
         _focusKey = focusKey;
         _representative = representativeKey;
@@ -99,7 +120,10 @@ public sealed class CManualInspectionMapControl : Control
             _zoom = 1; _pan = default;
             ViewChanged?.Invoke(this, EventArgs.Empty);
         }
-        _layoutDirty = true;
+        // Selection/status changes repaint the retained drawing; they do not regroup/sort every
+        // matrix slot. Only real geometry/scope/size changes rebuild layout. Hidden slots remain.
+        if (!sameGeometry) _layoutDirty = true;
+        if (_hoverKey is not null && !_visibleKeys.Contains(_hoverKey)) { _hoverKey = null; _tip.IsOpen = false; }
         InvalidateVisual();
     }
 
@@ -110,7 +134,12 @@ public sealed class CManualInspectionMapControl : Control
         InvalidateVisual();
     }
 
-    public void PanBy(Vector delta) { _pan += delta; InvalidateVisual(); }
+    public void PanBy(Vector delta)
+    {
+        if (!double.IsFinite(delta.X) || !double.IsFinite(delta.Y)) return;
+        var next = _pan + delta; if (!double.IsFinite(next.X) || !double.IsFinite(next.Y)) return;
+        _pan = next; InvalidateVisual();
+    }
     public bool TryCancelGesture()
     {
         if (!_gesture) return false;
@@ -119,10 +148,13 @@ public sealed class CManualInspectionMapControl : Control
 
     public void ZoomAt(double factor, Point origin)
     {
+        if (!double.IsFinite(factor) || factor <= 0 || !double.IsFinite(origin.X) || !double.IsFinite(origin.Y)) return;
         var old = _zoom;
-        _zoom = Math.Clamp(old * factor, 0.4, 12);
-        _pan = new Vector(origin.X - (origin.X - _pan.X) * _zoom / old,
-            origin.Y - (origin.Y - _pan.Y) * _zoom / old);
+        var zoom = Math.Clamp(old * factor, 0.4, 12);
+        var pan = new Vector(origin.X - (origin.X - _pan.X) * zoom / old,
+            origin.Y - (origin.Y - _pan.Y) * zoom / old);
+        if (!double.IsFinite(pan.X) || !double.IsFinite(pan.Y)) return;
+        _zoom = zoom; _pan = pan;
         ViewChanged?.Invoke(this, EventArgs.Empty);
         InvalidateVisual();
     }
@@ -131,13 +163,30 @@ public sealed class CManualInspectionMapControl : Control
     {
         if (!_layoutDirty) return;
         _layoutDirty = false;
-        _slots.Clear(); _labels.Clear();
+        _slots.Clear(); _frames.Clear();
         var width = Math.Max(80, ActualWidth);
         var height = Math.Max(80, ActualHeight);
         var groups = _all.GroupBy(p => (p.CellNo, p.HeadNo))
             .OrderBy(g => g.Key.CellNo).ThenBy(g => g.Key.HeadNo).ToArray();
         if (groups.Length == 0) return;
-        var columns = Math.Min(groups.Length, width > 750 ? 4 : width > 430 ? 2 : 1);
+        // A logical Row/Column matrix, not a drawing in stage millimetres. Pick a packing whose
+        // square slots use the viewport well, then preserve each group's actual matrix aspect.
+        var shapes = groups.Select(g => (Columns: g.Select(p => p.Column).Distinct().Count(), Rows: g.Select(p => p.Row).Distinct().Count())).ToArray();
+        var columns = 1; var bestPitch = 0d;
+        var narrowestAspect = Math.Max(.05, shapes.Min(shape => (double)shape.Columns / Math.Max(1, shape.Rows)));
+        var maximumColumns = Math.Min(groups.Length, Math.Max(12,
+            (int)Math.Ceiling(Math.Sqrt(groups.Length * width / height / narrowestAspect) * 2) + 8));
+        for (var candidate = 1; candidate <= maximumColumns; candidate++)
+        {
+            var lines = (int)Math.Ceiling((double)groups.Length / candidate);
+            var candidateGap = Math.Min(17, Math.Max(.1, height / lines / 8));
+            var candidateWidth = Math.Max(.01, (width - 40 - (candidate - 1) * candidateGap) / candidate);
+            var candidateHeight = Math.Max(.01, (height - 40 - (lines - 1) * candidateGap) / lines);
+            var candidateTitle = Math.Min(22, candidateHeight * .2);
+            var pitch = shapes.Min(shape => Math.Min(candidateWidth / Math.Max(1, shape.Columns),
+                (candidateHeight - candidateTitle) / Math.Max(1, shape.Rows)));
+            if (pitch > bestPitch) { bestPitch = pitch; columns = candidate; }
+        }
         var rows = Math.Max(1, (int)Math.Ceiling((double)groups.Length / columns));
         const double margin = 20;
         // A full 6GH dataset may contain hundreds of Cell/Head groups. Scale the
@@ -146,7 +195,6 @@ public sealed class CManualInspectionMapControl : Control
         var groupWidth = Math.Max(2, (width - margin * 2 - gap * (columns - 1)) / columns);
         var groupHeight = Math.Max(0.1, (height - margin * 2 - gap * (rows - 1)) / rows);
         var title = Math.Min(22, groupHeight * 0.2);
-        var visible = _visible.Select(p => p.Key).ToHashSet(StringComparer.Ordinal);
         for (var i = 0; i < groups.Length; i++)
         {
             var group = groups[i];
@@ -156,9 +204,12 @@ public sealed class CManualInspectionMapControl : Control
             var rowKeys = group.Select(p => p.Row).Distinct().OrderBy(x => x).ToArray();
             var columnMap = columnKeys.Select((key, index) => (key, index)).ToDictionary(x => x.key, x => x.index);
             var rowMap = rowKeys.Select((key, index) => (key, index)).ToDictionary(x => x.key, x => x.index);
-            var tileWidth = groupWidth / Math.Max(1, columnKeys.Length);
-            var tileHeight = Math.Max(0.01, groupHeight - title) / Math.Max(1, rowKeys.Length);
-            _labels.Add((new Point(gx, gy), $"Cell {group.Key.CellNo} · H{group.Key.HeadNo:00}", groupHeight));
+            var pitch = Math.Min(groupWidth / Math.Max(1, columnKeys.Length), Math.Max(0.01, groupHeight - title) / Math.Max(1, rowKeys.Length));
+            var tileWidth = pitch; var tileHeight = pitch;
+            var gridWidth = pitch * columnKeys.Length; var gridHeight = pitch * rowKeys.Length;
+            var gridX = gx + (groupWidth - gridWidth) / 2; var gridY = gy + title + (groupHeight - title - gridHeight) / 2;
+            _frames.Add((new Rect(gx, gy, groupWidth, groupHeight), new Rect(gridX, gridY, gridWidth, gridHeight),
+                $"Cell {group.Key.CellNo}  ·  " + (group.Key.HeadNo > 0 ? $"H{group.Key.HeadNo:00}" : "미배정"), $"{rowKeys.Length}행 × {columnKeys.Length}열"));
             foreach (var bucket in group.GroupBy(p => (p.Row, p.Column)))
             {
                 var points = bucket.OrderBy(p => p.BeamNo).ThenBy(p => p.Key, StringComparer.Ordinal).ToArray();
@@ -167,9 +218,8 @@ public sealed class CManualInspectionMapControl : Control
                 for (var j = 0; j < points.Length; j++)
                 {
                     var p = points[j];
-                    if (!visible.Contains(p.Key)) continue;
-                    _slots.Add(new Slot(p, new Rect(gx + columnMap[p.Column] * tileWidth + j % subColumns * tileWidth / subColumns,
-                        gy + title + rowMap[p.Row] * tileHeight + j / subColumns * tileHeight / subRows,
+                    _slots.Add(new Slot(p, new Rect(gridX + columnMap[p.Column] * tileWidth + j % subColumns * tileWidth / subColumns,
+                        gridY + rowMap[p.Row] * tileHeight + j / subColumns * tileHeight / subRows,
                         tileWidth / subColumns, tileHeight / subRows)));
                 }
             }
@@ -179,48 +229,70 @@ public sealed class CManualInspectionMapControl : Control
     protected override void OnRender(DrawingContext context)
     {
         base.OnRender(context);
-        BuildLayout(); _hits.Clear();
+        BuildLayout(); _hits.Clear(); _hitBuckets.Clear();
         context.DrawRectangle(Background ?? Brushes.Transparent, null, new Rect(0, 0, ActualWidth, ActualHeight));
         context.PushClip(new RectangleGeometry(new Rect(0, 0, ActualWidth, ActualHeight)));
-        foreach (var label in _labels)
-        {
-            var p = Screen(label.Origin);
-            if (label.Height * _zoom > 26 && p.Y >= -20 && p.Y <= ActualHeight + 10)
-                CManualInspectionDrawing.Text(context, this, label.Text, p, 11, Foreground, true);
-        }
         var viewport = new Rect(0, 0, ActualWidth, ActualHeight);
+        var line = BorderBrush ?? Brushes.Gray;
+        var accent = CManualInspectionDrawing.Resource(this, "AccentBrush", Brushes.SteelBlue);
+        if (_frames.Count > 0) CManualInspectionDrawing.Text(context, this, "행 · 열 논리 배치  /  실제 기판 mm 축척과 무관", new Point(12, 2), 9, Foreground);
+        foreach (var frame in _frames)
+        {
+            var r = Screen(frame.Bounds);
+            if (!r.IntersectsWith(viewport)) continue;
+            if (r.Width > 25 && r.Height > 22)
+                context.DrawRoundedRectangle(null, new Pen(line, .7), r, 5, 5);
+            if (r.Height > 48 && r.Width > 95)
+            {
+                CManualInspectionDrawing.Text(context, this, frame.Title, new Point(r.Left + 6, r.Top + 2), 11, Foreground, true, r.Width - 12);
+                if (r.Width > 195) CManualInspectionDrawing.Text(context, this, frame.Extents,
+                    new Point(r.Right - 94, r.Top + 3), 9, Foreground, false, 88);
+            }
+        }
         foreach (var slot in _slots)
         {
-            var r = new Rect(Screen(slot.Bounds.TopLeft), new Size(slot.Bounds.Width * _zoom, slot.Bounds.Height * _zoom));
+            if (!_visibleKeys.Contains(slot.Point.Key)) continue;
+            var r = Screen(slot.Bounds);
             if (!r.IntersectsWith(viewport)) continue;
-            var p = slot.Point;
-            var gap = Math.Clamp(Math.Min(r.Width, r.Height) * 0.1, 0.6, 3);
-            var tile = new Rect(r.X + gap / 2, r.Y + gap / 2, Math.Max(0.5, r.Width - gap), Math.Max(0.5, r.Height - gap));
-            context.DrawRectangle(CManualInspectionDrawing.PointBrush(this, p, _colorMode, _snapshot), null, tile);
-            if (p.IsMasked && r.Width > 6 && r.Height > 6)
+            var p = _pointByKey.GetValueOrDefault(slot.Point.Key) ?? slot.Point;
+            var minimum = Math.Min(r.Width, r.Height);
+            var center = new Point(r.Left + r.Width / 2, r.Top + r.Height / 2);
+            var radius = Math.Clamp(minimum * .18, .3, 5.2);
+            var selected = _selected.Contains(p.Key); var hover = p.Key == _hoverKey; var focused = p.Key == _focusKey;
+            if (minimum > 13)
+                context.DrawRectangle(null, new Pen(line, .35), new Rect(r.Left + .6, r.Top + .6, Math.Max(.1, r.Width - 1.2), Math.Max(.1, r.Height - 1.2)));
+            if ((selected || hover) && minimum > 4)
             {
-                var pen = new Pen(BorderBrush ?? Brushes.Gray, 1);
-                context.DrawLine(pen, new Point(r.Left + 2, r.Top + 2), new Point(r.Right - 2, r.Bottom - 2));
-                context.DrawLine(pen, new Point(r.Right - 2, r.Top + 2), new Point(r.Left + 2, r.Bottom - 2));
+                var halo = Math.Min(minimum * .43, radius + (selected ? 4 : 3));
+                context.DrawEllipse(null, new Pen(Background ?? Brushes.White, selected ? 4.5 : 3), center, halo, halo);
+                context.DrawEllipse(null, new Pen(accent, selected ? 2 : 1), center, halo, halo);
             }
-            if (_selected.Contains(p.Key) && r.Width > 3 && r.Height > 3)
+            var brush = CManualInspectionDrawing.PointBrush(this, p, _colorMode, _snapshot);
+            if (p.IsMasked)
             {
-                var outline = new Rect(r.Left + 1, r.Top + 1, Math.Max(0.2, r.Width - 2), Math.Max(0.2, r.Height - 2));
-                context.DrawRectangle(null, new Pen(Brushes.White, 3.5), outline);
-                context.DrawRectangle(null, new Pen(CManualInspectionDrawing.Resource(this, "AccentBrush", Brushes.SteelBlue), 1.8), outline);
+                var cross = Math.Max(.3, Math.Min(minimum * .25, 4)); var pen = new Pen(line, minimum > 8 ? 1.3 : .7);
+                context.DrawLine(pen, new(center.X - cross, center.Y - cross), new(center.X + cross, center.Y + cross));
+                context.DrawLine(pen, new(center.X + cross, center.Y - cross), new(center.X - cross, center.Y + cross));
             }
-            if (p.Key == _representative && r.Width > 6 && r.Height > 6)
-                context.DrawRectangle(null, new Pen(CManualInspectionDrawing.Color("#D18B00"), 2.8),
-                    new Rect(r.Left + 3, r.Top + 3, Math.Max(0.5, r.Width - 6), Math.Max(0.5, r.Height - 6)));
-            if (r.Width > 22 && r.Height > 19)
+            else CManualInspectionDrawing.Marker(context, center, radius, brush, p.IsProxy ? "diamond" : p.UsesAppliedMeasurement ? "square" : "circle", false);
+            if (p.Key == _representative && minimum > 8)
+                CManualInspectionDrawing.Marker(context, center, Math.Min(minimum * .46, radius + 7),
+                    CManualInspectionDrawing.Color("#D18B00"), "diamond", true);
+            if (focused && minimum > 9)
             {
-                var mark = p.Key == _representative ? "★ " : p.IsProxy ? "◇ " : p.UsesAppliedMeasurement ? "□ "
-                    : p.WorkingJudge == "ERROR" ? "! " : !p.HasMeasurementHistory && p.WorkingJudge == "UNMEASURED" ? "· " : "";
-                var label = mark + (r.Width > 50 ? "S" : "") + p.ShotNo + (r.Width > 95 ? $" / B{p.BeamNo}" : "");
-                CManualInspectionDrawing.Text(context, this, label, new Point(r.Left + 4, r.Top + Math.Max(1, r.Height / 2 - 7)),
-                    Math.Clamp(r.Height / 3, 9, 12), CManualInspectionDrawing.Color("#153E4E"), false, Math.Max(1, r.Width - 7));
+                var length = Math.Min(minimum * .43, radius + 8); var focusPen = new Pen(Foreground, 1.1) { DashStyle = DashStyles.Dot };
+                context.DrawRectangle(null, focusPen, new Rect(center.X - length, center.Y - length, length * 2, length * 2));
             }
-            _hits.Add((p, r));
+            if (!p.IsMasked && minimum > 27)
+            {
+                var mark = p.Key == _representative ? "★ " : p.WorkingJudge == "ERROR" ? "! " : p.WorkingJudge == "NG" ? "NG " : "";
+                var label = mark + "S" + p.ShotNo + (r.Width > 90 ? $" / B{p.BeamNo}" : "");
+                CManualInspectionDrawing.Text(context, this, label, new Point(r.Left + 2, Math.Min(r.Bottom - 13, center.Y + radius + 7)),
+                    9, Foreground, selected || focused, Math.Max(1, r.Width - 4));
+            }
+            else if (p.WorkingJudge is "NG" or "ERROR" && minimum > 10)
+                CManualInspectionDrawing.Text(context, this, p.WorkingJudge == "NG" ? "!" : "×", new Point(center.X + radius + 1, center.Y - radius - 5), 9, Foreground, true);
+            AddHit(p, r, viewport);
         }
         if (_slots.Count == 0)
             CManualInspectionDrawing.Text(context, this, "표시할 위치가 없습니다. 현재 Recipe를 불러오거나 필터를 바꾸세요.", new Point(18, 30), 13, Foreground);
@@ -237,7 +309,26 @@ public sealed class CManualInspectionMapControl : Control
     }
 
     private Point Screen(Point point) => new(point.X * _zoom + _pan.X, point.Y * _zoom + _pan.Y);
-    private CManualInspectionUiPoint? Hit(Point point) => _hits.LastOrDefault(x => x.Bounds.Contains(point)).Point;
+    private Rect Screen(Rect rect) => new(Screen(rect.TopLeft), new Size(rect.Width * _zoom, rect.Height * _zoom));
+    private void AddHit(CManualInspectionUiPoint point, Rect rect, Rect viewport)
+    {
+        var index = _hits.Count; _hits.Add((point, rect));
+        var clipped = Rect.Intersect(rect, viewport);
+        if (clipped.IsEmpty) return;
+        for (var y = (int)(clipped.Top / 32); y <= (int)(clipped.Bottom / 32); y++)
+            for (var x = (int)(clipped.Left / 32); x <= (int)(clipped.Right / 32); x++)
+            {
+                if (!_hitBuckets.TryGetValue((x, y), out var bucket)) _hitBuckets[(x, y)] = bucket = [];
+                bucket.Add(index);
+            }
+    }
+    private CManualInspectionUiPoint? Hit(Point point)
+    {
+        if (!double.IsFinite(point.X) || !double.IsFinite(point.Y) || point.X < 0 || point.Y < 0 || point.X > ActualWidth || point.Y > ActualHeight) return null;
+        if (!_hitBuckets.TryGetValue(((int)(point.X / 32), (int)(point.Y / 32)), out var bucket)) return null;
+        for (var i = bucket.Count - 1; i >= 0; i--) if (_hits[bucket[i]].Bounds.Contains(point)) return _hits[bucket[i]].Point;
+        return null;
+    }
 
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
     {
@@ -264,6 +355,7 @@ public sealed class CManualInspectionMapControl : Control
         var point = Hit(at);
         if (_hoverKey == point?.Key) return;
         _hoverKey = point?.Key;
+        InvalidateVisual();
         _tip.SetResourceReference(Control.BackgroundProperty, "PreviewHoverTipBackgroundBrush");
         _tip.SetResourceReference(Control.ForegroundProperty, "PreviewHoverTipTextBrush");
         _tip.Content = point is null ? null : $"{point.Key}\n{point.MeasurementStatusText} · 편차 {point.MeasurementErrorText} µm\n{point.MeasurementBasisText}\n" +
@@ -313,7 +405,7 @@ public sealed class CManualInspectionMapControl : Control
     protected override void OnMouseLeave(MouseEventArgs e)
     {
         base.OnMouseLeave(e);
-        if (!_gesture) { _tip.IsOpen = false; _hoverKey = null; }
+        if (!_gesture) { _tip.IsOpen = false; _hoverKey = null; InvalidateVisual(); }
     }
 
     protected override void OnMouseWheel(MouseWheelEventArgs e)
@@ -347,11 +439,11 @@ public sealed class CManualInspectionMapControl : Control
         var keys = _snapshot.Points.Where(p => _selected.Contains(p.Key) && !p.IsMasked).Select(p => p.Key).ToArray();
         if (keys.Length == 0) { MessageRequested?.Invoke("먼저 작업할 위치를 선택하세요."); return; }
         var version = _snapshot.Version;
-        var menu = new ContextMenu { PlacementTarget = this };
-        menu.SetResourceReference(BackgroundProperty, "PanelBackgroundBrush");
-        menu.SetResourceReference(ForegroundProperty, "TextPrimaryBrush");
-        menu.SetResourceReference(BorderBrushProperty, "PanelBorderBrush");
-        menu.Items.Add(new MenuItem { Header = $"선택 {keys.Length}점 · {_focusKey ?? keys[0]}", IsEnabled = false });
+        var menu = CManualInspectionDrawing.CreateContextMenu(this);
+        var hidden = keys.Count(key => !_visibleKeys.Contains(key));
+        menu.Items.Add(new MenuItem { Header = $"선택 {keys.Length}점" + (hidden > 0 ? $" · 현재 화면 숨김 {hidden}점 포함" : "")
+            + $"\n{_focusKey ?? keys[0]}", IsEnabled = false });
+        menu.ToolTip = "현재 화면의 필터 밖에 숨김 선택이 있어도 선택 범위에 포함합니다. 실제 동작 전 확인 창에서 전체 대상을 확인하세요.";
         menu.Items.Add(new Separator());
         foreach (var (title, action) in new[]
         {
@@ -411,6 +503,76 @@ public sealed class CManualInspectionMapControl : Control
 internal static class CManualInspectionDrawing
 {
     private static readonly Dictionary<string, Brush> BrushesByColor = new(StringComparer.Ordinal);
+    // Scope these templates to Manual Inspection's flat command menus. The system MenuItem
+    // icon gutter otherwise remains white under our dark theme; no global theme is replaced.
+    private static readonly ResourceDictionary FlatMenuStyles = (ResourceDictionary)System.Windows.Markup.XamlReader.Parse("""
+        <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+          <Style TargetType="ContextMenu">
+            <Setter Property="OverridesDefaultStyle" Value="True" />
+            <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="4" />
+            <Setter Property="MinWidth" Value="220" />
+            <Setter Property="MaxWidth" Value="580" />
+            <Setter Property="FontFamily" Value="Segoe UI" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="ItemsPanel"><Setter.Value><ItemsPanelTemplate><StackPanel IsItemsHost="True" /></ItemsPanelTemplate></Setter.Value></Setter>
+            <Setter Property="Template"><Setter.Value>
+              <ControlTemplate TargetType="ContextMenu">
+                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}" CornerRadius="5" SnapsToDevicePixels="True">
+                  <ScrollViewer Focusable="False" CanContentScroll="True" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle" SnapsToDevicePixels="True" />
+                  </ScrollViewer>
+                </Border>
+              </ControlTemplate>
+            </Setter.Value></Setter>
+          </Style>
+          <Style TargetType="MenuItem">
+            <Setter Property="OverridesDefaultStyle" Value="True" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="Padding" Value="11,7" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Template"><Setter.Value>
+              <ControlTemplate TargetType="MenuItem">
+                <Border x:Name="ItemSurface" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                        Background="Transparent" BorderBrush="Transparent" BorderThickness="1" CornerRadius="3" Padding="{TemplateBinding Padding}" Margin="1">
+                  <ContentPresenter x:Name="HeaderHost" ContentSource="Header" RecognizesAccessKey="True"
+                                    VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}" />
+                </Border>
+                <ControlTemplate.Triggers>
+                  <Trigger Property="IsHighlighted" Value="True">
+                    <Setter TargetName="ItemSurface" Property="Background" Value="{DynamicResource MenuItemSelectedBackgroundBrush}" />
+                    <Setter TargetName="ItemSurface" Property="BorderBrush" Value="{DynamicResource MenuItemSelectedBorderBrush}" />
+                    <Setter TargetName="HeaderHost" Property="TextElement.Foreground" Value="{DynamicResource MenuItemSelectedTextBrush}" />
+                  </Trigger>
+                  <Trigger Property="IsKeyboardFocused" Value="True">
+                    <Setter TargetName="ItemSurface" Property="Background" Value="{DynamicResource MenuItemSelectedBackgroundBrush}" />
+                    <Setter TargetName="ItemSurface" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                  </Trigger>
+                  <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.48" /></Trigger>
+                </ControlTemplate.Triggers>
+              </ControlTemplate>
+            </Setter.Value></Setter>
+          </Style>
+          <Style TargetType="Separator">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Separator">
+              <Border Height="1" Margin="5,4" Background="{DynamicResource PanelBorderBrush}" SnapsToDevicePixels="True" />
+            </ControlTemplate></Setter.Value></Setter>
+          </Style>
+        </ResourceDictionary>
+        """);
+
+    internal static ContextMenu CreateContextMenu(UIElement owner)
+    {
+        var menu = new ContextMenu { PlacementTarget = owner };
+        foreach (var key in FlatMenuStyles.Keys) menu.Resources[key] = FlatMenuStyles[key];
+        menu.Style = (Style)FlatMenuStyles[typeof(ContextMenu)];
+        return menu;
+    }
     internal static readonly string[] HeadColors = ["#2B7AA7", "#5A9A76", "#A36A9D", "#B38649", "#697DB5", "#B66575", "#5A9BA2", "#8C9454"];
     internal static Brush Color(string value)
     {
@@ -437,6 +599,25 @@ internal static class CManualInspectionDrawing
             : point.WorkingJudge switch { "OK" => Color("#3B9870"), "NG" => Color("#D16776"), "ERROR" => Color("#D39A45"), _ => Color("#DBE4EA") };
     }
     private static Brush LevelBrush(int level) => Color(level switch { 0 => "#2E9076", 1 => "#B88B2A", 2 => "#CA754A", 3 => "#BE4F68", _ => "#DBE4EA" });
+    internal static void Marker(DrawingContext dc, Point at, double radius, Brush color, string shape, bool hollow)
+    {
+        var pen = hollow ? new Pen(color, 1.5) : null;
+        var fill = hollow ? null : color;
+        if (shape == "square") dc.DrawRectangle(fill, pen, new Rect(at.X - radius, at.Y - radius, radius * 2, radius * 2));
+        else if (shape == "diamond")
+        {
+            var geometry = new StreamGeometry();
+            using (var drawing = geometry.Open())
+            {
+                drawing.BeginFigure(new Point(at.X, at.Y - radius), !hollow, true);
+                drawing.LineTo(new Point(at.X + radius, at.Y), true, false);
+                drawing.LineTo(new Point(at.X, at.Y + radius), true, false);
+                drawing.LineTo(new Point(at.X - radius, at.Y), true, false);
+            }
+            geometry.Freeze(); dc.DrawGeometry(fill, pen, geometry);
+        }
+        else dc.DrawEllipse(fill, pen, at, radius, radius);
+    }
     internal static void Text(DrawingContext drawing, FrameworkElement owner, string text, Point origin,
         double size, Brush? color, bool bold = false, double maxWidth = double.PositiveInfinity)
     {
@@ -446,4 +627,11 @@ internal static class CManualInspectionDrawing
         if (double.IsFinite(maxWidth)) { ft.MaxTextWidth = Math.Max(1, maxWidth); ft.Trimming = TextTrimming.CharacterEllipsis; }
         drawing.DrawText(ft, origin);
     }
+}
+
+/// <summary>One accessible surface peer, without allocating a WPF/UIA object per measured point.</summary>
+internal sealed class CManualInspectionSurfacePeer(FrameworkElement owner) : FrameworkElementAutomationPeer(owner)
+{
+    protected override string GetClassNameCore() => Owner.GetType().Name;
+    protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Custom;
 }

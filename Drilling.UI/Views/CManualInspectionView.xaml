@@ -68,13 +68,14 @@
                         <Grid>
                             <ToggleButton x:Name="ToggleButton"
                                           Focusable="False"
+                                          BorderBrush="{TemplateBinding BorderBrush}"
                                           ClickMode="Press"
                                           IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
                                 <ToggleButton.Template>
                                     <ControlTemplate TargetType="ToggleButton">
                                         <Border x:Name="Shell"
                                                 Background="{DynamicResource GridBackgroundBrush}"
-                                                BorderBrush="{DynamicResource ButtonSecondaryBorderBrush}"
+                                                BorderBrush="{TemplateBinding BorderBrush}"
                                                 BorderThickness="1"
                                                 CornerRadius="2"
                                                 TextElement.Foreground="{DynamicResource TextPrimaryBrush}">
@@ -128,6 +129,7 @@
                             </Popup>
                         </Grid>
                         <ControlTemplate.Triggers>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" /></Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.45" />
                             </Trigger>
@@ -144,12 +146,14 @@
             <Setter Property="FontSize" Value="12" /><Setter Property="MinWidth" Value="0" />
             <Setter Property="MinHeight" Value="32" /><Setter Property="Margin" Value="0,0,6,6" />
             <Setter Property="Padding" Value="10,6" />
+            <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
         </Style>
         <Style x:Key="ManualPrimaryButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
             <Setter Property="Template" Value="{StaticResource ManualButtonTemplate}" /><Setter Property="Cursor" Value="Hand" />
             <Setter Property="FontSize" Value="12" /><Setter Property="MinWidth" Value="0" />
             <Setter Property="MinHeight" Value="32" /><Setter Property="Margin" Value="0,0,6,6" />
             <Setter Property="Padding" Value="10,6" />
+            <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
         </Style>
         <Style x:Key="ManualLabel" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
@@ -188,8 +192,8 @@
         <DockPanel Grid.Row="0" Margin="0,0,0,7">
             <WrapPanel DockPanel.Dock="Right" HorizontalAlignment="Right">
                 <Button x:Name="LoadRecipeButton" Content="결과 새로고침" Tag="Refresh" Style="{StaticResource ManualButton}" Click="Action_Click" ToolTip="현재 Recipe의 다른 메뉴 측정과 적용 보정값을 다시 확인합니다." />
-                <Button x:Name="FilesButton" Content="더보기 ▾" Style="{StaticResource ManualButton}" Click="Files_Click" />
-                <Button x:Name="StopButton" Content="■ 중지" Tag="Stop" Style="{StaticResource ManualButton}" Click="Action_Click" Background="{DynamicResource ButtonDangerBrush}" Foreground="{DynamicResource ButtonTextOnColorBrush}" />
+                <Button x:Name="FilesButton" Content="결과 · 파일 ▾" Style="{StaticResource ManualButton}" Click="Files_Click" ToolTip="다른 메뉴의 최근 결과, 결과 파일, 작업 세션, CSV 내보내기" />
+                <Button x:Name="StopButton" Content="■ 중지" Tag="Stop" Style="{StaticResource ManualButton}" Click="Action_Click" Background="{DynamicResource ButtonDangerBrush}" Foreground="{DynamicResource ButtonTextOnColorBrush}" ToolTip="Esc · 현재 동작에 중지를 요청합니다. 정리 완료 전까지 새 동작을 시작하지 않습니다." AutomationProperties.Name="현재 동작 중지" />
             </WrapPanel>
             <StackPanel><TextBlock Text="MANUAL INSPECTION" Foreground="{DynamicResource AccentBrush}" FontSize="11" FontWeight="Bold" /><TextBlock Text="측정 결과 · 보정 지도" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="22" FontWeight="SemiBold" /></StackPanel>
         </DockPanel>
@@ -202,13 +206,13 @@
         <StackPanel Grid.Row="2">
             <TextBlock x:Name="MessageText" Foreground="{DynamicResource AccentTextBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,6" />
             <WrapPanel Margin="0,0,0,7">
-                <StackPanel Width="138" Margin="0,0,10,0"><TextBlock Text="Cell" Style="{StaticResource ManualLabel}" /><ComboBox x:Name="CellFilter" Style="{StaticResource ManualComboBox}" DisplayMemberPath="Label" SelectionChanged="Filter_Changed" /></StackPanel>
-                <StackPanel Width="138" Margin="0,0,10,0"><TextBlock Text="측정 판정 필터" Style="{StaticResource ManualLabel}" /><ComboBox x:Name="JudgeFilter" Style="{StaticResource ManualComboBox}" SelectionChanged="Filter_Changed" /></StackPanel>
-                <Expander Header="검색 · 필터" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,16,0,0">
+                <StackPanel Width="138" Margin="0,0,10,0"><TextBlock Text="지도 Cell" Style="{StaticResource ManualLabel}" /><ComboBox x:Name="CellFilter" Style="{StaticResource ManualComboBox}" DisplayMemberPath="Label" SelectionChanged="Filter_Changed" AutomationProperties.Name="지도 Cell 범위" ToolTip="지도와 결과 표의 Cell 범위입니다. 산포도는 별도 범위를 사용합니다." /></StackPanel>
+                <StackPanel Width="150" Margin="0,0,10,0"><TextBlock Text="지도 측정 상태" Style="{StaticResource ManualLabel}" /><ComboBox x:Name="JudgeFilter" Style="{StaticResource ManualComboBox}" SelectionChanged="Filter_Changed" AutomationProperties.Name="지도 측정 상태 필터" ToolTip="측정됨에는 기존 보정 기반 이력도 포함됩니다. 실측 OK/NG는 수신 판정을 사용합니다." /></StackPanel>
+                <Expander x:Name="SearchSection" Header="검색 · 필터" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,16,0,0" ToolTip="Ctrl+F · Head, 출처, 위치 검색, 표 정렬">
                     <WrapPanel Margin="8,8,0,0">
                         <StackPanel Width="115" Margin="0,0,8,6"><TextBlock Text="Head" Style="{StaticResource ManualLabel}" /><ComboBox x:Name="HeadFilter" Style="{StaticResource ManualComboBox}" DisplayMemberPath="Label" SelectionChanged="Filter_Changed" /></StackPanel>
                         <StackPanel Width="150" Margin="0,0,8,6"><TextBlock Text="측정 출처" Style="{StaticResource ManualLabel}" /><ComboBox x:Name="SourceFilter" Style="{StaticResource ManualComboBox}" SelectionChanged="Filter_Changed" /></StackPanel>
-                        <StackPanel Width="170" Margin="0,0,8,6"><TextBlock Text="위치 검색" Style="{StaticResource ManualLabel}" /><TextBox x:Name="SearchBox" Style="{StaticResource ManualInput}" TextChanged="Search_Changed" /></StackPanel>
+                        <StackPanel Width="170" Margin="0,0,8,6"><TextBlock Text="위치 검색" Style="{StaticResource ManualLabel}" /><TextBox x:Name="SearchBox" Style="{StaticResource ManualInput}" TextChanged="Search_Changed" AutomationProperties.Name="Cell Head Shot Beam 위치 검색" AutomationProperties.HelpText="Ctrl F로 검색을 엽니다. 위치 키 또는 Cell Head Shot Beam 식별자를 입력합니다." ToolTip="위치 키 또는 C / H / S / B 식별자 · 검색은 지도·표만 필터합니다." /></StackPanel>
                         <StackPanel Width="125" Margin="0,0,8,6"><TextBlock Text="표 정렬" Style="{StaticResource ManualLabel}" /><ComboBox x:Name="SortFilter" Style="{StaticResource ManualComboBox}" SelectionChanged="Filter_Changed" /></StackPanel>
                         <Button Content="필터 초기화" Style="{StaticResource ManualButton}" Click="ResetFilters_Click" VerticalAlignment="Bottom" />
                     </WrapPanel>
@@ -216,7 +220,7 @@
             </WrapPanel>
         </StackPanel>
         <Grid Grid.Row="3">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="*" MinWidth="0" /><ColumnDefinition Width="12" /><ColumnDefinition Width="280" /></Grid.ColumnDefinitions>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*" MinWidth="0" /><ColumnDefinition Width="12" /><ColumnDefinition x:Name="InspectorColumn" Width="280" /></Grid.ColumnDefinitions>
             <ScrollViewer x:Name="WorkspaceScroll" Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <Grid x:Name="WorkspaceBody" Margin="0,0,5,0">
                     <Grid.Style>
@@ -232,12 +236,12 @@
                     <Border x:Name="MapPanel" Grid.Row="0" Style="{StaticResource ManualPanel}">
                         <Grid>
                             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                            <DockPanel Grid.Row="0"><ComboBox x:Name="ColorFilter" DockPanel.Dock="Right" Width="195" Style="{StaticResource ManualComboBox}" SelectionChanged="Color_Changed" /><TextBlock Text="2D 결과 지도" Style="{StaticResource ManualTitle}" /></DockPanel>
+                            <DockPanel Grid.Row="0"><ComboBox x:Name="ColorFilter" DockPanel.Dock="Right" Width="195" Style="{StaticResource ManualComboBox}" SelectionChanged="Color_Changed" AutomationProperties.Name="지도 색상 기준" ToolTip="활성 보정 B / 측정 편차 / 측정 판정을 구분해서 봅니다." /><TextBlock Text="2D 결과 지도" Style="{StaticResource ManualTitle}" /></DockPanel>
                             <TextBlock Grid.Row="1" x:Name="ColorDescriptionText" Style="{StaticResource ManualLabel}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Margin="0,2,0,4" />
-                            <WrapPanel Grid.Row="2"><Button Content="−" Style="{StaticResource ManualButton}" Click="ZoomOut_Click" /><Button x:Name="ZoomResetButton" Content="100% · 맞춤" Style="{StaticResource ManualButton}" Click="ZoomReset_Click" /><Button Content="+" Style="{StaticResource ManualButton}" Click="ZoomIn_Click" /><TextBlock x:Name="SelectionCountText" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center" Margin="10,0,10,5" /><Button Content="선택 도구 ▾" Style="{StaticResource ManualButton}" Click="SelectionTools_Click" /></WrapPanel>
+                            <WrapPanel Grid.Row="2"><Button Content="−" Style="{StaticResource ManualButton}" Click="ZoomOut_Click" ToolTip="지도 축소 · Ctrl+휠 아래" AutomationProperties.Name="지도 축소" /><Button x:Name="ZoomResetButton" Content="100% · 맞춤" Style="{StaticResource ManualButton}" Click="ZoomReset_Click" ToolTip="전체 범위를 화면에 맞춥니다. 실제 장비 위치는 바뀌지 않습니다." /><Button Content="+" Style="{StaticResource ManualButton}" Click="ZoomIn_Click" ToolTip="지도 확대 · Ctrl+휠 위" AutomationProperties.Name="지도 확대" /><TextBlock x:Name="SelectionCountText" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center" Margin="10,0,10,5" FontSize="12" /><Button Content="선택 도구 ▾" Style="{StaticResource ManualButton}" Click="SelectionTools_Click" ToolTip="현재 지도에 보이는 점 전체 / NG만 / 선택 해제" /></WrapPanel>
                             <TextBlock Grid.Row="3" x:Name="FilterNoticeText" Foreground="{DynamicResource ButtonWarningBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,2" />
-                            <Border Grid.Row="4" BorderBrush="{DynamicResource GridLineBrush}" BorderThickness="1" CornerRadius="5" ClipToBounds="True"><views:CManualInspectionMapControl x:Name="PositionMap" MinHeight="80" /></Border>
-                            <TextBlock Grid.Row="5" Text="우클릭: 동작·상세 · Ctrl: 선택/확대 · Alt: 보기 이동" Style="{StaticResource ManualLabel}" Margin="0,4,0,2" />
+                            <Border Grid.Row="4" BorderBrush="{DynamicResource GridLineBrush}" BorderThickness="1" CornerRadius="5" ClipToBounds="True"><views:CManualInspectionMapControl x:Name="PositionMap" MinHeight="80" AutomationProperties.Name="측정 결과 2D 지도" AutomationProperties.HelpText="Ctrl 클릭으로 복수 선택, 드래그로 영역 선택, Ctrl 휠로 확대 축소, Alt 방향키로 보기 이동. 우클릭 또는 Shift F10으로 선택 위치 동작을 엽니다." /></Border>
+                            <TextBlock Grid.Row="5" Text="Ctrl+클릭 복수 선택 · 드래그 영역 선택 · 우클릭 동작" Style="{StaticResource ManualLabel}" Margin="0,4,0,2" ToolTip="Ctrl+휠 확대/축소 · Alt+드래그 또는 방향키로 보기 이동 · Shift+F10 작업 메뉴 · Esc 중지. 보기 이동은 실제 설비를 이동하지 않습니다." />
                             <WrapPanel Grid.Row="6" x:Name="MapLegendItems" Margin="0,2,0,0" /><TextBlock Grid.Row="7" x:Name="MapLegendText" Style="{StaticResource ManualLabel}" Visibility="Collapsed" />
                         </Grid>
                     </Border>
@@ -269,7 +273,7 @@
                                 <ComboBox x:Name="ScatterDataCombo" Width="205" HorizontalAlignment="Left" Style="{StaticResource ManualComboBox}" SelectionChanged="Scatter_Changed" />
                                 <WrapPanel Margin="0,8,0,0"><Button x:Name="ScatterCellButton" Content="현재 셀" Tag="CELL" Style="{StaticResource ManualButton}" Click="ScatterScope_Click" /><Button x:Name="ScatterHeadButton" Content="전체 셀 · Head별" Tag="HEAD" Style="{StaticResource ManualButton}" Click="ScatterScope_Click" /><Button x:Name="ScatterCellsButton" Content="선택 셀들" Tag="CELLS" Style="{StaticResource ManualButton}" Click="ScatterScope_Click" /></WrapPanel>
                                 <StackPanel x:Name="ScatterScopeControls" Margin="0,4,0,7" />
-                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="205" /></Grid.ColumnDefinitions><views:CManualInspectionScatterControl x:Name="ScatterPlot" Height="310" /><StackPanel Grid.Column="1" Margin="10,6,0,0"><TextBlock x:Name="ScatterMetricsText" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" FontWeight="Normal" TextWrapping="Wrap" /><TextBlock x:Name="ScatterExcludedText" Style="{StaticResource ManualLabel}" Margin="0,10,0,6" /><DataGrid x:Name="ScatterGroupsGrid" Style="{StaticResource ManualGrid}" MaxHeight="145" RowHeight="26" FontSize="10"><DataGrid.Columns><DataGridTextColumn Header="범위" Binding="{Binding Group}" Width="40" /><DataGridTextColumn Header="점" Binding="{Binding Count}" Width="35" /><DataGridTextColumn Header="평균 X/Y µm" Binding="{Binding Mean}" Width="*" /></DataGrid.Columns></DataGrid></StackPanel></Grid>
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="205" /></Grid.ColumnDefinitions><views:CManualInspectionScatterControl x:Name="ScatterPlot" Height="310" AutomationProperties.Name="측정 편차 산포도" AutomationProperties.HelpText="현재 Cell, 전체 Cell의 Head별, 선택 Cell 범위를 선택합니다. 점을 클릭하면 지도와 선택이 연결됩니다. 원측정 기록은 기존 보정 기반 값을 포함하지 않습니다." /><StackPanel Grid.Column="1" Margin="10,6,0,0"><TextBlock x:Name="ScatterMetricsText" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" FontWeight="Normal" TextWrapping="Wrap" /><TextBlock x:Name="ScatterExcludedText" Style="{StaticResource ManualLabel}" Margin="0,10,0,6" /><DataGrid x:Name="ScatterGroupsGrid" Style="{StaticResource ManualGrid}" MaxHeight="145" RowHeight="26" FontSize="10"><DataGrid.Columns><DataGridTextColumn Header="범위" Binding="{Binding Group}" Width="40" /><DataGridTextColumn Header="점" Binding="{Binding Count}" Width="35" /><DataGridTextColumn Header="평균 X/Y µm" Binding="{Binding Mean}" Width="*" /></DataGrid.Columns></DataGrid></StackPanel></Grid>
                                 <WrapPanel x:Name="ScatterLegendItems" Margin="0,4,0,2" /><TextBlock x:Name="ScatterLegendText" Style="{StaticResource ManualLabel}" />
                             </StackPanel>
                         </Expander>
@@ -278,11 +282,13 @@
             </ScrollViewer>
             <ScrollViewer x:Name="InspectorScroll" Grid.Column="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel>
-                    <Border Style="{StaticResource ManualPanel}" Padding="6" Margin="0,0,0,4" ToolTip="점 우클릭: 이동 · 측정 · 보정 · 상세">
+                    <Border x:Name="PointSummaryPanel" Style="{StaticResource ManualPanel}" Padding="6" Margin="0,0,0,4" ToolTip="점 우클릭 또는 Shift+F10: 이동 · 측정 · 보정 · 상세">
                         <StackPanel>
-                            <TextBlock Text="선택한 위치" Style="{StaticResource ManualLabel}" /><TextBlock x:Name="PointTitleText" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="19" FontWeight="SemiBold" TextWrapping="Wrap" /><TextBlock x:Name="PointIdentityText" Style="{StaticResource ManualLabel}" Margin="0,2,0,4" />
+                            <TextBlock x:Name="PointScopeText" Text="포커스 위치" Style="{StaticResource ManualLabel}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" /><TextBlock x:Name="PointTitleText" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="19" FontWeight="SemiBold" TextWrapping="Wrap" /><TextBlock x:Name="PointIdentityText" Style="{StaticResource ManualLabel}" Margin="0,2,0,4" />
                             <TextBlock x:Name="PointAppliedText" Foreground="{DynamicResource AccentTextBrush}" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,3" />
                             <TextBlock x:Name="PointJudgesText" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,3" /><TextBlock x:Name="PointErrorText" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,3" />
+                            <TextBlock x:Name="SelectionSummaryText" Style="{StaticResource ManualLabel}" Margin="0,8,0,3" Visibility="Collapsed" />
+                            <TextBlock x:Name="SelectionLevelsText" Style="{StaticResource ManualLabel}" Margin="0,0,0,6" Visibility="Collapsed" />
                             <Expander x:Name="PointDetailsSection" Header="좌표 · 보정 · 출처" IsExpanded="False" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"><TextBlock x:Name="PointDetailsText" Style="{StaticResource ManualLabel}" Margin="0,7,0,4" /></Expander>
                             <TextBlock x:Name="JobProgressText" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,9,0,5" /><ProgressBar x:Name="JobProgressBar" Height="7" Minimum="0" Maximum="100" Foreground="{DynamicResource AccentBrush}" />
                             <Button x:Name="RetryButton" Content="남은 위치만 재측정" Tag="RetryRemaining" Style="{StaticResource ManualButton}" Click="Action_Click" Margin="0,8,0,0" />
@@ -315,6 +321,6 @@
                 </StackPanel>
             </ScrollViewer>
         </Grid>
-        <TextBlock x:Name="PersistenceText" Grid.Row="4" Foreground="{DynamicResource TextMutedBrush}" FontSize="10" Margin="0,5,0,0" TextWrapping="Wrap" />
+        <TextBlock x:Name="PersistenceText" Grid.Row="4" Foreground="{DynamicResource TextMutedBrush}" FontSize="10" Margin="0,5,0,0" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
     </Grid>
 </UserControl>

@@ -33,10 +33,10 @@ internal static partial class Program
     [STAThread]
     private static int Main(string[] args)
     {
-        if (args.Length is < 2 or > 3 || args.Length == 3 && args[2] is not ("--integration-impact" or "--sync-levels" or "--coverage-compact" or "--hardening")) { Console.Error.WriteLine("Usage: UiHarness <repository/Drilling.UI> <private-output> [--integration-impact|--sync-levels|--coverage-compact|--hardening]"); return 2; }
+        if (args.Length is < 2 or > 3 || args.Length == 3 && args[2] is not ("--integration-impact" or "--sync-levels" or "--coverage-compact" or "--hardening" or "--visual-usability")) { Console.Error.WriteLine("Usage: UiHarness <repository/Drilling.UI> <private-output> [--integration-impact|--sync-levels|--coverage-compact|--hardening|--visual-usability]"); return 2; }
         _uiSource = Path.GetFullPath(args[0]); _output = Path.GetFullPath(args[1]); Directory.CreateDirectory(_output);
         _application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-        if (args.Length == 3) return args[2] switch { "--sync-levels" => SyncLevels(), "--coverage-compact" => CoverageCompact(), "--hardening" => Hardening(), _ => IntegrationImpact() };
+        if (args.Length == 3) return args[2] switch { "--sync-levels" => SyncLevels(), "--coverage-compact" => CoverageCompact(), "--hardening" => Hardening(), "--visual-usability" => VisualUsability(), _ => IntegrationImpact() };
         try
         {
             LoadResources("Light");
@@ -264,7 +264,9 @@ internal static partial class Program
             var snapshot=initial with{Version=102,Points=initial.Points.Select((p,i)=>i==0?p with{DisplayedMeasurementOrigin="FINE · 기타 메뉴",MeasurementSourcePath="synthetic/Fine.csv",HasAppliedOffset=true,AppliedLevel=1,BaseXUm=7}:p).ToArray()};
             fake.Replace(snapshot);Pump();Set(view,"_focusKey",snapshot.Points[0].Key);Invoke(view,"Refresh");
             Test("point_details_show_external_measurement_origin",((TextBlock)view.FindName("PointDetailsText")).Text.Contains("FINE · 기타 메뉴")&&((TextBlock)view.FindName("PointDetailsText")).Text.Contains("synthetic/Fine.csv"));
-            Test("point_details_separate_applied_B",((TextBlock)view.FindName("PointAppliedText")).Text.Contains("적용 보정 B")&&((TextBlock)view.FindName("PointAppliedText")).Text.Contains("L2"));
+            var appliedDetails = (TextBlock)view.FindName("PointAppliedText");
+            Test("point_details_separate_applied_B",appliedDetails.Text.Contains("적용 B")&&appliedDetails.Text.Contains("보정 L2")
+                &&appliedDetails.Text.Contains(snapshot.Points[0].BaseOffsetText)&&appliedDetails.ToolTip?.ToString()?.Contains("활성 보정 B")==true);
             var before=fake.Calls.Count;
             ((Button)view.FindName("LoadRecipeButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();
             Test("refresh_cancel_sends_no_request",fake.Calls.Count==before&&confirmations.Last().Description.Contains("미적용 후보"));
