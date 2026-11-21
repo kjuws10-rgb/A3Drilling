@@ -9,6 +9,7 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="StateSequenceCases.cs" />
+    <Compile Include="OffsetInitCases.cs" />
     <Compile Include="../../Drilling.Common/Review/ManualInspection/*.cs" Link="Production/%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

@@ -14,6 +14,7 @@ internal static partial class Program
             var initial = Snapshot(240) with { Message = "이전 자료를 불러왔습니다." };
             var fake = new FakeController(initial);
             var view = new CManualInspectionView { DataContext = fake, ConfirmationForTesting = (_, _, _) => true };
+            Set(view, "_scatterOffsets", false); Set(view, "_scatterScope", "CELL"); // Explicit legacy working-data scope.
             var window = new Window { Width = 1120, Height = 720, Content = view, Left = -20000, Top = -20000,
                 ShowInTaskbar = false, ShowActivated = false, WindowStyle = WindowStyle.None };
             window.Show(); Pump();
@@ -52,7 +53,7 @@ internal static partial class Program
                 && !((Button)view.FindName("CopyReferenceButton")).IsEnabled && !((TextBlock)view.FindName("ReferenceText")).Text.Contains(first.Key));
 
             fake.Replace(fake.Snapshot with { Version = fake.Snapshot.Version + 1, IsReadOnly = true, Message = "" }); Pump();
-            Test("read_only_source_has_current_notice", ((TextBlock)view.FindName("MessageText")).Text.Contains("조회 전용"));
+            Test("legacy_readonly_flag_does_not_show_readonly_mode", !((TextBlock)view.FindName("MessageText")).Text.Contains("조회 전용"));
             fake.Replace(fake.Snapshot with { Version = fake.Snapshot.Version + 1, IsReadOnly = false, Message = "" }); Pump();
             Test("read_only_recovery_clears_old_notice", ((TextBlock)view.FindName("MessageText")).Visibility == Visibility.Collapsed);
 
@@ -74,7 +75,8 @@ internal static partial class Program
                 EN_MANUAL_INSPECTION_UI_ACTION.UpdateLevels, EN_MANUAL_INSPECTION_UI_ACTION.SetAllowManual })
             {
                 Execute(action, new() { ExpectedVersion = fake.Snapshot.Version, Keys = [target.Key], FocusKey = target.Key });
-                Test("read_only_request_gate_" + action, fake.Calls.Count == before);
+                Test("legacy_readonly_flag_does_not_block_request_" + action, fake.Calls.Count == before + 1);
+                before=fake.Calls.Count;
             }
             foreach (var action in new[] { EN_MANUAL_INSPECTION_UI_ACTION.ShowPoint, EN_MANUAL_INSPECTION_UI_ACTION.ExportCsv,
                 EN_MANUAL_INSPECTION_UI_ACTION.ExportSession, EN_MANUAL_INSPECTION_UI_ACTION.Refresh, EN_MANUAL_INSPECTION_UI_ACTION.LoadResultFile,

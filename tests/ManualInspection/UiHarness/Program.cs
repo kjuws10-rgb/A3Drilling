@@ -34,15 +34,16 @@ internal static partial class Program
     [STAThread]
     private static int Main(string[] args)
     {
-        if (args.Length is < 2 or > 3 || args.Length == 3 && args[2] is not ("--integration-impact" or "--sync-levels" or "--coverage-compact" or "--hardening" or "--visual-usability" or "--map-first" or "--cell-overview")) { Console.Error.WriteLine("Usage: UiHarness <repository/Drilling.UI> <private-output> [--integration-impact|--sync-levels|--coverage-compact|--hardening|--visual-usability|--map-first|--cell-overview]"); return 2; }
+        if (args.Length is < 2 or > 3 || args.Length == 3 && args[2] is not ("--integration-impact" or "--sync-levels" or "--coverage-compact" or "--hardening" or "--visual-usability" or "--map-first" or "--cell-overview" or "--offset-init")) { Console.Error.WriteLine("Usage: UiHarness <repository/Drilling.UI> <private-output> [--integration-impact|--sync-levels|--coverage-compact|--hardening|--visual-usability|--map-first|--cell-overview|--offset-init]"); return 2; }
         _uiSource = Path.GetFullPath(args[0]); _output = Path.GetFullPath(args[1]); Directory.CreateDirectory(_output);
         _application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-        if (args.Length == 3) return args[2] switch { "--sync-levels" => SyncLevels(), "--coverage-compact" => CoverageCompact(), "--hardening" => Hardening(), "--visual-usability" => VisualUsability(), "--map-first" => MapFirst(), "--cell-overview" => CellOverview(), _ => IntegrationImpact() };
+        if (args.Length == 3) return args[2] switch { "--sync-levels" => SyncLevels(), "--coverage-compact" => CoverageCompact(), "--hardening" => Hardening(), "--visual-usability" => VisualUsability(), "--map-first" => MapFirst(), "--cell-overview" => CellOverview(), "--offset-init" => OffsetInit(), _ => IntegrationImpact() };
         try
         {
             LoadResources("Light");
             var fake = new FakeController(Snapshot(240));
             var view = new CManualInspectionView { DataContext = fake, ConfirmationForTesting = (_,_,_) => true };
+            Set(view, "_scatterOffsets", false); Set(view, "_scatterScope", "CELL"); // Explicit legacy working-data scope.
             var window = new Window { Width = 1490, Height = 1060, Content = view, Left = -20000, Top = -20000, ShowInTaskbar = false, ShowActivated = false, WindowStyle = WindowStyle.None };
             window.Show(); Pump(); view.UpdateLayout();
             // This legacy per-Cell regression deliberately enters Cell 1. The new all-Cell
@@ -94,7 +95,7 @@ internal static partial class Program
             fake.Replace(fake.Snapshot with { Version = 8, IsBusy = true }); Pump(); map.ShowOperationMenu();
             Test("context_busy_disabled", map.ContextMenu!.Items.OfType<MenuItem>().All(x => !x.IsEnabled)); map.ContextMenu.IsOpen = false;
             fake.Replace(fake.Snapshot with { Version = 9, IsBusy = false, IsReadOnly = true }); Pump(); map.ShowOperationMenu();
-            Test("context_readonly_motion_disabled", map.ContextMenu!.Items.OfType<MenuItem>().Where(x => x.Header.ToString()!.StartsWith("이동", StringComparison.Ordinal) || x.Header.ToString()!.Contains("현재 위치")).All(x => !x.IsEnabled)); map.ContextMenu.IsOpen = false;
+            Test("context_legacy_readonly_flag_does_not_disable_motion", map.ContextMenu!.Items.OfType<MenuItem>().Where(x => x.Header.ToString()!.StartsWith("이동", StringComparison.Ordinal) || x.Header.ToString()!.Contains("현재 위치")).All(x => x.IsEnabled)); map.ContextMenu.IsOpen = false;
             fake.Replace(fake.Snapshot with { Version = 10, IsReadOnly = false }); Pump();
             Test("table_page_50", ((IEnumerable)((DataGrid)view.FindName("ResultGrid")).ItemsSource).Cast<object>().Count() == 50);
             Invoke(view, "SelectNg_Click", view, new RoutedEventArgs());
@@ -144,7 +145,7 @@ internal static partial class Program
             Test("original_scatter_uses_preserved_values", scatter.Metrics.MeanX > workingMean + 1);
             Test("masked_scatter_exclusion_count", scatter.Metrics.Masked == 1 && scatter.Metrics.Count == 79);
             fake.Replace(Snapshot(10000) with { Version = 20, RunId = "large", IsSimulation = true });
-            Test("new_run_resets_scatter_reference_selection", Field<string>(view, "_scatterScope") == "CELL" && !Field<bool>(view, "_scatterOriginal") && Field<string?>(view, "_representativeKey") is null && Field<HashSet<string>>(view, "_selected").Count == 0);
+            Test("new_run_resets_scatter_reference_selection", Field<string>(view, "_scatterScope") == "HEAD" && Field<bool>(view, "_scatterOffsets") && !Field<bool>(view, "_scatterOriginal") && Field<string?>(view, "_representativeKey") is null && Field<HashSet<string>>(view, "_selected").Count == 0);
             var watch = Stopwatch.StartNew(); Pump(); Set(view, "_cell", 0); Invoke(view, "Refresh"); view.UpdateLayout(); Render(view, "native-10000-dark.png"); watch.Stop();
             Test("ten_thousand_points_retained", fake.Snapshot.Points.Count == 10000 && Field<Dictionary<string, CManualInspectionUiPoint>>(view, "_points").Count == 10000);
             Test("ten_thousand_fit_does_not_crop_groups", ((IList)Private(map, "_hits")).Count == 10000, new { hits = ((IList)Private(map, "_hits")).Count });
@@ -169,6 +170,7 @@ internal static partial class Program
             var points = initial.Points.Select((p, i) => i == 1 ? p with { Source = "IMPORTED", IsProxy = false } : p).ToArray();
             var fake = new FakeController(initial with { Version = 41, Points = points });
             var view = new CManualInspectionView { DataContext = fake, ConfirmationForTesting = (_,_,_) => true };
+            Set(view, "_scatterOffsets", false); Set(view, "_scatterScope", "CELL"); // Explicit legacy working-data scope.
             var window = new Window { Width = 1490, Height = 900, Content = view, Left = -20000, Top = -20000, ShowInTaskbar = false, ShowActivated = false, WindowStyle = WindowStyle.None };
             window.Show(); Pump();
             Test("arrival_label_not_live_motor_feedback", ((TextBlock)view.FindName("StagePositionText")).Text.Contains("마지막 도착 확인"));
@@ -243,6 +245,7 @@ internal static partial class Program
             var confirmations=new List<(string Title,string Description,string Button)>();
             var accept=false;
             var view=new CManualInspectionView{DataContext=fake,ConfirmationForTesting=(title,description,button)=>{confirmations.Add((title,description,button));return accept;}};
+            Set(view, "_scatterOffsets", false); Set(view, "_scatterScope", "CELL"); // Explicit legacy working-data scope.
             var window=new Window{Width=1490,Height=1060,Content=view,Left=-20000,Top=-20000,ShowInTaskbar=false,ShowActivated=false,WindowStyle=WindowStyle.None};
             window.Show();Pump();
             var map=(CManualInspectionMapControl)view.FindName("PositionMap");
@@ -296,7 +299,7 @@ internal static partial class Program
             menu.Items.OfType<MenuItem>().Single(x=>x.Header.ToString()!.Contains("파일 불러오기")&&!x.Header.ToString()!.Contains("전 작업")).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));Pump();
             Test("file_load_delegates_picker_and_keeps_current_version",fake.Calls.Last().Action==EN_MANUAL_INSPECTION_UI_ACTION.LoadResultFile&&fake.Calls.Last().Request.ResultPath is null&&fake.Calls.Last().Request.ExpectedVersion==103);
             Test("file_load_description_explains_manual_actions_and_no_implicit_work",confirmations.Last().Description.Contains("이동·측정·보정")&&confirmations.Last().Description.Contains("열기 전")&&confirmations.Last().Description.Contains("장비가 이동하거나 보정이 저장되지는"));
-            Test("more_menu_has_only_return_file_csv_without_session_or_recent_list",menu.Items.OfType<MenuItem>().Count()==3&&menu.Items.OfType<MenuItem>().All(x=>!x.Header.ToString()!.Contains("세션")&&!x.Header.ToString()!.Contains("최근")&&!x.Header.ToString()!.Contains("SIM")));menu.IsOpen=false;
+            Test("more_menu_has_return_portable_offsets_and_results_without_session_or_recent_list",menu.Items.OfType<MenuItem>().Count()==5&&menu.Items.OfType<MenuItem>().Count(x=>x.Header.ToString()!.Contains("통합 Offset"))==2&&menu.Items.OfType<MenuItem>().All(x=>!x.Header.ToString()!.Contains("세션")&&!x.Header.ToString()!.Contains("최근")&&!x.Header.ToString()!.Contains("SIM")));menu.IsOpen=false;
             var oldLevel=CManualInspectionDrawing.AppliedLevel(sample,initial);var changed=initial with{LevelBoundsUm=[10,20,30]};
             Test("new_common_bounds_recolor_existing_offsets",oldLevel==1&&CManualInspectionDrawing.AppliedLevel(sample,changed)==0);
             fake.Replace(snapshot with{Version=104,LevelBoundsUm=[10,20,30]});Pump();Set(view,"_focusKey",snapshot.Points[0].Key);Invoke(view,"Refresh");

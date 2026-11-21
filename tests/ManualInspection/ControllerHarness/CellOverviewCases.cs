@@ -23,11 +23,11 @@ internal static partial class Program
             await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasureCorrect,["P2"]);
             True(f.Executed.SequenceEqual(["P1","P2"]) && f.Saves==1 && !c.Snapshot.IsReadOnly);
         });
-        await Check("file_workspace_does_not_bypass_explicit_source_readonly_guard", async () =>
+        await Check("file_workspace_reconnects_legacy_source_and_requires_fresh_measurement_before_correction", async () =>
         {
-            var(f,c)=await Loaded(); var file=Archive(f,"unsafe",7) with {ReadOnly=true}; f.FileSources[file.SourcePath]=file;
-            await OpenFile(c,file.SourcePath); await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Move,["P1"]));
-            await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Calculate,["P1"])); True(f.Executed.Count==0 && f.Saves==0);
+            var(f,c)=await Loaded(); var file=Archive(f,"unsafe",7) with {ReadOnly=true};file=file with{Context=file.Context with{LineageValid=false}}; f.FileSources[file.SourcePath]=file;
+            await OpenFile(c,file.SourcePath); await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Move,["P1"]);
+            await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Calculate,["P1"]));await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1"]);await Prepared(c);True(f.Executed.Count==2&&f.Saves==0&&c.Snapshot.CanApply);
         });
         await Check("return_restores_native_candidate_raw_limits_and_level_options", async () =>
         {

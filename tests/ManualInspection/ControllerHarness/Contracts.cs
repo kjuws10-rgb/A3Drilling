@@ -25,6 +25,15 @@ namespace Drilling.UI.Menu.Menus
         Task<string> SaveAsync(CManualInspectionSource source, IReadOnlyDictionary<string, ST_MANUAL_OFFSET> values,
             string sourceIdentity, IReadOnlyList<ST_MANUAL_CANDIDATE_ROW> measuredRows, CancellationToken token,
             IReadOnlyDictionary<string, string>? consumedMeasurements = null);
+        Task<string> SaveCumulativeAsync(CManualInspectionSource source,IReadOnlyDictionary<string,ST_MANUAL_OFFSET> values,
+            string sourceIdentity,IReadOnlyList<ST_MANUAL_CANDIDATE_ROW> measuredRows,bool initializeAllReviewRows,
+            CancellationToken token,IReadOnlyDictionary<string,string>? consumedMeasurements=null)
+            => initializeAllReviewRows ? throw new NotSupportedException("Backend does not support whole-row initialization.") : SaveAsync(source,values,sourceIdentity,measuredRows,token,consumedMeasurements);
+        Task ExportOffsetBundleAsync(CManualInspectionSource source,IReadOnlyDictionary<string,ST_MANUAL_OFFSET> values,
+            string path,bool isDraft,bool initializeAllReviewRows,CancellationToken token)
+            => throw new NotSupportedException("Backend does not support portable offset export.");
+        Task<IReadOnlyDictionary<string,ST_MANUAL_OFFSET>> ImportOffsetBundleAsync(CManualInspectionSource source,string path,CancellationToken token)
+            => throw new NotSupportedException("Backend does not support portable offset import.");
         void Stop();
     }
     public sealed record CManualInspectionSource(ST_MANUAL_CONTEXT Context, IReadOnlyList<ST_MANUAL_POINT> Points,

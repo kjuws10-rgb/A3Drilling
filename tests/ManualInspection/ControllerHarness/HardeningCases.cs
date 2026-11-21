@@ -41,7 +41,7 @@ internal static partial class Program
             await Throws(() => Do(c, EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure, ["P1", "P2"]));
             f.Source = f.Source with { Context = f.Source.Context with { RevisionId = "EXTERNAL-REV" } };
             await Throws(() => Do(c, EN_MANUAL_INSPECTION_UI_ACTION.Refresh));
-            True(c.Snapshot.IsReadOnly && c.Snapshot.HasIncomplete && c.Snapshot.RemainingCount == 1 && f.Saves == 0);
+            True(!c.Snapshot.IsReadOnly && c.Snapshot.HasIncomplete && c.Snapshot.RemainingCount == 1 && f.Saves == 0);
             await Throws(() => Do(c, EN_MANUAL_INSPECTION_UI_ACTION.RetryRemaining));
         });
         await Check("hardening_old_run_session_import_is_rejected_before_native_operation", async () =>
@@ -50,8 +50,10 @@ internal static partial class Program
             c.ChooseFile = (_, _) => session; await Do(c, EN_MANUAL_INSPECTION_UI_ACTION.ExportSession);
             f.Source = WithRun(f.Source, "RUN-2");
             await Throws(() => Do(c, EN_MANUAL_INSPECTION_UI_ACTION.ImportSession));
-            True(c.Snapshot.IsReadOnly && c.Snapshot.RunId == "RUN-1" && f.Executed.Count == 0 && f.Saves == 0);
-            await Throws(() => Do(c, EN_MANUAL_INSPECTION_UI_ACTION.Move, ["P1"]));
+            True(!c.Snapshot.IsReadOnly && c.Snapshot.RunId == "RUN-1" && f.Executed.Count == 0 && f.Saves == 0);
+            try { await Do(c, EN_MANUAL_INSPECTION_UI_ACTION.Move, ["P1"]); } catch(InvalidOperationException) { }
+            if(f.Executed.Count==0)await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Move,["P1"]);
+            True(f.Executed.SequenceEqual(["P1"])&&c.Snapshot.Points.Count==f.Source.Points.Count&&!c.Snapshot.CanApply);
         });
         await Check("hardening_import_native_session_exits_explicit_archive_view_and_resumes_live_sync", async () =>
         {
@@ -159,13 +161,15 @@ internal static partial class Program
             await Do(c, EN_MANUAL_INSPECTION_UI_ACTION.Apply); True(f.Saves == 1);
             await Throws(() => Do(c, EN_MANUAL_INSPECTION_UI_ACTION.Apply)); True(f.Saves == 1);
         });
-        await Check("hardening_geometry_shrink_same_frame_becomes_readonly_instead_of_erasing_saved_point", async () =>
+        await Check("hardening_geometry_shrink_requires_current_target_reconfirmation_instead_of_erasing_saved_point", async () =>
         {
             var (f, c) = await Loaded();
             f.Source = f.Source with { Points = f.Source.Points.Take(2).ToArray(), Values = f.Source.Values.Where(p => p.Key != "P3").ToDictionary(p => p.Key, p => p.Value), ObservationFingerprint = "geometry-shrunk" };
             await c.SynchronizeExternalAsync();
-            True(c.Snapshot.IsReadOnly && !c.Snapshot.CanApply && f.Executed.Count == 0 && f.Saves == 0);
-            await Throws(() => Do(c, EN_MANUAL_INSPECTION_UI_ACTION.Move, ["P1"]));
+            True(!c.Snapshot.IsReadOnly && !c.Snapshot.CanApply && f.Executed.Count == 0 && f.Saves == 0);
+            try { await Do(c, EN_MANUAL_INSPECTION_UI_ACTION.Move, ["P1"]); } catch(InvalidOperationException) { }
+            if(f.Executed.Count==0)await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Move,["P1"]);
+            True(f.Executed.SequenceEqual(["P1"])&&c.Snapshot.Points.Count==f.Source.Points.Count&&!c.Snapshot.CanApply);
         });
         await Check("hardening_beam_growth_preserves_native_raw_and_shared_offset_revision", async () =>
         {

@@ -89,6 +89,8 @@ public sealed class CManualInspectionScatterControl : Control
     private bool _byHead;
     private double _toleranceX = 5;
     private double _toleranceY = 5;
+    private string _dataKind = "WORKING";
+    private bool IsOffsetData => _dataKind is "OFFSETS" or "OFFSETS_DRAFT";
     private string _emptyText = "이 범위에 유효한 측정값이 없습니다.";
     private bool _autoScale = true;
     private double _halfRange = 5;
@@ -103,6 +105,7 @@ public sealed class CManualInspectionScatterControl : Control
     public event EventHandler<CManualInspectionSelectionEventArgs>? SelectionRequested;
     public event EventHandler? ViewChanged;
     public CManualInspectionScatterMetrics Metrics { get; private set; } = new();
+    public string DataKind => _dataKind;
     public bool IsAutoScale => _autoScale;
     public double Zoom => _referenceHalfRange / _halfRange;
     public double MinXUm => _centerX - _halfRange;
@@ -129,15 +132,18 @@ public sealed class CManualInspectionScatterControl : Control
 
     public void Configure(IReadOnlyList<CManualInspectionUiPoint> points, IEnumerable<string> selectedKeys,
         bool byHead, double toleranceXUm, double toleranceYUm, string emptyText,
-        string? focusKey = null, string contextIdentity = "", string scopeIdentity = "")
+        string? focusKey = null, string contextIdentity = "", string scopeIdentity = "", string dataKind = "WORKING")
     {
         var samePoints = ReferenceEquals(_points, points) || _points.Count == points.Count
             && _points.Zip(points).All(pair => ReferenceEquals(pair.First, pair.Second));
-        var changedScale = _toleranceX != toleranceXUm || _toleranceY != toleranceYUm || _byHead != byHead;
+        var changedScale = _toleranceX != toleranceXUm || _toleranceY != toleranceYUm || _byHead != byHead || _dataKind != dataKind;
         if (!_selectionDispatching && !samePoints) _selectionBeforeClick = null;
         UpdateInteractionContext(focusKey, contextIdentity, scopeIdentity);
         _points = points; _selected = new HashSet<string>(selectedKeys, StringComparer.Ordinal);
-        _byHead = byHead; _toleranceX = toleranceXUm; _toleranceY = toleranceYUm; _emptyText = emptyText;
+        _byHead = byHead; _toleranceX = toleranceXUm; _toleranceY = toleranceYUm; _emptyText = emptyText; _dataKind = dataKind;
+        AutomationProperties.SetName(this, IsOffsetData ? "통합 Offset 산포도" : "리뷰 측정 편차 산포도");
+        AutomationProperties.SetHelpText(this, (IsOffsetData ? "가로/세로는 누적 통합 Offset X/Y µm입니다. 측정 잔류 오차나 공차 판정과 구분합니다. " : "가로 ΔX, 세로 ΔY는 µm이며 점선은 실제 측정 공차입니다. ")
+            + "두 축 축척은 같으며 휠은 커서 중심 확대 축소, 더블클릭은 현재 모집단 자동 맞춤입니다. 겹친 점은 클릭 순환, Ctrl 클릭은 같은 위치의 점을 함께 선택합니다.");
         if (!samePoints)
         {
             Metrics = CManualInspectionScatterMetrics.Calculate(points);
@@ -261,17 +267,23 @@ public sealed class CManualInspectionScatterControl : Control
         var ty0 = Normalized(-tolY, _centerY, _halfRange); var ty1 = Normalized(tolY, _centerY, _halfRange);
         var left = cx + Math.Clamp(tx0, -1, 1) * size / 2; var right = cx + Math.Clamp(tx1, -1, 1) * size / 2;
         var top = cy - Math.Clamp(ty1, -1, 1) * size / 2; var bottom = cy - Math.Clamp(ty0, -1, 1) * size / 2;
-        dc.DrawRectangle(CManualInspectionDrawing.Color("#0AB99A5B"), null, new Rect(left, top, Math.Max(0, right - left), Math.Max(0, bottom - top)));
-        if (Math.Abs(tx0) <= 1) dc.DrawLine(tolerancePen, new(left, top), new(left, bottom));
-        if (Math.Abs(tx1) <= 1) dc.DrawLine(tolerancePen, new(right, top), new(right, bottom));
-        if (Math.Abs(ty0) <= 1) dc.DrawLine(tolerancePen, new(left, bottom), new(right, bottom));
-        if (Math.Abs(ty1) <= 1) dc.DrawLine(tolerancePen, new(left, top), new(right, top));
-        CManualInspectionDrawing.Text(dc, this, "ΔX (µm)", new Point(Math.Max(0, cx + size / 2 - 44), cy + size / 2 + 22), 10, Foreground);
-        CManualInspectionDrawing.Text(dc, this, "ΔY (µm)", new Point(8, 3), 10, Foreground);
+        // Vision residual tolerance is not a limit on cumulative compensation. Showing it as an
+        // acceptance box on the offset population would mislabel a useful correction as NG.
+        if (!IsOffsetData)
+        {
+            dc.DrawRectangle(CManualInspectionDrawing.Color("#0AB99A5B"), null, new Rect(left, top, Math.Max(0, right - left), Math.Max(0, bottom - top)));
+            if (Math.Abs(tx0) <= 1) dc.DrawLine(tolerancePen, new(left, top), new(left, bottom));
+            if (Math.Abs(tx1) <= 1) dc.DrawLine(tolerancePen, new(right, top), new(right, bottom));
+            if (Math.Abs(ty0) <= 1) dc.DrawLine(tolerancePen, new(left, bottom), new(right, bottom));
+            if (Math.Abs(ty1) <= 1) dc.DrawLine(tolerancePen, new(left, top), new(right, top));
+        }
+        CManualInspectionDrawing.Text(dc, this, IsOffsetData ? "Offset X (µm)" : "ΔX (µm)", new Point(Math.Max(0, cx + size / 2 - (IsOffsetData ? 76 : 44)), cy + size / 2 + 22), 10, Foreground);
+        CManualInspectionDrawing.Text(dc, this, IsOffsetData ? "Offset Y (µm)" : "ΔY (µm)", new Point(8, 3), 10, Foreground);
         var toleranceOutside = new[] { tx0, tx1, ty0, ty1 }.All(value => Math.Abs(value) > 1);
         var zeroOutside = Math.Abs(zx) > 1 || Math.Abs(zy) > 1;
-        CManualInspectionDrawing.Text(dc, this, $"공차 X ±{CManualInspectionUiPoint.Number(tolX)} / Y ±{CManualInspectionUiPoint.Number(tolY)} µm · 동일 축척"
-            + (toleranceOutside ? " · 공차 경계 축 밖" : "") + (zeroOutside ? " · 원점 축 밖" : ""),
+        CManualInspectionDrawing.Text(dc, this, (IsOffsetData ? "통합 측정 Offset · 누적 보정량 · 동일 축척" + (_dataKind == "OFFSETS_DRAFT" ? " · 미저장" : "")
+                : $"공차 X ±{CManualInspectionUiPoint.Number(tolX)} / Y ±{CManualInspectionUiPoint.Number(tolY)} µm · 동일 축척" + (toleranceOutside ? " · 공차 경계 축 밖" : ""))
+            + (zeroOutside ? " · 원점 축 밖" : ""),
             new Point(8, 19), 10, Foreground, false, Math.Max(1, ActualWidth - 16), singleLine: true);
         var groups = Metrics.ValidPoints.Select(p => _byHead ? p.HeadNo : p.CellNo).Distinct().OrderBy(x => x).ToArray();
         var groupIndices = groups.Select((number, index) => (number, index)).ToDictionary(pair => pair.number, pair => pair.index);
@@ -316,11 +328,12 @@ public sealed class CManualInspectionScatterControl : Control
             }
         }
         dc.Pop();
-        var legend = $"● 실측  ◇ 복사  □ 보정 기반  ╱ NG·오류  + 평균  · 표시 {_hits.Count:N0}/{Metrics.Count:N0}";
+        var legend = IsOffsetData ? $"□ 통합 Offset  + 평균  · 표시 {_hits.Count:N0}/{Metrics.Count:N0} · 잔류 오차 아님"
+            : $"● 실측  ◇ 복사  □ 보정 기반  ╱ NG·오류  + 평균  · 표시 {_hits.Count:N0}/{Metrics.Count:N0}";
         CManualInspectionDrawing.Text(dc, this, legend, new Point(8, ActualHeight - 16), 9, Foreground, false, Math.Max(1, ActualWidth - 16));
         if (ActualWidth > 470)
         {
-            var x = 65d; var y = 4d;
+            var x = IsOffsetData ? 100d : 65d; var y = 4d;
             foreach (var group in groups.Take(8))
             {
                 var index = _byHead ? Math.Max(0, group - 1) : groupIndices[group];
@@ -405,7 +418,9 @@ public sealed class CManualInspectionScatterControl : Control
         _tip.SetResourceReference(ForegroundProperty, "PreviewHoverTipTextBrush");
         if (group.Count == 0) { _tip.IsOpen = false; InvalidateVisual(); return; }
         var point = _pointByKey[_hoverKey!];
-        _tip.Content = $"{point.Key}\n{point.MeasurementStatusText} · Δ {point.MeasurementErrorText} µm\n{point.MeasurementBasisText}"
+        _tip.Content = $"{point.Key}\n" + (IsOffsetData
+                ? $"통합 Offset {point.BaseOffsetText} µm\n{(_dataKind == "OFFSETS_DRAFT" ? "미저장 작업 누적 보정량 · 실제 활성값은 아직 유지" : "모델에 저장된 누적 보정량 · 원측정 잔류 오차와 구분") }"
+                : $"{point.MeasurementStatusText} · Δ {point.MeasurementErrorText} µm\n{point.MeasurementBasisText}")
             + (group.Count > 1 ? $"\n같은 화면 위치에 {group.Count:N0}점 겹침 · 클릭: 한 점씩 순환 / Ctrl 클릭: 전체 선택·해제\n"
                 + string.Join("\n", group.Take(4).Select(hit => hit.Key)) + (group.Count > 4 ? "\n…" : "") : "\n클릭: 선택 / Ctrl 클릭: 선택 추가·해제");
         _tip.IsOpen = true; InvalidateVisual();

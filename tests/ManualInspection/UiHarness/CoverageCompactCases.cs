@@ -49,6 +49,7 @@ internal static partial class Program
             var confirmations = new List<string>(); var accept = true;
             var view = new CManualInspectionView { DataContext = fake,
                 ConfirmationForTesting = (_, description, _) => { confirmations.Add(description); return accept; } };
+            Set(view, "_scatterOffsets", false); Set(view, "_scatterScope", "CELL"); // Explicit legacy working-data scope.
             var window = new Window { Width = 1480, Height = 900, Content = view, Left = -20000, Top = -20000,
                 ShowInTaskbar = false, ShowActivated = false, WindowStyle = WindowStyle.None };
             window.Show(); Pump();
@@ -180,8 +181,8 @@ internal static partial class Program
             Test("context_history_uses_focused_point", fake.Calls.Last().Action == EN_MANUAL_INSPECTION_UI_ACTION.ShowPoint
                 && (fake.Calls.Last().Request.FocusKey == based.Key || fake.Calls.Last().Request.Keys.SequenceEqual([based.Key])));
             fake.Replace(state with { Version = 204, IsReadOnly = true }); Pump(); map.ShowOperationMenu(); Pump();
-            Test("readonly_context_keeps_history_but_blocks_motion", map.ContextMenu!.Items.OfType<MenuItem>().Where(i => i.Header.ToString()!.StartsWith("이동", StringComparison.Ordinal)
-                || i.Header.ToString()!.Contains("현재 위치")).All(i => !i.IsEnabled)
+            Test("legacy_readonly_flag_keeps_motion_and_history_available", map.ContextMenu!.Items.OfType<MenuItem>().Where(i => i.Header.ToString()!.StartsWith("이동", StringComparison.Ordinal)
+                || i.Header.ToString()!.Contains("현재 위치")).All(i => i.IsEnabled)
                 && map.ContextMenu.Items.OfType<MenuItem>().Single(i => i.Header.ToString()!.Contains("상세")).IsEnabled);
             map.ContextMenu.IsOpen = false;
             var confirmationCount = confirmations.Count; beforeCalls = fake.Calls.Count;

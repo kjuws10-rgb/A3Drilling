@@ -1,4 +1,4 @@
-"""Verify cell-overview Manual Inspection scope and preservation. No equipment execution."""
+"""Verify cumulative-offset Manual Inspection scope and preservation. No equipment execution."""
 import argparse
 import hashlib
 import json
@@ -7,7 +7,7 @@ from pathlib import Path
 import subprocess
 import xml.etree.ElementTree as ET
 
-BASE = "b38867d1140f31796bfc62531b8735a286069131"
+BASE = "50f02b0cc44e3b627b483d9b8fff54119abe8eab"
 ROOT = Path(__file__).resolve().parents[2]
 EXISTING = {
     "Drilling.Common/Review/CReviewManager.cs",
@@ -25,6 +25,8 @@ EXISTING = {
     "Drilling.UI/Menu/Menus/CMenuCorrection.ManualInspection.cs",
 }
 NEW = {
+    "Drilling.UI/Drilling.UI.csproj",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs",
     "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs",
     "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
     "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs",
@@ -60,6 +62,9 @@ def main():
     check("changed_paths_scoped", all(p in EXISTING | NEW or p.startswith(("tests/ManualInspection/", "docs/ManualInspection/")) for p in paths))
     check("all_new_production_files_present", all((ROOT / p).is_file() for p in NEW))
     check("configuration_data_sdk_and_themes_unchanged", not any(p.startswith(("Config/", "Data/", "Drilling.UI/Theme")) or p.endswith(".dll") for p in paths))
+    project = ET.parse(ROOT / "Drilling.UI/Drilling.UI.csproj").getroot()
+    check("dated_program_version_matches_branch_revision_11_21_1", project.findtext(".//Version") == "2026.11.21.1"
+          and b'ProgramVersion = "11.21.1"' in (ROOT / "Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs").read_bytes())
     # Only the new Manual Inspection surfaces and its file-adoption/bookmark engine contract
     # may change. Existing Correction menus, conversion math, sequences and file writers stay exact.
     for path in sorted(EXISTING):

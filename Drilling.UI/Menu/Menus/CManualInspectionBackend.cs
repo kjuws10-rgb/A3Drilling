@@ -33,6 +33,18 @@ public interface IManualInspectionBackend
     Task<string> SaveAsync(CManualInspectionSource source, IReadOnlyDictionary<string, ST_MANUAL_OFFSET> values,
         string sourceIdentity, IReadOnlyList<ST_MANUAL_CANDIDATE_ROW> measuredRows, CancellationToken token,
         IReadOnlyDictionary<string, string>? consumedMeasurements = null);
+    Task<string> SaveCumulativeAsync(CManualInspectionSource source, IReadOnlyDictionary<string, ST_MANUAL_OFFSET> values,
+        string sourceIdentity, IReadOnlyList<ST_MANUAL_CANDIDATE_ROW> measuredRows, bool initializeAllReviewRows,
+        CancellationToken token, IReadOnlyDictionary<string,string>? consumedMeasurements = null)
+        => initializeAllReviewRows
+            ? throw new NotSupportedException("이 연결은 전체 측정 Offset 초기화 저장을 지원하지 않습니다.")
+            : SaveAsync(source,values,sourceIdentity,measuredRows,token,consumedMeasurements);
+    Task ExportOffsetBundleAsync(CManualInspectionSource source, IReadOnlyDictionary<string,ST_MANUAL_OFFSET> values,
+        string path, bool isDraft, bool initializeAllReviewRows, CancellationToken token)
+        => throw new NotSupportedException("이 연결은 통합 Offset 파일 내보내기를 지원하지 않습니다.");
+    Task<IReadOnlyDictionary<string,ST_MANUAL_OFFSET>> ImportOffsetBundleAsync(CManualInspectionSource source,
+        string path, CancellationToken token)
+        => throw new NotSupportedException("이 연결은 통합 Offset 파일 불러오기를 지원하지 않습니다.");
     void Stop();
 }
 
@@ -294,9 +306,9 @@ public sealed class CManualInspectionBackend(
                 + (fileMeasurementModeMatches ? "" : " · 파일의 SIM/실측 모드가 현재와 다름: 이동·새 측정은 가능하며 새 실측값으로 보정하세요.")
                 + (file is null && !currentFrame.IsLinked ? " · 현재 기판/회차 미확인: 결과는 목록에서 선택 조회" : "")
                 + (rejectedFiles == 0 && rejectedRows == 0 ? "" : $" · 불일치/읽기 실패 {rejectedFiles:N0}파일/{rejectedRows:N0}행 자동 제외")
-                + (legacyReason.Length > 0 ? file is null ? " · " + legacyReason : " · 이전 작업 이력은 보존하며, 불러온 파일은 별도 작업으로 검증·적용합니다." : "")
-                + (file is null && resolvedCompletion.Ambiguous ? " · 현재 Product와 선택 Recipe가 달라 가공 Shift의 출처를 확인할 수 없습니다. Product/Recipe를 맞춘 후 다시 불러오세요." : ""))
-        { ReadOnly = file is null && (legacyReason.Length > 0 || resolvedCompletion.Ambiguous), AppliedOffsetKeys = appliedKeys, ImportedResults = imported,
+                + (legacyReason.Length > 0 ? " · 이전 작업 이력은 보존합니다. 현재 Recipe 기준으로 새 측정·보정을 진행할 수 있습니다." : "")
+                + (file is null && resolvedCompletion.Ambiguous ? " · 현재 Product의 가공 Shift 출처가 달라 현재 Recipe의 Shift 0 기준을 사용합니다. 현재 위치를 확인하고 새로 측정하세요." : ""))
+        { ReadOnly = false, AppliedOffsetKeys = appliedKeys, ImportedResults = imported,
           CellLayouts = BuildCellLayouts(_parameters), GlassWidthMm = Number(_parameters,"GLASS_SIZE_X",0), GlassHeightMm = Number(_parameters,"GLASS_SIZE_Y",0),
           RecentResults = catalog, ObservationFingerprint = ObservationFingerprint(external, file, _latest, context.CoordinateSignature) };
         // Loading is read-only, but the published coordinate context must be internally current.
@@ -343,7 +355,7 @@ public sealed class CManualInspectionBackend(
     private async Task<string> LegacyStateReason(string legacyRun, DateTimeOffset? productCreatedAt,
         ST_MANUAL_CONTEXT context, CancellationToken token)
     {
-        const string message = "이전 버전의 같은 회차 작업 이력이 있습니다. 원본 이력을 보존한 조회 전용입니다. 새 기판/가공 회차에서 다시 불러오세요.";
+        const string message = "이전 버전의 회차 이력은 보존합니다. 현재 모델에서 새 측정할 수 있으며 옛 측정값을 새 원측정으로 자동 승격하지 않습니다.";
         var directory = Path.Combine(StateDirectory, "ApplySources", Digest(legacyRun));
         var checkedSources = new Dictionary<string, ST_REVIEW_OFFSET_SOURCE_APPLICATION?>(StringComparer.OrdinalIgnoreCase);
         if (Directory.Exists(directory)) foreach (var path in Directory.EnumerateFiles(directory, "point-*.json"))
@@ -521,23 +533,24 @@ public sealed class CManualInspectionBackend(
         { StopOnNgLine = false, Context = context };
     }
 
-    public async Task<string> SaveAsync(CManualInspectionSource source, IReadOnlyDictionary<string, ST_MANUAL_OFFSET> values,
+    public Task<string> SaveAsync(CManualInspectionSource source, IReadOnlyDictionary<string, ST_MANUAL_OFFSET> values,
         string sourceIdentity, IReadOnlyList<ST_MANUAL_CANDIDATE_ROW> measuredRows, CancellationToken token,
         IReadOnlyDictionary<string, string>? consumedMeasurements = null)
+        => SaveCoreAsync(source,values,sourceIdentity,measuredRows,false,token,consumedMeasurements);
+
+    public Task<string> SaveCumulativeAsync(CManualInspectionSource source, IReadOnlyDictionary<string,ST_MANUAL_OFFSET> values,
+        string sourceIdentity,IReadOnlyList<ST_MANUAL_CANDIDATE_ROW> measuredRows,bool initializeAllReviewRows,
+        CancellationToken token,IReadOnlyDictionary<string,string>? consumedMeasurements=null)
+        => SaveCoreAsync(source,values,sourceIdentity,measuredRows,initializeAllReviewRows,token,consumedMeasurements);
+
+    private async Task<string> SaveCoreAsync(CManualInspectionSource source, IReadOnlyDictionary<string, ST_MANUAL_OFFSET> values,
+        string sourceIdentity, IReadOnlyList<ST_MANUAL_CANDIDATE_ROW> measuredRows, bool initializeAllReviewRows,
+        CancellationToken token, IReadOnlyDictionary<string,string>? consumedMeasurements)
     {
         GuardOperation(); await EnsureCurrentAsync(source, token);
-        if (source.ReadOnly || !source.Context.LineageValid) throw new InvalidOperationException("조회 전용 자료는 활성 보정에 저장할 수 없습니다.");
-        var rows = _latest!.Rows.ToDictionary(r => $"{r.CellId}:{Normalize(r.ShotId)}", StringComparer.OrdinalIgnoreCase);
-        foreach (var group in source.Points.GroupBy(p => p.OffsetKey))
-        {
-            var point = group.First(); var final = values[point.Key];
-            if (group.Any(p => values[p.Key] != final)) throw new InvalidOperationException($"{point.OffsetKey}: Beam별 보정값이 충돌합니다.");
-            // Preserve unselected/legacy/unassigned rows exactly; they are not newly approved candidates.
-            if (_baseline.TryGetValue(point.OffsetKey, out var previous) && previous == final) continue;
-            var target = _targets[point.Key];
-            var row = CManualInspectionCoordinateBridge.ToFile(point, target.PixelCountX, final);
-            rows[$"{row.CellId}:{Normalize(row.ShotId)}"] = row;
-        }
+        if (source.ReadOnly || !source.Context.LineageValid) throw new InvalidOperationException("작업 기준을 다시 확인한 후 새 측정·보정을 진행하세요.");
+        ValidateWorkingValues(source,values);
+        var rows = BuildWorkingRows(source,values,initializeAllReviewRows);
         var directory = Path.Combine(StateDirectory, "ApplySources", Digest(source.Context.RunId)); Directory.CreateDirectory(directory);
         var sourcePath = Path.Combine(directory, Digest(sourceIdentity) + ".json");
         if (!System.IO.File.Exists(sourcePath)) AtomicText(sourcePath, sourceIdentity);
@@ -558,22 +571,21 @@ public sealed class CManualInspectionBackend(
                         throw new InvalidOperationException($"{pair.Key}: 같은 Run의 측정 원본이 이미 적용됐습니다. 새 가공 후 재측정하세요.");
                     continue; // Already-consumed companion raw does not block a fresh driving measurement.
                 }
-                if (old.BaseRevision != Revision(_latest)) throw new InvalidOperationException("미완료 보정 저장 기록과 활성 파일이 다릅니다. 이력을 확인하세요.");
+                if (old.BaseRevision != Revision(_latest!)) throw new InvalidOperationException("미완료 보정 저장 기록과 활성 파일이 다릅니다. 이력을 확인하세요.");
             }
-            AtomicText(marker, JsonSerializer.Serialize(new Reservation(sourcePath, Revision(_latest),
+            AtomicText(marker, JsonSerializer.Serialize(new Reservation(sourcePath, Revision(_latest!),
                 source.Context.RunId, pair.Key, pair.Value))); reservations.Add(marker);
         }
         // Build/validate the next pure coordinate plan before the authoritative file transaction.
         // After a successful writer return, no cancellable I/O or planning error may make the host
         // claim that a committed offset was not applied.
-        static double Written(double number) => double.Parse(number.ToString("0.000000", CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
-        var nextRows = rows.Values.Select(row => row with { ReviewOffsetX = Written(row.ReviewOffsetX), ReviewOffsetY = Written(row.ReviewOffsetY) }).ToArray();
+        var nextRows = rows.Values.Select(WrittenRow).ToArray();
         var nextLookup = nextRows.ToDictionary(row => $"{row.CellId}:{Normalize(row.ShotId)}", StringComparer.OrdinalIgnoreCase);
         var actualValues = source.Points.ToDictionary(p => p.Key, p =>
             nextLookup.TryGetValue($"{p.CellNo}:{Normalize(CReviewShotNameFormatter.ToMatrixName(p.ShotNo, _targets[p.Key].PixelCountX))}", out var row)
                 ? CManualInspectionCoordinateBridge.FromFile(row, _parameters, Math.Max(1, p.HeadNo)) : ST_MANUAL_OFFSET.Zero);
         var nextParameters = new Dictionary<string, string>(_parameters, StringComparer.OrdinalIgnoreCase);
-        CReviewOffsetData.ApplyToParameters(nextParameters, _latest with { Rows = nextRows });
+        CReviewOffsetData.ApplyToParameters(nextParameters, _latest! with { Rows = nextRows });
         var rebuilt = await Task.Run(() => CShotCoordinatePlanBuilder.Build(nextParameters), token);
         var nextShots = rebuilt.Shots.ToDictionary(s => OffsetKey(s.CellNo, s.CellShotNo), StringComparer.Ordinal);
         manager?.Station().InvalidatePreparedReviewOffset();
@@ -582,7 +594,7 @@ public sealed class CManualInspectionBackend(
             // Receipt I/O and plan building above can yield. Recheck external host/product/setting
             // changes at the write boundary as well as the writer's atomic offset-revision check.
             GuardOperation(); await EnsureCurrentAsync(source, token);
-            var saved = await offsets.SaveNewIfUnchanged(source.Context.RecipeId, _latest.FilePath,
+            var saved = await offsets.SaveNewIfUnchanged(source.Context.RecipeId, _latest!.FilePath,
                 nextRows.OrderBy(r => r.CellId).ThenBy(r => r.ShotId, StringComparer.OrdinalIgnoreCase).ToArray(), sourcePath, token,
                 expectedLatestContentSha256: _latest.ContentSha256);
             _latest = saved;
@@ -599,6 +611,162 @@ public sealed class CManualInspectionBackend(
                 foreach (var path in reservations) System.IO.File.Delete(path);
             throw;
         }
+    }
+
+    private Dictionary<string,ST_REVIEW_OFFSET_ROW> BuildWorkingRows(CManualInspectionSource source,
+        IReadOnlyDictionary<string,ST_MANUAL_OFFSET> values,bool initializeAllReviewRows)
+    {
+        // Init covers the complete saved Review map, including legacy/unassigned rows not displayed
+        // by this Recipe plan. Only the new version is written; no old measurement/offset file is deleted.
+        var rows = _latest!.Rows.Select(r=>initializeAllReviewRows ? r with { ReviewOffsetX=0,ReviewOffsetY=0 } : r)
+            .ToDictionary(r => $"{r.CellId}:{Normalize(r.ShotId)}", StringComparer.OrdinalIgnoreCase);
+        foreach (var group in source.Points.GroupBy(p => p.OffsetKey))
+        {
+            var point = group.First(); var final = values[point.Key];
+            if (group.Any(p => values[p.Key] != final)) throw new InvalidOperationException($"{point.OffsetKey}: Beam별 보정값이 충돌합니다.");
+            // Preserve unselected/legacy/unassigned rows exactly; they are not newly approved candidates.
+            if (!initializeAllReviewRows && _baseline.TryGetValue(point.OffsetKey, out var previous) && previous == final) continue;
+            var target = _targets[point.Key];
+            var row = CManualInspectionCoordinateBridge.ToFile(point, target.PixelCountX, final);
+            rows[$"{row.CellId}:{Normalize(row.ShotId)}"] = row;
+        }
+        return rows;
+    }
+
+    /// <summary>
+    /// A single portable snapshot of the absolute accumulated Review map and its combined current
+    /// scanner-coordinate result. Export is not a second active store and does not alter the Recipe.
+    /// Protected parameters are explicitly reference-only and are never written by the importer.
+    /// </summary>
+    public async Task ExportOffsetBundleAsync(CManualInspectionSource source,
+        IReadOnlyDictionary<string,ST_MANUAL_OFFSET> values,string path,bool isDraft,
+        bool initializeAllReviewRows,CancellationToken token)
+    {
+        await EnsureCurrentAsync(source,token);
+        ValidateWorkingValues(source,values);
+        var destination=RequireBundlePath(path);
+        var pointRows=source.Points.OrderBy(p=>p.CellNo).ThenBy(p=>p.ShotNo).ThenBy(p=>p.BeamNo).Select(p=>
+            new ST_MANUAL_OFFSET_BUNDLE_POINT(p.Key,p.CellNo,p.HeadNo,p.ShotNo,p.BeamNo,p.XMm,p.YMm,p.Masked,
+                CReviewShotNameFormatter.ToMatrixName(p.ShotNo,_targets[p.Key].PixelCountX))).ToArray();
+        var known=source.Points.GroupBy(p=>p.OffsetKey).Select(g=>
+        {
+            var p=g.First(); var row=WrittenRow(CManualInspectionCoordinateBridge.ToFile(p,_targets[p.Key].PixelCountX,values[p.Key]));
+            return new ST_MANUAL_OFFSET_BUNDLE_ROW(row.CellId,row.ShotId,row.ReviewOffsetX,row.ReviewOffsetY);
+        }).OrderBy(r=>r.CellNo).ThenBy(r=>r.ShotId,StringComparer.Ordinal).ToArray();
+        var knownKeys=known.Select(r=>$"{r.CellNo}:{Normalize(r.ShotId)}").ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var workingRows=BuildWorkingRows(source,values,initializeAllReviewRows).Values.Select(WrittenRow).ToArray();
+        var parameters=new Dictionary<string,string>(_parameters,StringComparer.OrdinalIgnoreCase);
+        CReviewOffsetData.ApplyToParameters(parameters,_latest! with { Rows=workingRows });
+        var plan=await Task.Run(()=>CShotCoordinatePlanBuilder.Build(parameters),token);
+        var bundle=new ST_MANUAL_OFFSET_BUNDLE
+        {
+            SchemaVersion=CManualInspectionOffsetBundle.Schema,ProgramVersion=CManualInspectionOffsetBundle.ProgramVersion,
+            RecipeId=source.Context.RecipeId,CoordinateSignature=source.Context.CoordinateSignature,
+            ActiveOffsetFileName=_latest!.FileName,ActiveOffsetContentSha256=_latest.ContentSha256,
+            ExportedAt=DateTimeOffset.Now,IsDraft=isDraft,InitializeAllReviewRows=initializeAllReviewRows,
+            ReviewCoordinateSpace="DESIGN",ReviewUnit="mm",FinalCoordinateSpace="SCANNER",FinalCoordinateUnit="mm",
+            ProtectedSnapshotPolicy=CManualInspectionOffsetBundle.ReferenceOnly,Points=pointRows,ReviewRows=known,
+            RetainedHistoricalRows=workingRows.Where(r=>!knownKeys.Contains($"{r.CellId}:{Normalize(r.ShotId)}"))
+                .OrderBy(r=>r.CellId).ThenBy(r=>r.ShotId,StringComparer.Ordinal)
+                .Select(r=>new ST_MANUAL_OFFSET_BUNDLE_HISTORY_ROW(r.CellId,r.ShotId,r.ReviewOffsetX,r.ReviewOffsetY,r.IsDesignCoordinate)).ToArray(),
+            ProtectedParameters=parameters.Where(p=>CManualInspectionOffsetBundle.IsProtectedParameter(p.Key))
+                .OrderBy(p=>p.Key,StringComparer.Ordinal).ToDictionary(p=>p.Key,p=>p.Value,StringComparer.Ordinal),
+            FinalCoordinates=plan.Shots.Select(s=>new ST_MANUAL_OFFSET_BUNDLE_SHOT(s.CellNo,s.HeadNo,s.CellShotNo,
+                s.DesignX,s.DesignY,s.ScannerGx,s.ScannerGy,s.StageX,s.StageY,s.RecipeOffsetX,s.RecipeOffsetY,
+                s.HeadDefaultOffsetX,s.HeadDefaultOffsetY,s.FirstBeamOffsetX,s.FirstBeamOffsetY,
+                s.AlignOffsetX,s.AlignOffsetY,s.AlignScannerOffsetX,s.AlignScannerOffsetY,s.ReviewOffsetX,s.ReviewOffsetY,
+                s.ShiftOffsetX,s.ShiftOffsetY,s.ShiftScannerOffsetX,s.ShiftScannerOffsetY,
+                s.FinalScannerOffsetX,s.FinalScannerOffsetY,s.EncoderWaitPosition)).ToArray()
+        };
+        var text=CManualInspectionOffsetBundle.Serialize(bundle);
+        await EnsureCurrentAsync(source,token);
+        token.ThrowIfCancellationRequested();
+        AtomicText(destination,text);
+    }
+
+    /// <summary>
+    /// Returns absolute final values for a replacement draft. The caller must not add these values
+    /// to current B. Neither the protected snapshot nor exported scanner commands are applied.
+    /// </summary>
+    public async Task<IReadOnlyDictionary<string,ST_MANUAL_OFFSET>> ImportOffsetBundleAsync(
+        CManualInspectionSource source,string path,CancellationToken token)
+    {
+        await EnsureCurrentAsync(source,token);
+        var bundle=CManualInspectionOffsetBundle.Deserialize(await System.IO.File.ReadAllTextAsync(path,token));
+        if(!bundle.RecipeId.Equals(source.Context.RecipeId,StringComparison.OrdinalIgnoreCase)
+            || bundle.CoordinateSignature!=source.Context.CoordinateSignature)
+            throw new InvalidDataException("통합 Offset의 Recipe·좌표/Setting·Shift 기준이 현재 작업과 다릅니다. 보호 설정을 자동 변경하지 않습니다.");
+        var rows=bundle.ReviewRows.ToDictionary(r=>CManualInspectionOffsetBundle.RowKey(r.CellNo,r.ShotId),StringComparer.Ordinal);
+        var currentRows=source.Points.Select(p=>CManualInspectionOffsetBundle.RowKey(p.CellNo,
+            CReviewShotNameFormatter.ToMatrixName(p.ShotNo,_targets[p.Key].PixelCountX))).ToHashSet(StringComparer.Ordinal);
+        if(!currentRows.SetEquals(rows.Keys))
+            throw new InvalidDataException("통합 Offset의 전체 Cell/Shot 맵이 현재 모델과 다릅니다. 일부 Shot만 골라 적용하지 않습니다.");
+        // Review offsets are shared by Cell/Shot, not by the Beam rows currently visible in the
+        // workspace. Validate every exported Beam against a temporary real Recipe plan, then expand
+        // the same absolute Shot value to the current display. Do not replace the live movement plan.
+        var split=Int(_parameters,"SPLITED_BEAM_COUNT");
+        var beams=bundle.Points.Select(p=>p.BeamNo).Distinct().ToArray();
+        if(split<1 || beams.Any(b=>b<1 || b>checked(split*split)))
+            throw new InvalidDataException("통합 Offset의 Beam 번호가 현재 모델 범위를 벗어납니다.");
+        var recipe=_recipe!;var shiftX=_shiftX;var shiftY=_shiftY;
+        var plans=await Task.Run(()=>beams.ToDictionary(b=>b,
+            b=>review.CreateAllPlan(recipe,b,shiftX,shiftY).Points.ToDictionary(p=>(p.CellNo,p.ShotNo))),token);
+        foreach(var imported in bundle.Points)
+        {
+            token.ThrowIfCancellationRequested();
+            if(!plans[imported.BeamNo].TryGetValue((imported.CellNo,imported.ShotNo),out var expected))
+                throw new InvalidDataException($"{imported.Key}: 현재 모델에 없는 Cell/Shot입니다.");
+            var expectedKey=$"C{expected.CellNo}/H{expected.HeadNo}/S{expected.ShotNo}/B{imported.BeamNo}";
+            var masked=!expected.Use || expected.HeadNo<=0 || expected.ExclusionReason.Length>0;
+            var shot=CReviewShotNameFormatter.ToMatrixName(expected.ShotNo,expected.PixelCountX);
+            if(imported.Key!=expectedKey || imported.HeadNo!=expected.HeadNo || imported.Masked!=masked || imported.ShotId!=shot
+                || Math.Abs(imported.XMm-expected.DesignX)>.000001 || Math.Abs(imported.YMm-expected.DesignY)>.000001)
+                throw new InvalidDataException($"{imported.Key}: 통합 Offset 위치·Head·Shot·Beam·Masking이 현재 Recipe와 다릅니다.");
+        }
+        var values=new Dictionary<string,ST_MANUAL_OFFSET>(StringComparer.Ordinal);
+        foreach(var current in source.Points)
+        {
+            token.ThrowIfCancellationRequested();
+            var shot=CReviewShotNameFormatter.ToMatrixName(current.ShotNo,_targets[current.Key].PixelCountX);
+            var row=rows[CManualInspectionOffsetBundle.RowKey(current.CellNo,shot)];
+            var value=new ST_MANUAL_OFFSET(row.XMm*1000,row.YMm*1000);
+            if(!value.IsFinite) throw new InvalidDataException("통합 Offset의 단위 변환이 표현 범위를 초과했습니다.");
+            values.Add(current.Key,value);
+        }
+        ValidateWorkingValues(source,values);
+        await EnsureCurrentAsync(source,token);
+        return values;
+    }
+
+    private void ValidateWorkingValues(CManualInspectionSource source,IReadOnlyDictionary<string,ST_MANUAL_OFFSET> values)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+        if(values.Count!=source.Points.Count || source.Points.Any(p=>!values.TryGetValue(p.Key,out var value)||!value.IsFinite)
+            || source.Points.Any(p=>!_targets.ContainsKey(p.Key)))
+            throw new InvalidDataException("통합 Offset에 현재 Recipe의 모든 위치와 유효한 최종값이 필요합니다.");
+        foreach(var group in source.Points.GroupBy(p=>p.OffsetKey))
+            if(group.Any(p=>values[p.Key]!=values[group.First().Key]))
+                throw new InvalidDataException($"{group.Key}: 같은 Shot의 Beam별 최종 Offset이 충돌합니다.");
+    }
+
+    private static ST_REVIEW_OFFSET_ROW WrittenRow(ST_REVIEW_OFFSET_ROW row)
+    {
+        static double Written(double value)=>double.Parse(value.ToString("0.000000",CultureInfo.InvariantCulture),CultureInfo.InvariantCulture);
+        return row with { ReviewOffsetX=Written(row.ReviewOffsetX),ReviewOffsetY=Written(row.ReviewOffsetY) };
+    }
+
+    private string RequireBundlePath(string path)
+    {
+        var full=Path.GetFullPath(path);
+        if(!Path.GetExtension(full).Equals(".json",StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException("통합 Offset은 .json 파일로 저장하세요.");
+        foreach(var root in new[]{results.RootPath,offsets.RootPath,StateDirectory})
+        {
+            var prefix=Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar,Path.AltDirectorySeparatorChar)+Path.DirectorySeparatorChar;
+            if(full.StartsWith(prefix,StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException("통합 Offset 휴대 파일은 기존 Recipe·측정·자동보관 폴더 밖에 저장하세요. 기존 파일을 덮어쓰지 않습니다.");
+        }
+        return full;
     }
 
     public void Stop() => review.Stop();

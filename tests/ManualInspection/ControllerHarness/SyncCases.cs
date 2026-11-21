@@ -75,20 +75,20 @@ internal static partial class Program
             var loads = f.Loads;
             SetIncoming(f, "new-live-while-archive", 8, DateTimeOffset.UtcNow.AddMinutes(2));
             await c.SynchronizeExternalAsync();
-            True(f.Loads == loads && c.Snapshot.SourcePath == "selected-archive.csv" && c.Snapshot.IsReadOnly && f.Executed.Count == 0);
+            True(f.Loads == loads && c.Snapshot.SourcePath == "selected-archive.csv" && !c.Snapshot.IsReadOnly && f.Executed.Count == 0);
         });
-        await Check("cancelled_sync_is_readonly_until_successful_reload", async () =>
+        await Check("cancelled_sync_retries_current_context_without_permanent_readonly_mode", async () =>
         {
             var (f, c) = await Loaded();
             using var cancel = new CancellationTokenSource();
             SetIncoming(f, "cancelled-rebuild", 9, DateTimeOffset.UtcNow.AddMinutes(2));
             f.LoadHook = (_, token) => { cancel.Cancel(); token.ThrowIfCancellationRequested(); return Task.CompletedTask; };
             await Throws(() => c.SynchronizeExternalAsync(cancel.Token));
-            True(c.Snapshot.IsReadOnly && c.Snapshot.SyncPending && !c.IsBusy);
-            await Throws(() => Do(c, EN_MANUAL_INSPECTION_UI_ACTION.Move, ["P1"]));
+            True(!c.Snapshot.IsReadOnly && c.Snapshot.SyncPending && !c.IsBusy);
+            await Do(c, EN_MANUAL_INSPECTION_UI_ACTION.Move, ["P1"]);
             f.LoadHook = null;
             await c.SynchronizeExternalAsync();
-            True(!c.Snapshot.IsReadOnly && !c.Snapshot.SyncPending && f.Executed.Count == 0);
+            True(!c.Snapshot.IsReadOnly && !c.Snapshot.SyncPending && f.Executed.Count == 1);
         });
         await Check("older_external_measurement_does_not_replace_native_raw", async () =>
         {
@@ -156,7 +156,7 @@ internal static partial class Program
             await c.SynchronizeExternalAsync();
             True(c.Snapshot.SyncPending && c.Snapshot.CandidateRows.Count == 1);
             await Throws(() => Do(c, EN_MANUAL_INSPECTION_UI_ACTION.Apply));
-            True(f.Saves == 0 && c.Snapshot.ActiveRevisionId == "INITIAL");
+            True(f.Saves == 0 && c.Snapshot.ActiveRevisionId == "FOREIGN-REV" && c.Snapshot.CandidateRows.Count==0);
         });
         await Check("applied_candidate_does_not_permanently_block_external_refresh", async () =>
         {

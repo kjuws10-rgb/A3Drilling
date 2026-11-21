@@ -11,7 +11,7 @@ using Drilling.UI.Menu.Menus;
 
 // Exercise the actual production load adapter, managers, planner, CSV reader and writer together.
 // No equipment CManager, InterfaceManager, App/Root, vendor object or motion is constructed.
-internal static class Program
+internal static partial class Program
 {
     private static readonly List<object> Checks = [];
     private static int Failures;
@@ -57,7 +57,7 @@ internal static class Program
             True(source.AppliedOffsetKeys.Count == 1 && source.Values[source.AppliedOffsetKeys.Single()].XUm == 0);
             True(source.Context.RevisionId.Contains("|SHA256:") && source.ImportedResults.Count == 0);
         });
-        await Check("old_version_committed_run_is_readonly_and_never_relabelled", async () =>
+        await Check("old_version_committed_history_is_preserved_without_blocking_fresh_current_work", async () =>
         {
             var f = new Fixture(); var legacy = "NATIVE:" + CManualInspectionBackend.Digest("QA|||");
             var markerSource = Path.Combine(f.Root, "source.json"); await System.IO.File.WriteAllTextAsync(markerSource, "legacy source");
@@ -65,12 +65,13 @@ internal static class Program
             var dir = Path.Combine(f.Backend.StateDirectory,"ApplySources",CManualInspectionBackend.Digest(legacy)); Directory.CreateDirectory(dir);
             await System.IO.File.WriteAllTextAsync(Path.Combine(dir,"point-old.json"),JsonSerializer.Serialize(new { SourcePath=markerSource,BaseRevision="INITIAL_ZERO",RunId=legacy,PointKey="OLD-POINT",MeasurementToken="OLD-TOKEN" }));
             var source = await f.Backend.LoadAsync(null,default);
-            True(source.ReadOnly && source.Description.Contains("이전 버전") && source.Context.RunId != legacy && f.Backend.ConsumedMeasurements.Count == 0);
+            if(source.ReadOnly || !source.Description.Contains("이전 작업 이력") || source.Context.RunId==legacy || f.Backend.ConsumedMeasurements.Count!=0 || source.Points.Any(p=>p.IsDirectMeasurement))
+                throw new InvalidOperationException($"Legacy source: readonly={source.ReadOnly}, legacy-description={source.Description.Contains("이전 작업 이력")}, changed-run={source.Context.RunId!=legacy}, receipts={f.Backend.ConsumedMeasurements.Count}, direct={source.Points.Count(p=>p.IsDirectMeasurement)}");
             var method = typeof(CManualInspectionBackend).GetMethod("LegacyStateReason",System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
             var reason = await (Task<string>)method.Invoke(f.Backend,[legacy,saved.SavedAt.AddSeconds(1),source.Context,CancellationToken.None])!;
             True(reason.Length == 0); // A provably newer Product is a distinct physical run.
             await f.Offsets.RollbackLatest("QA",saved.FilePath);
-            True((await f.Backend.LoadAsync(null,default)).ReadOnly); // Existing-menu rollback must not erase upgrade protection.
+            True(!(await f.Backend.LoadAsync(null,default)).ReadOnly); // Old receipt history remains; current Recipe may be measured again.
         });
         await Check("old_uncommitted_reservation_does_not_invent_consumption", async () =>
         {
@@ -80,9 +81,9 @@ internal static class Program
             await System.IO.File.WriteAllTextAsync(path,JsonSerializer.Serialize(new { SourcePath=Path.Combine(f.Root,"never-saved.json"),BaseRevision="INITIAL_ZERO",RunId=legacy,PointKey="OLD",MeasurementToken="TOKEN" }));
             True(!(await f.Backend.LoadAsync(null,default)).ReadOnly);
             await System.IO.File.WriteAllTextAsync(path,"{ broken");
-            True((await f.Backend.LoadAsync(null,default)).ReadOnly);
+            True(!(await f.Backend.LoadAsync(null,default)).ReadOnly && f.Backend.ConsumedMeasurements.Count==0);
         });
-        await Check("old_incomplete_session_is_preserved_readonly_until_new_run", async () =>
+        await Check("old_incomplete_session_is_preserved_without_blocking_current_recipe_measurement", async () =>
         {
             var f = new Fixture();var source=await f.Backend.LoadAsync(null,default);
             var legacy="NATIVE:"+CManualInspectionBackend.Digest("QA|||");
@@ -93,7 +94,7 @@ internal static class Program
             var path=Path.Combine(f.Backend.StateDirectory,"Sessions",CManualInspectionBackend.Digest("QA|"+legacy+"|"+source.Context.CoordinateSignature+"|INITIAL_ZERO")+".json");Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             var oldJson=JsonSerializer.Serialize(new {Session=engine.CaptureSession()});await System.IO.File.WriteAllTextAsync(path,oldJson);
             var loaded=await f.Backend.LoadAsync(null,default);
-            True(loaded.ReadOnly&&await System.IO.File.ReadAllTextAsync(path)==oldJson);
+            True(!loaded.ReadOnly&&loaded.Points.All(p=>!p.IsDirectMeasurement)&&await System.IO.File.ReadAllTextAsync(path)==oldJson);
         });
         await Check("same_path_offset_replacement_rejects_stale_backend_before_action", async () =>
         {
@@ -242,6 +243,7 @@ internal static class Program
             var f = new Fixture(); await f.Backend.LoadAsync(null, default);
             await Reject(() => Task.Run(f.Backend.GuardOperation));
         });
+        await RunPortableOffsetChecks();
         await Check("vendor_assemblies_never_loaded", () =>
         {
             True(!AppDomain.CurrentDomain.GetAssemblies().Any(a => new[] { "Aerotech", "Automation1", "ACS.SPii", "Newport.XPS", "CmdLib", "DeviceIOLib" }.Any(n => (a.GetName().Name ?? "").Contains(n, StringComparison.OrdinalIgnoreCase)))); return Task.CompletedTask;
@@ -282,13 +284,15 @@ internal static class Program
         public readonly Results Results;
         public readonly CReviewOffsetFile Offsets;
         public readonly CManualInspectionBackend Backend;
-        public Fixture()
+        public Fixture(Dictionary<string,string>? recipeOverrides=null,Dictionary<string,string>? settingOverrides=null)
         {
             Directory.CreateDirectory(Root);
             var values = new Dictionary<string, string> { ["MAX_CELL_NUMBER"]="1", ["GLASS_SIZE_X"]="100", ["GLASS_SIZE_Y"]="200", ["PIXEL_SIZE"]="0.1", ["SPLITED_BEAM_COUNT"]="4", ["MODEL1_NUM_OF_PIXEL_X"]="8", ["MODEL1_NUM_OF_PIXEL_Y"]="8", ["MODEL1_PITCH"]="1", ["CELL1_ALIGN_TO_1ST_PIXEL_X"]="1", ["CELL1_ALIGN_TO_1ST_PIXEL_Y"]="1" };
+            if(recipeOverrides is not null)foreach(var p in recipeOverrides)values[p.Key]=p.Value;
             Recipe = new("QA", "QA", values.Select(p => new ST_RECIPE_PARAMETER(p.Key,p.Value,"","",p.Value,Key:p.Key)).ToArray(), []);
             var settings = new Dictionary<string, string> { ["AK_MARGIN_X"]="0",["AK_MARGIN_Y"]="0",["H01_AK_POSITION_X"]="0",["HeadGapX"]="110",["STAGE_SCAN_DIRECTION_Y"]="-1" };
             for (var i=1;i<=8;i++) { settings[$"H{i:00}_USE"]= i==1 ? "ON" : "OFF"; settings[$"H{i:00}_SCAN_FIELD_WIDTH_X"]="110"; }
+            if(settingOverrides is not null)foreach(var p in settingOverrides)settings[p.Key]=p.Value;
             SettingRows = settings.Select(p => new ST_SYSTEM_PARAMETER(EN_SETTING_TAB.Option,p.Key,p.Value,"","",Key:p.Key)).ToArray();
             Settings = new(new SettingsFile(this), null!, null!);
             Results = new(Root + "/Data/Review");

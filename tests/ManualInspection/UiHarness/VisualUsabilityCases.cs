@@ -25,6 +25,7 @@ internal static partial class Program
             var dataBefore = JsonSerializer.Serialize(baseline.Points);
             var fake = new FakeController(baseline);
             var view = new CManualInspectionView { DataContext = fake, ConfirmationForTesting = (_, _, _) => false };
+            Set(view, "_scatterOffsets", false); Set(view, "_scatterScope", "CELL"); // Explicit legacy working-data scope.
             var window = new Window { Width = 1120, Height = 560, Content = view, Left = -20000, Top = -20000,
                 ShowInTaskbar = false, ShowActivated = false, WindowStyle = WindowStyle.None };
             window.Show(); Pump();
@@ -84,8 +85,8 @@ internal static partial class Program
                 map.ShowOperationMenu(); Pump(); var readonlyMenu = map.ContextMenu!;
                 Test("visual_context_flat_theme_resource_" + theme, ((SolidColorBrush)readonlyMenu.Background).Color == ((SolidColorBrush)_application.FindResource("PanelBackgroundBrush")).Color
                     && readonlyMenu.Items.OfType<MenuItem>().All(item => item.OverridesDefaultStyle));
-                Test("visual_context_readonly_disables_motion_but_keeps_details_" + theme, readonlyMenu.Items.OfType<MenuItem>().Count(item => item.IsEnabled) == 1
-                    && readonlyMenu.Items.OfType<MenuItem>().Single(item => item.IsEnabled).Header.ToString()!.Contains("상세", StringComparison.Ordinal));
+                Test("visual_context_legacy_flag_keeps_multi_point_commands_available_" + theme, readonlyMenu.Items.OfType<MenuItem>().Where(item=>item.Header.ToString()!.StartsWith("이동",StringComparison.Ordinal)||item.Header.ToString()!.Contains("상세")).All(item => item.IsEnabled)
+                    && readonlyMenu.Items.OfType<MenuItem>().Single(item=>item.Header.ToString()!.Contains("현재 위치")).IsEnabled);
                 Render(readonlyMenu, "visual-" + theme.ToLowerInvariant() + "-context-readonly.png"); CloseMenu();
             }
             fake.Replace(fake.Snapshot with { Version = fake.Snapshot.Version + 1, IsReadOnly = false }); Pump();

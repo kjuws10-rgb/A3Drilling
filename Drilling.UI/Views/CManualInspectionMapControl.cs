@@ -237,6 +237,7 @@ public sealed class CManualInspectionMapControl : Control
         var groupWidth = Math.Max(2, (width - margin * 2 - gap * (columns - 1)) / columns);
         var groupHeight = Math.Max(0.1, (height - margin * 2 - gap * (rows - 1)) / rows);
         var title = Math.Min(22, groupHeight * 0.2);
+        var allCellsPlaced = false;
         for (var i = 0; i < groups.Length; i++)
         {
             var group = groups[i];
@@ -251,8 +252,12 @@ public sealed class CManualInspectionMapControl : Control
             var gridX = gx; var gridY = gy + title;
             _frames.Add((new Rect(gx, gy, groupWidth, groupHeight), new Rect(gridX, gridY, gridWidth, gridHeight),
                 $"Cell {group.Key.CellNo}  ·  " + (group.Key.HeadNo > 0 ? $"H{group.Key.HeadNo:00}" : "미배정"), $"{rowKeys.Length}행 × {columnKeys.Length}열"));
-            _cellHeaders.Add((group.Key.CellNo, new Rect(gx, gy, Math.Min(groupWidth, 160), title),
-                !_showCellOverview && groupWidth > 180 && title > 14 ? new Rect(gx + groupWidth - 77, gy + 2, 73, Math.Min(18, title - 2)) : Rect.Empty));
+            // One overview action per map: prefer the first readable row/column heading.
+            // Small multi-head groups retain the single fixed fallback above the matrix.
+            var allCells = !_showCellOverview && !allCellsPlaced && groupWidth > 180 && title > 14
+                ? new Rect(gx + groupWidth - 77, gy + 2, 73, Math.Min(18, title - 2)) : Rect.Empty;
+            _cellHeaders.Add((group.Key.CellNo, new Rect(gx, gy, Math.Min(groupWidth, 160), title), allCells));
+            if (!allCells.IsEmpty) { allCellsPlaced = true; _allCellsButton = Rect.Empty; }
             foreach (var bucket in group.GroupBy(p => (p.Row, p.Column)))
             {
                 var points = bucket.OrderBy(p => p.BeamNo).ThenBy(p => p.Key, StringComparer.Ordinal).ToArray();
@@ -651,7 +656,7 @@ public sealed class CManualInspectionMapControl : Control
         _tip.SetResourceReference(Control.BackgroundProperty, "PreviewHoverTipBackgroundBrush");
         _tip.SetResourceReference(Control.ForegroundProperty, "PreviewHoverTipTextBrush");
         _tip.Content = point is null ? null : $"{point.Key}\n{point.MeasurementStatusText} · 편차 {point.MeasurementErrorText} µm\n{point.MeasurementBasisText}\n" +
-            (point.HasAppliedOffset ? $"적용 보정 B {point.BaseOffsetText} µm · {(CManualInspectionDrawing.AppliedLevel(point,_snapshot) >= 0 ? "L"+(CManualInspectionDrawing.AppliedLevel(point,_snapshot)+1) : "Level 확인 필요")}" : "활성 보정 미적용") +
+            (point.HasAppliedOffset ? $"{(_snapshot.IsOffsetEditPending ? "작업 통합 Offset · 미저장" : "적용 보정 B")} {point.BaseOffsetText} µm · {(CManualInspectionDrawing.AppliedLevel(point,_snapshot) >= 0 ? "L"+(CManualInspectionDrawing.AppliedLevel(point,_snapshot)+1) : "Level 확인 필요")}" : "활성 보정 미적용") +
             (string.IsNullOrWhiteSpace(point.DisplayedMeasurementOrigin) ? "" : "\n측정 출처: " + point.DisplayedMeasurementOrigin) +
             (point.IsMasked ? "\nMasking · 측정 선택 제외" : point.IsProxy ? $"\n◇ 대표값 복사: {point.ReferenceKey}" : "");
         _tip.IsOpen = point is not null;
@@ -745,7 +750,9 @@ public sealed class CManualInspectionMapControl : Control
             ("이동 후 측정 & 보정", EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasureCorrect)
         })
         {
-            var item = new MenuItem { Header = title, IsEnabled = !_snapshot.IsBusy && !_snapshot.IsReadOnly };
+            var item = new MenuItem { Header = title, IsEnabled = !_snapshot.IsBusy && !_snapshot.IsOffsetEditPending,
+                ToolTip = _snapshot.IsOffsetEditPending ? "통합 Offset을 모델에 저장하거나 편집을 취소한 뒤 이동·측정하세요." : title };
+            ToolTipService.SetShowOnDisabled(item, true);
             item.SetResourceReference(ForegroundProperty, "TextPrimaryBrush");
             item.Click += (_, _) => OperationRequested?.Invoke(this, new(action, keys, version));
             menu.Items.Add(item);
@@ -760,7 +767,10 @@ public sealed class CManualInspectionMapControl : Control
         })
         {
             var item = new MenuItem { Header = title + " · " + focus.Key,
-                IsEnabled = !_snapshot.IsBusy && (action == EN_MANUAL_INSPECTION_UI_ACTION.ShowPoint || !_snapshot.IsReadOnly) };
+                IsEnabled = !_snapshot.IsBusy && (action == EN_MANUAL_INSPECTION_UI_ACTION.ShowPoint || !_snapshot.IsOffsetEditPending),
+                ToolTip = action == EN_MANUAL_INSPECTION_UI_ACTION.Measure && _snapshot.IsOffsetEditPending
+                    ? "통합 Offset을 모델에 저장하거나 편집을 취소한 뒤 측정하세요." : title };
+            ToolTipService.SetShowOnDisabled(item, true);
             item.SetResourceReference(ForegroundProperty, "TextPrimaryBrush");
             item.Click += (_, _) => OperationRequested?.Invoke(this, new(action, [focus.Key], version));
             menu.Items.Add(item);

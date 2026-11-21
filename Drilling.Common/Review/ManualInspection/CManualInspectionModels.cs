@@ -93,7 +93,14 @@ public sealed record ST_MANUAL_VALIDATION(
 public sealed record ST_MANUAL_CANDIDATE(
     string Id, string RecipeId, string RunId, string BaseRevisionId, string SourceFingerprint,
     IReadOnlyList<ST_MANUAL_CANDIDATE_ROW> Rows, EN_MANUAL_CANDIDATE_STATE State,
-    ST_MANUAL_VALIDATION? Validation);
+    ST_MANUAL_VALIDATION? Validation)
+{
+    [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public bool IsOffsetReplacement { get; init; }
+    /// <summary>Explicit zero initialization. Imported absolute maps are replacements but are not Init.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public bool InitializeAllReviewRows { get; init; }
+}
 
 public sealed record ST_MANUAL_COPY_TARGET(
     string Key, string PreviousJudge, ST_MANUAL_OFFSET Base, ST_MANUAL_OFFSET Delta);
@@ -110,6 +117,8 @@ public sealed record ST_MANUAL_APPLY_SNAPSHOT(
     IReadOnlyDictionary<string, ST_MANUAL_OFFSET> ValuesByOffsetKey,
     IReadOnlyList<ST_MANUAL_CANDIDATE_ROW> Rows)
 {
+    public bool IsOffsetReplacement { get; init; }
+    public bool InitializeAllReviewRows { get; init; }
     /// <summary>
     /// Opaque native raw tokens whose Shot correction basis is consumed by this write, including Beam
     /// siblings. Durable storage records all entries, but only MEASURED driving rows are duplicate-gated.
@@ -174,6 +183,8 @@ public sealed record ST_MANUAL_SESSION(
     ST_MANUAL_OPERATION? Operation,
     IReadOnlyList<ST_MANUAL_AUDIT> Audit)
 {
+    [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public ST_MANUAL_CANDIDATE? OffsetEditPreviousCandidate { get; init; }
     public IReadOnlyList<ST_MANUAL_HISTORY> History { get; init; } = Array.Empty<ST_MANUAL_HISTORY>();
     public IReadOnlyList<ST_MANUAL_CANDIDATE> CandidateBackups { get; init; } = Array.Empty<ST_MANUAL_CANDIDATE>();
     public IReadOnlyList<ST_MANUAL_CONSUMED_MEASUREMENT> ConsumedMeasurementHistory { get; init; } = Array.Empty<ST_MANUAL_CONSUMED_MEASUREMENT>();

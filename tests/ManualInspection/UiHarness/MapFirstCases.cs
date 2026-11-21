@@ -20,6 +20,7 @@ internal static partial class Program
                 RunId = "QA-G001 · 설비 연결 없는 화면 검사", Message = "", StatusText = "좌표 선택 · 우클릭 동작 · 좌측 더블클릭 맞춤" };
             var fake = new FakeController(snapshot);
             var view = new CManualInspectionView { DataContext = fake, ConfirmationForTesting = (_, _, _) => false };
+            Set(view, "_scatterOffsets", false); Set(view, "_scatterScope", "CELL"); // Explicit legacy working-data scope.
             var window = new Window { Width = 1120, Height = 560, Content = view, Left = -20000, Top = -20000,
                 ShowInTaskbar = false, ShowActivated = false, WindowStyle = WindowStyle.None };
             window.Show(); Pump();

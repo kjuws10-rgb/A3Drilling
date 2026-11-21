@@ -13,6 +13,7 @@
     <Compile Include="HardeningCases.cs" />
     <Compile Include="PresentationCases.cs" />
     <Compile Include="CellOverviewCases.cs" />
+    <Compile Include="OffsetInitCases.cs" />
   </ItemGroup>
   <ItemGroup Condition="'$(UseActualAssemblies)' != 'true'">
     <Compile Include="Contracts.cs" />

@@ -19,7 +19,7 @@ public enum EN_MANUAL_INSPECTION_UI_ACTION
     LoadCurrentRecipe, LoadResultFile, Refresh, NewSimulation, ImportSession, ExportSession,
     ExportCsv, Move, MoveMeasure, MoveMeasureCorrect, Measure, RetryRemaining, Stop,
     Calculate, Validate, Apply, Rollback, CopyReference, UndoCopy, UpdateLimits, SetAllowManual, UpdateLevels, ShowPoint,
-    ReturnToPreviousWorkspace
+    ReturnToPreviousWorkspace, InitializeOffsets, CancelOffsetEdit, ExportOffsetBundle, ImportOffsetBundle
 }
 
 /// <summary>Recipe preview's global DESIGN-mm polygon, before scanner/stage transforms.</summary>
@@ -168,6 +168,9 @@ public sealed record CManualInspectionUiSnapshot
     public bool IsBusy { get; init; }
     public bool IsReadOnly { get; init; }
     public bool CanReturnToPreviousWorkspace { get; init; }
+    public bool IsOffsetEditPending { get; init; }
+    public bool OffsetInitPending { get; init; }
+    public string OffsetSummaryText { get; init; } = "모델별 최신 누적 Review Offset 하나를 사용합니다.";
     public IReadOnlyList<CManualInspectionUiCellLayout> CellLayouts { get; init; } = [];
     public bool CellLayoutYDown { get; init; } = true;
     public double GlassWidthMm { get; init; }

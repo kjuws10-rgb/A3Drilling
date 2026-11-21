@@ -78,6 +78,7 @@ internal static partial class Program
         var state=OverviewSnapshot();var serialized=JsonSerializer.Serialize(state.Points);
         var fake=new FakeController(state);var descriptions=new List<string>();
         var view=new CManualInspectionView{DataContext=fake,ConfirmationForTesting=(_,text,_)=>{descriptions.Add(text);return true;}};
+        Set(view, "_scatterOffsets", false); Set(view, "_scatterScope", "CELL"); // Explicit legacy working-data scope.
         var window=new Window{Width=1120,Height=560,Content=view,Left=-20000,Top=-20000,ShowInTaskbar=false,ShowActivated=false,WindowStyle=WindowStyle.None};
         window.Show();Pump();var map=(CManualInspectionMapControl)view.FindName("PositionMap");var scatter=(CManualInspectionScatterControl)view.FindName("ScatterPlot");
         void Refresh(){Invoke(view,"Refresh");Pump();}
@@ -197,7 +198,7 @@ internal static partial class Program
         ((Expander)view.FindName("CorrectionSection")).IsExpanded=false;((Expander)view.FindName("PointDetailsSection")).IsExpanded=false;Pump();
         Invoke(view,"Files_Click",view,new RoutedEventArgs());var menu=((Button)view.FindName("FilesButton")).ContextMenu!;
         var items=menu.Items.OfType<MenuItem>().ToArray();
-        Test("file_menu_only_exposes_return_file_and_csv_not_session_or_recent_list",items.Length==3&&items.Any(i=>i.Header.ToString()!.Contains("돌아가기"))&&items.All(i=>!i.Header.ToString()!.Contains("세션")&&!i.Header.ToString()!.Contains("최근")));
+        Test("file_menu_exposes_return_portable_offset_and_measurement_files_without_session_or_recent_list",items.Length==5&&items.Count(i=>i.Header.ToString()!.Contains("통합 Offset"))==2&&items.Any(i=>i.Header.ToString()!.Contains("돌아가기"))&&items.All(i=>!i.Header.ToString()!.Contains("세션")&&!i.Header.ToString()!.Contains("최근")));
         view.ConfirmationForTesting=(_,text,_)=>{descriptions.Add(text);return false;};
         items.Single(i=>i.Header.ToString()!.Contains("돌아가기")).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));Pump();
         Test("cancelled_return_keeps_file_view_and_original_ui_bookmark",fake.Calls.Count==1&&fake.Snapshot.CanReturnToPreviousWorkspace&&Field<int>(view,"_cell")==10);
@@ -209,7 +210,7 @@ internal static partial class Program
         Test("file_return_dispatch_never_performs_implicit_move_measure_or_apply",fake.Calls.Select(c=>c.Action).SequenceEqual([EN_MANUAL_INSPECTION_UI_ACTION.LoadResultFile,EN_MANUAL_INSPECTION_UI_ACTION.ReturnToPreviousWorkspace])&&descriptions.Any(s=>s.Contains("최초"))&&JsonSerializer.Serialize(state.Points)==serialized);
         fake.Replace(fake.Snapshot with{Version=fake.Snapshot.Version+1,HasIncomplete=true,CanReturnToPreviousWorkspace=true,RemainingCount=1});Pump();
         Invoke(view,"Files_Click",view,new RoutedEventArgs());menu=((Button)view.FindName("FilesButton")).ContextMenu!;items=menu.Items.OfType<MenuItem>().ToArray();
-        Test("incomplete_measurement_disables_file_replacement_and_return_but_keeps_csv_export",items.Where(i=>!i.Header.ToString()!.Contains("CSV")).All(i=>!i.IsEnabled)&&items.Single(i=>i.Header.ToString()!.Contains("CSV")).IsEnabled);menu.IsOpen=false;
+        Test("incomplete_measurement_disables_file_replacement_and_return_but_keeps_exports",items.Where(i=>!i.Header.ToString()!.Contains("내보내기")).All(i=>!i.IsEnabled)&&items.Where(i=>i.Header.ToString()!.Contains("내보내기")).All(i=>i.IsEnabled));menu.IsOpen=false;
         var calls=fake.Calls.Count;
         foreach(var action in new[]{EN_MANUAL_INSPECTION_UI_ACTION.LoadResultFile,EN_MANUAL_INSPECTION_UI_ACTION.ReturnToPreviousWorkspace})
             ((Task)Invoke(view,"Execute",action,new CManualInspectionUiRequest{ExpectedVersion=fake.Snapshot.Version})!).GetAwaiter().GetResult();
@@ -253,6 +254,7 @@ internal static partial class Program
     {
         var state=OverviewSnapshot();var fake=new FakeController(state);
         var view=new CManualInspectionView{DataContext=fake,ConfirmationForTesting=(_,_,_)=>false};
+        Set(view, "_scatterOffsets", false); Set(view, "_scatterScope", "CELL"); // Explicit legacy working-data scope.
         var window=new Window{Width=1120,Height=560,Content=view,Left=-20000,Top=-20000,ShowInTaskbar=false,ShowActivated=false,WindowStyle=WindowStyle.None};
         window.Show();Pump();Invoke(view,"SetMapCellScope",0);Pump();
         var map=(CManualInspectionMapControl)view.FindName("PositionMap");var scatter=(CManualInspectionScatterControl)view.FindName("ScatterPlot");

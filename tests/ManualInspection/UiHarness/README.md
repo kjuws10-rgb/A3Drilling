@@ -1,5 +1,7 @@
 # Native Manual Inspection UI harness
 
+For version 11.21.1, append `--offset-init`. The 37 additional checks cover the single all-Cell button, screen-only whole-model initialization, protected-offset descriptions, confirmation/cancel/save dispatch, portable-file menu, pending-edit boundaries and no user read-only mode. They also verify the new OFFSETS/HEAD/all-heads default, cumulative B taking precedence over residual/raw values, explicit zero versus missing rows, multi-Cell/Head/Auto/fixed/fit populations and separation from camera originals. See [OFFSET_INIT_QA.md](../OFFSET_INIT_QA.md). Earlier working-measurement suites now select WORKING/CELL explicitly, and their readonly expectations are updated for current-plan reconnection; no old case is removed.
+
 Run from the repository root on Windows with the .NET 8 Windows Desktop runtime and a suitable SDK:
 
 ```powershell

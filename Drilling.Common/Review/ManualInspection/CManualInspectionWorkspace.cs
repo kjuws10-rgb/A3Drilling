@@ -26,6 +26,7 @@ public sealed class CManualInspectionWorkspace
     private readonly List<ST_MANUAL_CANDIDATE> _candidateBackups = [];
     private ManualInspectionFieldEvaluator? _fieldEvaluator;
     private CopyUndo? _copyUndo;
+    private ST_MANUAL_CANDIDATE? _offsetEditPreviousCandidate;
     private string? _pendingWriteToken;
     private string? _pendingWriteFingerprint;
     private ST_MANUAL_APPLY_SNAPSHOT? _pendingApply;
@@ -43,6 +44,7 @@ public sealed class CManualInspectionWorkspace
     public IReadOnlyList<ST_MANUAL_HISTORY> History => _history.AsReadOnly();
     public IReadOnlyList<ST_MANUAL_CANDIDATE> CandidateBackups => _candidateBackups.AsReadOnly();
     public ST_MANUAL_CANDIDATE? Candidate { get; private set; }
+    public bool HasPendingOffsetEdit => Candidate is { IsOffsetReplacement: true, State: not EN_MANUAL_CANDIDATE_STATE.Applied };
     public ST_MANUAL_OPERATION? Operation { get; private set; }
     public bool HasIncompleteMeasurements => Operation is { Kind: not EN_MANUAL_OPERATION_KIND.Move, RemainingKeys.Count: > 0 };
     public bool IsBusy => _pendingWriteToken is not null || Operation?.State == EN_MANUAL_OPERATION_STATE.Running;
@@ -62,6 +64,7 @@ public sealed class CManualInspectionWorkspace
         GuardIdle();
         ValidateContext(context); ValidateLimits(limits);
         var sameRun = Context?.RecipeId == context.RecipeId && Context.RunId == context.RunId;
+        if (sameRun && HasPendingOffsetEdit) throw new InvalidOperationException("통합 Offset 편집을 저장하거나 취소한 후 작업공간을 다시 불러오세요.");
         if (sameRun && HasIncompleteMeasurements)
             throw new InvalidOperationException("같은 Run의 미완료 측정을 재로드로 지울 수 없습니다. 잔여 측정을 완료하거나 새 Run을 여세요.");
         var data = points.ToArray();
@@ -89,7 +92,7 @@ public sealed class CManualInspectionWorkspace
         _active.Clear(); foreach (var pair in values) _active.Add(pair.Key, pair.Value);
         if (!sameRun) { _appliedMeasurements.Clear(); _consumedMeasurementHistory.Clear(); _appliedCandidates.Clear(); }
         Context = context; Limits = limits; _fieldEvaluator = fieldEvaluator;
-        Candidate = null; Operation = null; _copyUndo = null;
+        Candidate = null; Operation = null; _copyUndo = null; _offsetEditPreviousCandidate = null;
         _referenceRows = null; _referenceRowsByKey.Clear();
         _history.Clear(); _candidateBackups.Clear();
         _revisions.Clear();
@@ -99,6 +102,24 @@ public sealed class CManualInspectionWorkspace
 
     public ST_MANUAL_POINT GetPoint(string key) => _points.TryGetValue(key, out var point)
         ? point : throw new InvalidOperationException($"작업공간에 없는 위치입니다: {key}");
+
+    /// <summary>After the host rechecks real geometry, old uncertain observations stay non-native but fresh measurement is allowed.</summary>
+    public void ConfirmEditableMeasurementContext(ST_MANUAL_CONTEXT context)
+    {
+        GuardIdle(); RequireLoaded(); ValidateContext(context);
+        if (context.RecipeId!=Context!.RecipeId || context.RunId!=Context.RunId || context.RevisionId!=Context.RevisionId
+            || context.CoordinateSignature!=Context.CoordinateSignature || !context.LineageValid)
+            throw new InvalidOperationException("현재 모델·회차·좌표·활성 보정 기준을 다시 연결해야 합니다.");
+        if (Context.LineageValid) return;
+        foreach (var before in _points.Values.ToArray())
+        {
+            var after=before with { Source="IMPORTED",ProxySource=null,AdoptedFileMeasurement=null };
+            _points[before.Key]=after;
+            AddHistory(before,after,"EDITABLE_RECONNECT","현재 기하 재확인 · 옛 측정은 관측으로 보존하고 새 측정 허용");
+        }
+        Context=context;Candidate=null;_offsetEditPreviousCandidate=null;_generation++;_copyUndo=null;
+        Log("EDITABLE_RECONNECT","이전 출처 미확인 자료를 새 raw로 승격하지 않고 현재 모델에서 새 측정할 수 있습니다.");
+    }
 
     /// <summary>
     /// Refresh display observations after reconciling the actual Recipe/Run/offset revision. Imported
@@ -110,7 +131,7 @@ public sealed class CManualInspectionWorkspace
         IReadOnlyDictionary<string, DateTimeOffset> observedAtByKey)
     {
         GuardIdle(); RequireLoaded();
-        if (HasIncompleteMeasurements) return 0;
+        if (HasIncompleteMeasurements || HasPendingOffsetEdit) return 0;
         var replacements = new List<(ST_MANUAL_POINT Before, ST_MANUAL_POINT After)>();
         foreach (var incoming in observations)
         {
@@ -161,7 +182,7 @@ public sealed class CManualInspectionWorkspace
     /// <summary>Called after the real measurement API returns. A proxy never overwrites original raw data.</summary>
     public void RecordMeasurement(string key, ST_MANUAL_MEASUREMENT measurement, string? operationId = null)
     {
-        RequireLoaded(); GuardNoWrite();
+        RequireLoaded(); GuardNoWrite(); GuardNoOffsetEdit();
         var point = GetPoint(key);
         if (point.Masked) throw new InvalidOperationException("Masking 위치는 측정할 수 없습니다.");
         if (Operation?.State == EN_MANUAL_OPERATION_STATE.Running)
@@ -183,7 +204,7 @@ public sealed class CManualInspectionWorkspace
 
     public ST_MANUAL_CANDIDATE BuildDirectCandidate(IEnumerable<string> keys)
     {
-        GuardCorrection();
+        GuardCorrection(); GuardNoOffsetEdit();
         var selected = Select(keys, excludeMasked: true);
         if (selected.Length == 0) throw new InvalidOperationException("보정할 측정 위치를 선택하세요.");
         var rows = new List<ST_MANUAL_CANDIDATE_ROW>();
@@ -207,6 +228,48 @@ public sealed class CManualInspectionWorkspace
         Candidate = NewCandidate(rows); _generation++; _copyUndo = null;
         Log("CANDIDATE", $"선택 {rows.Count}점의 B + Δ = F 후보를 계산했습니다.");
         return Candidate;
+    }
+
+    /// <summary>Prepare a whole-model absolute Review map; no active value, raw packet or file is changed.</summary>
+    public ST_MANUAL_CANDIDATE BuildOffsetReplacementCandidate(
+        IReadOnlyDictionary<string, ST_MANUAL_OFFSET> values, string reason, bool initializeAllReviewRows)
+    {
+        GuardCorrection(); GuardNoOffsetEdit();
+        if (string.IsNullOrWhiteSpace(reason) || values.Count != _points.Count || values.Keys.Any(key => !_points.ContainsKey(key)))
+            throw new InvalidOperationException("통합 Offset은 현재 모델의 모든 위치와 사유가 필요합니다.");
+        var byShot = new Dictionary<string, ST_MANUAL_OFFSET>(StringComparer.Ordinal);
+        var rows = new List<ST_MANUAL_CANDIDATE_ROW>();
+        foreach (var point in _points.Values)
+        {
+            var final = values[point.Key]; var before = _active[point.Key];
+            if (!final.IsFinite || initializeAllReviewRows && final != ST_MANUAL_OFFSET.Zero)
+                throw new InvalidOperationException("초기화는 측정 기반 Review Offset 전체를 0으로만 설정합니다.");
+            if (byShot.TryGetValue(point.OffsetKey, out var other) && !Equal(other, final))
+                throw new InvalidOperationException("같은 Cell/Shot의 Beam은 같은 통합 Offset을 사용해야 합니다.");
+            byShot[point.OffsetKey] = final;
+            rows.Add(new(point.Key,point.OffsetKey,point.CellNo,point.HeadNo,point.ShotNo,point.BeamNo,
+                before,Subtract(final,before),final,initializeAllReviewRows?"OFFSET_INIT":"OFFSET_FILE","",reason.Trim(),""));
+        }
+        _offsetEditPreviousCandidate = Candidate;
+        if (Candidate is { State: not EN_MANUAL_CANDIDATE_STATE.Applied }) _candidateBackups.Add(Candidate);
+        Candidate = NewCandidate(rows) with { IsOffsetReplacement=true, InitializeAllReviewRows=initializeAllReviewRows };
+        _generation++; _copyUndo=null;
+        Log("OFFSET_EDIT", "모델 전체 측정 보정의 저장 전 작업값입니다. 보호 설정과 활성 파일은 유지합니다.");
+        return Candidate;
+    }
+
+    public ST_MANUAL_CANDIDATE InitializeMeasurementOffsets() => BuildOffsetReplacementCandidate(
+        _points.Keys.ToDictionary(key=>key,_=>ST_MANUAL_OFFSET.Zero,StringComparer.Ordinal),
+        "Offset Init · Simple/Rough/Fine/One/All/Line 측정 보정 전체 초기화 · 보호 설정 유지",true);
+
+    public void CancelOffsetReplacement()
+    {
+        GuardCorrection();
+        if (!HasPendingOffsetEdit) throw new InvalidOperationException("취소할 통합 Offset 편집이 없습니다.");
+        Candidate=_offsetEditPreviousCandidate; _offsetEditPreviousCandidate=null;
+        if (Candidate is { State: not EN_MANUAL_CANDIDATE_STATE.Applied }) Candidate=Candidate with { State=EN_MANUAL_CANDIDATE_STATE.Draft,Validation=null };
+        _generation++; _copyUndo=null;
+        Log("OFFSET_EDIT_CANCEL", "저장 전 통합 Offset 편집 취소 · 활성값과 원측정 유지");
     }
 
     /// <summary>
@@ -248,7 +311,7 @@ public sealed class CManualInspectionWorkspace
 
     public ST_MANUAL_COPY_PREVIEW PreviewReferenceCopy(string referenceKey, IEnumerable<string> selectedKeys)
     {
-        GuardCorrection(); var reference = GetPoint(referenceKey);
+        GuardCorrection(); GuardNoOffsetEdit(); var reference = GetPoint(referenceKey);
         var final = ResolveReferenceFinal(referenceKey);
         if (Candidate is { State: not EN_MANUAL_CANDIDATE_STATE.Applied }) GuardCandidateBase(Candidate);
         var selection = Select(selectedKeys, excludeMasked: false);
@@ -327,15 +390,23 @@ public sealed class CManualInspectionWorkspace
         var maxDelta = 0d; var maxTotal = 0d;
         var finals = new Dictionary<string, ST_MANUAL_OFFSET>(StringComparer.Ordinal);
         var seen = new HashSet<string>(StringComparer.Ordinal);
+        if (candidate.IsOffsetReplacement && (candidate.Rows.Count!=_points.Count || !candidate.Rows.Select(r=>r.Key).ToHashSet(StringComparer.Ordinal).SetEquals(_points.Keys)))
+            errors.Add("통합 Offset 교체 후보는 모델 전체 위치를 포함해야 합니다.");
         foreach (var row in candidate.Rows)
         {
             if (!seen.Add(row.Key)) { errors.Add($"{row.Key}: 후보 Key가 중복됐습니다."); continue; }
-            if (!_points.TryGetValue(row.Key, out var point) || point.Masked) { errors.Add($"{row.Key}: 없거나 Masking된 위치입니다."); continue; }
+            if (!_points.TryGetValue(row.Key, out var point) || point.Masked && !candidate.IsOffsetReplacement) { errors.Add($"{row.Key}: 없거나 Masking된 위치입니다."); continue; }
             if (row.OffsetKey != point.OffsetKey) errors.Add($"{row.Key}: Cell/Shot 저장 식별자가 다릅니다.");
             if (!row.Base.IsFinite || !row.Delta.IsFinite || !row.Final.IsFinite) { errors.Add($"{row.Key}: 보정값이 유한하지 않습니다."); continue; }
             if (!Equal(row.Base, _active[row.Key]) || !Equal(Add(row.Base, row.Delta), row.Final)) errors.Add($"{row.Key}: 기준 B 또는 B + Δ = F가 일치하지 않습니다.");
-            if (point.Judge != "OK") errors.Add($"{row.Key}: 작업판정 {point.Judge}는 보정을 적용할 수 없습니다.");
-            if (row.Source == "MANUAL")
+            if (!candidate.IsOffsetReplacement && point.Judge != "OK") errors.Add($"{row.Key}: 작업판정 {point.Judge}는 보정을 적용할 수 없습니다.");
+            if (candidate.IsOffsetReplacement)
+            {
+                if (row.Source!=(candidate.InitializeAllReviewRows?"OFFSET_INIT":"OFFSET_FILE") || string.IsNullOrWhiteSpace(row.Reason)
+                    || row.MeasurementToken.Length>0 || candidate.InitializeAllReviewRows && row.Final!=ST_MANUAL_OFFSET.Zero)
+                    errors.Add($"{row.Key}: 통합 Offset 교체/초기화 출처가 일치하지 않습니다.");
+            }
+            else if (row.Source == "MANUAL")
             {
                 if (!allowManual || string.IsNullOrWhiteSpace(row.Reason)) errors.Add($"{row.Key}: 수동 후보 허용과 사유 확인이 필요합니다.");
                 if (point.ProxySource is null || point.ProxySource.ReferenceKey != row.ReferenceKey || !Equal(point.ProxySource.FinalOffset, row.Final))
@@ -354,7 +425,7 @@ public sealed class CManualInspectionWorkspace
             }
             else errors.Add($"{row.Key}: 지원하지 않는 후보 출처입니다.");
             maxDelta = Math.Max(maxDelta, Magnitude(row.Delta)); maxTotal = Math.Max(maxTotal, Magnitude(row.Final));
-            if (Magnitude(row.Delta) > Limits!.MaxDeltaUm) errors.Add($"{row.Key}: 이번 증감이 {Limits.MaxDeltaUm:G} µm 제한을 초과했습니다.");
+            if (!(candidate.IsOffsetReplacement && candidate.InitializeAllReviewRows) && Magnitude(row.Delta) > Limits!.MaxDeltaUm) errors.Add($"{row.Key}: 이번 증감이 {Limits.MaxDeltaUm:G} µm 제한을 초과했습니다.");
             if (Magnitude(row.Final) > Limits!.MaxTotalUm) errors.Add($"{row.Key}: 누적 총량이 {Limits.MaxTotalUm:G} µm 제한을 초과했습니다.");
             if (finals.TryGetValue(row.OffsetKey, out var other) && !Equal(other, row.Final)) errors.Add($"{row.OffsetKey}: 기존 CSV는 Cell/Shot별 한 값입니다. Beam별 서로 다른 F를 저장할 수 없습니다.");
             else finals[row.OffsetKey] = row.Final;
@@ -397,7 +468,7 @@ public sealed class CManualInspectionWorkspace
         var finals = candidate.Rows.GroupBy(row => row.OffsetKey).ToDictionary(group => group.Key, group => group.First().Final, StringComparer.Ordinal);
         var values = _points.Values.ToDictionary(point => point.Key,
             point => QuantizeForOffsetFile(finals.TryGetValue(point.OffsetKey, out var final) ? final : _active[point.Key]), StringComparer.Ordinal);
-        ValidateStoredValues(values, candidate.Rows.Select(row => row.OffsetKey).ToHashSet(StringComparer.Ordinal), checkDelta: true);
+        ValidateStoredValues(values, candidate.Rows.Select(row => row.OffsetKey).ToHashSet(StringComparer.Ordinal), checkDelta: !(candidate.IsOffsetReplacement && candidate.InitializeAllReviewRows));
         var offsets = _points.Values.GroupBy(point => point.OffsetKey).ToDictionary(group => group.Key, group => values[group.First().Key], StringComparer.Ordinal);
         var consumed = candidate.Rows.Where(row => row.Source == "MEASURED" && row.MeasurementToken.Length > 0)
             .ToDictionary(row => row.Key, row => row.MeasurementToken, StringComparer.Ordinal);
@@ -414,7 +485,7 @@ public sealed class CManualInspectionWorkspace
         }
         var snapshot = new ST_MANUAL_APPLY_SNAPSHOT(NewId("WRITE"), candidate.Id, Context!.RecipeId, Context.RunId, Context.RevisionId,
             Freeze(values), Freeze(offsets), ReadOnly(candidate.Rows.ToArray()))
-        { ConsumedMeasurements = Freeze(consumed) };
+        { ConsumedMeasurements = Freeze(consumed), IsOffsetReplacement=candidate.IsOffsetReplacement, InitializeAllReviewRows=candidate.InitializeAllReviewRows };
         _pendingWriteToken = snapshot.Token; _pendingApply = snapshot; _pendingWriteFingerprint = Digest(snapshot);
         Candidate = candidate with { State = EN_MANUAL_CANDIDATE_STATE.Applying };
         Log("APPLY_RESERVED", "오프셋 파일 저장 대기; 실제 저장 성공 전에는 활성값을 바꾸지 않습니다.");
@@ -426,11 +497,22 @@ public sealed class CManualInspectionWorkspace
     {
         RequireWrite(snapshot.Token, Digest(snapshot), applying: true); RequireNewRevision(newRevisionId);
         var candidate = Candidate!; var oldRevision = Context!.RevisionId;
-        var actual = VerifyWrittenValues(actualValuesByPointKey ?? snapshot.ValuesByPointKey, snapshot.ValuesByPointKey, snapshot.Rows);
+        var actual = VerifyWrittenValues(actualValuesByPointKey ?? snapshot.ValuesByPointKey, snapshot.ValuesByPointKey, snapshot.Rows,
+            snapshot.IsOffsetReplacement && snapshot.InitializeAllReviewRows);
         _active.Clear(); foreach (var pair in actual) _active.Add(pair.Key, pair.Value);
         // Driving and companion tokens were reserved together. Commit never rebuilds the opaque set
         // after file I/O, and a failed write never updates this ledger.
         foreach (var pair in snapshot.ConsumedMeasurements) MarkConsumed(pair.Key, pair.Value);
+        if (snapshot.IsOffsetReplacement)
+        {
+            foreach (var before in _points.Values.ToArray())
+            {
+                var after=before with { Judge="UNMEASURED",Source="KEPT",ErrorXUm=null,ErrorYUm=null,ProxySource=null,AdoptedFileMeasurement=null,ExternalObservedAt=null };
+                _points[before.Key]=after;
+                AddHistory(before,after,"OFFSET_REPLACED","통합 Offset 기준 변경 · 옛 잔차/대표값 재사용 해제 · 실제 원측정은 이력 보존");
+            }
+            _offsetEditPreviousCandidate=null;
+        }
         _appliedCandidates.Add(candidate.Id); Context = Context with { RevisionId = newRevisionId };
         Candidate = candidate with
         {
@@ -451,8 +533,8 @@ public sealed class CManualInspectionWorkspace
 
     public ST_MANUAL_RESTORE_SNAPSHOT CreateRestorePreviousSnapshot()
     {
-        GuardIdle(); RequireLoaded();
-        if (!Context!.LineageValid) throw new InvalidOperationException("조회 전용 자료에서는 활성 보정을 원복할 수 없습니다.");
+        GuardIdle(); RequireLoaded(); GuardNoOffsetEdit();
+        if (!Context!.LineageValid) throw new InvalidOperationException("현재 모델 기준을 다시 연결한 후 활성 보정을 원복하세요.");
         var current = _revisions.LastOrDefault(revision => revision.Id == Context!.RevisionId);
         var previous = current is null ? null : _revisions.LastOrDefault(revision => revision.Id == current.ParentId);
         if (previous is null) throw new InvalidOperationException("원복할 직전 활성 보정 기록이 없습니다.");
@@ -486,7 +568,7 @@ public sealed class CManualInspectionWorkspace
 
     public ST_MANUAL_OPERATION_PREVIEW PreviewOperation(EN_MANUAL_OPERATION_KIND kind, IEnumerable<string> keys, bool isRetry = false)
     {
-        GuardIdle(); RequireLoaded();
+        GuardIdle(); RequireLoaded(); GuardNoOffsetEdit();
         if (!Enum.IsDefined(kind)) throw new InvalidOperationException("지원하지 않는 작업 방식입니다.");
         var selected = Select(keys, excludeMasked: false);
         var valid = selected.Where(key => !GetPoint(key).Masked).ToArray();
@@ -597,7 +679,7 @@ public sealed class CManualInspectionWorkspace
             Freeze(_appliedMeasurements.Where(pair => _points.ContainsKey(pair.Key))), ReadOnly(_appliedCandidates.OrderBy(id => id, StringComparer.Ordinal).ToArray()),
             Candidate, Operation, ReadOnly(_audit.ToArray()))
         {
-            History = ReadOnly(_history.ToArray()), CandidateBackups = ReadOnly(_candidateBackups.ToArray()),
+            History = ReadOnly(_history.ToArray()), CandidateBackups = ReadOnly(_candidateBackups.ToArray()), OffsetEditPreviousCandidate=_offsetEditPreviousCandidate,
             ConsumedMeasurementHistory = ReadOnly(_consumedMeasurementHistory
                 .OrderBy(pair => pair.Key, StringComparer.Ordinal)
                 .SelectMany(pair => pair.Value.OrderBy(token => token, StringComparer.Ordinal).Select(token => new ST_MANUAL_CONSUMED_MEASUREMENT(pair.Key, token)))
@@ -746,6 +828,15 @@ public sealed class CManualInspectionWorkspace
             State = session.Candidate.State == EN_MANUAL_CANDIDATE_STATE.Applied ? EN_MANUAL_CANDIDATE_STATE.Applied : EN_MANUAL_CANDIDATE_STATE.Draft,
             Validation = null, Rows = ReadOnly(session.Candidate.Rows.ToArray())
         };
+        if (session.OffsetEditPreviousCandidate is { } previousEdit)
+        {
+            if (!temporary.HasPendingOffsetEdit || previousEdit.RecipeId!=expectedContext.RecipeId || previousEdit.RunId!=expectedContext.RunId
+                || previousEdit.State!=EN_MANUAL_CANDIDATE_STATE.Applied && previousEdit.BaseRevisionId!=expectedContext.RevisionId || previousEdit.Rows is null
+                || previousEdit.Rows.Any(row=>row is null || !geometry.ContainsKey(row.Key)))
+                throw new InvalidOperationException("통합 Offset 편집의 이전 후보 기준이 세션과 다릅니다.");
+            temporary._offsetEditPreviousCandidate=previousEdit with { Rows=ReadOnly(previousEdit.Rows.ToArray()),Validation=null,
+                State=previousEdit.State==EN_MANUAL_CANDIDATE_STATE.Applied?EN_MANUAL_CANDIDATE_STATE.Applied:EN_MANUAL_CANDIDATE_STATE.Draft };
+        }
         temporary._revisions.Clear();
         temporary._revisions.AddRange(session.Revisions.Select(revision => revision with { ValuesByPointKey = Freeze(revision.ValuesByPointKey) }));
         foreach (var pair in session.AppliedMeasurements)
@@ -787,6 +878,7 @@ public sealed class CManualInspectionWorkspace
         _history.Clear(); _history.AddRange(temporary._history);
         _candidateBackups.Clear(); _candidateBackups.AddRange(temporary._candidateBackups);
         Context = temporary.Context; Limits = temporary.Limits; Candidate = temporary.Candidate; Operation = temporary.Operation;
+        _offsetEditPreviousCandidate=temporary._offsetEditPreviousCandidate;
         _fieldEvaluator = fieldEvaluator; _copyUndo = null; ClearWrite(); _generation++;
         Log("SESSION_RESTORE", lineage ? "세션 복구: 후보 재검증 필요, 자동 실행 없음" : "세션 원측정/대표 출처 불완전: 조회 전용");
     }
@@ -830,7 +922,7 @@ public sealed class CManualInspectionWorkspace
     private IReadOnlyDictionary<string, ST_MANUAL_OFFSET> VerifyWrittenValues(
         IReadOnlyDictionary<string, ST_MANUAL_OFFSET> actual,
         IReadOnlyDictionary<string, ST_MANUAL_OFFSET> snapshotValues,
-        IReadOnlyList<ST_MANUAL_CANDIDATE_ROW>? requestedRows)
+        IReadOnlyList<ST_MANUAL_CANDIDATE_ROW>? requestedRows, bool initialization = false)
     {
         if (actual.Count != _points.Count || actual.Keys.Any(key => !_points.ContainsKey(key)))
             throw new InvalidOperationException("실제 저장된 Offset의 위치 집합이 예약 스냅샷과 다릅니다.");
@@ -846,7 +938,7 @@ public sealed class CManualInspectionWorkspace
                 throw new InvalidOperationException($"{point.OffsetKey}: 실제 저장된 같은 Shot의 Beam별 값이 다릅니다.");
             byOffset[point.OffsetKey] = value;
         }
-        ValidateStoredValues(actual, requestedByOffset?.Keys.ToHashSet(StringComparer.Ordinal) ?? byOffset.Keys.ToHashSet(StringComparer.Ordinal), checkDelta: requestedRows is not null);
+        ValidateStoredValues(actual, requestedByOffset?.Keys.ToHashSet(StringComparer.Ordinal) ?? byOffset.Keys.ToHashSet(StringComparer.Ordinal), checkDelta: requestedRows is not null && !initialization);
         return Freeze(actual);
     }
     private void InvalidateCandidate()
@@ -855,10 +947,11 @@ public sealed class CManualInspectionWorkspace
     {
         GuardIdle(); RequireLoaded();
         if (HasIncompleteMeasurements) throw new InvalidOperationException("미완료 측정의 남은 점을 먼저 완료하거나 새 Run을 여세요.");
-        if (!Context!.LineageValid) throw new InvalidOperationException("Recipe/Run/원측정 출처가 불완전한 조회 전용 자료는 보정할 수 없습니다.");
+        if (!Context!.LineageValid) throw new InvalidOperationException("현재 모델 기준을 다시 연결하고 새 측정 또는 명시한 통합 Offset으로 보정하세요.");
     }
     private void GuardIdle() { if (IsBusy) throw new InvalidOperationException("동작 또는 보정 파일 저장 중입니다. 완료/중지 후 조작하세요."); }
     private void GuardNoWrite() { if (_pendingWriteToken is not null) throw new InvalidOperationException("보정 파일 저장 중에는 측정 상태를 바꿀 수 없습니다."); }
+    private void GuardNoOffsetEdit() { if (HasPendingOffsetEdit) throw new InvalidOperationException("통합 Offset 편집을 먼저 모델에 저장하거나 취소한 후 이동·측정·복사하세요."); }
     private void RequireLoaded() { if (Context is null || Limits is null) throw new InvalidOperationException("먼저 실제 Recipe/Run 작업공간을 로드하세요."); }
     private void RequireOperation(string id)
     { if (Operation?.Id != id || Operation.State != EN_MANUAL_OPERATION_STATE.Running) throw new InvalidOperationException("현재 실행 중인 작업이 아니거나 늦은 완료 응답입니다."); }
