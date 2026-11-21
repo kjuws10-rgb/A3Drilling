@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Drilling.Common.Review.ManualInspection;
 using Drilling.Common.Review;
+using Drilling.UI.Views;
 
 // Source-derived production seam only. No equipment manager/driver/SDK class is constructed.
 namespace Drilling.UI.Menu.Menus
@@ -36,6 +37,9 @@ namespace Drilling.UI.Menu.Menus
         public IReadOnlyDictionary<string,CManualInspectionImportedResult> ImportedResults { get; init; } = new Dictionary<string,CManualInspectionImportedResult>(StringComparer.Ordinal);
         public IReadOnlyList<ST_REVIEW_RESULT_CATALOG_ITEM> RecentResults { get; init; } = [];
         public string ObservationFingerprint { get; init; } = "";
+        public IReadOnlyList<CManualInspectionUiCellLayout> CellLayouts { get; init; } = [];
+        public double GlassWidthMm { get; init; }
+        public double GlassHeightMm { get; init; }
     }
     public sealed record CManualInspectionImportedResult(string Path, DateTimeOffset SavedAt, string Origin);
     public sealed record CManualInspectionMeasurement(string Key, ST_MANUAL_MEASUREMENT Measurement, double ReviewXmm, double StageYmm);

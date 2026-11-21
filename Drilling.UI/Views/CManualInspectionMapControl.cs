@@ -40,6 +40,15 @@ public sealed class CManualInspectionMapControl : Control
     private readonly List<Slot> _slots = [];
     private readonly List<(CManualInspectionUiPoint Point, Rect Bounds)> _hits = [];
     private readonly List<(Rect Bounds, Rect Grid, string Title, string Extents)> _frames = [];
+    private readonly List<(int CellNo, Rect Header, Rect AllCells)> _cellHeaders = [];
+    private readonly Dictionary<string, Point[]> _overviewPolygons = new(StringComparer.Ordinal);
+    private readonly List<Point[]> _overviewFrames = [];
+    private readonly List<Point[]?> _hitPolygons = [];
+    private bool _showCellOverview;
+    private bool _hasRecipeLayout;
+    private string _cellLayoutFingerprint = "";
+    private Rect _glassBounds;
+    private Rect _allCellsButton;
     private readonly Dictionary<(int X, int Y), List<int>> _hitBuckets = [];
     private Dictionary<string, CManualInspectionUiPoint> _pointByKey = new(StringComparer.Ordinal);
     private HashSet<string> _visibleKeys = new(StringComparer.Ordinal);
@@ -67,8 +76,11 @@ public sealed class CManualInspectionMapControl : Control
     public event EventHandler<CManualInspectionSelectionEventArgs>? SelectionRequested;
     public event EventHandler<CManualInspectionOperationEventArgs>? OperationRequested;
     public event EventHandler? ViewChanged;
+    public event EventHandler<int>? CellRequested;
+    public event EventHandler? AllCellsRequested;
     public event Action<string>? MessageRequested;
     public double Zoom => _zoom;
+    public Vector Pan => _pan;
     public bool IsPanTool { get; set; }
 
     public CManualInspectionMapControl()
@@ -82,6 +94,8 @@ public sealed class CManualInspectionMapControl : Control
         SetResourceReference(ForegroundProperty, "TextPrimaryBrush");
         SetResourceReference(BorderBrushProperty, "GridLineBrush");
         ToolTip = _tip;
+        _tip.SetResourceReference(Control.BackgroundProperty, "PreviewHoverTipBackgroundBrush");
+        _tip.SetResourceReference(Control.ForegroundProperty, "PreviewHoverTipTextBrush");
         ToolTipService.SetInitialShowDelay(this, 180);
         ToolTipService.SetShowDuration(this, 15000);
         AutomationProperties.SetName(this, "리뷰 측정 위치 논리 행렬");
@@ -95,7 +109,7 @@ public sealed class CManualInspectionMapControl : Control
     public void Configure(CManualInspectionUiSnapshot snapshot,
         IReadOnlyList<CManualInspectionUiPoint> allScopedPoints,
         IReadOnlyList<CManualInspectionUiPoint> visiblePoints, IEnumerable<string> selectedKeys,
-        string? focusKey, string? representativeKey, string colorMode, string scopeSignature)
+        string? focusKey, string? representativeKey, string colorMode, string scopeSignature, bool showCellOverview = false)
     {
         if (ContextMenu?.IsOpen == true) ContextMenu.IsOpen = false;
         var samePoints = ReferenceEquals(_all, allScopedPoints) || _all.Count == allScopedPoints.Count
@@ -104,14 +118,21 @@ public sealed class CManualInspectionMapControl : Control
             pair.First.Key == pair.Second.Key && pair.First.CellNo == pair.Second.CellNo && pair.First.HeadNo == pair.Second.HeadNo
             && pair.First.Row == pair.Second.Row && pair.First.Column == pair.Second.Column && pair.First.BeamNo == pair.Second.BeamNo);
         var nextVisibleKeys = visiblePoints.Select(p => p.Key).ToHashSet(StringComparer.Ordinal);
+        var layoutFingerprint = string.Join(";", snapshot.CellLayouts.Select(cell => cell.CellNo + ":" + cell.Enabled + ":"
+            + string.Join("/", cell.BoundaryMm.Select(vertex => FormattableString.Invariant($"{vertex.Xmm:R},{vertex.Ymm:R}")))))
+            + FormattableString.Invariant($"|{snapshot.CellLayoutYDown}|{snapshot.GlassWidthMm:R}|{snapshot.GlassHeightMm:R}|{showCellOverview}");
+        var scopeIdentity = snapshot.RunId + "|" + scopeSignature + "|" + allScopedPoints.Count + "|" + layoutFingerprint;
+        if (_cellLayoutFingerprint != layoutFingerprint)
+        { _cellLayoutFingerprint = layoutFingerprint; sameGeometry = false; InvalidateClickSelection(); }
         if (!samePoints || !_visibleKeys.SetEquals(nextVisibleKeys) || _snapshot.Version != snapshot.Version
-            || _layoutSignature != snapshot.RunId + "|" + scopeSignature + "|" + allScopedPoints.Count)
+            || _layoutSignature != scopeIdentity)
             InvalidateClickSelection();
         if (_gesture && (!sameGeometry || !_visibleKeys.SetEquals(nextVisibleKeys) || _snapshot.Version != snapshot.Version
-            || _layoutSignature != snapshot.RunId + "|" + scopeSignature + "|" + allScopedPoints.Count))
+            || _layoutSignature != scopeIdentity))
             CancelGesture(true);
         if (!samePoints || _snapshot.Version != snapshot.Version) { _hoverKey = null; _tip.IsOpen = false; }
         _snapshot = snapshot;
+        _showCellOverview = showCellOverview;
         _all = allScopedPoints;
         _visible = visiblePoints;
         if (!samePoints) _pointByKey = allScopedPoints.ToDictionary(p => p.Key, StringComparer.Ordinal);
@@ -120,7 +141,7 @@ public sealed class CManualInspectionMapControl : Control
         _focusKey = focusKey;
         _representative = representativeKey;
         _colorMode = colorMode;
-        var nextSignature = snapshot.RunId + "|" + scopeSignature + "|" + allScopedPoints.Count;
+        var nextSignature = scopeIdentity;
         if (_layoutSignature != nextSignature)
         {
             _layoutSignature = nextSignature;
@@ -140,6 +161,15 @@ public sealed class CManualInspectionMapControl : Control
         _zoom = 1; _pan = default;
         ViewChanged?.Invoke(this, EventArgs.Empty);
         InvalidateVisual();
+    }
+
+    public void RestoreView(double zoom, Vector pan)
+    {
+        if (!double.IsFinite(zoom) || !double.IsFinite(pan.X) || !double.IsFinite(pan.Y))
+            throw new ArgumentOutOfRangeException(nameof(zoom), "보기 배율과 이동값은 유한한 숫자여야 합니다.");
+        CancelGesture(false); _tip.IsOpen = false; _hoverKey = null;
+        _zoom = Math.Clamp(zoom, .4, 12); _pan = pan;
+        ViewChanged?.Invoke(this, EventArgs.Empty); InvalidateVisual();
     }
 
     public void PanBy(Vector delta)
@@ -171,12 +201,16 @@ public sealed class CManualInspectionMapControl : Control
     {
         if (!_layoutDirty) return;
         _layoutDirty = false;
-        _slots.Clear(); _frames.Clear();
+        _slots.Clear(); _frames.Clear(); _cellHeaders.Clear(); _overviewPolygons.Clear(); _overviewFrames.Clear(); _glassBounds = Rect.Empty;
+        _hasRecipeLayout = false;
         var width = Math.Max(80, ActualWidth);
         var height = Math.Max(80, ActualHeight);
+        _allCellsButton = !_showCellOverview && (_snapshot.Points.Count > 0 || _snapshot.CellLayouts.Count > 0)
+            ? new Rect(Math.Max(8, width - 93), 1, 82, 18) : Rect.Empty;
         var groups = _all.GroupBy(p => (p.CellNo, p.HeadNo))
             .OrderBy(g => g.Key.CellNo).ThenBy(g => g.Key.HeadNo).ToArray();
         if (groups.Length == 0) return;
+        if (_showCellOverview && BuildRecipeOverview(width, height)) { _hasRecipeLayout = true; return; }
         // A logical Row/Column matrix, not a drawing in stage millimetres. Packing balances the
         // readable slot size; each group's independent width/height then fills its allotted area.
         var shapes = groups.Select(g => (Columns: g.Select(p => p.Column).Distinct().Count(), Rows: g.Select(p => p.Row).Distinct().Count())).ToArray();
@@ -217,6 +251,8 @@ public sealed class CManualInspectionMapControl : Control
             var gridX = gx; var gridY = gy + title;
             _frames.Add((new Rect(gx, gy, groupWidth, groupHeight), new Rect(gridX, gridY, gridWidth, gridHeight),
                 $"Cell {group.Key.CellNo}  ·  " + (group.Key.HeadNo > 0 ? $"H{group.Key.HeadNo:00}" : "미배정"), $"{rowKeys.Length}행 × {columnKeys.Length}열"));
+            _cellHeaders.Add((group.Key.CellNo, new Rect(gx, gy, Math.Min(groupWidth, 160), title),
+                !_showCellOverview && groupWidth > 180 && title > 14 ? new Rect(gx + groupWidth - 77, gy + 2, 73, Math.Min(18, title - 2)) : Rect.Empty));
             foreach (var bucket in group.GroupBy(p => (p.Row, p.Column)))
             {
                 var points = bucket.OrderBy(p => p.BeamNo).ThenBy(p => p.Key, StringComparer.Ordinal).ToArray();
@@ -233,27 +269,116 @@ public sealed class CManualInspectionMapControl : Control
         }
     }
 
+    private bool BuildRecipeOverview(double width, double height)
+    {
+        var grouped = _all.GroupBy(point => point.CellNo).ToArray();
+        var scopedByCell = grouped.ToDictionary(group => group.Key, group => group.ToDictionary(point => point.Key, StringComparer.Ordinal));
+        var completeByCell = _snapshot.Points.GroupBy(point => point.CellNo).ToDictionary(group => group.Key, group => group.ToArray());
+        var cells = new Dictionary<int, CManualInspectionUiCellLayout>();
+        foreach (var layout in _snapshot.CellLayouts)
+        {
+            if (layout.CellNo <= 0 || layout.BoundaryMm.Count != 4
+                || layout.BoundaryMm.Any(vertex => !double.IsFinite(vertex.Xmm) || !double.IsFinite(vertex.Ymm))
+                || !cells.TryAdd(layout.CellNo, layout)) return false;
+            var a = layout.BoundaryMm[0]; var b = layout.BoundaryMm[1]; var d = layout.BoundaryMm[3];
+            if (Math.Abs((b.Xmm - a.Xmm) * (d.Ymm - a.Ymm) - (b.Ymm - a.Ymm) * (d.Xmm - a.Xmm)) < 1e-12) return false;
+            var c = layout.BoundaryMm[2];
+            if (Math.Abs(c.Xmm - (b.Xmm + d.Xmm - a.Xmm)) > .000001 || Math.Abs(c.Ymm - (b.Ymm + d.Ymm - a.Ymm)) > .000001) return false;
+        }
+        if (grouped.Any(group => !cells.ContainsKey(group.Key))) return false;
+        var layouts = cells.Values.ToArray(); if (layouts.Length == 0) return false;
+        var xmin = layouts.Min(cell => cell.BoundaryMm.Min(vertex => vertex.Xmm));
+        var xmax = layouts.Max(cell => cell.BoundaryMm.Max(vertex => vertex.Xmm));
+        var ymin = layouts.Min(cell => cell.BoundaryMm.Min(vertex => vertex.Ymm));
+        var ymax = layouts.Max(cell => cell.BoundaryMm.Max(vertex => vertex.Ymm));
+        var hasGlass = double.IsFinite(_snapshot.GlassWidthMm) && _snapshot.GlassWidthMm > 0
+            && double.IsFinite(_snapshot.GlassHeightMm) && _snapshot.GlassHeightMm > 0;
+        if (hasGlass) { xmin = Math.Min(xmin, 0); ymin = Math.Min(ymin, 0); xmax = Math.Max(xmax, _snapshot.GlassWidthMm); ymax = Math.Max(ymax, _snapshot.GlassHeightMm); }
+        if (!double.IsFinite(xmax - xmin) || !double.IsFinite(ymax - ymin) || xmax <= xmin || ymax <= ymin) return false;
+        var scale = Math.Min(Math.Max(1, width - 48) / (xmax - xmin), Math.Max(1, height - 56) / (ymax - ymin));
+        var ox = (width - (xmax - xmin) * scale) / 2; var oy = 32 + (height - 48 - (ymax - ymin) * scale) / 2;
+        Point Display(double x, double y) => new(ox + (x - xmin) * scale,
+            oy + (_snapshot.CellLayoutYDown ? y - ymin : ymax - y) * scale);
+        if (hasGlass)
+        {
+            var a = Display(0, 0); var b = Display(_snapshot.GlassWidthMm, _snapshot.GlassHeightMm);
+            _glassBounds = new Rect(a, b);
+        }
+        foreach (var layout in layouts)
+        {
+            var corners = layout.BoundaryMm.Select(vertex => Display(vertex.Xmm, vertex.Ymm)).ToArray();
+            var bounds = Bounds(corners);
+            var wholeCell = completeByCell.GetValueOrDefault(layout.CellNo) ?? [];
+            var rows = wholeCell.Select(point => point.Row).Distinct().OrderBy(row => row).ToArray();
+            var columns = wholeCell.Select(point => point.Column).Distinct().OrderBy(column => column).ToArray();
+            _frames.Add((bounds, bounds, $"Cell {layout.CellNo}" + (layout.Enabled ? "" : " · 미사용"), $"{rows.Length}행 × {columns.Length}열"));
+            _overviewFrames.Add(corners);
+            _cellHeaders.Add((layout.CellNo, new Rect(bounds.Left, bounds.Top, Math.Min(bounds.Width, 170), Math.Min(19, Math.Max(4, bounds.Height * .2))), Rect.Empty));
+            if (rows.Length == 0 || columns.Length == 0) continue;
+            var rowIndices = rows.Select((key, index) => (key, index)).ToDictionary(pair => pair.key, pair => pair.index);
+            var columnIndices = columns.Select((key, index) => (key, index)).ToDictionary(pair => pair.key, pair => pair.index);
+            if (!scopedByCell.TryGetValue(layout.CellNo, out var cellPoints)) continue;
+            Point Affine(double u, double v) => corners[0] + (corners[1] - corners[0]) * u + (corners[3] - corners[0]) * v;
+            foreach (var bucket in wholeCell.GroupBy(point => (point.Row, point.Column)))
+            {
+                var points = bucket.OrderBy(point => point.BeamNo).ThenBy(point => point.Key, StringComparer.Ordinal).ToArray();
+                var nc = Math.Max(1, (int)Math.Ceiling(Math.Sqrt(points.Length))); var nr = Math.Max(1, (int)Math.Ceiling((double)points.Length / nc));
+                for (var index = 0; index < points.Length; index++)
+                {
+                    if (!cellPoints.TryGetValue(points[index].Key, out var point)) continue;
+                    var u0 = (columnIndices[point.Column] + (double)(index % nc) / nc) / columns.Length;
+                    var u1 = (columnIndices[point.Column] + (double)(index % nc + 1) / nc) / columns.Length;
+                    var v0 = (rowIndices[point.Row] + (double)(index / nc) / nr) / rows.Length;
+                    var v1 = (rowIndices[point.Row] + (double)(index / nc + 1) / nr) / rows.Length;
+                    var polygon = new[] { Affine(u0, v0), Affine(u1, v0), Affine(u1, v1), Affine(u0, v1) };
+                    _overviewPolygons[point.Key] = polygon; _slots.Add(new(point, Bounds(polygon)));
+                }
+            }
+        }
+        return true;
+    }
+
+    private static Rect Bounds(IEnumerable<Point> points)
+    { var values = points.ToArray(); return new Rect(new Point(values.Min(point => point.X), values.Min(point => point.Y)), new Point(values.Max(point => point.X), values.Max(point => point.Y))); }
+
     protected override void OnRender(DrawingContext context)
     {
         base.OnRender(context);
-        BuildLayout(); _hits.Clear(); _hitBuckets.Clear();
+        BuildLayout(); _hits.Clear(); _hitBuckets.Clear(); _hitPolygons.Clear();
         context.DrawRectangle(Background ?? Brushes.Transparent, null, new Rect(0, 0, ActualWidth, ActualHeight));
         context.PushClip(new RectangleGeometry(new Rect(0, 0, ActualWidth, ActualHeight)));
         var viewport = new Rect(0, 0, ActualWidth, ActualHeight);
         var line = BorderBrush ?? Brushes.Gray;
         var accent = CManualInspectionDrawing.Resource(this, "AccentBrush", Brushes.SteelBlue);
-        if (_frames.Count > 0) CManualInspectionDrawing.Text(context, this, "행 · 열 논리 배치  /  실제 기판 mm 축척과 무관", new Point(12, 2), 9, Foreground);
-        foreach (var frame in _frames)
+        if (_frames.Count > 0) CManualInspectionDrawing.Text(context, this,
+            _hasRecipeLayout ? "전체 Cell · Recipe 실제 배치 / 타일은 논리 측정 격자 / 이동은 원래 계획 좌표 사용"
+                : _showCellOverview ? "실제 배치 정보 미확인 · Cell/Head 논리 분리 표시" : "단일 Cell · 행/열 논리 측정 격자", new Point(12, 2), 9, Foreground, false,
+            Math.Max(1, ActualWidth - (_allCellsButton.IsEmpty ? 24 : 112)), singleLine: true);
+        if (!_glassBounds.IsEmpty) context.DrawRectangle(null, new Pen(line, 1), Screen(_glassBounds));
+        for (var frameIndex = 0; frameIndex < _frames.Count; frameIndex++)
         {
+            var frame = _frames[frameIndex];
             var r = Screen(frame.Bounds);
             if (!r.IntersectsWith(viewport)) continue;
             if (r.Width > 25 && r.Height > 22)
-                context.DrawRoundedRectangle(null, new Pen(line, .7), r, 5, 5);
-            if (r.Height > 48 && r.Width > 95)
             {
-                CManualInspectionDrawing.Text(context, this, frame.Title, new Point(r.Left + 6, r.Top + 2), 11, Foreground, true, r.Width - 12);
-                if (r.Width > 195) CManualInspectionDrawing.Text(context, this, frame.Extents,
-                    new Point(r.Right - 94, r.Top + 3), 9, Foreground, false, 88);
+                if (_hasRecipeLayout) DrawPolygon(context, _overviewFrames[frameIndex].Select(Screen).ToArray(), null, new Pen(line, 1));
+                else context.DrawRoundedRectangle(null, new Pen(line, .7), r, 5, 5);
+            }
+            if (!_hasRecipeLayout && r.Height > 48 && r.Width > 95)
+            {
+                var all = _cellHeaders[frameIndex].AllCells;
+                var extents = r.Width > (all.IsEmpty ? 195 : 245);
+                CManualInspectionDrawing.Text(context, this, frame.Title, new Point(r.Left + 6, r.Top + 2), 11, Foreground, true,
+                    Math.Max(1, r.Width - (all.IsEmpty ? 12 : extents ? 164 : 88)), singleLine: true);
+                if (extents) CManualInspectionDrawing.Text(context, this, frame.Extents,
+                    new Point(r.Right - (all.IsEmpty ? 94 : 154), r.Top + 3), 9, Foreground, false, all.IsEmpty ? 88 : 68, singleLine: true);
+                if (!all.IsEmpty)
+                {
+                    var button = Screen(all);
+                    context.DrawRoundedRectangle(CManualInspectionDrawing.Resource(this, "PanelBackgroundBrush", Background ?? Brushes.Transparent), new Pen(accent, .8), button, 3, 3);
+                    CManualInspectionDrawing.Text(context, this, "전체 Cell", new Point(button.Left + 6, button.Top + 1), 10, Foreground, true, button.Width - 8, singleLine: true);
+                }
             }
         }
         foreach (var slot in _slots)
@@ -262,7 +387,12 @@ public sealed class CManualInspectionMapControl : Control
             var r = Screen(slot.Bounds);
             if (!r.IntersectsWith(viewport)) continue;
             var p = _pointByKey.GetValueOrDefault(slot.Point.Key) ?? slot.Point;
+            // Most Recipe cells are axis aligned. Keep their 32k+ tile draws on the cheap rectangle
+            // path; only genuinely rotated cells need per-slot polygon geometry and hit testing.
+            var polygon = _overviewPolygons.TryGetValue(p.Key, out var sourcePolygon) && !AxisAligned(sourcePolygon)
+                ? sourcePolygon.Select(Screen).ToArray() : null;
             var minimum = Math.Min(r.Width, r.Height);
+            if (polygon is not null) minimum = Math.Min((polygon[1] - polygon[0]).Length, (polygon[3] - polygon[0]).Length);
             var selected = _selected.Contains(p.Key); var hover = p.Key == _hoverKey; var focused = p.Key == _focusKey;
             var brush = CManualInspectionDrawing.PointBrush(this, p, _colorMode, _snapshot);
             // Screen-space gutters stay small at any zoom. Subpixel overview slots reduce the
@@ -270,7 +400,10 @@ public sealed class CManualInspectionMapControl : Control
             var gap = Math.Min(1.5, minimum * .04);
             var tile = new Rect(r.Left + gap / 2, r.Top + gap / 2, Math.Max(.001, r.Width - gap), Math.Max(.001, r.Height - gap));
             var textBrush = TileTextBrush(brush);
-            context.DrawRectangle(brush, null, tile);
+            Point[]? filledPolygon = polygon is null ? null : InsetPolygon(polygon, gap / 2);
+            if (filledPolygon is not null)
+            { DrawPolygon(context, filledPolygon, brush, null); context.PushClip(PolygonGeometry(filledPolygon)); }
+            else context.DrawRectangle(brush, null, tile);
             if (p.IsMasked)
             {
                 if (minimum > 4)
@@ -283,32 +416,59 @@ public sealed class CManualInspectionMapControl : Control
             if ((selected || hover) && minimum > 4)
             {
                 var outline = Inset(tile, 1.4);
-                context.DrawRectangle(null, new Pen(textBrush, selected ? 3.8 : 2.2), outline);
-                context.DrawRectangle(null, new Pen(accent, selected ? 1.8 : 1), outline);
+                if (filledPolygon is not null)
+                {
+                    DrawPolygon(context, InsetPolygon(filledPolygon, 1.4), null, new Pen(textBrush, selected ? 3.8 : 2.2));
+                    DrawPolygon(context, InsetPolygon(filledPolygon, 1.4), null, new Pen(accent, selected ? 1.8 : 1));
+                }
+                else { context.DrawRectangle(null, new Pen(textBrush, selected ? 3.8 : 2.2), outline); context.DrawRectangle(null, new Pen(accent, selected ? 1.8 : 1), outline); }
             }
             if (focused && minimum > 12)
             {
                 var focusPen = new Pen(textBrush, 1.2) { DashStyle = DashStyles.Dot };
-                context.DrawRectangle(null, focusPen, Inset(tile, 4.5));
+                if (filledPolygon is not null) DrawPolygon(context, InsetPolygon(filledPolygon, 4.5), null, focusPen);
+                else context.DrawRectangle(null, focusPen, Inset(tile, 4.5));
             }
             if (p.Key == _representative && minimum > 12)
             {
-                context.DrawRectangle(null, new Pen(textBrush, 3.8), Inset(tile, 3));
-                context.DrawRectangle(null, new Pen(CManualInspectionDrawing.Color("#D18B00"), 2), Inset(tile, 3));
+                if (filledPolygon is not null)
+                {
+                    DrawPolygon(context, InsetPolygon(filledPolygon, 3), null, new Pen(textBrush, 3.8));
+                    DrawPolygon(context, InsetPolygon(filledPolygon, 3), null, new Pen(CManualInspectionDrawing.Color("#D18B00"), 2));
+                }
+                else { context.DrawRectangle(null, new Pen(textBrush, 3.8), Inset(tile, 3)); context.DrawRectangle(null, new Pen(CManualInspectionDrawing.Color("#D18B00"), 2), Inset(tile, 3)); }
             }
-            if (r.Width > 28 && r.Height > 18)
+            if (r.Width > 28 && r.Height > 18 && (polygon is null || minimum > 18))
             {
                 var mark = p.Key == _representative ? "★ " : p.IsMasked ? "× " : p.WorkingJudge == "ERROR" ? "! "
                     : p.WorkingJudge == "NG" ? "NG " : p.IsProxy ? "◇ " : p.UsesAppliedMeasurement ? "□ "
                     : !p.HasMeasurementHistory ? "· " : "";
                 var label = mark + "S" + p.ShotNo + (r.Width > 115 ? $" / B{p.BeamNo}" : "");
-                CManualInspectionDrawing.Text(context, this, label, new Point(tile.Left + 5, tile.Top + Math.Max(2, tile.Height / 2 - 7)),
-                    Math.Clamp(tile.Height / 3.3, 9, 12), textBrush, selected || focused, Math.Max(1, tile.Width - 10));
+                var textWidth = Math.Max(1, polygon is null ? tile.Width - 10 : Math.Min(tile.Width - 10, minimum * .7));
+                var textX = polygon is null ? tile.Left + 5 : polygon.Average(point => point.X) - textWidth / 2;
+                CManualInspectionDrawing.Text(context, this, label, new Point(textX, tile.Top + Math.Max(2, tile.Height / 2 - 7)),
+                    Math.Clamp(tile.Height / 3.3, 9, 12), textBrush, selected || focused, textWidth, singleLine: true);
             }
             else if (minimum > 8 && (p.Key == _representative || p.IsMasked || p.WorkingJudge is "NG" or "ERROR" || !p.HasMeasurementHistory))
                 CManualInspectionDrawing.Text(context, this, p.Key == _representative ? "★" : p.IsMasked ? "×"
                     : p.WorkingJudge is "NG" or "ERROR" ? "!" : "·", new Point(tile.Left + 2, tile.Top + 1), 9, textBrush, true);
-            AddHit(p, r, viewport);
+            if (filledPolygon is not null) context.Pop();
+            AddHit(p, r, viewport, polygon);
+        }
+        if (_hasRecipeLayout)
+        {
+            for (var i = 0; i < _cellHeaders.Count; i++)
+            {
+                var header = _cellHeaders[i];
+                var r = Screen(header.Header); if (!r.IntersectsWith(viewport) || r.Width < 15 || r.Height < 6) continue;
+                context.DrawRectangle(CManualInspectionDrawing.Resource(this, "PanelBackgroundBrush", Background ?? Brushes.Transparent), new Pen(accent, .7), r);
+                CManualInspectionDrawing.Text(context, this, _frames[i].Title + " ▸", new Point(r.Left + 3, r.Top + 1), Math.Min(11, Math.Max(7, r.Height - 3)), Foreground, true, Math.Max(1, r.Width - 5), singleLine: true);
+            }
+        }
+        if (!_allCellsButton.IsEmpty)
+        {
+            context.DrawRoundedRectangle(CManualInspectionDrawing.Resource(this, "PanelBackgroundBrush", Background ?? Brushes.Transparent), new Pen(accent, .8), _allCellsButton, 3, 3);
+            CManualInspectionDrawing.Text(context, this, "전체 Cell", new Point(_allCellsButton.Left + 9, _allCellsButton.Top + 1), 10, Foreground, true, 67, singleLine: true);
         }
         if (_slots.Count == 0)
             CManualInspectionDrawing.Text(context, this, "표시할 위치가 없습니다. 현재 Recipe를 불러오거나 필터를 바꾸세요.", new Point(18, 30), 13, Foreground);
@@ -331,6 +491,40 @@ public sealed class CManualInspectionMapControl : Control
         var inset = Math.Min(value, Math.Max(0, Math.Min(rect.Width, rect.Height) / 2 - .1));
         return new Rect(rect.Left + inset, rect.Top + inset, Math.Max(.1, rect.Width - inset * 2), Math.Max(.1, rect.Height - inset * 2));
     }
+    private static Point[] InsetPolygon(Point[] polygon, double inset)
+    {
+        var a = polygon[0]; var u = polygon[1] - a; var v = polygon[3] - a;
+        var du = Math.Min(.49, Math.Max(0, inset / Math.Max(.000001, u.Length)));
+        var dv = Math.Min(.49, Math.Max(0, inset / Math.Max(.000001, v.Length)));
+        return [a + u * du + v * dv, a + u * (1 - du) + v * dv,
+            a + u * (1 - du) + v * (1 - dv), a + u * du + v * (1 - dv)];
+    }
+    private static StreamGeometry PolygonGeometry(Point[] polygon)
+    {
+        var geometry = new StreamGeometry();
+        using (var drawing = geometry.Open())
+        { drawing.BeginFigure(polygon[0], true, true); for (var i = 1; i < polygon.Length; i++) drawing.LineTo(polygon[i], true, false); }
+        geometry.Freeze(); return geometry;
+    }
+    private static void DrawPolygon(DrawingContext context, Point[] polygon, Brush? fill, Pen? outline)
+    {
+        if (AxisAligned(polygon))
+            context.DrawRectangle(fill, outline, Bounds(polygon));
+        else context.DrawGeometry(fill, outline, PolygonGeometry(polygon));
+    }
+    private static bool AxisAligned(Point[] polygon) => Math.Abs(polygon[0].Y - polygon[1].Y) < .000001 && Math.Abs(polygon[0].X - polygon[3].X) < .000001
+        || Math.Abs(polygon[0].X - polygon[1].X) < .000001 && Math.Abs(polygon[0].Y - polygon[3].Y) < .000001;
+    private static bool ContainsPolygon(Point[] polygon, Point at)
+    {
+        var positive = false; var negative = false;
+        for (var i = 0; i < polygon.Length; i++)
+        {
+            var a = polygon[i]; var b = polygon[(i + 1) % polygon.Length];
+            var cross = (b.X - a.X) * (at.Y - a.Y) - (b.Y - a.Y) * (at.X - a.X);
+            positive |= cross > .000001; negative |= cross < -.000001;
+        }
+        return !(positive && negative);
+    }
     private static Brush TileTextBrush(Brush fill)
     {
         if (fill is not SolidColorBrush solid) return Brushes.Black;
@@ -338,9 +532,10 @@ public sealed class CManualInspectionMapControl : Control
         var luminance = .2126 * Linear(solid.Color.R) + .7152 * Linear(solid.Color.G) + .0722 * Linear(solid.Color.B);
         return (luminance + .05) / .05 >= 1.05 / (luminance + .05) ? Brushes.Black : Brushes.White;
     }
-    private void AddHit(CManualInspectionUiPoint point, Rect rect, Rect viewport)
+    private void AddHit(CManualInspectionUiPoint point, Rect rect, Rect viewport, Point[]? polygon = null)
     {
         var index = _hits.Count; _hits.Add((point, rect));
+        _hitPolygons.Add(polygon);
         var clipped = Rect.Intersect(rect, viewport);
         if (clipped.IsEmpty) return;
         for (var y = (int)(clipped.Top / 32); y <= (int)(clipped.Bottom / 32); y++)
@@ -353,9 +548,39 @@ public sealed class CManualInspectionMapControl : Control
     private CManualInspectionUiPoint? Hit(Point point)
     {
         if (!double.IsFinite(point.X) || !double.IsFinite(point.Y) || point.X < 0 || point.Y < 0 || point.X > ActualWidth || point.Y > ActualHeight) return null;
+        if (HitAllCells(point)) return null;
         if (!_hitBuckets.TryGetValue(((int)(point.X / 32), (int)(point.Y / 32)), out var bucket)) return null;
-        for (var i = bucket.Count - 1; i >= 0; i--) if (_hits[bucket[i]].Bounds.Contains(point)) return _hits[bucket[i]].Point;
+        for (var i = bucket.Count - 1; i >= 0; i--)
+        {
+            var index = bucket[i];
+            if (_hits[index].Bounds.Contains(point) && (_hitPolygons[index] is not { } polygon || ContainsPolygon(polygon, point))) return _hits[index].Point;
+        }
         return null;
+    }
+
+    private int? HitCell(Point at)
+    {
+        for (var i = _cellHeaders.Count - 1; i >= 0; i--) if (Screen(_cellHeaders[i].Header).Contains(at)) return _cellHeaders[i].CellNo;
+        return null;
+    }
+    private bool HitAllCells(Point at) => !_allCellsButton.IsEmpty && _allCellsButton.Contains(at)
+        || _cellHeaders.Any(header => !header.AllCells.IsEmpty && Screen(header.AllCells).Contains(at));
+    private bool ActivateCellHeader(Point at, bool control)
+    {
+        if (HitAllCells(at))
+        { CancelGesture(false); AllCellsRequested?.Invoke(this, EventArgs.Empty); return true; }
+        var cell = HitCell(at); if (cell is null) return false;
+        CancelGesture(false);
+        if (!control) CellRequested?.Invoke(this, cell.Value);
+        else
+        {
+            var enabled = _snapshot.CellLayouts.FirstOrDefault(layout => layout.CellNo == cell.Value)?.Enabled != false;
+            var points = _snapshot.Points.Where(point => point.CellNo == cell.Value && !point.IsMasked && enabled).ToArray();
+            if (points.Length > 0) SelectionRequested?.Invoke(this, new(points.Select(point => point.Key).ToArray(), points[0].Key,
+                additive: true, toggle: points.All(point => _selected.Contains(point.Key))));
+            else MessageRequested?.Invoke($"Cell {cell.Value}에는 선택할 측정 대상이 없습니다.");
+        }
+        return true;
     }
 
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
@@ -363,6 +588,7 @@ public sealed class CManualInspectionMapControl : Control
         base.OnMouseLeftButtonDown(e);
         Focus(); _tip.IsOpen = false;
         if (TryResetOnDoubleClick(e.ClickCount)) { e.Handled = true; return; }
+        if (ActivateCellHeader(e.GetPosition(this), Keyboard.Modifiers.HasFlag(ModifierKeys.Control))) { e.Handled = true; return; }
         RememberSelectionBeforeClick();
         _gesture = true; _moved = false;
         _panning = IsPanTool || Keyboard.Modifiers.HasFlag(ModifierKeys.Alt);
@@ -409,6 +635,15 @@ public sealed class CManualInspectionMapControl : Control
             if (_panning) _pan = _startPan + at - _start;
             InvalidateVisual(); e.Handled = true; return;
         }
+        if (HitCell(at).HasValue || HitAllCells(at))
+        {
+            _hoverKey = null; Cursor = Cursors.Hand;
+            var cell = HitCell(at);
+            var disabled = _snapshot.CellLayouts.FirstOrDefault(layout => layout.CellNo == cell)?.Enabled == false;
+            _tip.Content = HitAllCells(at) ? "전체 Cell의 Recipe 배치 보기" : $"Cell {cell}" + (disabled ? " · 미사용 Cell (조회만)" : " 열기 · Ctrl+클릭: Cell 전체 측정점 선택 추가/해제");
+            _tip.IsOpen = true; InvalidateVisual(); return;
+        }
+        Cursor = IsPanTool ? Cursors.ScrollAll : Cursors.Cross;
         var point = Hit(at);
         if (_hoverKey == point?.Key) return;
         _hoverKey = point?.Key;
@@ -679,12 +914,13 @@ internal static class CManualInspectionDrawing
         else dc.DrawEllipse(fill, pen, at, radius, radius);
     }
     internal static void Text(DrawingContext drawing, FrameworkElement owner, string text, Point origin,
-        double size, Brush? color, bool bold = false, double maxWidth = double.PositiveInfinity)
+        double size, Brush? color, bool bold = false, double maxWidth = double.PositiveInfinity, bool singleLine = false)
     {
         var ft = new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
             new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, bold ? FontWeights.SemiBold : FontWeights.Normal, FontStretches.Normal),
             size, color ?? Brushes.Gray, VisualTreeHelper.GetDpi(owner).PixelsPerDip);
         if (double.IsFinite(maxWidth)) { ft.MaxTextWidth = Math.Max(1, maxWidth); ft.Trimming = TextTrimming.CharacterEllipsis; }
+        if (singleLine) ft.MaxLineCount = 1;
         drawing.DrawText(ft, origin);
     }
 }

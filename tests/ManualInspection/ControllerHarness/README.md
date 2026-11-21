@@ -30,4 +30,6 @@ dotnet run --project tests/ManualInspection/ControllerHarness/ControllerHarness.
 출력 JSON은 검사 이름별 결과, 실제 Controller Assembly SHA-256, 로드된 벤더 Assembly 목록을 포함한다. 합성값의 수치 일관성과 소프트웨어 상태 전이 검증이며 모션 도달 정밀도·Vision/트리거·실물 보정 성능을 확인한 결과가 아니다.
 
 
-`PresentationCases.cs`는 실제 Controller의 화면용 TimeProvider만 결정적으로 고정/진행시킨다. 4,000점 지도/120점 Flying burst에서 전점 기록·최초/최종 표시·전체 투영 5회, 오류 후 잔여 재측정, 진행 시계 경계, STOP 후 지연 정리 중 미게시 점의 즉시 표시와 Busy 유지를 확인한다. 이 시계는 설비 타이밍·토큰·파일 저장을 대체하지 않는다. 최신 실제 Assembly 검사는93개이며 source-link preflight와 중복 합산하지 않는다.
+`PresentationCases.cs`는 실제 Controller의 화면용 TimeProvider만 결정적으로 고정/진행시킨다. 4,000점 지도/120점 Flying burst에서 전점 기록·최초/최종 표시·전체 투영 5회, 오류 후 잔여 재측정, 진행 시계 경계, STOP 후 지연 정리 중 미게시 점의 즉시 표시와 Busy 유지를 확인한다. 이 시계는 설비 타이밍·토큰·파일 저장을 대체하지 않는다. 최신 실제 Assembly 검사는 108개이며 source-link preflight와 중복 합산하지 않는다.
+
+`CellOverviewCases.cs`의 15개 추가 검사는 CSV를 연 작업에서 명시적 이동·측정·보정이 가능하면서도 기존 Recipe/Run/장비 조건을 유지하는지 확인한다. 최초 파일 전 원작업의 후보·raw·복사·한계·Level·checkpoint는 별도 보존한다. 파일을 연 사이 활성 보정이 바뀌면 새 B로 돌아가고 옛 raw를 새 보정 앵커로 다시 쓰지 않는다. 새 Run에는 이전 raw를 승격하지 않는다. 파일 읽기 실패, 파일 선택 취소, 연속 파일 열기, 오래된 확인 요청, 미완료 묶음을 재열기로 지우는 우회도 검사한다. 실제 회귀 중 미완료 파일 재열기 문제가 재현되었고, 생산 guard 수정 후 같은 시험을 통과했다.

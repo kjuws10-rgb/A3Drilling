@@ -170,7 +170,9 @@ internal static partial class Program
             Test("visual_map_scatter_accessibility_explains_visual_only_navigation", !string.IsNullOrWhiteSpace(AutomationProperties.GetHelpText(map)) && !string.IsNullOrWhiteSpace(AutomationProperties.GetHelpText(scatter)));
             foreach (var symbol in new[] { "+", "−" })
             {
-                var iconButton = Descendants(view).OfType<Button>().Single(button => button.Content?.ToString() == symbol);
+                // New scatter zoom controls share the symbols. Preserve the original map-icon
+                // checks through the semantic accessibility label, without global symbol uniqueness.
+                var iconButton = Descendants(view).OfType<Button>().Single(button => AutomationProperties.GetName(button) == (symbol == "+" ? "지도 확대" : "지도 축소"));
                 Test("visual_icon_button_has_descriptive_accessibility_name_" + symbol, AutomationProperties.GetName(iconButton).Length >= 4 && iconButton.ToolTip is not null);
             }
 

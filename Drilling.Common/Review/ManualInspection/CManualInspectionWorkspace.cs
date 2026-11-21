@@ -73,6 +73,12 @@ public sealed class CManualInspectionWorkspace
         foreach (var point in data)
         {
             ValidatePoint(point);
+            if (point.AdoptedFileMeasurement is { } adopted)
+            {
+                ValidateMeasurement(adopted,context);
+                if (point.Source is not ("IMPORTED" or "MANUAL"))
+                    throw new InvalidOperationException("파일 입력 근거를 직접 카메라 원측정으로 바꿀 수 없습니다.");
+            }
             var value = baseValuesByPointKey.TryGetValue(point.Key, out var supplied) ? supplied : ST_MANUAL_OFFSET.Zero;
             if (!value.IsFinite) throw new InvalidOperationException($"{point.Key}: 현재 보정값이 유효한 숫자가 아닙니다.");
             if (offsetGroups.TryGetValue(point.OffsetKey, out var previous) && !Equal(previous, value))
@@ -116,6 +122,7 @@ public sealed class CManualInspectionWorkspace
                 throw new InvalidOperationException("외부 관측의 실제 위치 기준이 다릅니다.");
             if (previous.Masked || incoming.Judge == "UNMEASURED") continue;
             if (incoming.OriginalMeasurement is { } raw) ValidateMeasurement(raw, Context!);
+            if (incoming.AdoptedFileMeasurement is { } adopted) ValidateMeasurement(adopted,Context!);
             var existingAt = previous.ProxySource?.CopiedAt
                 ?? (previous.Source == "IMPORTED" ? previous.ExternalObservedAt : null)
                 ?? previous.OriginalMeasurement?.MeasuredAt ?? DateTimeOffset.MinValue;
@@ -128,7 +135,8 @@ public sealed class CManualInspectionWorkspace
         foreach (var (before, after) in replacements)
         {
             _points[after.Key] = after;
-            AddHistory(before, after, "EXTERNAL_OBSERVATION", "같은 기준의 최신 외부 측정 표시; 직접 보정 앵커로 승인하지 않음");
+            AddHistory(before, after, after.AdoptedFileMeasurement is null ? "EXTERNAL_OBSERVATION" : "FILE_REFRESH",
+                after.AdoptedFileMeasurement is null ? "같은 기준의 최신 외부 측정 표시; 직접 보정 앵커로 승인하지 않음" : "명시적으로 연 파일의 측정값 갱신; 카메라 원측정과 출처 분리");
         }
         if (replacements.Count > 0) { Changed(); Log("EXTERNAL_OBSERVATION", $"외부 측정 {replacements.Count}점 표시 갱신"); }
         return replacements.Count;
@@ -166,7 +174,7 @@ public sealed class CManualInspectionWorkspace
         _points[key] = point with
         {
             Judge = measurement.Judge, Source = "MEASURED", ErrorXUm = measurement.ErrorXUm,
-            ErrorYUm = measurement.ErrorYUm, OriginalMeasurement = measurement, ProxySource = null,
+            ErrorYUm = measurement.ErrorYUm, OriginalMeasurement = measurement, AdoptedFileMeasurement = null, ProxySource = null,
             MeasurementVersion = point.MeasurementVersion + 1, ExternalObservedAt = null
         };
         AddHistory(point, _points[key], "MEASURE", "직접 재측정; 이전 원측정/작업상태 보존");
@@ -191,7 +199,7 @@ public sealed class CManualInspectionWorkspace
                 var final = Add(before, delta);
                 if (!final.IsFinite) throw new InvalidOperationException($"{key}: B + 측정 편차의 수치가 표현 범위를 초과했습니다.");
                 rows.Add(new(key, point.OffsetKey, point.CellNo, point.HeadNo, point.ShotNo, point.BeamNo,
-                    before, delta, final, "MEASURED", key, "", MeasurementToken(point)));
+                    before, delta, final, "MEASURED", key, point.AdoptedFileMeasurement is not null ? "명시적으로 불러온 파일의 측정값" : "", MeasurementToken(point)));
             }
             else throw new InvalidOperationException($"{key}: 직접 측정 또는 유효한 대표 복사가 필요합니다.");
         }
@@ -398,7 +406,7 @@ public sealed class CManualInspectionWorkspace
         {
             // Freeze the companion raw identities before actual I/O. The digest covers this dictionary,
             // so the host can persist exactly these opaque tokens without recreating conversion rules.
-            var raw = point.OriginalMeasurement;
+            var raw = point.CorrectionMeasurement ?? point.OriginalMeasurement;
             if (raw is not null && raw.Judge is "OK" or "NG" && raw.ErrorXUm is double x && raw.ErrorYUm is double y
                 && double.IsFinite(x) && double.IsFinite(y) && !string.IsNullOrWhiteSpace(raw.RawToken)
                 && raw.RecipeId == Context!.RecipeId && raw.RunId == Context.RunId && raw.CoordinateSignature == Context.CoordinateSignature)
@@ -671,7 +679,7 @@ public sealed class CManualInspectionWorkspace
                 throw new InvalidOperationException($"{point.Key}: 세션의 현재 B가 실제 활성 보정 파일과 다릅니다.");
             if (point.ProxySource is { } proxy)
             {
-                if (point.OriginalMeasurement is null || point.Source != "MANUAL" || point.Judge is not ("OK" or "NG")
+                if ((point.OriginalMeasurement is null && point.AdoptedFileMeasurement is null) || point.Source != "MANUAL" || point.Judge is not ("OK" or "NG")
                     || proxy.ReferenceKey == point.Key || !geometry.ContainsKey(proxy.ReferenceKey) || proxy.RunId != expectedContext.RunId
                     || proxy.CoordinateSignature != expectedContext.CoordinateSignature || string.IsNullOrWhiteSpace(proxy.ReferenceMeasurementToken)
                     || proxy.ReferenceJudge != point.Judge || !proxy.FinalOffset.IsFinite || string.IsNullOrWhiteSpace(proxy.Reason)
@@ -684,6 +692,8 @@ public sealed class CManualInspectionWorkspace
             {
                 try { ValidateMeasurement(measurement, expectedContext); } catch (InvalidOperationException) { lineage = false; }
             }
+            if (point.AdoptedFileMeasurement is { } adopted)
+                try { ValidateMeasurement(adopted,expectedContext); } catch (InvalidOperationException) { lineage=false; }
         }
         var ids = new HashSet<string>(StringComparer.Ordinal);
         var previousRevisionId = "";
@@ -867,14 +877,14 @@ public sealed class CManualInspectionWorkspace
     }
     private void RequireMeasurementLineage(ST_MANUAL_POINT point)
     {
-        if (point.OriginalMeasurement is not { } measurement) throw new InvalidOperationException($"{point.Key}: 직접 원측정 기록이 없습니다.");
+        if (point.CorrectionMeasurement is not { } measurement) throw new InvalidOperationException($"{point.Key}: 직접 측정 또는 확인한 파일 측정값이 없습니다.");
         ValidateMeasurement(measurement, Context!);
         if (point.IsDirectMeasurement && (point.Judge != measurement.Judge
             || point.ErrorXUm != measurement.ErrorXUm || point.ErrorYUm != measurement.ErrorYUm))
             throw new InvalidOperationException($"{point.Key}: 직접 측정의 작업판정/편차가 보존한 원측정과 다릅니다.");
         if (measurement.Judge is not ("OK" or "NG")) throw new InvalidOperationException($"{point.Key}: 원측정 상태가 OK/NG가 아닙니다.");
     }
-    private string MeasurementToken(ST_MANUAL_POINT point) => point.OriginalMeasurement is { } measurement
+    private string MeasurementToken(ST_MANUAL_POINT point) => point.CorrectionMeasurement is { } measurement
         // RawData preserves the original response, which can contain a fresh request UID or timestamp.
         // The host's stable semantic RawToken deliberately excludes those transport-only changes.
         ? Digest(new { Context!.RunId, point.Key, measurement.RawToken, measurement.CoordinateSignature }) : "";

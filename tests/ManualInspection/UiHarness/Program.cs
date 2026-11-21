@@ -17,8 +17,9 @@ internal sealed class FakeController(CManualInspectionUiSnapshot snapshot) : IMa
     public CManualInspectionUiSnapshot Snapshot { get; private set; } = snapshot;
     public event EventHandler? Changed;
     public List<(EN_MANUAL_INSPECTION_UI_ACTION Action, CManualInspectionUiRequest Request)> Calls { get; } = [];
+    public Action<EN_MANUAL_INSPECTION_UI_ACTION,CManualInspectionUiRequest>? OnExecute { get; set; }
     public Task ExecuteAsync(EN_MANUAL_INSPECTION_UI_ACTION action, CManualInspectionUiRequest request, CancellationToken cancellationToken = default)
-    { Calls.Add((action, request)); return Task.CompletedTask; }
+    { Calls.Add((action, request)); OnExecute?.Invoke(action,request); return Task.CompletedTask; }
     public void Replace(CManualInspectionUiSnapshot value) { Snapshot = value; Changed?.Invoke(this, EventArgs.Empty); }
 }
 
@@ -33,10 +34,10 @@ internal static partial class Program
     [STAThread]
     private static int Main(string[] args)
     {
-        if (args.Length is < 2 or > 3 || args.Length == 3 && args[2] is not ("--integration-impact" or "--sync-levels" or "--coverage-compact" or "--hardening" or "--visual-usability" or "--map-first")) { Console.Error.WriteLine("Usage: UiHarness <repository/Drilling.UI> <private-output> [--integration-impact|--sync-levels|--coverage-compact|--hardening|--visual-usability|--map-first]"); return 2; }
+        if (args.Length is < 2 or > 3 || args.Length == 3 && args[2] is not ("--integration-impact" or "--sync-levels" or "--coverage-compact" or "--hardening" or "--visual-usability" or "--map-first" or "--cell-overview")) { Console.Error.WriteLine("Usage: UiHarness <repository/Drilling.UI> <private-output> [--integration-impact|--sync-levels|--coverage-compact|--hardening|--visual-usability|--map-first|--cell-overview]"); return 2; }
         _uiSource = Path.GetFullPath(args[0]); _output = Path.GetFullPath(args[1]); Directory.CreateDirectory(_output);
         _application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-        if (args.Length == 3) return args[2] switch { "--sync-levels" => SyncLevels(), "--coverage-compact" => CoverageCompact(), "--hardening" => Hardening(), "--visual-usability" => VisualUsability(), "--map-first" => MapFirst(), _ => IntegrationImpact() };
+        if (args.Length == 3) return args[2] switch { "--sync-levels" => SyncLevels(), "--coverage-compact" => CoverageCompact(), "--hardening" => Hardening(), "--visual-usability" => VisualUsability(), "--map-first" => MapFirst(), "--cell-overview" => CellOverview(), _ => IntegrationImpact() };
         try
         {
             LoadResources("Light");
@@ -44,9 +45,12 @@ internal static partial class Program
             var view = new CManualInspectionView { DataContext = fake, ConfirmationForTesting = (_,_,_) => true };
             var window = new Window { Width = 1490, Height = 1060, Content = view, Left = -20000, Top = -20000, ShowInTaskbar = false, ShowActivated = false, WindowStyle = WindowStyle.None };
             window.Show(); Pump(); view.UpdateLayout();
+            // This legacy per-Cell regression deliberately enters Cell 1. The new all-Cell
+            // landing view and actual Recipe placement are tested independently below.
+            Invoke(view, "SetMapCellScope", 1); Pump();
             Test("native_view_loaded", view.IsLoaded);
             Test("controller_attached", Field<IManualInspectionController>(view, "_controller") == fake);
-            Test("first_cell_default", ((TextBlock)view.FindName("ContextText")).Text.Contains("Recipe A3_QA"));
+            Test("loaded_recipe_context_is_visible", ((TextBlock)view.FindName("ContextText")).Text.Contains("Recipe A3_QA"));
             Test("combo_uses_visible_label", ((ComboBox)view.FindName("CellFilter")).SelectionBoxItem.ToString() == "Cell 1");
             Render(view, "native-light.png");
             Test("theme_light_background", ResourceColor("PanelBackgroundBrush") == "#FFFFFFFF");
@@ -288,11 +292,11 @@ internal static partial class Program
             Test("retry_description_no_implicit_correction",CManualInspectionView.DescribeAction(EN_MANUAL_INSPECTION_UI_ACTION.RetryRemaining,snapshot with{RemainingCount=3},0).Contains("재개하지"));
             var recent=new CManualInspectionUiResultFile("synthetic/other-fine.csv","Fine · synthetic", "G",DateTimeOffset.UtcNow,"FINE");
             fake.Replace(snapshot with{Version=103,RecentResults=[recent]});accept=true;
-            ((Task)Invoke(view,"OpenRecentResults")!).GetAwaiter().GetResult();Pump();
-            Test("recent_result_uses_selected_path_without_picker",fake.Calls.Last().Action==EN_MANUAL_INSPECTION_UI_ACTION.LoadResultFile&&fake.Calls.Last().Request.ResultPath==recent.Path&&fake.Calls.Last().Request.ExpectedVersion==103);
-            Test("recent_result_description_distinguishes_viewing",confirmations.Last().Description.Contains("이동·보정 적용을 실행하지"));
             Invoke(view,"Files_Click",view,new RoutedEventArgs());var menu=((Button)view.FindName("FilesButton")).ContextMenu!;
-            Test("more_menu_has_recent_results_and_no_SIM",menu.Items.OfType<MenuItem>().Any(x=>x.Header.ToString()!.Contains("최근 측정"))&&menu.Items.OfType<MenuItem>().All(x=>!x.Header.ToString()!.Contains("SIM")));menu.IsOpen=false;
+            menu.Items.OfType<MenuItem>().Single(x=>x.Header.ToString()!.Contains("파일 불러오기")&&!x.Header.ToString()!.Contains("전 작업")).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));Pump();
+            Test("file_load_delegates_picker_and_keeps_current_version",fake.Calls.Last().Action==EN_MANUAL_INSPECTION_UI_ACTION.LoadResultFile&&fake.Calls.Last().Request.ResultPath is null&&fake.Calls.Last().Request.ExpectedVersion==103);
+            Test("file_load_description_explains_manual_actions_and_no_implicit_work",confirmations.Last().Description.Contains("이동·측정·보정")&&confirmations.Last().Description.Contains("열기 전")&&confirmations.Last().Description.Contains("장비가 이동하거나 보정이 저장되지는"));
+            Test("more_menu_has_only_return_file_csv_without_session_or_recent_list",menu.Items.OfType<MenuItem>().Count()==3&&menu.Items.OfType<MenuItem>().All(x=>!x.Header.ToString()!.Contains("세션")&&!x.Header.ToString()!.Contains("최근")&&!x.Header.ToString()!.Contains("SIM")));menu.IsOpen=false;
             var oldLevel=CManualInspectionDrawing.AppliedLevel(sample,initial);var changed=initial with{LevelBoundsUm=[10,20,30]};
             Test("new_common_bounds_recolor_existing_offsets",oldLevel==1&&CManualInspectionDrawing.AppliedLevel(sample,changed)==0);
             fake.Replace(snapshot with{Version=104,LevelBoundsUm=[10,20,30]});Pump();Set(view,"_focusKey",snapshot.Points[0].Key);Invoke(view,"Refresh");

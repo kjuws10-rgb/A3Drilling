@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Drilling.Common.Alarm;
+using Drilling.Common.Correction;
 using Drilling.Common.Interface;
 using Drilling.Common.Managers;
 using Drilling.Common.Recipe;
@@ -48,6 +49,9 @@ public sealed record CManualInspectionSource(
         = new Dictionary<string, CManualInspectionImportedResult>(StringComparer.Ordinal);
     public IReadOnlyList<ST_REVIEW_RESULT_CATALOG_ITEM> RecentResults { get; init; } = [];
     public string ObservationFingerprint { get; init; } = "";
+    public IReadOnlyList<Views.CManualInspectionUiCellLayout> CellLayouts { get; init; } = [];
+    public double GlassWidthMm { get; init; }
+    public double GlassHeightMm { get; init; }
 }
 
 public sealed record CManualInspectionImportedResult(string Path, DateTimeOffset SavedAt, string Origin);
@@ -108,6 +112,7 @@ public sealed class CManualInspectionBackend(
         var file = string.IsNullOrWhiteSpace(resultPath) ? null : await ReadResult(resultPath, token);
         if (file is not null && !file.RecipeId.Equals(_recipe.Id, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("측정 결과와 현재 Recipe가 다릅니다. 다른 Recipe의 위치로 이동하지 않습니다.");
+        var fileMeasurementModeMatches = file is null || file.IsStageSimulation==_sourceSimulation && file.IsVisionSimulation==_sourceSimulation;
         _parameters = Parameters(_recipe);
         _latest = await offsets.LoadLatest(_recipe.Id, token);
         CReviewOffsetData.ApplyToParameters(_parameters, _latest);
@@ -198,10 +203,11 @@ public sealed class CManualInspectionBackend(
             rejectedRows = projection.RejectedRowCount;
         }
         _sourceRun = capturedRun;
-        var linkedGlass = file is null || CManualInspectionResultProjection.IsSameFrame(currentFrame, file);
-        // Old CSV rows are IMPORTED, never native MEASURED anchors. Only a fresh native direct
-        // measurement or a current representative may replace their working value.
-        var lineage = linkedGlass;
+        // An explicitly opened CSV is an intentional input to the CURRENT Recipe/Run, after
+        // Recipe/Head/Beam/design-position validation below. Historical Glass identity remains
+        // provenance; it is not a blanket prohibition on reinspection or correction.
+        // Automatic observations still do not acquire a correction receipt.
+        var lineage = true;
         var context = new ST_MANUAL_CONTEXT(_recipe.Id, _sourceRun, Revision(_latest), CoordinateSignature())
         { LineageValid = lineage, SourceResultPath = file?.FilePath ?? "" };
         var points = new List<ST_MANUAL_POINT>();
@@ -247,6 +253,11 @@ public sealed class CManualInspectionBackend(
                         // An EDITED/MANUAL legacy row has a known working value, but its missing
                         // original raw must not be invented from that value.
                         OriginalMeasurement = row.ResultSource is "MEASURED" or "RETAINED" ? measurement : null, MeasurementVersion = 0 };
+                    if (file is not null && fileMeasurementModeMatches)
+                        p = p with { AdoptedFileMeasurement = measurement with
+                        {
+                            RawData = $"FILE RESULT · source={row.ResultSource} · glass={file.GlassId} · {measurement.RawData}"
+                        } };
                 }
                 else if (row is not null && row.Judge == "ERROR") p = p with { Judge = "ERROR", Source = "IMPORTED",
                     OriginalMeasurement = new("ERROR", null, null, "", context.RecipeId, context.RunId, context.CoordinateSignature)
@@ -278,17 +289,55 @@ public sealed class CManualInspectionBackend(
         var legacyReason = await LegacyStateReason(legacyRun, product?.CreatedAt, context, token);
         var source = new CManualInspectionSource(context, points, bases, limits, Field, plan.ToleranceX * 1000, plan.ToleranceY * 1000,
             file?.FilePath ?? "", $"Beam {defaultBeam} · Shift {_shiftX:0.###}/{_shiftY:0.###} mm · DESIGN µm · {points.Count:N0}점"
-                + (imported.Count == 0 ? "" : $" · 다른 경로 결과 {imported.Count:N0}점 연결 · IMPORTED 조회값")
+                + (imported.Count == 0 ? "" : $" · 다른 경로 결과 {imported.Count:N0}점 연결 · IMPORTED")
+                + (file is null ? "" : " · 불러온 값을 현재 Recipe 작업에 사용 · 이동/측정/검증 후 보정 가능")
+                + (fileMeasurementModeMatches ? "" : " · 파일의 SIM/실측 모드가 현재와 다름: 이동·새 측정은 가능하며 새 실측값으로 보정하세요.")
                 + (file is null && !currentFrame.IsLinked ? " · 현재 기판/회차 미확인: 결과는 목록에서 선택 조회" : "")
                 + (rejectedFiles == 0 && rejectedRows == 0 ? "" : $" · 불일치/읽기 실패 {rejectedFiles:N0}파일/{rejectedRows:N0}행 자동 제외")
-                + (legacyReason.Length > 0 ? " · " + legacyReason : "")
-                + (resolvedCompletion.Ambiguous ? " · 현재 Product와 선택 Recipe가 달라 가공 Shift의 출처를 확인할 수 없습니다. Product/Recipe를 맞춘 후 다시 불러오세요." : ""))
-        { ReadOnly = !lineage || legacyReason.Length > 0 || resolvedCompletion.Ambiguous, AppliedOffsetKeys = appliedKeys, ImportedResults = imported,
+                + (legacyReason.Length > 0 ? file is null ? " · " + legacyReason : " · 이전 작업 이력은 보존하며, 불러온 파일은 별도 작업으로 검증·적용합니다." : "")
+                + (file is null && resolvedCompletion.Ambiguous ? " · 현재 Product와 선택 Recipe가 달라 가공 Shift의 출처를 확인할 수 없습니다. Product/Recipe를 맞춘 후 다시 불러오세요." : ""))
+        { ReadOnly = file is null && (legacyReason.Length > 0 || resolvedCompletion.Ambiguous), AppliedOffsetKeys = appliedKeys, ImportedResults = imported,
+          CellLayouts = BuildCellLayouts(_parameters), GlassWidthMm = Number(_parameters,"GLASS_SIZE_X",0), GlassHeightMm = Number(_parameters,"GLASS_SIZE_Y",0),
           RecentResults = catalog, ObservationFingerprint = ObservationFingerprint(external, file, _latest, context.CoordinateSignature) };
         // Loading is read-only, but the published coordinate context must be internally current.
         // This also detects same-path offset replacement through the store's content identity.
         await EnsureCurrentAsync(source, token);
         return source;
+    }
+
+    /// <summary>
+    /// Mirrors Recipe preview's cell boundary (CMenuRecipe.BuildCellBoundaryGeometry), not point
+    /// bounding boxes or a guessed row/column order. Pixel centres start at FirstTarget; the cell
+    /// outline includes half a pixel on each edge. Display metadata never changes processing math.
+    /// </summary>
+    public static IReadOnlyList<Views.CManualInspectionUiCellLayout> BuildCellLayouts(IReadOnlyDictionary<string,string> parameters)
+    {
+        if (!CCellPatternCalculator.TryParseCellCount(parameters.GetValueOrDefault("MAX_CELL_NUMBER"),out var count,out var reason))
+            throw new InvalidDataException(reason);
+        var margins = CAlignKeyMarginSettings.Read(parameters);
+        var pixel = Number(parameters,"PIXEL_SIZE",.09);
+        var modelCount = CRecipeModelPixelCountReader.ReadModelTypeCount(parameters);
+        var cells = new List<Views.CManualInspectionUiCellLayout>();
+        for (var cell = 1; cell <= count; cell++)
+        {
+            var model = CRecipeModelPixelCountReader.ReadCellModelType(parameters,cell,modelCount);
+            var pattern = CRecipeModelPixelCountReader.ReadPatternForModel(parameters,model);
+            var definition = new ST_CELL_PATTERN_DEFINITION(cell,
+                Number(parameters,$"CELL{cell}_ALIGN_TO_1ST_PIXEL_X",0),Number(parameters,$"CELL{cell}_ALIGN_TO_1ST_PIXEL_Y",0),
+                Number(parameters,$"CELL{cell}_ROTATION",0),pixel,pattern.PixelCountX,pattern.PixelCountY,pattern.ProcessPitch,
+                Int(parameters,"SPLITED_BEAM_COUNT"),margins.X,margins.Y);
+            var layout = CCellPatternCalculator.Calculate(definition,includeShotCenters:false);
+            if (!layout.IsValid) throw new InvalidDataException(layout.ValidationMessage);
+            var angle = definition.RotationDegrees * Math.PI / 180; var cos = Math.Cos(angle); var sin = Math.Sin(angle);
+            var half = pixel / 2; var width = (pattern.PixelCountX - .5) * pixel; var height = (pattern.PixelCountY - .5) * pixel;
+            var local = new[] { (-half,-half),(width,-half),(width,height),(-half,height) };
+            var boundary = local.Select(p => new Views.CManualInspectionUiLayoutVertex(
+                margins.X+definition.FirstTargetX+p.Item1*cos-p.Item2*sin,
+                margins.Y+definition.FirstTargetY+p.Item1*sin+p.Item2*cos)).ToArray();
+            if (boundary.Any(p=> !double.IsFinite(p.Xmm) || !double.IsFinite(p.Ymm))) throw new InvalidDataException("Cell 배치 좌표가 유한하지 않습니다.");
+            cells.Add(new() { CellNo=cell,BoundaryMm=Array.AsReadOnly(boundary) });
+        }
+        return cells.AsReadOnly();
     }
 
     private async Task<string> LegacyStateReason(string legacyRun, DateTimeOffset? productCreatedAt,

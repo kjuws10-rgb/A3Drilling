@@ -129,7 +129,7 @@ internal static class Program
             var path = Path.Combine(f.Root, "wrong.csv"); f.Results.Files[path] = new(path, "wrong.csv", "OTHER", DateTimeOffset.Now, []);
             await Reject(() => f.Backend.LoadAsync(path, default));
         });
-        await Check("actual_explicit_result_is_readonly_without_current_glass_proof", async () =>
+        await Check("actual_explicit_result_uses_current_recipe_geometry_without_file_readonly_gate", async () =>
         {
             var f = new Fixture(); var plan = f.Review.CreateAllPlan(f.Recipe, 11);
             var measured = plan.Points.First(p => p.Use) with { State = EN_REVIEW_POINT_STATE.Ok, Judge = "OK", ErrorX = .002, ErrorY = -.003 };
@@ -138,9 +138,87 @@ internal static class Program
             var path = actualFile.LastSavedPath!;
             f.Results.Files[path] = await actualFile.Load(path);
             var source = await f.Backend.LoadAsync(path, default);
-            True(source.ReadOnly && !source.Context.LineageValid && source.ImportedResults.Count == 1);
+            True(!source.ReadOnly && source.Context.LineageValid && source.ImportedResults.Count == 1);
             var point = source.Points.Single(p => p.Source == "IMPORTED");
             True(Math.Abs(point.ErrorXUm!.Value - 2) < 1e-8 && Math.Abs(point.ErrorYUm!.Value - 3) < 1e-8);
+        });
+        await Check("explicit_file_still_rejects_head_or_design_coordinate_mismatch", async () =>
+        {
+            foreach(var change in new[]{"head","x","y"})
+            {
+                var f=new Fixture();var plan=f.Review.CreateAllPlan(f.Recipe,11);var p=plan.Points.First(p=>p.Use);
+                var measured=p with{State=EN_REVIEW_POINT_STATE.Ok,Judge="OK",ErrorX=.002,ErrorY=-.003};
+                var actual=new CReviewResultFile(f.Root+"/Config");await actual.Save(new(plan,[measured],DateTimeOffset.Now,"PAST-GLASS"){IsStageSimulation=false,IsVisionSimulation=false});
+                var file=await actual.Load(actual.LastSavedPath!);var row=file.Rows.Single();
+                row=change switch{"head"=>row with{HeadNo=row.HeadNo+1},"x"=>row with{DesignX=row.DesignX+.1},_=>row with{DesignY=row.DesignY+.1}};
+                f.Results.Files[file.FilePath]=file with{Rows=[row]};await Reject(()=>f.Backend.LoadAsync(file.FilePath,default));
+            }
+        });
+        await Check("explicit_file_still_rejects_unmatched_shot_and_out_of_range_beam", async () =>
+        {
+            foreach(var change in new[]{"shot","beam"})
+            {
+                var f=new Fixture();var plan=f.Review.CreateAllPlan(f.Recipe,11);var p=plan.Points.First(p=>p.Use);
+                var actual=new CReviewResultFile(f.Root+"/Config");await actual.Save(new(plan,[p with{State=EN_REVIEW_POINT_STATE.Ok,Judge="OK"}],DateTimeOffset.Now,"PAST-GLASS"){IsStageSimulation=false,IsVisionSimulation=false});
+                var file=await actual.Load(actual.LastSavedPath!);var row=file.Rows.Single();
+                row=change=="shot"?row with{ShotName="NO-SUCH-SHOT"}:row with{BeamNo=17};
+                f.Results.Files[file.FilePath]=file with{Rows=[row]};await Reject(()=>f.Backend.LoadAsync(file.FilePath,default));
+            }
+        });
+        await Check("actual_loader_adopts_edited_and_manual_file_values_without_inventing_original_raw", async () =>
+        {
+            foreach(var kind in new[]{"MEASURED","EDITED","MANUAL"})
+            {
+                var(f,path)=await ExplicitFile(kind);var source=await f.Backend.LoadAsync(path,default);var point=source.Points.Single(p=>p.Source=="IMPORTED");
+                True(point.AdoptedFileMeasurement is not null && point.IsDirectMeasurement && (point.OriginalMeasurement is not null)==(kind=="MEASURED"));
+                var engine=Engine(source);engine.BuildDirectCandidate([point.Key]);True(engine.ValidateCandidate(false).Ok);
+                var write=engine.CreateApplySnapshot(false);True(write.Rows.Single().MeasurementToken.Length>0 && write.ConsumedMeasurements.ContainsKey(point.Key));
+                engine.CommitApplied(write,"SYNTHETIC-COMMIT","Pure engine commit only; no device Backend Save called");
+                True(engine.GetPoint(point.Key).OriginalMeasurement==point.OriginalMeasurement && engine.WasConsumed(point.Key,write.ConsumedMeasurements[point.Key]));
+            }
+        });
+        await Check("fresh_native_measurement_clears_adopted_file_receipt", async () =>
+        {
+            var(f,path)=await ExplicitFile("EDITED");var source=await f.Backend.LoadAsync(path,default);var point=source.Points.Single(p=>p.Source=="IMPORTED");
+            var engine=Engine(source);var fresh=new ST_MANUAL_MEASUREMENT("OK",1.25,-.5,"SYNTHETIC-NEW-NATIVE",source.Context.RecipeId,source.Context.RunId,source.Context.CoordinateSignature){RawData="Synthetic native response"};
+            engine.RecordMeasurement(point.Key,fresh);var current=engine.GetPoint(point.Key);
+            True(current.Source=="MEASURED"&&current.AdoptedFileMeasurement is null&&current.OriginalMeasurement==fresh);
+            engine.BuildDirectCandidate([point.Key]);True(engine.ValidateCandidate(false).Ok);
+        });
+        await Check("mode_mismatched_file_is_navigable_but_cannot_promote_simulation_values_to_correction", async () =>
+        {
+            var(f,path)=await ExplicitFile("MEASURED",simulation:true);var source=await f.Backend.LoadAsync(path,default);var point=source.Points.Single(p=>p.Source=="IMPORTED");
+            True(!source.ReadOnly&&source.Context.LineageValid&&point.AdoptedFileMeasurement is null&&point.OriginalMeasurement is not null&&point.ErrorXUm.HasValue);
+            var engine=Engine(source);await Reject(()=>Task.Run(()=>engine.BuildDirectCandidate([point.Key])));
+            var fresh=new ST_MANUAL_MEASUREMENT("OK",1,-1,"SYNTHETIC-REAL-MODE-REMEASURE",source.Context.RecipeId,source.Context.RunId,source.Context.CoordinateSignature){RawData="Synthetic current-mode response"};
+            engine.RecordMeasurement(point.Key,fresh);engine.BuildDirectCandidate([point.Key]);True(engine.ValidateCandidate(false).Ok);
+        });
+        await Check("automatic_import_without_adoption_receipt_is_not_promoted_to_correction_anchor", async () =>
+        {
+            var(f,path)=await ExplicitFile("MEASURED");var source=await f.Backend.LoadAsync(path,default);var point=source.Points.Single(p=>p.Source=="IMPORTED");
+            var automatic=source with{Points=source.Points.Select(p=>p with{AdoptedFileMeasurement=null}).ToArray()};
+            var engine=Engine(automatic);True(!engine.GetPoint(point.Key).IsDirectMeasurement);
+            await Reject(()=>Task.Run(()=>engine.BuildDirectCandidate([point.Key])));
+        });
+        await Check("actual_committed_receipt_blocks_same_explicit_file_after_offset_revision_change", async () =>
+        {
+            var(f,path)=await ExplicitFile("MEASURED");var source=await f.Backend.LoadAsync(path,default);var point=source.Points.Single(p=>p.Source=="IMPORTED");
+            var engine=Engine(source);engine.BuildDirectCandidate([point.Key]);True(engine.ValidateCandidate(false).Ok);var write=engine.CreateApplySnapshot(false);
+            var token=write.ConsumedMeasurements[point.Key];var dir=Path.Combine(f.Backend.StateDirectory,"ApplySources",CManualInspectionBackend.Digest(source.Context.RunId));Directory.CreateDirectory(dir);
+            var sourcePath=Path.Combine(dir,"synthetic-file-application.json");await System.IO.File.WriteAllTextAsync(sourcePath,"{\"synthetic\":true}");
+            var target=f.Review.CreateAllPlan(f.Recipe,11).Points.Single(p=>p.CellNo==point.CellNo&&p.ShotNo==point.ShotNo);
+            var row=CManualInspectionCoordinateBridge.ToFile(point,target.PixelCountX,write.ValuesByPointKey[point.Key]);
+            await f.Offsets.SaveNewFromSource("QA",[row],sourcePath,false);
+            await System.IO.File.WriteAllTextAsync(Path.Combine(dir,"point-qa-explicit.json"),JsonSerializer.Serialize(new{SourcePath=sourcePath,BaseRevision=source.Context.RevisionId,RunId=source.Context.RunId,PointKey=point.Key,MeasurementToken=token}));
+            var reopened=await f.Backend.LoadAsync(path,default);True(reopened.Context.RevisionId!=source.Context.RevisionId&&f.Backend.ConsumedMeasurements.Any(p=>p.Key==point.Key&&p.Value==token));
+            var next=Engine(reopened);next.SeedConsumedMeasurements(f.Backend.ConsumedMeasurements);next.BuildDirectCandidate([point.Key]);True(!next.ValidateCandidate(false).Ok);
+            True(next.Candidate!.Rows.Single().MeasurementToken==token);
+        });
+        await Check("actual_loader_publishes_recipe_cell_boundary_and_glass_dimensions", async () =>
+        {
+            var f=new Fixture();var source=await f.Backend.LoadAsync(null,default);
+            True(source.CellLayouts.Count==1&&source.CellLayouts[0].CellNo==1&&source.CellLayouts[0].BoundaryMm.Count==4);
+            True(source.CellLayouts.SelectMany(c=>c.BoundaryMm).All(v=>double.IsFinite(v.Xmm)&&double.IsFinite(v.Ymm))&&source.GlassWidthMm==100&&source.GlassHeightMm==200);
         });
         await Check("display_beam_slots_validate_duplicate_and_out_of_range_keys", async () =>
         {
@@ -170,9 +248,28 @@ internal static class Program
         });
         var output = args.Length == 2 && args[0] == "--report" ? args[1] : "backend-read-results.json";
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(output))!);
+        var productionAssemblies=new[]{typeof(CManualInspectionBackend).Assembly,typeof(CManualInspectionWorkspace).Assembly}.Distinct()
+            .ToDictionary(a=>a.GetName().Name!,a=>new{path=a.Location,sha256=Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.IO.File.ReadAllBytes(a.Location))).ToLowerInvariant()});
         await System.IO.File.WriteAllTextAsync(output, JsonSerializer.Serialize(new { passed = Failures == 0, count = Checks.Count, failed = Failures, tests = Checks,
+            productionAssemblies,
             scope = "Actual UI production adapter + actual pure Review/Recipe/Setting managers, parser/writer; synthetic temp data; no equipment Manager/App/Root or vendor objects." }, new JsonSerializerOptions { WriteIndented = true }));
         return Failures == 0 ? 0 : 1;
+    }
+    private static CManualInspectionWorkspace Engine(CManualInspectionSource source)
+    {var engine=new CManualInspectionWorkspace();engine.Load(source.Context,source.Points,source.Values,source.Limits,source.FieldEvaluator);return engine;}
+    private static async Task<(Fixture Fixture,string Path)> ExplicitFile(string kind,bool simulation=false)
+    {
+        var f=new Fixture();var plan=f.Review.CreateAllPlan(f.Recipe,11);var point=plan.Points.First(p=>p.Use);
+        var file=new CReviewResultFile(f.Root+"/Config");await file.Save(new(plan,[point with{State=EN_REVIEW_POINT_STATE.Ok,Judge="OK",ErrorX=.002,ErrorY=-.003}],DateTimeOffset.Now,"PAST-GLASS"){IsStageSimulation=simulation,IsVisionSimulation=simulation});
+        var path=file.LastSavedPath!;var loaded=await file.Load(path);
+        if(kind is "EDITED" or "MANUAL")
+        {
+            var row=loaded.Rows.Single();path=await file.SaveEditedRevision(loaded,[new(row.CellNo,row.ShotKey,row.ShotName,row.BeamNo,.002,-.003,"OK")],DateTimeOffset.Now.AddSeconds(1));
+            if(kind=="MANUAL")
+            {var text=await System.IO.File.ReadAllTextAsync(path);True(text.Contains("EDITED",StringComparison.Ordinal));await System.IO.File.WriteAllTextAsync(path,text.Replace("EDITED","MANUAL",StringComparison.Ordinal));}
+            loaded=await file.Load(path);True(loaded.Rows.Single().ResultSource==kind);
+        }
+        f.Results.Files[path]=loaded;return(f,path);
     }
     private sealed class Fixture
     {

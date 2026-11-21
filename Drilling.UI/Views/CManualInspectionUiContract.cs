@@ -18,7 +18,17 @@ public enum EN_MANUAL_INSPECTION_UI_ACTION
 {
     LoadCurrentRecipe, LoadResultFile, Refresh, NewSimulation, ImportSession, ExportSession,
     ExportCsv, Move, MoveMeasure, MoveMeasureCorrect, Measure, RetryRemaining, Stop,
-    Calculate, Validate, Apply, Rollback, CopyReference, UndoCopy, UpdateLimits, SetAllowManual, UpdateLevels, ShowPoint
+    Calculate, Validate, Apply, Rollback, CopyReference, UndoCopy, UpdateLimits, SetAllowManual, UpdateLevels, ShowPoint,
+    ReturnToPreviousWorkspace
+}
+
+/// <summary>Recipe preview's global DESIGN-mm polygon, before scanner/stage transforms.</summary>
+public sealed record CManualInspectionUiLayoutVertex(double Xmm, double Ymm);
+public sealed record CManualInspectionUiCellLayout
+{
+    public int CellNo { get; init; }
+    public IReadOnlyList<CManualInspectionUiLayoutVertex> BoundaryMm { get; init; } = [];
+    public bool Enabled { get; init; } = true;
 }
 
 /// <summary>All offsets/errors in this UI contract are micrometres; positions are millimetres.</summary>
@@ -58,6 +68,7 @@ public sealed record CManualInspectionUiPoint
     public string ReferenceKey { get; init; } = "";
     public string MeasurementToken { get; init; } = "";
     public string Details { get; init; } = "";
+    public bool CanUseImportedForCorrection { get; init; }
     /// <summary>
     /// Display coverage is independent of where a point was measured. An active correction row is
     /// measurement-derived history, including interpolated/copied values and explicitly saved zero.
@@ -75,7 +86,7 @@ public sealed record CManualInspectionUiPoint
     public string MeasurementBasisText => UsesAppliedMeasurement ? "보정기반 편차 · 기존 적용 Review Offset"
         : HasWorkingMeasurement ? IsProxy ? "대표값 복사 편차" : "측정 결과 편차" : "유효 편차 없음";
     public string MeasurementSourceCode => UsesAppliedMeasurement ? "CORRECTION_BASED" : IsProxy ? "MANUAL" : Source;
-    public bool CanBeReference => !IsMasked && !IsProxy && Source == "MEASURED"
+    public bool CanBeReference => !IsMasked && !IsProxy && (Source == "MEASURED" || CanUseImportedForCorrection)
         && WorkingJudge is "OK" or "NG" && Finite(WorkingXUm) && Finite(WorkingYUm);
     public string Identity => $"C{CellNo} / H{HeadNo:00} / S{ShotNo} / B{BeamNo}";
     public string WorkingErrorText => Pair(WorkingXUm, WorkingYUm);
@@ -156,6 +167,11 @@ public sealed record CManualInspectionUiSnapshot
     public bool IsSimulation { get; init; }
     public bool IsBusy { get; init; }
     public bool IsReadOnly { get; init; }
+    public bool CanReturnToPreviousWorkspace { get; init; }
+    public IReadOnlyList<CManualInspectionUiCellLayout> CellLayouts { get; init; } = [];
+    public bool CellLayoutYDown { get; init; } = true;
+    public double GlassWidthMm { get; init; }
+    public double GlassHeightMm { get; init; }
     public bool HasIncomplete { get; init; }
     public int RemainingCount { get; init; }
     public int CompletedCount { get; init; }

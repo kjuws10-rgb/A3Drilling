@@ -12,6 +12,7 @@
     <Compile Include="CoverageCases.cs" />
     <Compile Include="HardeningCases.cs" />
     <Compile Include="PresentationCases.cs" />
+    <Compile Include="CellOverviewCases.cs" />
   </ItemGroup>
   <ItemGroup Condition="'$(UseActualAssemblies)' != 'true'">
     <Compile Include="Contracts.cs" />

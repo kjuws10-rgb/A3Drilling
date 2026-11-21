@@ -20,6 +20,45 @@ public partial class CManualInspectionView : UserControl
         public override string ToString() => Label;
     }
     private sealed record ScatterGroup(string Group, int Count, string Mean);
+    private sealed record WorkspaceViewBookmark
+    {
+        public string RecipeId { get; init; } = "";
+        public string RunId { get; init; } = "";
+        public string[] Keys { get; init; } = [];
+        public string? FocusKey { get; init; }
+        public string? ReferenceKey { get; init; }
+        public int Cell { get; init; }
+        public int Head { get; init; }
+        public string Judge { get; init; } = "ALL";
+        public string Source { get; init; } = "ALL";
+        public string Query { get; init; } = "";
+        public string Sort { get; init; } = "shot";
+        public string Color { get; init; } = "applied";
+        public int Page { get; init; }
+        public double MapZoom { get; init; }
+        public Vector MapPan { get; init; }
+        public string ScatterScope { get; init; } = "CELL";
+        public int ScatterHead { get; init; }
+        public bool ScatterOriginal { get; init; }
+        public bool ScatterFollowSelection { get; init; }
+        public int[] ScatterCells { get; init; } = [];
+        public bool ScatterAuto { get; init; }
+        public double ScatterZoom { get; init; }
+        public (double MinX, double MaxX, double MinY, double MaxY) ScatterRange { get; init; }
+        public string ScatterHalfRangeInput { get; init; } = "20";
+        public string MeasurementMode { get; init; } = "P2P";
+        public bool InspectorOpen { get; init; }
+        public bool ResultsOpen { get; init; }
+        public bool ScatterOpen { get; init; }
+        public bool WorkInfoOpen { get; init; }
+        public bool SearchOpen { get; init; }
+        public bool ReferenceOpen { get; init; }
+        public bool CorrectionOpen { get; init; }
+        public bool SettingsOpen { get; init; }
+        public bool PointDetailsOpen { get; init; }
+        public double WorkspaceOffset { get; init; }
+        public double InspectorOffset { get; init; }
+    }
     private sealed class GridRow(CManualInspectionUiPoint point, bool selected, Action<GridRow> changed, int appliedLevel, int measurementLevel) : INotifyPropertyChanged
     {
         private bool _selected = selected;
@@ -43,6 +82,7 @@ public partial class CManualInspectionView : UserControl
     private Dictionary<string, CManualInspectionUiPoint> _points = new(StringComparer.Ordinal);
     private IReadOnlyList<CManualInspectionUiPoint> _filtered = [];
     private IReadOnlyList<CManualInspectionUiPoint>? _projectedPoints;
+    private IReadOnlyList<CManualInspectionUiCellLayout>? _projectedCellLayouts;
     private int[] _cellChoices = [], _headChoices = [];
     private IReadOnlyList<CManualInspectionUiPoint>? _scatterProjectedPoints;
     private readonly HashSet<string> _scatterRenderedSelection = new(StringComparer.Ordinal);
@@ -63,6 +103,8 @@ public partial class CManualInspectionView : UserControl
     private string _scatterScope = "CELL";
     private int _scatterHead;
     private bool _scatterOriginal;
+    private bool _scatterFollowSelection;
+    private WorkspaceViewBookmark? _workspaceViewBookmark;
     private int _page;
     private bool _updating;
     private bool _attached;
@@ -80,17 +122,20 @@ public partial class CManualInspectionView : UserControl
         InitializeComponent();
         _updating = true;
         SetChoices(JudgeFilter, [new("ALL", "전체 결과"), new("MEASURED", "측정됨 · 보정 포함"), new("OK", "실측 OK"), new("NG", "실측 NG"), new("ERROR", "최근 수신 오류"), new("UNMEASURED", "미측정")], "ALL");
-        SetChoices(SourceFilter, [new("ALL", "전체 출처"), new("MEASURED", "MEASURED"), new("IMPORTED", "IMPORTED · 조회 자료"), new("CORRECTION_BASED", "보정 기반 측정"), new("INTERPOLATED", "INTERPOLATED"), new("MANUAL", "MANUAL"), new("KEPT", "KEPT")], "ALL");
+        SetChoices(SourceFilter, [new("ALL", "전체 출처"), new("MEASURED", "MEASURED"), new("IMPORTED", "IMPORTED · 불러온 결과"), new("CORRECTION_BASED", "보정 기반 측정"), new("INTERPOLATED", "INTERPOLATED"), new("MANUAL", "MANUAL"), new("KEPT", "KEPT")], "ALL");
         SetChoices(SortFilter, [new("shot", "Shot 순"), new("cell", "Cell 순"), new("error", "편차 크기 순")], "shot");
         SetChoices(ColorFilter, [new("applied", "적용 보정값 · Level"), new("level", "측정 편차 · Level"), new("judge", "측정 판정 · OK/NG")], "applied");
         SetChoices(ScatterDataCombo, [new("WORKING", "작업 결과 · 대표값 반영"), new("ORIGINAL", "원측정 기록")], "WORKING");
         SetChoices(MeasurementModeCombo, [new("P2P", "P2P · 선택점"), new("FLYING", "Flying · 해당 행 전체")], "P2P");
         _updating = false;
         PositionMap.SelectionRequested += Map_SelectionRequested;
+        PositionMap.AllCellsRequested += (_, _) => SetMapCellScope(0);
+        PositionMap.CellRequested += (_, cell) => SetMapCellScope(cell);
         PositionMap.OperationRequested += Map_OperationRequested;
         PositionMap.MessageRequested += ShowMessage;
         PositionMap.ViewChanged += (_, _) => ZoomResetButton.Content = $"{PositionMap.Zoom * 100:0}% · 맞춤";
         ScatterPlot.SelectionRequested += Scatter_SelectionRequested;
+        ScatterPlot.ViewChanged += (_, _) => RefreshScatterAxis();
     }
 
     private static void SetChoices(ComboBox combo, IEnumerable<Choice> choices, string selected)
@@ -123,9 +168,13 @@ public partial class CManualInspectionView : UserControl
             PointErrorText.FontSize = wide ? 13 : 11;
             SelectionSummaryText.Visibility = SelectionLevelsText.Visibility = wide ? Visibility.Visible : Visibility.Collapsed;
         }
-        // Fit the normal folded workspace to its viewport. If optional content/error text takes
-        // more space, grow the scroll content instead of clipping a minimum-height drawing surface.
-        var minimum = ResultsSection.IsExpanded || ScatterSection.IsExpanded || WorkInfoSection.IsExpanded ? 0
+        // An expanded bottom pane is scrollable, but the board must remain readable for comparison.
+        // Folded mode keeps the previous small floor so the map fills the viewport without scrolling.
+        var expanded = ResultsSection.IsExpanded || ScatterSection.IsExpanded || WorkInfoSection.IsExpanded;
+        var viewport = WorkspaceScroll.ViewportHeight;
+        var mapMinimum = expanded ? Math.Max(240, double.IsFinite(viewport) ? Math.Ceiling(viewport * .45) : 240) : 80;
+        if (Math.Abs(PositionMap.MinHeight - mapMinimum) > .5) PositionMap.MinHeight = mapMinimum;
+        var minimum = expanded ? 0
             : PositionMap.MinHeight + MapPanel.Padding.Top + MapPanel.Padding.Bottom
                 + MapPanel.BorderThickness.Top + MapPanel.BorderThickness.Bottom
                 + MapPanel.Margin.Top + MapPanel.Margin.Bottom
@@ -173,14 +222,21 @@ public partial class CManualInspectionView : UserControl
             // Progress-only snapshots reuse an immutable point array. Preserve dictionaries and
             // ComboBox items instead of rebuilding the entire project geometry on each status tick.
             var pointsChanged = !ReferenceEquals(_projectedPoints, _snapshot.Points);
+            var cellsChanged = !ReferenceEquals(_projectedCellLayouts, _snapshot.CellLayouts);
             if (pointsChanged)
             {
                 _projectedPoints = _snapshot.Points;
                 _points = _snapshot.Points.GroupBy(p => p.Key, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
-                _cellChoices = _snapshot.Points.Select(p => p.CellNo).Distinct().OrderBy(x => x).ToArray();
                 // Zero is the "all heads" UI choice; unassigned/masked H00 points remain in the
                 // map dataset but must not add a second, indistinguishable value-zero choice.
                 _headChoices = _snapshot.Points.Select(p => p.HeadNo).Where(head => head is >= 1 and <= 8).Distinct().OrderBy(x => x).ToArray();
+            }
+            if (pointsChanged || cellsChanged)
+            {
+                _projectedCellLayouts = _snapshot.CellLayouts;
+                _cellChoices = _snapshot.Points.Select(p => p.CellNo).Concat(_snapshot.CellLayouts.Select(cell => cell.CellNo))
+                    .Where(cell => cell > 0).Distinct().OrderBy(cell => cell).ToArray();
+                if (cellsChanged) _scatterProjectedPoints = null;
             }
             _selected.RemoveWhere(k => !_points.ContainsKey(k));
             var workspaceIdentity = _snapshot.RecipeId + "|" + _snapshot.RunId;
@@ -190,7 +246,7 @@ public partial class CManualInspectionView : UserControl
                 _cell = _snapshot.Points.FirstOrDefault()?.CellNo ?? 0; _head = 0; _judge = _source = "ALL";
                 _query = ""; _page = 0; SearchBox.Text = "";
                 _localMessage = "";
-                _color = "applied"; _scatterScope = "CELL"; _scatterHead = 0; _scatterOriginal = false;
+                _color = "applied"; _scatterScope = "CELL"; _scatterHead = 0; _scatterOriginal = false; _scatterFollowSelection = false;
                 PositionMap.IsPanTool = false; PositionMap.Cursor = Cursors.Cross;
                 _scatterCells.Clear(); if (_cell != 0) _scatterCells.Add(_cell);
             }
@@ -202,7 +258,7 @@ public partial class CManualInspectionView : UserControl
             var heads = _headChoices;
             if (_cell != 0 && !cells.Contains(_cell)) _cell = cells.FirstOrDefault();
             if (_head != 0 && !heads.Contains(_head)) _head = 0;
-            if (pointsChanged)
+            if (pointsChanged || cellsChanged)
             {
                 SetChoices(CellFilter, new[] { new Choice("0", "전체 Cell") }.Concat(cells.Select(n => new Choice(n.ToString(), $"Cell {n}"))), _cell.ToString());
                 SetChoices(HeadFilter, new[] { new Choice("0", "전체 Head") }.Concat(heads.Select(n => new Choice(n.ToString(), $"Head {n}"))), _head.ToString());
@@ -224,7 +280,7 @@ public partial class CManualInspectionView : UserControl
             if (_localMessageVersion != _snapshot.Version) _localMessage = "";
             RefreshMessage();
             var scoped = _snapshot.Points.Where(p => (_cell == 0 || p.CellNo == _cell) && (_head == 0 || p.HeadNo == _head)).ToArray();
-            PositionMap.Configure(_snapshot, scoped, _filtered, _selected, _focusKey, _representativeKey, _color, $"{_cell}|{_head}");
+            PositionMap.Configure(_snapshot, scoped, _filtered, _selected, _focusKey, _representativeKey, _color, $"{_cell}|{_head}", showCellOverview: _cell == 0);
             var visibleSelection = _filtered.Count(p => _selected.Contains(p.Key));
             var hiddenSelection = _selected.Count - visibleSelection;
             SelectionCountText.Text = $"선택 {_selected.Count:N0}점" + (hiddenSelection > 0 ? $" · 숨김 {hiddenSelection:N0}점" : "") + $" · 지도 {_filtered.Count:N0}점";
@@ -278,11 +334,11 @@ public partial class CManualInspectionView : UserControl
     private void RefreshReference()
     {
         var reference = _representativeKey is not null && _points.TryGetValue(_representativeKey, out var p) ? p : null;
-        if (reference is null) ReferenceText.Text = "실측 OK 또는 NG 점을 클릭한 뒤 ‘대표값으로 지정’하세요.";
+        if (reference is null) ReferenceText.Text = "실측 또는 검증된 파일 결과의 OK/NG 점을 선택한 뒤 ‘대표값으로 지정’하세요.";
         else
         {
             var (x, y) = ReferenceValues(reference);
-            ReferenceText.Text = $"★ {reference.Key} · {reference.WorkingJudge}\n대표 최종 F {CManualInspectionUiPoint.Pair(x, y)} µm · 대표 편차 {reference.WorkingErrorText} µm";
+            ReferenceText.Text = $"★ {reference.Key} · {reference.WorkingJudge} · {(reference.CanUseImportedForCorrection ? "검증된 파일 결과" : "직접 측정")}\n대표 최종 F {CManualInspectionUiPoint.Pair(x, y)} µm · 대표 편차 {reference.WorkingErrorText} µm";
         }
         ReferenceText.SetResourceReference(TextBlock.ForegroundProperty, reference?.WorkingJudge == "NG" ? "ReviewMaskTextBrush" : "AccentTextBrush");
         var count = _selected.Count(k => k != _representativeKey && _points.TryGetValue(k, out var q) && !q.IsMasked);
@@ -433,9 +489,17 @@ public partial class CManualInspectionView : UserControl
 
     private void RefreshScatter()
     {
+        if (_scatterScope == "CELLS" && _scatterFollowSelection)
+        {
+            _scatterCells.Clear();
+            foreach (var key in _selected)
+                if (_points.TryGetValue(key, out var point) && !point.IsMasked) _scatterCells.Add(point.CellNo);
+        }
         var currentCell = _cell != 0 ? _cell : FocusPoint?.CellNo ?? _snapshot.Points.FirstOrDefault()?.CellNo ?? 0;
         var signature = FormattableString.Invariant($"{_scatterScope}|{currentCell}|{_scatterHead}|{_scatterOriginal}|{_snapshot.ToleranceXUm:R}|{_snapshot.ToleranceYUm:R}")
-            + "|" + string.Join(",", _scatterCells.OrderBy(cell => cell));
+            + "|" + _scatterFollowSelection + "|" + string.Join(",", _scatterCells.OrderBy(cell => cell));
+        var contextIdentity = FormattableString.Invariant($"{_snapshot.Version}|{_snapshot.RecipeId}|{_snapshot.RunId}");
+        ScatterPlot.UpdateInteractionContext(_focusKey, contextIdentity, signature);
         // Preserve the original-only clone array and chart controls on status-only snapshots.
         // Selection, point data, scope, source kind and tolerance changes still rebuild correctly.
         if (ReferenceEquals(_scatterProjectedPoints, _snapshot.Points) && _scatterRenderSignature == signature
@@ -445,7 +509,9 @@ public partial class CManualInspectionView : UserControl
         var range = _snapshot.Points.Where(p => _scatterScope == "CELL" ? p.CellNo == currentCell : _scatterScope == "HEAD" ? _scatterHead == 0 || p.HeadNo == _scatterHead : _scatterCells.Contains(p.CellNo)).ToArray();
         var display = _scatterOriginal ? range.Select(p => p with { WorkingJudge = p.OriginalJudge, WorkingXUm = p.OriginalXUm, WorkingYUm = p.OriginalYUm, IsProxy = false, HasAppliedOffset = false }).ToArray() : range;
         ScatterPlot.Configure(display, _selected, _scatterScope == "HEAD", _snapshot.ToleranceXUm, _snapshot.ToleranceYUm,
-            _scatterScope == "CELLS" && _scatterCells.Count == 0 ? "산포도를 볼 Cell을 위에서 선택하세요." : "이 범위에 유효한 측정값이 없습니다.");
+            _scatterScope == "CELLS" && _scatterCells.Count == 0 ? "산포도를 볼 Cell을 위에서 선택하세요." : "이 범위에 유효한 측정값이 없습니다.",
+            _focusKey, contextIdentity, signature);
+        RefreshScatterAxis();
         var m = ScatterPlot.Metrics;
         ScatterMetricsText.Text = $"전체 위치  {m.Total:N0}점\n{(_scatterOriginal ? "유효 원측정값" : "표시한 작업값")}  {m.Count:N0}점"
             + (_scatterOriginal ? "" : $"\n대표값 복사  {m.ProxyCount:N0}점\n□ 보정 기반  {m.CorrectionBasedCount:N0}점")
@@ -477,18 +543,21 @@ public partial class CManualInspectionView : UserControl
         }
         else
         {
+            ScatterScopeControls.Children.Add(Label(_scatterFollowSelection
+                ? $"지도 선택을 따라갑니다 · 선택점이 속한 {_scatterCells.Count:N0}개 Cell의 전체 결과."
+                : $"직접 고른 {_scatterCells.Count:N0}개 Cell · 지도 선택과 독립된 범위입니다."));
             var panel = new WrapPanel();
-            foreach (var cell in _snapshot.Points.Select(p => p.CellNo).Distinct().OrderBy(x => x))
+            foreach (var cell in _cellChoices)
             {
                 var check = new CheckBox { Content = "C" + cell, IsChecked = _scatterCells.Contains(cell), Style = (Style)FindResource("ManualCheck"), Margin = new Thickness(0, 0, 10, 6) };
-                check.Checked += (_, _) => { if (!_updating) { _scatterCells.Add(cell); Refresh(); } };
-                check.Unchecked += (_, _) => { if (!_updating) { _scatterCells.Remove(cell); Refresh(); } }; panel.Children.Add(check);
+                check.Checked += (_, _) => { if (!_updating) { _scatterFollowSelection = false; _scatterCells.Add(cell); Refresh(); } };
+                check.Unchecked += (_, _) => { if (!_updating) { _scatterFollowSelection = false; _scatterCells.Remove(cell); Refresh(); } }; panel.Children.Add(check);
             }
             ScatterScopeControls.Children.Add(panel);
             var buttons = new WrapPanel();
-            buttons.Children.Add(Button("선택점의 Cell 가져오기", () => { _scatterCells.Clear(); foreach (var p in _snapshot.Points.Where(p => _selected.Contains(p.Key))) _scatterCells.Add(p.CellNo); Refresh(); }));
-            buttons.Children.Add(Button("모든 셀", () => { _scatterCells.Clear(); foreach (var p in _snapshot.Points) _scatterCells.Add(p.CellNo); Refresh(); }));
-            buttons.Children.Add(Button("비우기", () => { _scatterCells.Clear(); Refresh(); })); ScatterScopeControls.Children.Add(buttons);
+            buttons.Children.Add(Button("지도 선택 Cell 따라가기", () => { _scatterFollowSelection = true; Refresh(); }));
+            buttons.Children.Add(Button("모든 셀", () => { _scatterFollowSelection = false; _scatterCells.Clear(); _scatterCells.UnionWith(_cellChoices); Refresh(); }));
+            buttons.Children.Add(Button("비우기", () => { _scatterFollowSelection = false; _scatterCells.Clear(); Refresh(); })); ScatterScopeControls.Children.Add(buttons);
         }
     }
 
@@ -569,7 +638,41 @@ public partial class CManualInspectionView : UserControl
     private void ResetFilters_Click(object sender, RoutedEventArgs e) { _head = 0; _judge = _source = "ALL"; _query = ""; _page = 0; _updating = true; SearchBox.Text = ""; _updating = false; Refresh(); }
     private void Color_Changed(object sender, SelectionChangedEventArgs e) { if (_updating) return; _color = Value(ColorFilter, "applied"); Refresh(); }
     private void Scatter_Changed(object sender, SelectionChangedEventArgs e) { if (_updating) return; _scatterOriginal = Value(ScatterDataCombo) == "ORIGINAL"; Refresh(); }
-    private void ScatterScope_Click(object sender, RoutedEventArgs e) { _scatterScope = ((Button)sender).Tag as string ?? "CELL"; Refresh(); }
+    private void ScatterScope_Click(object sender, RoutedEventArgs e)
+    {
+        _scatterScope = ((Button)sender).Tag as string ?? "CELL";
+        if (_scatterScope == "CELLS") _scatterFollowSelection = true;
+        Refresh();
+    }
+    private void SetMapCellScope(int cell)
+    {
+        if (cell != 0 && !_cellChoices.Contains(cell)) return;
+        _cell = cell; _head = 0; _judge = _source = "ALL"; _query = ""; _page = 0;
+        if (_focusKey is not null && _points.TryGetValue(_focusKey, out var focus) && cell != 0 && focus.CellNo != cell) _focusKey = null;
+        _updating = true; SearchBox.Text = ""; _updating = false;
+        Refresh(); PositionMap.ResetView();
+    }
+    private void RefreshScatterAxis()
+    {
+        if (!IsInitialized) return;
+        ScatterAxisText.Text = (ScatterPlot.IsAutoScale ? "Auto · " : "고정 · ") + ScatterPlot.RangeText + " · X/Y 동일 축척 · 더블클릭 Auto 맞춤";
+        ScatterAutoButton.Style = (Style)FindResource(ScatterPlot.IsAutoScale ? "ManualPrimaryButton" : "ManualButton");
+        ScatterFitButton.Content = $"{ScatterPlot.Zoom * 100:0}% · 맞춤";
+    }
+    private void ScatterAuto_Click(object sender, RoutedEventArgs e) => ScatterPlot.ResetView();
+    private void ScatterZoomIn_Click(object sender, RoutedEventArgs e) => ScatterPlot.ZoomAt(1.25, new Point(ScatterPlot.ActualWidth / 2, ScatterPlot.ActualHeight / 2));
+    private void ScatterZoomOut_Click(object sender, RoutedEventArgs e) => ScatterPlot.ZoomAt(0.8, new Point(ScatterPlot.ActualWidth / 2, ScatterPlot.ActualHeight / 2));
+    private void ScatterRangeApply_Click(object sender, RoutedEventArgs e)
+    {
+        if (!double.TryParse(ScatterRangeInput.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out var range) || !double.IsFinite(range) || range <= 0)
+        { ShowMessage("산포도 ±범위는 0보다 큰 유한 숫자(µm)로 입력하세요."); return; }
+        try { ScatterPlot.SetFixedHalfRange(range); }
+        catch (ArgumentException error) { ShowMessage(error.Message); }
+    }
+    private void ScatterRange_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter) { ScatterRangeApply_Click(sender, e); e.Handled = true; }
+    }
     private void SelectNg_Click(object sender, RoutedEventArgs e) => ChangeSelection(new(_filtered.Where(p => !p.IsMasked && p.WorkingJudge == "NG").Select(p => p.Key).ToArray(), null));
     private void SelectAll_Click(object sender, RoutedEventArgs e) => ChangeSelection(new(_filtered.Where(p => !p.IsMasked).Select(p => p.Key).ToArray(), null));
     private void ClearSelection_Click(object sender, RoutedEventArgs e) { _selected.Clear(); Refresh(); }
@@ -588,7 +691,7 @@ public partial class CManualInspectionView : UserControl
     }
     private void SetReference_Click(object sender, RoutedEventArgs e)
     {
-        if (Busy || FocusPoint?.CanBeReference != true) { ShowMessage("대표값 복사본이 아닌 유효한 실측 OK 또는 NG 점을 선택하세요."); return; }
+        if (Busy || FocusPoint?.CanBeReference != true) { ShowMessage("복사본이 아닌 유효한 실측 또는 검증된 파일 결과의 OK/NG 점을 선택하세요."); return; }
         var point = FocusPoint; var version = _snapshot.Version;
         var panel = new StackPanel(); panel.Children.Add(Label($"{point.Identity}를 복사의 대표로 지정합니다. 판정 {point.WorkingJudge}와 대표 최종 보정값을 이후 선택점에 복사할 수 있습니다. 지금은 값이나 활성 파일을 변경하지 않습니다."));
         if (!Confirm("대표점 지정", panel, "확인 · 대표점 지정")) return;
@@ -607,6 +710,56 @@ public partial class CManualInspectionView : UserControl
         Scenario = "same", Fault = "NONE", Speed = 1,
         AllowManual = AllowManualCheck.IsChecked == true
     };
+    private WorkspaceViewBookmark CaptureWorkspaceView() => new()
+    {
+        RecipeId = _snapshot.RecipeId, RunId = _snapshot.RunId, Keys = _selected.ToArray(), FocusKey = _focusKey, ReferenceKey = _representativeKey,
+        Cell = _cell, Head = _head, Judge = _judge, Source = _source, Query = _query, Sort = _sort, Color = _color, Page = _page,
+        MapZoom = PositionMap.Zoom, MapPan = PositionMap.Pan,
+        ScatterScope = _scatterScope, ScatterHead = _scatterHead, ScatterOriginal = _scatterOriginal,
+        ScatterFollowSelection = _scatterFollowSelection, ScatterCells = _scatterCells.ToArray(),
+        ScatterAuto = ScatterPlot.IsAutoScale, ScatterZoom = ScatterPlot.Zoom, ScatterRange = (ScatterPlot.MinXUm, ScatterPlot.MaxXUm, ScatterPlot.MinYUm, ScatterPlot.MaxYUm),
+        ScatterHalfRangeInput = ScatterRangeInput.Text, MeasurementMode = Value(MeasurementModeCombo, "P2P"),
+        InspectorOpen = InspectorSection.IsExpanded, ResultsOpen = ResultsSection.IsExpanded, ScatterOpen = ScatterSection.IsExpanded,
+        WorkInfoOpen = WorkInfoSection.IsExpanded, SearchOpen = SearchSection.IsExpanded,
+        ReferenceOpen = ReferenceSection.IsExpanded, CorrectionOpen = CorrectionSection.IsExpanded,
+        SettingsOpen = SettingsSection.IsExpanded, PointDetailsOpen = PointDetailsSection.IsExpanded,
+        WorkspaceOffset = WorkspaceScroll.VerticalOffset, InspectorOffset = InspectorScroll.VerticalOffset
+    };
+    private void RestoreWorkspaceView(WorkspaceViewBookmark bookmark)
+    {
+        // A file view is a temporary navigation context. Restore presentation only after the
+        // controller has successfully restored the original workspace and verified its lineage.
+        Refresh();
+        var sameFrame = bookmark.RecipeId == _snapshot.RecipeId && bookmark.RunId == _snapshot.RunId;
+        _cell = bookmark.Cell == 0 || _cellChoices.Contains(bookmark.Cell) ? bookmark.Cell : _cellChoices.FirstOrDefault();
+        _head = bookmark.Head == 0 || _headChoices.Contains(bookmark.Head) ? bookmark.Head : 0;
+        _judge = bookmark.Judge; _source = bookmark.Source; _query = bookmark.Query; _sort = bookmark.Sort; _color = bookmark.Color; _page = bookmark.Page;
+        _selected.Clear();
+        if (sameFrame) foreach (var key in bookmark.Keys)
+            if (_points.TryGetValue(key, out var point) && !point.IsMasked) _selected.Add(key);
+        _focusKey = sameFrame && bookmark.FocusKey is not null && _points.TryGetValue(bookmark.FocusKey, out var focus) && !focus.IsMasked ? bookmark.FocusKey : null;
+        _representativeKey = sameFrame && bookmark.ReferenceKey is not null && _points.TryGetValue(bookmark.ReferenceKey, out var reference) && reference.CanBeReference ? bookmark.ReferenceKey : null;
+        _scatterScope = bookmark.ScatterScope; _scatterHead = bookmark.ScatterHead == 0 || _headChoices.Contains(bookmark.ScatterHead) ? bookmark.ScatterHead : 0;
+        _scatterOriginal = bookmark.ScatterOriginal; _scatterFollowSelection = bookmark.ScatterFollowSelection;
+        _scatterCells.Clear(); _scatterCells.UnionWith(bookmark.ScatterCells.Where(_cellChoices.Contains));
+        _updating = true;
+        try
+        {
+            SearchBox.Text = _query; ScatterRangeInput.Text = bookmark.ScatterHalfRangeInput;
+            SelectValue(MeasurementModeCombo, bookmark.MeasurementMode);
+            InspectorSection.IsExpanded = bookmark.InspectorOpen; ResultsSection.IsExpanded = bookmark.ResultsOpen;
+            ScatterSection.IsExpanded = bookmark.ScatterOpen; WorkInfoSection.IsExpanded = bookmark.WorkInfoOpen; SearchSection.IsExpanded = bookmark.SearchOpen;
+            ReferenceSection.IsExpanded = bookmark.ReferenceOpen; CorrectionSection.IsExpanded = bookmark.CorrectionOpen;
+            SettingsSection.IsExpanded = bookmark.SettingsOpen; PointDetailsSection.IsExpanded = bookmark.PointDetailsOpen;
+        }
+        finally { _updating = false; }
+        Refresh(); UpdateLayout();
+        if (sameFrame) PositionMap.RestoreView(bookmark.MapZoom, bookmark.MapPan); else PositionMap.ResetView();
+        if (sameFrame && !bookmark.ScatterAuto)
+            ScatterPlot.SetFixedRange(bookmark.ScatterRange.MinX, bookmark.ScatterRange.MaxX, bookmark.ScatterRange.MinY, bookmark.ScatterRange.MaxY, bookmark.ScatterZoom);
+        else ScatterPlot.ResetView();
+        WorkspaceScroll.ScrollToVerticalOffset(bookmark.WorkspaceOffset); InspectorScroll.ScrollToVerticalOffset(bookmark.InspectorOffset);
+    }
     private async Task Execute(EN_MANUAL_INSPECTION_UI_ACTION action, CManualInspectionUiRequest? request = null)
     {
         if (_controller is null) { ShowMessage("Manual Inspection 제어기가 연결되지 않았습니다."); return; }
@@ -621,9 +774,27 @@ public partial class CManualInspectionView : UserControl
             { Refresh(); ShowMessage("확인 중 측정 기준이 바뀌었습니다. 현재 자료를 확인한 뒤 다시 요청하세요."); return; }
             if (current.IsReadOnly && RequiresWritableSource(action))
             { Refresh(); ShowMessage("조회 전용 자료에서는 이동·측정·보정·설정 변경을 실행할 수 없습니다. 현재 Recipe/Run을 다시 불러오세요."); return; }
+            if (current.HasIncomplete && (action is EN_MANUAL_INSPECTION_UI_ACTION.LoadResultFile or EN_MANUAL_INSPECTION_UI_ACTION.ReturnToPreviousWorkspace))
+            { ShowMessage("미완료 측정의 잔여점을 완료한 뒤 파일을 불러오거나 이전 작업으로 돌아가세요."); return; }
         }
+        var beforeFile = action == EN_MANUAL_INSPECTION_UI_ACTION.LoadResultFile
+            ? current.CanReturnToPreviousWorkspace ? _workspaceViewBookmark : CaptureWorkspaceView() : null;
         _requests++; RefreshButtons();
-        try { await _controller.ExecuteAsync(action, frozen); }
+        try
+        {
+            await _controller.ExecuteAsync(action, frozen);
+            var after = _controller.Snapshot;
+            if (action == EN_MANUAL_INSPECTION_UI_ACTION.LoadResultFile && after.CanReturnToPreviousWorkspace && (!current.CanReturnToPreviousWorkspace || _workspaceViewBookmark is null))
+                _workspaceViewBookmark = beforeFile;
+            if ((action is EN_MANUAL_INSPECTION_UI_ACTION.ReturnToPreviousWorkspace or EN_MANUAL_INSPECTION_UI_ACTION.Refresh or EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe)
+                && current.CanReturnToPreviousWorkspace && !after.CanReturnToPreviousWorkspace)
+            {
+                var bookmark = _workspaceViewBookmark; _workspaceViewBookmark = null;
+                if (bookmark is not null) RestoreWorkspaceView(bookmark);
+            }
+            else if (action != EN_MANUAL_INSPECTION_UI_ACTION.LoadResultFile && !after.CanReturnToPreviousWorkspace)
+                _workspaceViewBookmark = null;
+        }
         catch (Exception ex) { ShowMessage(ex.Message); }
         finally { _requests--; Refresh(); }
     }
@@ -679,8 +850,11 @@ public partial class CManualInspectionView : UserControl
     };
     internal static string DescribeAction(EN_MANUAL_INSPECTION_UI_ACTION action, CManualInspectionUiSnapshot snapshot, int count) => action switch
     {
-        EN_MANUAL_INSPECTION_UI_ACTION.Refresh or EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe => "다른 메뉴에서 측정한 결과와 현재 활성 보정값을 다시 불러옵니다. 미적용 후보·복사 작업은 보관 후 새 자료로 열 수 있습니다. 미완료 측정 보호는 유지합니다. 장비는 이동하지 않고 보정 파일도 쓰지 않습니다.",
-        EN_MANUAL_INSPECTION_UI_ACTION.Calculate => $"선택한 {count:N0}점의 직접 측정으로 보정 후보 B + 편차를 계산합니다. 기존 후보를 대신할 수 있습니다. 여기서는 활성 보정 파일에 저장하지 않습니다.",
+        EN_MANUAL_INSPECTION_UI_ACTION.Refresh => "현재 표시한 자료를 다시 읽으며, 파일 작업 중에는 원래 작업 복귀 지점과 현재 측정을 유지합니다. 새 자료의 미적용 후보는 적용 전 재검증해야 하며, 새로고침은 장비를 이동하지 않고 보정 파일도 저장하지 않습니다.",
+        EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe => snapshot.CanReturnToPreviousWorkspace
+            ? "파일 불러오기 전 작업으로 돌아갑니다. 현재 활성 보정과 실제 Stage 위치는 원복하지 않습니다."
+            : "현재 Recipe의 측정 결과와 활성 보정값을 다시 확인합니다. 장비 이동이나 보정 저장은 실행하지 않습니다.",
+        EN_MANUAL_INSPECTION_UI_ACTION.Calculate => $"선택한 {count:N0}점의 유효한 실측 또는 검증된 파일 측정값으로 보정 후보 B + 편차를 계산합니다. 기존 후보를 대신할 수 있습니다. 여기서는 활성 보정 파일에 저장하지 않습니다.",
         EN_MANUAL_INSPECTION_UI_ACTION.Validate => $"현재 후보 {snapshot.CandidateRows.Count:N0}점의 출처·중복 적용·보정 한계·Field를 검증합니다. 통과해도 ‘검증값 적용’ 전에는 활성 보정이 바뀌지 않습니다.",
         EN_MANUAL_INSPECTION_UI_ACTION.RetryRemaining => $"미완료 {snapshot.RemainingCount:N0}점만 이동 후 재측정합니다. 이미 완료된 점은 유지하며 중지됐던 자동 보정은 재개하지 않습니다.",
         EN_MANUAL_INSPECTION_UI_ACTION.UndoCopy => "직전 대표값 복사를 취소해 작업값·후보를 이전 상태로 돌립니다. 원측정과 활성 보정 파일은 변경하지 않습니다. 복사 이후 기준이 달라졌으면 취소가 거부됩니다.",
@@ -722,7 +896,7 @@ public partial class CManualInspectionView : UserControl
     {
         if (Busy || _snapshot.HasIncomplete) { ShowMessage("미완료 측정의 잔여점을 먼저 완료하세요."); return; }
         if (_representativeKey is null || !_points.TryGetValue(_representativeKey, out var reference) || !reference.CanBeReference)
-        { ShowMessage("직접 측정한 OK 또는 NG 점을 대표값으로 지정하세요. 복사본은 대표점으로 사용할 수 없습니다."); return; }
+        { ShowMessage("유효한 실측 또는 검증된 파일 결과의 OK/NG 점을 대표값으로 지정하세요. 복사본은 대표점으로 사용할 수 없습니다."); return; }
         var keys = _selected.Where(k => k != reference.Key && _points.TryGetValue(k, out var p) && !p.IsMasked).ToArray();
         if (keys.Length == 0) { ShowMessage("대표점 이외에 오프셋·상태를 복사할 대상을 선택하세요."); return; }
         var (x, y) = ReferenceValues(reference);
@@ -808,22 +982,26 @@ public partial class CManualInspectionView : UserControl
     private void Files_Click(object sender, RoutedEventArgs e)
     {
         var menu = NewMenu(FilesButton);
-        var recent = new MenuItem { Header = "최근 측정 결과 보기", IsEnabled = !Busy };
-        recent.Click += async (_, _) => await OpenRecentResults(); menu.Items.Add(recent);
-        foreach (var (label, action) in new[] { ("파일 직접 선택해서 보기", EN_MANUAL_INSPECTION_UI_ACTION.LoadResultFile), ("작업 세션 불러오기", EN_MANUAL_INSPECTION_UI_ACTION.ImportSession), ("작업 세션 저장", EN_MANUAL_INSPECTION_UI_ACTION.ExportSession), ("결과 CSV 내보내기", EN_MANUAL_INSPECTION_UI_ACTION.ExportCsv) })
+        var previous = new MenuItem { Header = "파일 불러오기 전 작업으로 돌아가기", IsEnabled = !Busy && !_snapshot.HasIncomplete && _snapshot.CanReturnToPreviousWorkspace,
+            ToolTip = _snapshot.CanReturnToPreviousWorkspace ? "최초 파일을 열기 전 작업·보기로 복귀합니다. 현재 활성 보정과 실제 Stage 위치는 원복하지 않습니다." : "불러온 파일이 열려 있을 때 사용할 수 있습니다." };
+        ToolTipService.SetShowOnDisabled(previous, true);
+        previous.Click += async (_, _) => await ReturnToPreviousWorkspace(); menu.Items.Add(previous);
+        menu.Items.Add(new Separator());
+        foreach (var (label, action) in new[] { ("측정 결과 파일 불러오기", EN_MANUAL_INSPECTION_UI_ACTION.LoadResultFile), ("결과 CSV 내보내기", EN_MANUAL_INSPECTION_UI_ACTION.ExportCsv) })
         {
-            var item = new MenuItem { Header = label, IsEnabled = !Busy };
+            var item = new MenuItem { Header = label, IsEnabled = !Busy && (action != EN_MANUAL_INSPECTION_UI_ACTION.LoadResultFile || !_snapshot.HasIncomplete),
+                ToolTip = action == EN_MANUAL_INSPECTION_UI_ACTION.LoadResultFile && _snapshot.HasIncomplete ? "미완료 측정의 잔여점을 먼저 완료하세요." : label };
+            ToolTipService.SetShowOnDisabled(item, true);
             item.SetResourceReference(Control.ForegroundProperty, "TextPrimaryBrush");
             item.Click += async (_, _) =>
             {
-                if (action is EN_MANUAL_INSPECTION_UI_ACTION.ImportSession or EN_MANUAL_INSPECTION_UI_ACTION.LoadResultFile)
+                var frozen = Request(action == EN_MANUAL_INSPECTION_UI_ACTION.ExportCsv ? _snapshot.Points.Select(p => p.Key) : null);
+                if (action == EN_MANUAL_INSPECTION_UI_ACTION.LoadResultFile)
                 {
-                    var panel = new StackPanel(); panel.Children.Add(Label(action == EN_MANUAL_INSPECTION_UI_ACTION.ImportSession
-                        ? "보관한 작업 선택·원측정·후보·이력을 불러옵니다. 실제 Recipe/Run/활성 보정과 일치하는지 검사하며 자동 이동이나 자동 보정을 시작하지 않습니다. 현재 작업을 먼저 보관하세요."
-                        : "측정 결과 CSV를 선택해 지도와 표에서 확인합니다. 다른 기판·출처가 불완전한 결과는 조회 전용일 수 있으며 현재 직접 실측으로 승인하지 않습니다. 장비 이동이나 보정 저장은 하지 않습니다."));
+                    var panel = new StackPanel(); panel.Children.Add(Label("측정 결과 CSV를 현재 Recipe의 실제 좌표에 연결합니다. 검증한 파일의 위치로 이동·측정·보정할 수 있습니다. 파일을 여는 것만으로 장비가 이동하거나 보정이 저장되지는 않습니다. 미완료 측정은 먼저 완료하세요. 기존 작업이 있으면 최초 파일을 열기 전 작업과 보기를 돌아가기에 보관합니다."));
                     if (!Confirm(label, panel, "확인 · 파일 선택")) return;
                 }
-                await Execute(action, Request());
+                await Execute(action, frozen);
             }; menu.Items.Add(item);
         }
         FilesButton.ContextMenu = menu; menu.IsOpen = true;
@@ -831,20 +1009,14 @@ public partial class CManualInspectionView : UserControl
 
     private ContextMenu NewMenu(Button owner)
         => CManualInspectionDrawing.CreateContextMenu(owner);
-    private async Task OpenRecentResults()
+    private async Task ReturnToPreviousWorkspace()
     {
-        if (Busy) return;
-        var request = Request(); var panel = new StackPanel();
-        panel.Children.Add(Label("다른 메뉴에서 저장한 최근 측정 결과를 선택합니다. 같은 Recipe·기판인지 확인한 뒤 조회합니다. 결과 열기는 장비 이동·보정 적용을 실행하지 않습니다."));
-        var combo = new ComboBox { ItemsSource = _snapshot.RecentResults, DisplayMemberPath = nameof(CManualInspectionUiResultFile.DisplayText), Style = (Style)FindResource("ManualComboBox"), SelectedIndex = _snapshot.RecentResults.Count > 0 ? 0 : -1, Margin = new Thickness(0, 8, 0, 8) };
-        panel.Children.Add(combo);
-        var selected = new TextBlock { TextWrapping = TextWrapping.Wrap, FontSize = 11 }; selected.SetResourceReference(TextBlock.ForegroundProperty,"TextMutedBrush"); panel.Children.Add(selected);
-        void Selection() { selected.Text = combo.SelectedItem is CManualInspectionUiResultFile file ? $"출처 {file.Origin} · 기판 {file.GlassId}\n{file.Path}" : "현재 목록이 없습니다. 파일 직접 선택으로 확인할 수 있습니다."; }
-        combo.SelectionChanged += (_, _) => Selection(); Selection();
-        var chooseFile = new CheckBox { Content = "목록 대신 파일 직접 선택", IsChecked = _snapshot.RecentResults.Count == 0, Style = (Style)FindResource("ManualCheck"), Margin = new Thickness(0, 9, 0, 0) }; panel.Children.Add(chooseFile);
-        if (!Confirm("최근 측정 결과", panel, "확인 · 결과 보기")) return;
-        if (chooseFile.IsChecked != true && combo.SelectedItem is not CManualInspectionUiResultFile) { ShowMessage("조회할 결과를 선택하세요."); return; }
-        await Execute(EN_MANUAL_INSPECTION_UI_ACTION.LoadResultFile, request with { ResultPath = chooseFile.IsChecked == true ? null : ((CManualInspectionUiResultFile)combo.SelectedItem).Path });
+        if (Busy || !_snapshot.CanReturnToPreviousWorkspace) return;
+        if (_snapshot.HasIncomplete) { ShowMessage("미완료 측정의 잔여점을 먼저 완료한 뒤 돌아가세요."); return; }
+        var frozen = Request(); var panel = new StackPanel();
+        panel.Children.Add(Label("최초 파일을 불러오기 전의 작업·선택·보기로 돌아갑니다. 현재 활성 보정과 실제 Stage 위치는 원복하지 않습니다."));
+        if (Confirm("파일 불러오기 전 작업으로 돌아가기", panel, "확인 · 원작업으로 돌아가기"))
+            await Execute(EN_MANUAL_INSPECTION_UI_ACTION.ReturnToPreviousWorkspace, frozen);
     }
 
     private bool Confirm(string title, UIElement content, string confirmText, bool informationOnly = false)

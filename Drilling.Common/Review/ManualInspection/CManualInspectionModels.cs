@@ -58,13 +58,23 @@ public sealed record ST_MANUAL_POINT(
     public double? ErrorXUm { get; init; }
     public double? ErrorYUm { get; init; }
     public ST_MANUAL_MEASUREMENT? OriginalMeasurement { get; init; }
+    /// <summary>
+    /// A file value explicitly adopted for this current workspace. This is a separate import receipt,
+    /// never a fabricated camera-original packet; EDITED/MANUAL originals may remain unknown.
+    /// Automatic external-file observations do not receive this receipt.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public ST_MANUAL_MEASUREMENT? AdoptedFileMeasurement { get; init; }
     public ST_MANUAL_PROXY? ProxySource { get; init; }
     public long MeasurementVersion { get; init; }
     /// <summary>External file observation time, including EDITED values whose original raw is unknown.</summary>
     public DateTimeOffset? ExternalObservedAt { get; init; }
     public string OffsetKey => $"C{CellNo}/S{ShotNo}";
     public bool HasFiniteError => ErrorXUm is double x && ErrorYUm is double y && double.IsFinite(x) && double.IsFinite(y);
-    public bool IsDirectMeasurement => ProxySource is null && Source == "MEASURED";
+    /// <summary>Correction eligibility includes an explicit file receipt; this does not relabel camera originals.</summary>
+    public bool IsDirectMeasurement => ProxySource is null && (Source == "MEASURED" || Source == "IMPORTED" && AdoptedFileMeasurement is not null);
+    [System.Text.Json.Serialization.JsonIgnore]
+    public ST_MANUAL_MEASUREMENT? CorrectionMeasurement => Source == "IMPORTED" ? AdoptedFileMeasurement : OriginalMeasurement ?? AdoptedFileMeasurement;
 }
 
 public enum EN_MANUAL_CANDIDATE_STATE { Draft, Validated, Invalid, Applying, Applied }

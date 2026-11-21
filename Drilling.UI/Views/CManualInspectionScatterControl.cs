@@ -90,8 +90,26 @@ public sealed class CManualInspectionScatterControl : Control
     private double _toleranceX = 5;
     private double _toleranceY = 5;
     private string _emptyText = "이 범위에 유효한 측정값이 없습니다.";
+    private bool _autoScale = true;
+    private double _halfRange = 5;
+    private double _referenceHalfRange = 5;
+    private double _centerX, _centerY;
+    private Rect _plotBounds;
+    private string? _focusKey;
+    private string _contextIdentity = "", _scopeIdentity = "";
+    private sealed record ClickSelection(string[] Keys, string? FocusKey, string ContextIdentity);
+    private ClickSelection? _selectionBeforeClick;
+    private bool _selectionDispatching;
     public event EventHandler<CManualInspectionSelectionEventArgs>? SelectionRequested;
+    public event EventHandler? ViewChanged;
     public CManualInspectionScatterMetrics Metrics { get; private set; } = new();
+    public bool IsAutoScale => _autoScale;
+    public double Zoom => _referenceHalfRange / _halfRange;
+    public double MinXUm => _centerX - _halfRange;
+    public double MaxXUm => _centerX + _halfRange;
+    public double MinYUm => _centerY - _halfRange;
+    public double MaxYUm => _centerY + _halfRange;
+    public string RangeText => $"X {AxisNumber(MinXUm)} ~ {AxisNumber(MaxXUm)} / Y {AxisNumber(MinYUm)} ~ {AxisNumber(MaxYUm)} µm";
 
     public CManualInspectionScatterControl()
     {
@@ -103,77 +121,168 @@ public sealed class CManualInspectionScatterControl : Control
         ToolTipService.SetInitialShowDelay(this, 180);
         ToolTipService.SetShowDuration(this, 15000);
         AutomationProperties.SetName(this, "리뷰 측정 편차 산포도");
-        AutomationProperties.SetHelpText(this, "가로 ΔX, 세로 ΔY 단위는 마이크로미터이며 두 축의 축척은 같습니다. 점선은 공차, 십자는 평균입니다. 겹친 점은 클릭으로 순환하고 Ctrl 클릭으로 같은 화면 위치의 점을 함께 선택합니다.");
+        AutomationProperties.SetHelpText(this, "가로 ΔX, 세로 ΔY는 µm이며 두 축 축척은 같습니다. 휠은 커서 중심 확대 축소, 더블클릭은 현재 모집단 자동 맞춤입니다. 점선은 실제 공차 경계, 십자는 평균입니다. 겹친 점은 클릭 순환, Ctrl 클릭은 같은 위치의 점을 함께 선택합니다.");
         Unloaded += (_, _) => { _tip.IsOpen = false; _hoverKey = null; };
     }
 
     protected override AutomationPeer OnCreateAutomationPeer() => new CManualInspectionSurfacePeer(this);
 
     public void Configure(IReadOnlyList<CManualInspectionUiPoint> points, IEnumerable<string> selectedKeys,
-        bool byHead, double toleranceXUm, double toleranceYUm, string emptyText)
+        bool byHead, double toleranceXUm, double toleranceYUm, string emptyText,
+        string? focusKey = null, string contextIdentity = "", string scopeIdentity = "")
     {
         var samePoints = ReferenceEquals(_points, points) || _points.Count == points.Count
             && _points.Zip(points).All(pair => ReferenceEquals(pair.First, pair.Second));
         var changedScale = _toleranceX != toleranceXUm || _toleranceY != toleranceYUm || _byHead != byHead;
+        if (!_selectionDispatching && !samePoints) _selectionBeforeClick = null;
+        UpdateInteractionContext(focusKey, contextIdentity, scopeIdentity);
         _points = points; _selected = new HashSet<string>(selectedKeys, StringComparer.Ordinal);
         _byHead = byHead; _toleranceX = toleranceXUm; _toleranceY = toleranceYUm; _emptyText = emptyText;
         if (!samePoints)
         {
             Metrics = CManualInspectionScatterMetrics.Calculate(points);
             _pointByKey.Clear(); foreach (var point in points) _pointByKey[point.Key] = point;
+            if (_autoScale) FitPopulation();
         }
         if (!samePoints || changedScale)
         { _tip.IsOpen = false; _hoverSignature = ""; _hoverKey = null; _cycleCluster = ""; _cycleIndex = 0; }
         InvalidateVisual();
     }
 
+    /// <summary>Updates provenance/focus even when a host reuses the exact chart population.</summary>
+    public void UpdateInteractionContext(string? focusKey, string contextIdentity, string scopeIdentity)
+    {
+        if (_contextIdentity != contextIdentity || !_selectionDispatching && _scopeIdentity != scopeIdentity)
+            _selectionBeforeClick = null;
+        _focusKey = focusKey; _contextIdentity = contextIdentity; _scopeIdentity = scopeIdentity;
+    }
+
+    public void SetFixedHalfRange(double halfRangeUm)
+    {
+        if (!double.IsFinite(halfRangeUm) || halfRangeUm <= 0)
+            throw new ArgumentOutOfRangeException(nameof(halfRangeUm), "고정 축 범위는 0보다 큰 유한한 µm 값이어야 합니다.");
+        _selectionBeforeClick = null; SetRange(0, 0, halfRangeUm, false);
+    }
+
+    /// <summary>Restores a bookmarked view. Both axes use the same half range; a wider requested axis wins.</summary>
+    public void SetFixedRange(double minXUm, double maxXUm, double minYUm, double maxYUm, double referenceZoom = 1)
+    {
+        if (!new[] { minXUm, maxXUm, minYUm, maxYUm }.All(double.IsFinite) || minXUm >= maxXUm || minYUm >= maxYUm)
+            throw new ArgumentOutOfRangeException(nameof(minXUm), "축 범위는 유한한 최소값보다 큰 최대값이어야 합니다.");
+        var half = Math.Max(maxXUm / 2 - minXUm / 2, maxYUm / 2 - minYUm / 2);
+        var cx = minXUm / 2 + maxXUm / 2; var cy = minYUm / 2 + maxYUm / 2;
+        if (!ValidRange(cx, cy, half) || !double.IsFinite(referenceZoom) || referenceZoom <= 0 || !double.IsFinite(half * referenceZoom))
+            throw new ArgumentOutOfRangeException(nameof(minXUm), "표현 가능한 축 범위/배율을 벗어났습니다.");
+        _selectionBeforeClick = null; SetRange(cx, cy, half, false, referenceZoom);
+    }
+
+    public void ResetView() { _selectionBeforeClick = null; FitPopulation(); }
+
+    private void FitPopulation()
+    {
+        var maximum = Metrics.ValidPoints.Select(point => Math.Max(Math.Abs(point.MeasurementXUm!.Value), Math.Abs(point.MeasurementYUm!.Value))).DefaultIfEmpty(0).Max();
+        var padded = maximum * 1.12;
+        var range = maximum == 0 ? .001 : double.IsFinite(padded) && padded > 0 ? padded : maximum;
+        SetRange(0, 0, range, true);
+    }
+
+    private static bool ValidRange(double cx, double cy, double half) => double.IsFinite(cx) && double.IsFinite(cy)
+        && double.IsFinite(half) && half > 0 && double.IsFinite(cx - half) && double.IsFinite(cx + half)
+        && double.IsFinite(cy - half) && double.IsFinite(cy + half);
+
+    private void SetRange(double cx, double cy, double half, bool automatic, double referenceZoom = 1)
+    {
+        _centerX = cx; _centerY = cy; _halfRange = half; _referenceHalfRange = half * referenceZoom; _autoScale = automatic;
+        ClearHover(); ViewChanged?.Invoke(this, EventArgs.Empty); InvalidateVisual();
+    }
+
+    private void ClearHover()
+    {
+        _tip.IsOpen = false; _hoverSignature = ""; _hoverKey = null; _cycleCluster = ""; _cycleIndex = 0;
+        // Until the next retained render, old pixel positions belong to the old population/range.
+        // Ignoring input for that short interval is safer than selecting a now off-screen point.
+        _hits.Clear(); _hitBuckets.Clear(); _plotBounds = Rect.Empty;
+    }
+
+    public void ZoomAt(double factor, Point origin)
+    {
+        if (!double.IsFinite(factor) || factor <= 0 || factor == 1 || !double.IsFinite(origin.X) || !double.IsFinite(origin.Y)) return;
+        var plot = PlotBounds(); if (plot.IsEmpty || plot.Width <= 0) return;
+        var next = _halfRange / factor;
+        var nx = Math.Clamp((origin.X - (plot.Left + plot.Width / 2)) / (plot.Width / 2), -1, 1);
+        var ny = Math.Clamp(((plot.Top + plot.Height / 2) - origin.Y) / (plot.Height / 2), -1, 1);
+        var cx = _centerX + nx * (_halfRange - next); var cy = _centerY + ny * (_halfRange - next);
+        if (!ValidRange(cx, cy, next) || !double.IsFinite(_referenceHalfRange / next)) return;
+        _halfRange = next; _centerX = cx; _centerY = cy; _autoScale = false;
+        ClearHover(); ViewChanged?.Invoke(this, EventArgs.Empty); InvalidateVisual();
+    }
+
+    private Rect PlotBounds()
+    {
+        if (ActualWidth < 90 || ActualHeight < 100) return Rect.Empty;
+        const double left = 55, right = 26, top = 44, bottom = 52;
+        var width = ActualWidth - left - right; var height = ActualHeight - top - bottom;
+        var size = Math.Max(1, Math.Min(width, height));
+        return new Rect(left + (width - size) / 2, top + (height - size) / 2, size, size);
+    }
+
+    private static double Normalized(double value, double center, double half)
+    { var delta = value - center; return double.IsFinite(delta) ? delta / half : value / half - center / half; }
+    private static string AxisNumber(double value) => value != 0 && (Math.Abs(value) < .01 || Math.Abs(value) >= 10000)
+        ? value.ToString("0.##E+0", CultureInfo.InvariantCulture) : value.ToString("0.###", CultureInfo.InvariantCulture);
+
     protected override void OnRender(DrawingContext dc)
     {
         base.OnRender(dc); _hits.Clear(); _hitBuckets.Clear();
         dc.DrawRectangle(Background ?? Brushes.Transparent, null, new Rect(0, 0, ActualWidth, ActualHeight));
-        if (ActualWidth < 90 || ActualHeight < 90) return;
-        var padLeft = 55.0; var padRight = 26.0; var padTop = 44.0; var padBottom = 52.0;
-        var size = Math.Max(5, Math.Min(ActualWidth - padLeft - padRight, ActualHeight - padTop - padBottom));
-        var cx = padLeft + (ActualWidth - padLeft - padRight) / 2;
-        var cy = padTop + (ActualHeight - padTop - padBottom) / 2;
+        _plotBounds = PlotBounds();
+        if (_plotBounds.IsEmpty) return;
+        var plot = _plotBounds; var size = plot.Width;
+        var cx = plot.Left + size / 2; var cy = plot.Top + size / 2;
         var tolX = double.IsFinite(_toleranceX) ? Math.Abs(_toleranceX) : 0;
         var tolY = double.IsFinite(_toleranceY) ? Math.Abs(_toleranceY) : 0;
-        var axis = Math.Max(5, Math.Max(tolX, tolY) * 1.3);
-        foreach (var p in Metrics.ValidPoints) axis = Math.Max(axis, Math.Max(Math.Abs(p.MeasurementXUm!.Value), Math.Abs(p.MeasurementYUm!.Value)));
-        if (!double.IsFinite(axis) || axis <= 0) axis = 5;
-        var power = Math.Pow(10, Math.Floor(Math.Log10(axis)));
-        var rounded = Math.Ceiling(axis / power * 2) / 2 * power;
-        var limit = double.IsFinite(rounded) && rounded > 0 ? rounded : axis;
-        var scale = size / limit / 2;
         var line = BorderBrush ?? Brushes.LightGray;
-        var plot = new Rect(cx - size / 2, cy - size / 2, size, size);
         dc.DrawRectangle(null, new Pen(line, .8), plot);
         for (var k = -2; k <= 2; k++)
         {
-            var v = limit * (k / 2.0); var x = cx + (k / 4.0) * size; var y = cy - (k / 4.0) * size;
-            var pen = new Pen(k == 0 ? Foreground ?? line : line, k == 0 ? .9 : .5);
+            var v = _halfRange * (k / 2.0); var x = cx + (k / 4.0) * size; var y = cy - (k / 4.0) * size;
+            var pen = new Pen(line, .5);
             dc.DrawLine(pen, new Point(x, cy - size / 2), new Point(x, cy + size / 2));
             dc.DrawLine(pen, new Point(cx - size / 2, y), new Point(cx + size / 2, y));
-            var format = Math.Abs(limit) >= 10000 ? "0.##E+0" : limit < 2 || Math.Abs(limit - Math.Round(limit)) > 1e-8 ? "0.0" : "0";
-            var text = v.ToString(format, CultureInfo.InvariantCulture);
-            CManualInspectionDrawing.Text(dc, this, text, new Point(x - 13, cy + size / 2 + 6), 9, Foreground, false, 43);
-            CManualInspectionDrawing.Text(dc, this, text, new Point(Math.Max(1, cx - size / 2 - 49), y - 6), 9, Foreground, false, 47);
+            CManualInspectionDrawing.Text(dc, this, AxisNumber(_centerX + v), new Point(x - 13, cy + size / 2 + 6), 9, Foreground, false, 47);
+            CManualInspectionDrawing.Text(dc, this, AxisNumber(_centerY + v), new Point(Math.Max(1, cx - size / 2 - 49), y - 6), 9, Foreground, false, 47);
         }
+        var zx = Normalized(0, _centerX, _halfRange); var zy = Normalized(0, _centerY, _halfRange);
+        var zeroPen = new Pen(Foreground ?? line, .95);
+        if (Math.Abs(zx) <= 1) dc.DrawLine(zeroPen, new(cx + zx * size / 2, plot.Top), new(cx + zx * size / 2, plot.Bottom));
+        if (Math.Abs(zy) <= 1) dc.DrawLine(zeroPen, new(plot.Left, cy - zy * size / 2), new(plot.Right, cy - zy * size / 2));
         var tolerancePen = new Pen(CManualInspectionDrawing.Color("#B99A5B"), 1.2) { DashStyle = DashStyles.Dash };
-        var tx = Math.Min(size / 2, tolX * scale); var ty = Math.Min(size / 2, tolY * scale);
-        dc.DrawRectangle(CManualInspectionDrawing.Color("#0AB99A5B"), tolerancePen, new Rect(cx - tx, cy - ty, tx * 2, ty * 2));
+        var tx0 = Normalized(-tolX, _centerX, _halfRange); var tx1 = Normalized(tolX, _centerX, _halfRange);
+        var ty0 = Normalized(-tolY, _centerY, _halfRange); var ty1 = Normalized(tolY, _centerY, _halfRange);
+        var left = cx + Math.Clamp(tx0, -1, 1) * size / 2; var right = cx + Math.Clamp(tx1, -1, 1) * size / 2;
+        var top = cy - Math.Clamp(ty1, -1, 1) * size / 2; var bottom = cy - Math.Clamp(ty0, -1, 1) * size / 2;
+        dc.DrawRectangle(CManualInspectionDrawing.Color("#0AB99A5B"), null, new Rect(left, top, Math.Max(0, right - left), Math.Max(0, bottom - top)));
+        if (Math.Abs(tx0) <= 1) dc.DrawLine(tolerancePen, new(left, top), new(left, bottom));
+        if (Math.Abs(tx1) <= 1) dc.DrawLine(tolerancePen, new(right, top), new(right, bottom));
+        if (Math.Abs(ty0) <= 1) dc.DrawLine(tolerancePen, new(left, bottom), new(right, bottom));
+        if (Math.Abs(ty1) <= 1) dc.DrawLine(tolerancePen, new(left, top), new(right, top));
         CManualInspectionDrawing.Text(dc, this, "ΔX (µm)", new Point(Math.Max(0, cx + size / 2 - 44), cy + size / 2 + 22), 10, Foreground);
         CManualInspectionDrawing.Text(dc, this, "ΔY (µm)", new Point(8, 3), 10, Foreground);
-        CManualInspectionDrawing.Text(dc, this, $"공차 X ±{CManualInspectionUiPoint.Number(tolX)} / Y ±{CManualInspectionUiPoint.Number(tolY)} µm · 동일 축척",
-            new Point(8, 19), 10, Foreground, false, Math.Max(1, ActualWidth - 16));
+        var toleranceOutside = new[] { tx0, tx1, ty0, ty1 }.All(value => Math.Abs(value) > 1);
+        var zeroOutside = Math.Abs(zx) > 1 || Math.Abs(zy) > 1;
+        CManualInspectionDrawing.Text(dc, this, $"공차 X ±{CManualInspectionUiPoint.Number(tolX)} / Y ±{CManualInspectionUiPoint.Number(tolY)} µm · 동일 축척"
+            + (toleranceOutside ? " · 공차 경계 축 밖" : "") + (zeroOutside ? " · 원점 축 밖" : ""),
+            new Point(8, 19), 10, Foreground, false, Math.Max(1, ActualWidth - 16), singleLine: true);
         var groups = Metrics.ValidPoints.Select(p => _byHead ? p.HeadNo : p.CellNo).Distinct().OrderBy(x => x).ToArray();
         var groupIndices = groups.Select((number, index) => (number, index)).ToDictionary(pair => pair.number, pair => pair.index);
-        dc.PushClip(new RectangleGeometry(new Rect(cx - size / 2 - 6, cy - size / 2 - 6, size + 12, size + 12)));
+        dc.PushClip(new RectangleGeometry(plot));
         var selectedHits = new List<(CManualInspectionUiPoint Point, Point At)>();
         foreach (var point in Metrics.ValidPoints)
         {
-            var x = cx + point.MeasurementXUm!.Value * scale; var y = cy - point.MeasurementYUm!.Value * scale;
-            if (!double.IsFinite(x) || !double.IsFinite(y)) continue;
+            var nx = Normalized(point.MeasurementXUm!.Value, _centerX, _halfRange);
+            var ny = Normalized(point.MeasurementYUm!.Value, _centerY, _halfRange);
+            if (!double.IsFinite(nx) || !double.IsFinite(ny) || Math.Abs(nx) > 1 || Math.Abs(ny) > 1) continue;
+            var x = cx + nx * size / 2; var y = cy - ny * size / 2;
             var group = _byHead ? point.HeadNo : point.CellNo;
             var index = _byHead ? Math.Max(0, group - 1) : groupIndices[group];
             var brush = CManualInspectionDrawing.Color(CManualInspectionDrawing.HeadColors[index % CManualInspectionDrawing.HeadColors.Length]);
@@ -197,13 +306,17 @@ public sealed class CManualInspectionScatterControl : Control
         }
         if (Metrics.Count > 0 && CManualInspectionUiPoint.Finite(Metrics.MeanX) && CManualInspectionUiPoint.Finite(Metrics.MeanY))
         {
-            var x = cx + Metrics.MeanX!.Value * scale; var y = cy - Metrics.MeanY!.Value * scale;
+            var x = cx + Normalized(Metrics.MeanX!.Value, _centerX, _halfRange) * size / 2;
+            var y = cy - Normalized(Metrics.MeanY!.Value, _centerY, _halfRange) * size / 2;
             var meanPen = new Pen(Foreground ?? Brushes.Black, 2);
-            dc.DrawLine(meanPen, new Point(x - 6, y), new Point(x + 6, y));
-            dc.DrawLine(meanPen, new Point(x, y - 6), new Point(x, y + 6));
+            if (double.IsFinite(x) && double.IsFinite(y) && plot.Contains(new Point(x, y)))
+            {
+                dc.DrawLine(meanPen, new Point(x - 6, y), new Point(x + 6, y));
+                dc.DrawLine(meanPen, new Point(x, y - 6), new Point(x, y + 6));
+            }
         }
         dc.Pop();
-        var legend = "● 실측  ◇ 복사  □ 보정 기반  ╱ NG·오류  + 평균";
+        var legend = $"● 실측  ◇ 복사  □ 보정 기반  ╱ NG·오류  + 평균  · 표시 {_hits.Count:N0}/{Metrics.Count:N0}";
         CManualInspectionDrawing.Text(dc, this, legend, new Point(8, ActualHeight - 16), 9, Foreground, false, Math.Max(1, ActualWidth - 16));
         if (ActualWidth > 470)
         {
@@ -224,6 +337,7 @@ public sealed class CManualInspectionScatterControl : Control
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
     {
         base.OnMouseLeftButtonDown(e); Focus();
+        if (TryResetOnDoubleClick(e.ClickCount)) { e.Handled = true; return; }
         if (!SelectHit(e.GetPosition(this), Keyboard.Modifiers.HasFlag(ModifierKeys.Control))) return;
         e.Handled = true;
     }
@@ -233,6 +347,7 @@ public sealed class CManualInspectionScatterControl : Control
     // all 10k points on every mouse move/click.
     private List<(string Key, Point Point)> HitGroup(Point at)
     {
+        if (_plotBounds.IsEmpty || !_plotBounds.Contains(at)) return [];
         var candidates = new List<int>(); var bx = (int)Math.Floor(at.X / 24); var by = (int)Math.Floor(at.Y / 24);
         for (var y = by - 1; y <= by + 1; y++) for (var x = bx - 1; x <= bx + 1; x++)
             if (_hitBuckets.TryGetValue((x, y), out var bucket)) candidates.AddRange(bucket);
@@ -250,6 +365,7 @@ public sealed class CManualInspectionScatterControl : Control
 
     private bool SelectHit(Point at, bool ctrl)
     {
+        _selectionBeforeClick = null;
         var group = HitGroup(at); if (group.Count == 0) return false;
         var cluster = group[0].Key + "|" + group.Count;
         _cycleIndex = cluster == _cycleCluster ? (_cycleIndex + 1) % group.Count : 0;
@@ -258,8 +374,25 @@ public sealed class CManualInspectionScatterControl : Control
         // Partial overlap selection expands to the whole group. Once every overlapping point is
         // selected, Ctrl removes the group. A single point retains the ordinary Ctrl toggle.
         var toggle = ctrl && (group.Count == 1 || group.All(hit => _selected.Contains(hit.Key)));
-        SelectionRequested?.Invoke(this, new(ctrl ? group.Select(hit => hit.Key).ToArray() : [focus], focus, ctrl, toggle));
+        _selectionBeforeClick = new(_selected.ToArray(), _focusKey, _contextIdentity);
+        _selectionDispatching = true;
+        try { SelectionRequested?.Invoke(this, new(ctrl ? group.Select(hit => hit.Key).ToArray() : [focus], focus, ctrl, toggle)); }
+        finally { _selectionDispatching = false; }
         return true;
+    }
+
+    private bool TryResetOnDoubleClick(int clickCount)
+    {
+        if (clickCount < 2) return false;
+        var before = _selectionBeforeClick?.ContextIdentity == _contextIdentity ? _selectionBeforeClick : null;
+        _selectionBeforeClick = null;
+        if (before is not null && (!_selected.SetEquals(before.Keys) || _focusKey != before.FocusKey))
+        {
+            _selectionDispatching = true;
+            try { SelectionRequested?.Invoke(this, new(before.Keys, before.FocusKey, clearFocus: before.FocusKey is null)); }
+            finally { _selectionDispatching = false; }
+        }
+        ResetView(); return true;
     }
 
     protected override void OnMouseMove(MouseEventArgs e)
@@ -281,5 +414,10 @@ public sealed class CManualInspectionScatterControl : Control
     protected override void OnMouseLeave(MouseEventArgs e)
     {
         base.OnMouseLeave(e); _tip.IsOpen = false; _hoverKey = null; _hoverSignature = ""; InvalidateVisual();
+    }
+
+    protected override void OnMouseWheel(MouseWheelEventArgs e)
+    {
+        ZoomAt(Math.Exp(Math.Sign(e.Delta) * .14), e.GetPosition(this)); e.Handled = true;
     }
 }

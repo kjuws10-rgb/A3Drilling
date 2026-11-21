@@ -19,7 +19,9 @@ public sealed class CManualInspectionController : IManualInspectionController
 {
     private readonly IManualInspectionBackend _production;
     private IManualInspectionBackend _backend;
-    private readonly CManualInspectionWorkspace _engine = new();
+    private CManualInspectionWorkspace _engine = new();
+    private WorkspaceBookmark? _previousWorkspace;
+    private bool _loadFailureRecovered;
     private readonly SemaphoreSlim _command = new(1, 1);
     private readonly Action<string> _report;
     private readonly TimeProvider _presentationTime;
@@ -91,7 +93,7 @@ public sealed class CManualInspectionController : IManualInspectionController
         { await dispatcher.InvokeAsync(() => SynchronizeExternalAsync(cancellationToken)).Task.Unwrap(); return; }
         if (_source is null || _backend != _production) return;
         if (_explicitResultView)
-        { _synchronizationText = "선택한 파일 조회 유지 · 현재 기판의 최신 결과는 결과 새로고침에서 확인하세요."; Publish(reusePoints: true); return; }
+        { _synchronizationText = "선택한 파일 작업 유지 · 자동으로 다른 자료로 전환하지 않습니다. 원래 작업은 파일 메뉴에서 돌아가세요."; Publish(reusePoints: true); return; }
         _syncQueued = true;
         if (IsBusy || _engine.HasIncompleteMeasurements || _engine.Candidate is { State: not EN_MANUAL_CANDIDATE_STATE.Applied })
         {
@@ -172,8 +174,13 @@ public sealed class CManualInspectionController : IManualInspectionController
             switch (action)
             {
                 case EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe:
+                    if (_previousWorkspace is not null) await ReturnToPreviousWorkspace(token);
+                    else await LoadSource(null, token);
+                    break;
                 case EN_MANUAL_INSPECTION_UI_ACTION.Refresh:
-                    await LoadSource(null, token); break;
+                    await LoadSource(_explicitResultView ? _source?.SourcePath : null, token, preserveFileWork:_explicitResultView); break;
+                case EN_MANUAL_INSPECTION_UI_ACTION.ReturnToPreviousWorkspace:
+                    await ReturnToPreviousWorkspace(token); break;
                 case EN_MANUAL_INSPECTION_UI_ACTION.LoadResultFile:
                     var result = request.ResultPath ?? ChooseFile(false, "csv");
                     if (result is not null) await LoadSource(result, token); break;
@@ -233,7 +240,7 @@ public sealed class CManualInspectionController : IManualInspectionController
         {
             if (action is EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe or EN_MANUAL_INSPECTION_UI_ACTION.LoadResultFile
                 or EN_MANUAL_INSPECTION_UI_ACTION.Refresh or EN_MANUAL_INSPECTION_UI_ACTION.ImportSession)
-                if (_source is not null) _source = _source with { ReadOnly = true };
+                if (_source is not null && !_loadFailureRecovered) _source = _source with { ReadOnly = true };
             _status = e.Message; _message = e.Message; throw;
         }
         finally
@@ -253,8 +260,10 @@ public sealed class CManualInspectionController : IManualInspectionController
         }
     }
 
-    private async Task LoadSource(string? path, CancellationToken token, bool keepBackend = false, bool automatic = false)
+    private async Task LoadSource(string? path, CancellationToken token, bool keepBackend = false, bool automatic = false, bool preserveFileWork = false)
     {
+        _loadFailureRecovered = false;
+        if (path is not null) { await OpenResultWorkspace(path, token,preserveFileWork); return; }
         var previous = _source is not null ? _engine.CaptureSession() : null;
         if (previous is not null) SaveLocalSession();
         if (!keepBackend) _backend = _production;
@@ -303,6 +312,140 @@ public sealed class CManualInspectionController : IManualInspectionController
         _synchronizationText = path is null ? "최근 측정·현재 활성 보정 표시 · " + next.Description
             : "선택 결과 조회 · " + next.SourcePath;
         if (_syncPending) _synchronizationText = "외부 결과 확인 대기 · 미완료 측정을 보존했습니다. 잔여 측정 후 갱신합니다.";
+    }
+
+    private sealed record WorkspaceBookmark(CManualInspectionWorkspace Engine, CManualInspectionSource Source,
+        IManualInspectionBackend Backend, SessionBundle Options,
+        Dictionary<string,CManualInspectionImportedResult> DisplayedImports, string Status, string Message);
+
+    private WorkspaceBookmark CaptureBookmark() => new(_engine,_source!,_backend,Bundle(),
+        new(_displayedImports,StringComparer.Ordinal),_status,_message);
+
+    private async Task OpenResultWorkspace(string path,CancellationToken token,bool preserveFileWork=false)
+    {
+        if (_engine.HasIncompleteMeasurements)
+        {
+            _loadFailureRecovered=true;
+            throw new InvalidOperationException("중단·실패한 묶음 측정의 잔여 위치를 완료한 후 파일을 전환하세요. 파일 전환으로 미완료 범위를 지우지 않습니다.");
+        }
+        var before = _source is null ? null : CaptureBookmark();
+        if (before is not null) SaveLocalSession();
+        try
+        {
+            var next = await _production.LoadAsync(path,token);
+            if (preserveFileWork && _explicitResultView && _source is not null && SameFrame(_source.Context,next.Context)
+                && _engine.Points.Select(p=>p.Key).ToHashSet(StringComparer.Ordinal).SetEquals(next.Points.Select(p=>p.Key)))
+            {
+                _engine.MergeImportedObservations(next.Points,next.ImportedResults.ToDictionary(p=>p.Key,p=>p.Value.SavedAt));
+                _source=next;ReconcileDisplayedImports(next);_syncPending=_syncQueued=false;
+                _status="같은 파일을 다시 읽었습니다. 현재 측정·복사·후보·설정과 파일 이전 복귀 지점은 유지합니다.";
+                return;
+            }
+            var separate = new CManualInspectionWorkspace();
+            separate.Load(next.Context,next.Points,next.Values,next.Limits,next.FieldEvaluator);
+            separate.SeedConsumedMeasurements(_production.ConsumedMeasurements);
+            // Publish only after the entire file/geometry/context has passed. Repeated files keep
+            // the first native bookmark; they never replace its engine or checkpoint with CSV state.
+            if (!_explicitResultView && before is not null) _previousWorkspace ??= before;
+            _backend = _production; _engine = separate; _source = next; _explicitResultView = true;
+            _allowManual = false; _stageX = _stageY = double.NaN;
+            _displayedImports.Clear();ReconcileDisplayedImports(next);
+            _syncPending = _syncQueued = false;
+            _synchronizationText = "불러온 파일 작업 · 현재 Recipe 기준 이동·측정·검증 후 보정 · " + next.SourcePath;
+            _status = next.Description;
+        }
+        catch
+        {
+            if (before is not null)
+            {
+                // LoadAsync prepares mutable adapter plans. Restore them as well as retaining the
+                // old engine, so a rejected CSV cannot leave old controls wired to partial new plans.
+                try
+                {
+                    var reloaded = await before.Backend.LoadAsync(
+                        string.IsNullOrWhiteSpace(before.Source.SourcePath)?null:before.Source.SourcePath,
+                        CancellationToken.None,before.Engine.Points.Select(p=>p.Key).ToArray());
+                    _loadFailureRecovered = SameFrame(before.Source.Context,reloaded.Context);
+                    _backend=before.Backend;_engine=before.Engine;
+                    _source = _loadFailureRecovered ? reloaded : before.Source with { ReadOnly=true };
+                }
+                catch { _source=before.Source with { ReadOnly=true }; }
+            }
+            throw;
+        }
+    }
+
+    private async Task ReturnToPreviousWorkspace(CancellationToken token)
+    {
+        var bookmark = _previousWorkspace ?? throw new InvalidOperationException("돌아갈 파일 이전 작업이 없습니다.");
+        if (_engine.HasIncompleteMeasurements)
+        {
+            _loadFailureRecovered=true;
+            throw new InvalidOperationException("현재 묶음 측정의 잔여 위치를 완료한 후 돌아가세요. 완료한 측정 결과는 자동 보관합니다.");
+        }
+        SaveLocalSession();
+        var keys = bookmark.Engine.Points.Select(p=>p.Key).ToArray();
+        CManualInspectionSource next;
+        try
+        {
+            next = await bookmark.Backend.LoadAsync(null,token);
+            if (SameFrame(bookmark.Source.Context,next.Context) && keys.Except(next.Points.Select(p=>p.Key),StringComparer.Ordinal).Any())
+                next=await bookmark.Backend.LoadAsync(null,token,keys);
+        }
+        catch
+        {
+            // The adapter can have prepared part of a different plan even when a read fails.
+            // Reconnect the still-visible file before allowing more operations on that display.
+            try
+            {
+                if (_source is not null)
+                {
+                    var active = await _backend.LoadAsync(_explicitResultView?_source.SourcePath:null,
+                        CancellationToken.None,_engine.Points.Select(p=>p.Key).ToArray());
+                    _loadFailureRecovered=SameFrame(_source.Context,active.Context);
+                    _source = _loadFailureRecovered ? active : _source with { ReadOnly=true };
+                }
+            }
+            catch { if (_source is not null) _source=_source with { ReadOnly=true }; }
+            throw;
+        }
+        var exact = SameFrame(bookmark.Source.Context,next.Context);
+        var sameCoordinates = bookmark.Source.Context.RecipeId==next.Context.RecipeId
+            && bookmark.Source.Context.RunId==next.Context.RunId
+            && bookmark.Source.Context.CoordinateSignature==next.Context.CoordinateSignature;
+        CManualInspectionWorkspace restored;
+        if (exact) restored=bookmark.Engine;
+        else
+        {
+            restored=new();
+            var display = next.Points;
+            if (sameCoordinates)
+            {
+                var old=bookmark.Engine.Points.ToDictionary(p=>p.Key,StringComparer.Ordinal);
+                display=next.Points.Select(p=>old.TryGetValue(p.Key,out var value)
+                    && value.CellNo==p.CellNo && value.HeadNo==p.HeadNo && value.ShotNo==p.ShotNo && value.BeamNo==p.BeamNo
+                    && value.XMm==p.XMm && value.YMm==p.YMm && value.Masked==p.Masked
+                    ? value with { Source="IMPORTED",ProxySource=null,AdoptedFileMeasurement=null } : p).ToArray();
+            }
+            // Changed B invalidates the old candidate AND old measurement eligibility. Historical
+            // values remain visible, but cannot be silently added to the newly corrected baseline.
+            restored.Load(next.Context,display,next.Values,sameCoordinates?bookmark.Options.Session.Limits:next.Limits,next.FieldEvaluator);
+        }
+        restored.SeedConsumedMeasurements(bookmark.Backend.ConsumedMeasurements);
+        _backend=bookmark.Backend;_source=next;_engine=restored;_explicitResultView=false;
+        RestoreOptions(bookmark.Options);
+        _displayedImports=new(bookmark.DisplayedImports,StringComparer.Ordinal);ReconcileDisplayedImports(next);
+        if (!exact && sameCoordinates)
+            foreach (var point in restored.Points.Where(p=>p.Source=="IMPORTED" && p.HasFiniteError))
+                _displayedImports[point.Key]=new(bookmark.Source.SourcePath,
+                    point.ExternalObservedAt??point.OriginalMeasurement?.MeasuredAt??DateTimeOffset.MinValue,
+                    "이전 작업의 측정·복사값 · 활성 보정 변경으로 재측정 필요");
+        _stageX=_stageY=double.NaN; // Returning the screen never moves the actual stage back.
+        _syncPending=_syncQueued=false;_previousWorkspace=null;
+        _synchronizationText="파일 불러오기 전 작업으로 돌아왔습니다. 실제 장비 위치·활성 보정은 되돌리지 않습니다.";
+        _status=exact ? "파일 이전의 선택 Recipe 작업·측정·후보·설정을 복구했습니다. 장비 이동은 하지 않았습니다."
+            : sameCoordinates ? "원래 Recipe 화면으로 복귀 · 현재 활성 보정값을 반영했습니다. 이전 측정은 이력으로 보존하고 후보는 다시 측정·계산하세요."
+            : "현재 Recipe·가공 회차로 복귀했습니다. 달라진 기준의 옛 측정·후보는 자동 재사용하지 않으며 이전 자동 보관 파일은 보존합니다.";
     }
 
     private static bool SameFrame(ST_MANUAL_CONTEXT left, ST_MANUAL_CONTEXT right) => left.RecipeId == right.RecipeId
@@ -430,6 +573,9 @@ public sealed class CManualInspectionController : IManualInspectionController
         {
             SaveLocalSession(); Publish(reusePoints: true);
             var identity = JsonSerializer.Serialize(new { Kind = "MANUAL_INSPECTION", snapshot.RecipeId, snapshot.RunId,
+                InputResultPath = _source?.SourcePath,
+                FileObservations = snapshot.Rows.Where(r=>_engine.GetPoint(r.Key).AdoptedFileMeasurement is not null)
+                    .Select(r=>new { r.Key,Receipt=_engine.GetPoint(r.Key).AdoptedFileMeasurement }),
                 Tokens = snapshot.Rows.Select(r => new { r.Key, r.MeasurementToken, r.Source, r.ReferenceKey, r.Reason, r.Final,
                     // A representative can be remeasured after the copy. Audit the raw captured by
                     // that copy, not a newer raw currently displayed at the same reference key.
@@ -588,7 +734,8 @@ public sealed class CManualInspectionController : IManualInspectionController
     }
     private string SessionPath() => Path.Combine(_backend.StateDirectory, "Sessions",
         CManualInspectionBackend.Digest(_engine.Context!.RecipeId + "|" + _engine.Context.RunId
-            + "|" + _engine.Context.CoordinateSignature + "|" + _engine.Context.RevisionId) + ".json");
+            + "|" + _engine.Context.CoordinateSignature + "|" + _engine.Context.RevisionId
+            + (_explicitResultView ? "|FILE:"+_source?.SourcePath : "")) + ".json");
     private void SaveLocalSession()
     {
         if (_source is null || _source.ReadOnly) return;
@@ -631,20 +778,23 @@ public sealed class CManualInspectionController : IManualInspectionController
                 WorkingXUm=p.ErrorXUm,WorkingYUm=p.ErrorYUm,OriginalXUm=p.OriginalMeasurement?.ErrorXUm,OriginalYUm=p.OriginalMeasurement?.ErrorYUm,
                 BaseXUm=b.XUm,BaseYUm=b.YUm,CandidateXUm=f?.XUm,CandidateYUm=f?.YUm,Source=p.Source,IsProxy=p.ProxySource is not null,
                 HasAppliedOffset=_source?.AppliedOffsetKeys.Contains(p.Key)==true,
+                CanUseImportedForCorrection=p.AdoptedFileMeasurement is not null && p.IsDirectMeasurement,
                 AppliedLevel=!p.Masked && _source?.AppliedOffsetKeys.Contains(p.Key)==true ? CManualInspectionLevels.Evaluate(b.XUm,b.YUm,_levelMetric,_levelBounds) : null,
                 AppliedMetricUm=!p.Masked && _source?.AppliedOffsetKeys.Contains(p.Key)==true ? CManualInspectionLevels.Metric(b.XUm,b.YUm,_levelMetric) : null,
                 DisplayedMeasurementOrigin=correctionBased ? "보정기반 측정 · 기존 적용 Review Offset" : p.ProxySource is not null ? "대표값 복사 · " + p.ProxySource.ReferenceKey
                     : p.Source=="MEASURED" ? "직접 측정 · Manual Inspection" : _displayedImports.GetValueOrDefault(p.Key)?.Origin ?? "",
                 MeasurementSourcePath=correctionBased ? _source?.Context.RevisionId ?? "" : p.Source=="IMPORTED" ? _displayedImports.GetValueOrDefault(p.Key)?.Path ?? "" : "",
                 ReferenceFinalXUm=reference?.XUm,ReferenceFinalYUm=reference?.YUm,
-                ReferenceKey=p.ProxySource?.ReferenceKey ?? "",MeasurementToken=p.OriginalMeasurement?.RawToken ?? "",
-                Details=$"DESIGN µm · {p.Judge}\n원측정: {p.OriginalMeasurement?.RawData}\n{p.ProxySource?.Reason}"
+                ReferenceKey=p.ProxySource?.ReferenceKey ?? "",MeasurementToken=p.CorrectionMeasurement?.RawToken ?? "",
+                Details=$"DESIGN µm · {p.Judge}\n원측정: {p.OriginalMeasurement?.RawData}\n파일 입력: {p.AdoptedFileMeasurement?.RawData}\n{p.ProxySource?.Reason}"
             };
         }).ToArray();
         if (!reusePoints) _pendingPointPublication = false;
         var op = _engine.Operation; var validation = candidate?.Validation;
         Snapshot = new()
         {
+            CanReturnToPreviousWorkspace=_previousWorkspace is not null,
+            CellLayouts=_source?.CellLayouts ?? [],GlassWidthMm=_source?.GlassWidthMm ?? 0,GlassHeightMm=_source?.GlassHeightMm ?? 0,
             Version=++_version,RecipeId=c?.RecipeId ?? "—",RunId=c?.RunId ?? "—",ActiveRevisionId=c?.RevisionId ?? "—",
             SourcePath=_source?.SourcePath ?? "",IsSimulation=_backend.IsSimulation,IsBusy=IsBusy,
             SyncPending=_syncPending,SynchronizationText=_synchronizationText,ImportedResultCount=_source?.ImportedResults.Count ?? 0,

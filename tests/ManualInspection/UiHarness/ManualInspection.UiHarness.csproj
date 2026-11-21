@@ -10,6 +10,7 @@
     <Compile Include="HardeningCases.cs" />
     <Compile Include="VisualUsabilityCases.cs" />
     <Compile Include="MapFirstCases.cs" />
+    <Compile Include="CellOverviewCases.cs" />
     <Compile Include="../../../Drilling.UI/Views/CManualInspectionUiContract.cs" Link="CManualInspectionUiContract.cs" />
     <Compile Include="../../../Drilling.UI/Views/CManualInspectionMapControl.cs" Link="CManualInspectionMapControl.cs" />
     <Compile Include="../../../Drilling.UI/Views/CManualInspectionScatterControl.cs" Link="CManualInspectionScatterControl.cs" />

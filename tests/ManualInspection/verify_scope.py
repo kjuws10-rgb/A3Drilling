@@ -1,4 +1,4 @@
-"""Verify map-first Manual Inspection scope and preservation. No equipment execution."""
+"""Verify cell-overview Manual Inspection scope and preservation. No equipment execution."""
 import argparse
 import hashlib
 import json
@@ -7,7 +7,7 @@ from pathlib import Path
 import subprocess
 import xml.etree.ElementTree as ET
 
-BASE = "7c6cd31ecaa5b201e6138c59fa757f2f87e292d8"
+BASE = "b38867d1140f31796bfc62531b8735a286069131"
 ROOT = Path(__file__).resolve().parents[2]
 EXISTING = {
     "Drilling.Common/Review/CReviewManager.cs",
@@ -18,17 +18,17 @@ EXISTING = {
     "Drilling.UI/Menu/Menus/CMenuCorrection.cs",
     "Drilling.UI/Views/CCorrectionView.xaml",
     "Drilling.UI/Views/CCorrectionView.xaml.cs",
-}
-NEW = {
     "Drilling.Common/Review/CManualInspectionCoordinateBridge.cs",
     "Drilling.Common/Review/CManualInspectionResultProjection.cs",
+    "Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs",
+    "Drilling.UI/Menu/Menus/CManualInspectionUpdateMonitor.cs",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.ManualInspection.cs",
+}
+NEW = {
     "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs",
     "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
     "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs",
     "Drilling.UI/Menu/Menus/CManualInspectionController.cs",
-    "Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs",
-    "Drilling.UI/Menu/Menus/CManualInspectionUpdateMonitor.cs",
-    "Drilling.UI/Menu/Menus/CMenuCorrection.ManualInspection.cs",
     "Drilling.UI/Views/CManualInspectionMapControl.cs",
     "Drilling.UI/Views/CManualInspectionScatterControl.cs",
     "Drilling.UI/Views/CManualInspectionUiContract.cs",
@@ -60,22 +60,17 @@ def main():
     check("changed_paths_scoped", all(p in EXISTING | NEW or p.startswith(("tests/ManualInspection/", "docs/ManualInspection/")) for p in paths))
     check("all_new_production_files_present", all((ROOT / p).is_file() for p in NEW))
     check("configuration_data_sdk_and_themes_unchanged", not any(p.startswith(("Config/", "Data/", "Drilling.UI/Theme")) or p.endswith(".dll") for p in paths))
-    # This revision deliberately changes the shared writer's transaction guarantees. Preserve the
-    # equipment sequences/result writer and the Review manager's executable body exactly instead
-    # of demanding that known-broken writer lines remain in the file.
-    for path in ["Drilling.Common/Station/CStageReviewSequences.cs", "Drilling.File/ReviewResult/CReviewResultFile.cs",
-                 "Drilling.UI/CRootView.cs", "Drilling.UI/Menu/Menus/CMenuCorrection.cs", "Drilling.UI/Views/CCorrectionView.xaml.cs"]:
+    # Only the new Manual Inspection surfaces and its file-adoption/bookmark engine contract
+    # may change. Existing Correction menus, conversion math, sequences and file writers stay exact.
+    for path in sorted(EXISTING):
         check("unchanged:" + path, git("rev-parse", f"{BASE}:{path}").strip() == git("hash-object", path).strip())
     path = "Drilling.Common/Review/CReviewManager.cs"
     marker = "public sealed record ST_REVIEW_OFFSET_FILE_DATA"
     check("review_executable_body_unchanged", git("show", f"{BASE}:{path}").decode("utf-8-sig").split(marker, 1)[0]
           == (ROOT / path).read_text(encoding="utf-8-sig").split(marker, 1)[0])
-    check("pure_correction_engine_unchanged", all(git("show", f"{BASE}:{p}") == (ROOT / p).read_bytes()
-          for p in ["Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs",
-                    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
-                    "Drilling.Common/Review/CManualInspectionCoordinateBridge.cs"]))
-    for path in ["Drilling.UI/Menu/Menus/CManualInspectionBackend.cs",
-                 "Drilling.UI/Menu/Menus/CManualInspectionController.cs",
+    check("coordinate_conversion_bridge_unchanged",git("show", f"{BASE}:Drilling.Common/Review/CManualInspectionCoordinateBridge.cs")
+          == (ROOT / "Drilling.Common/Review/CManualInspectionCoordinateBridge.cs").read_bytes())
+    for path in ["Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs",
                  "Drilling.UI/Menu/Menus/CManualInspectionUpdateMonitor.cs",
                  "Drilling.Common/Review/CManualInspectionResultProjection.cs",
                  "Drilling.File/ReviewOffset/CReviewOffsetFile.cs"]:

@@ -37,3 +37,8 @@ Common 회귀는 대표값·작업 상태·원측정 보존, 계산/검증/저�
 ## 2D 지도 중심 최신 후속
 
 [현재 지도 중심 검증](MAP_FIRST_QA.md)은 7c6cd31 기준 `feature/manual-inspection-map-first-20261120`이다. 실제 Controller93/93, WPF49/23/34/71/30/105/73=385/385, 전체 Release 경고0/오류0, 범위20개를 통과했다. 이전 UI312개는 삭제하지 않고 접기 위치·짧은 문구·명시적 선택 등 의도한 UI 변경에 따른 setup/기대만 조정했다. 보정 엔진/Backend/저장/Controller는 변경하지 않았다. 이전113/35/16/53은 재실행 수로 합산하지 않는다. 소스·Assembly·보고서·그림 SHA는 최신 validation.json을 따른다.
+
+
+## 전체 Cell·산포 축·파일 작업 최신 후속
+
+[현재 검증](CELL_OVERVIEW_QA.md)은 b38867d 기준 `feature/manual-inspection-cell-overview-20261121`이다. 전체 Release0/0, 순수 엔진113/113, 실제 Assembly Controller108/108, 실제 CSV/Backend24/24, WPF457/457(기존385+신규72), 범위27/27을 확인했다. `UiHarness --cell-overview`와 Controller/BackendReadHarness의 현재 명령으로 재현한다. 이전 writer35/projection53은 구현 동일성을 확인한 과거 증거로 구분하며 이번 재실행 수에 합산하지 않는다. 실제 장비·벤더 SDK·물리 입력/DPI 전환 검증은 별도다.
