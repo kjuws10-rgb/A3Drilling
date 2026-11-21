@@ -81,6 +81,7 @@ internal static partial class Program
         await RunPresentationChecks();
         await RunCellOverviewChecks();
         await RunOffsetInitChecks();
+        await RunMeasurementWorkflowChecks();
         await Check("generic_sta_application_and_no_loaded_vendor_assemblies",async()=>{True(Application.Current.GetType()==typeof(Application));True(!VendorAssemblies().Any());await Task.CompletedTask;});
         var path=args.Length==2&&args[0]=="--report"?args[1]:Path.Combine(AppContext.BaseDirectory,"controller-results.json");Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         var assembly=typeof(CManualInspectionController).Assembly;
@@ -105,6 +106,7 @@ internal static partial class Program
         public readonly List<bool> CumulativeInitializations=[];
         public readonly List<(string Path,bool Draft,bool Initialize,IReadOnlyDictionary<string,ST_MANUAL_OFFSET> Values)> ExportedBundles=[];
         public IReadOnlyDictionary<string,ST_MANUAL_OFFSET>? ImportedBundleValues;
+        public IReadOnlySet<string> ImportedInitializedOffsetKeys { get; set; } = new HashSet<string>(StringComparer.Ordinal);
         public Func<CancellationToken,Task>? SaveHook;
         public Action? StopHook;
         public Action<string>? PointHook;
@@ -128,7 +130,17 @@ internal static partial class Program
         }
         public async Task ExecuteFlyingAsync(CManualInspectionSource s,IReadOnlyList<string>keys,Action<CManualInspectionMeasurement>measured,Action<string>progress,CancellationToken token){FlyingKeys.AddRange(keys);foreach(var k in keys)measured(await ExecutePointAsync(s,k,EN_MANUAL_OPERATION_KIND.Flying,progress,token));}
         public async Task<string> SaveAsync(CManualInspectionSource s,IReadOnlyDictionary<string,ST_MANUAL_OFFSET>values,string identity,IReadOnlyList<ST_MANUAL_CANDIDATE_ROW>rows,CancellationToken token,IReadOnlyDictionary<string,string>?consumedMeasurements=null){if(SaveHook is not null)await SaveHook(token);token.ThrowIfCancellationRequested();if(FailSave)throw new IOException("Synthetic writer error");SourceIds.Add(identity);if(consumedMeasurements is not null)SavedConsumption.AddRange(consumedMeasurements);Saves++;var id="REV-"+Saves;Source=Source with{Context=Source.Context with{RevisionId=id},Values=new Dictionary<string,ST_MANUAL_OFFSET>(values)};return id;}
-        public async Task<string> SaveCumulativeAsync(CManualInspectionSource s,IReadOnlyDictionary<string,ST_MANUAL_OFFSET>values,string identity,IReadOnlyList<ST_MANUAL_CANDIDATE_ROW>rows,bool initializeAllReviewRows,CancellationToken token,IReadOnlyDictionary<string,string>?consumedMeasurements=null){CumulativeInitializations.Add(initializeAllReviewRows);var revision=await SaveAsync(s,values,identity,rows,token,consumedMeasurements);if(initializeAllReviewRows)Source=Source with{AppliedOffsetKeys=s.Points.Select(p=>p.Key).ToHashSet()};return revision;}
+        public async Task<string> SaveCumulativeAsync(CManualInspectionSource s,IReadOnlyDictionary<string,ST_MANUAL_OFFSET>values,string identity,IReadOnlyList<ST_MANUAL_CANDIDATE_ROW>rows,bool initializeAllReviewRows,CancellationToken token,IReadOnlyDictionary<string,string>?consumedMeasurements=null)
+        {
+            CumulativeInitializations.Add(initializeAllReviewRows);var revision=await SaveAsync(s,values,identity,rows,token,consumedMeasurements);
+            // Mirror the native writer's state metadata, not a physical measurement or device action.
+            using var json=JsonDocument.Parse(identity);var initialized=json.RootElement.TryGetProperty("InitializedOffsetKeys",out var state)
+                ?state.EnumerateArray().Select(x=>x.GetString()!).ToHashSet(StringComparer.Ordinal)
+                :initializeAllReviewRows?s.Points.Select(p=>p.OffsetKey).ToHashSet(StringComparer.Ordinal):new HashSet<string>(StringComparer.Ordinal);
+            Source=Source with{AppliedOffsetKeys=s.Points.Select(p=>p.Key).ToHashSet(),Points=Source.Points.Select(p=>initialized.Contains(p.OffsetKey)
+                ?p with{IsMeasurementOffsetInitialized=true,Judge="UNMEASURED",Source="KEPT",ErrorXUm=null,ErrorYUm=null,ProxySource=null,AdoptedFileMeasurement=null}
+                :p with{IsMeasurementOffsetInitialized=false}).ToArray()};return revision;
+        }
         public Task ExportOffsetBundleAsync(CManualInspectionSource s,IReadOnlyDictionary<string,ST_MANUAL_OFFSET>values,string path,bool isDraft,bool initializeAllReviewRows,CancellationToken token){token.ThrowIfCancellationRequested();ExportedBundles.Add((path,isDraft,initializeAllReviewRows,new Dictionary<string,ST_MANUAL_OFFSET>(values)));return Task.CompletedTask;}
         public Task<IReadOnlyDictionary<string,ST_MANUAL_OFFSET>> ImportOffsetBundleAsync(CManualInspectionSource s,string path,CancellationToken token){token.ThrowIfCancellationRequested();return Task.FromResult(ImportedBundleValues??s.Values);}
         public void Stop(){StopCalls++;StopHook?.Invoke();}

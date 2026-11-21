@@ -15,6 +15,7 @@ namespace Drilling.UI.Menu.Menus
         IReadOnlyList<string> WatchRoots => [];
         IReadOnlyDictionary<string, ST_MANUAL_OFFSET> LastSavedValues => new Dictionary<string, ST_MANUAL_OFFSET>();
         IReadOnlyList<KeyValuePair<string, string>> ConsumedMeasurements => [];
+        IReadOnlySet<string> ImportedInitializedOffsetKeys => new HashSet<string>(StringComparer.Ordinal);
         Task<CManualInspectionSource> LoadAsync(string? resultPath, CancellationToken token, IReadOnlyList<string>? displayKeys = null);
         Task EnsureCurrentAsync(CManualInspectionSource source, CancellationToken token);
         void GuardOperation();
@@ -49,6 +50,9 @@ namespace Drilling.UI.Menu.Menus
         public IReadOnlyList<CManualInspectionUiCellLayout> CellLayouts { get; init; } = [];
         public double GlassWidthMm { get; init; }
         public double GlassHeightMm { get; init; }
+        public IReadOnlyList<int> InitializationCellNos { get; init; } = [];
+        public IReadOnlySet<string> InitializationOffsetKeys { get; init; } = new HashSet<string>(StringComparer.Ordinal);
+        public bool HasExplicitMeasurementState { get; init; }
     }
     public sealed record CManualInspectionImportedResult(string Path, DateTimeOffset SavedAt, string Origin);
     public sealed record CManualInspectionMeasurement(string Key, ST_MANUAL_MEASUREMENT Measurement, double ReviewXmm, double StageYmm);

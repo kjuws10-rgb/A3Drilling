@@ -17,7 +17,9 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
         "SHOTID",
         "REVIEWOFFSETX",
         "REVIEWOFFSETY",
-        "COORDINATE_SPACE"
+        "COORDINATE_SPACE",
+        "MEASUREMENT_STATE",
+        "MEASUREMENT_INITIALIZED_AT"
     ];
 
     private static readonly IReadOnlyList<IReadOnlyList<string>> RequiredHeaderGroups =
@@ -319,6 +321,8 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
         var normalizedRows = CReviewOffsetData.ValidateRows(rows,
             $"{normalizedRecipeId} (저장할 Review Offset)", token: cancellationToken)
             .Select(row => row with { ReviewOffsetX = WrittenValue(row.ReviewOffsetX), ReviewOffsetY = WrittenValue(row.ReviewOffsetY) }).ToArray();
+        if (rows.Any(row => row.IsMeasurementOffsetInitialized && (row.ReviewOffsetX != 0 || row.ReviewOffsetY != 0)))
+            throw new InvalidDataException("초기화된 측정 Offset은 X/Y 모두 0이어야 합니다.");
         var savedAt = (fixedSavedAt ?? _now()).ToLocalTime();
         var directory = GetRecipeOffsetDirectory(normalizedRecipeId);
         Directory.CreateDirectory(directory);
@@ -328,6 +332,10 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
             savedAt = latestAt.Value.AddMilliseconds(1);
         if (latestName is not null && StringComparer.OrdinalIgnoreCase.Compare($"{savedAt:yyyyMMdd_HHmmss_fff}_reviewoffset.csv", latestName) <= 0)
             throw new InvalidDataException("현재 활성 Offset 파일명으로 신규 버전 순서를 확인할 수 없습니다. 파일명을 확인하세요.");
+        normalizedRows = normalizedRows.Select(row => row with
+        {
+            MeasurementInitializedAt = row.IsMeasurementOffsetInitialized ? row.MeasurementInitializedAt ?? savedAt : null
+        }).ToArray();
         var temporary = Path.Combine(directory, $".{Guid.NewGuid():N}.tmp");
         string contentSha256;
         string path;
@@ -354,7 +362,7 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
             Path.GetFullPath(path),
             Path.GetFileName(path),
             savedAt,
-            normalizedRows) { ContentSha256 = contentSha256 };
+            normalizedRows) { ContentSha256 = contentSha256, HasMeasurementStateMetadata = true };
     }
 
     public override async Task<ST_REVIEW_OFFSET_ROLLBACK_RESULT> RollbackLatest(
@@ -849,6 +857,8 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
                 RequiredHeaderGroups);
 
             var lineNumbers = new List<int>();
+            var hasMeasurementState = CCsvParser.ReadHeaders(path)
+                .Any(header => string.Equals(header.Trim(), "MEASUREMENT_STATE", StringComparison.OrdinalIgnoreCase));
             var sourceRows = CCsvParser.Read(path, lineNumbers);
             var parsed = new ST_REVIEW_OFFSET_ROW[sourceRows.Count];
             for (var index = 0; index < sourceRows.Count; index++)
@@ -863,12 +873,16 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
             var rows = CReviewOffsetData.ValidateRows(parsed, path, lineNumbers, token);
             var fileInfo = new FileInfo(path);
             var savedAt = TryParseSavedAt(fileInfo.Name) ?? fileInfo.LastWriteTime;
+            // Freeze the legacy state-column fallback once, so an unrelated later save cannot
+            // move this row's reset boundary and hide measurements acquired in the meantime.
+            rows = rows.Select(row => row.IsMeasurementOffsetInitialized && !row.MeasurementInitializedAt.HasValue
+                ? row with { MeasurementInitializedAt = savedAt } : row).ToArray();
             return new ST_REVIEW_OFFSET_FILE_DATA(
                 recipeId,
                 fileInfo.FullName,
                 fileInfo.Name,
                 savedAt,
-                rows) { ContentSha256 = contentSha256 };
+                rows) { ContentSha256 = contentSha256, HasMeasurementStateMetadata = hasMeasurementState };
         }
         catch (InvalidDataException error) { throw new CReviewOffsetValidationException(path, 0, error.Message); }
     }
@@ -900,7 +914,26 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
         var space = CCsvParser.Get(row, "COORDINATE_SPACE").Trim().ToUpperInvariant();
         if (space is not ("" or "SCANNER" or "DESIGN"))
             throw new InvalidDataException($"Review Offset row {rowNo}: invalid COORDINATE_SPACE {space}.");
-        return new ST_REVIEW_OFFSET_ROW(cellId, shotId, offsetX, offsetY) { IsDesignCoordinate = space == "DESIGN" };
+        var state = CCsvParser.Get(row, "MEASUREMENT_STATE").Trim().ToUpperInvariant();
+        if (state is not ("" or "MEASURED" or "INITIALIZED"))
+            throw new InvalidDataException($"Review Offset row {rowNo}: invalid MEASUREMENT_STATE {state}.");
+        if (state == "INITIALIZED" && (offsetX != 0 || offsetY != 0))
+            throw new InvalidDataException($"Review Offset row {rowNo}: 초기화된 측정 Offset은 X/Y 모두 0이어야 합니다.");
+        var initializedAtText = CCsvParser.Get(row, "MEASUREMENT_INITIALIZED_AT").Trim();
+        DateTimeOffset? initializedAt = null;
+        if (initializedAtText.Length > 0)
+        {
+            if (state != "INITIALIZED" || !DateTimeOffset.TryParseExact(initializedAtText, "O", CultureInfo.InvariantCulture,
+                DateTimeStyles.None, out var parsedAt))
+                throw new InvalidDataException($"Review Offset row {rowNo}: invalid MEASUREMENT_INITIALIZED_AT.");
+            initializedAt = parsedAt;
+        }
+        return new ST_REVIEW_OFFSET_ROW(cellId, shotId, offsetX, offsetY)
+        {
+            IsDesignCoordinate = space == "DESIGN",
+            IsMeasurementOffsetInitialized = state == "INITIALIZED",
+            MeasurementInitializedAt = initializedAt
+        };
     }
 
     private static IReadOnlyDictionary<string, string> ToCsvRow(ST_REVIEW_OFFSET_ROW row)
@@ -911,7 +944,9 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
             ["SHOTID"] = row.ShotId,
             ["REVIEWOFFSETX"] = FormatDouble(row.ReviewOffsetX),
             ["REVIEWOFFSETY"] = FormatDouble(row.ReviewOffsetY),
-            ["COORDINATE_SPACE"] = row.IsDesignCoordinate ? "DESIGN" : "SCANNER"
+            ["COORDINATE_SPACE"] = row.IsDesignCoordinate ? "DESIGN" : "SCANNER",
+            ["MEASUREMENT_STATE"] = row.IsMeasurementOffsetInitialized ? "INITIALIZED" : "MEASURED",
+            ["MEASUREMENT_INITIALIZED_AT"] = row.IsMeasurementOffsetInitialized ? row.MeasurementInitializedAt?.ToString("O", CultureInfo.InvariantCulture) ?? "" : ""
         };
     }
 

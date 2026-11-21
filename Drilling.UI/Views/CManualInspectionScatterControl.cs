@@ -33,6 +33,7 @@ public sealed record CManualInspectionScatterMetrics
         foreach (var p in source)
         {
             if (p.IsMasked) masked++;
+            else if (p.IsMeasurementOffsetInitialized) unmeasured++;
             else if (p.HasMeasurementHistory)
             {
                 if (CManualInspectionUiPoint.Finite(p.MeasurementXUm) && CManualInspectionUiPoint.Finite(p.MeasurementYUm)) valid.Add(p);
@@ -73,7 +74,7 @@ public sealed record CManualInspectionScatterMetrics
     }
 }
 
-/// <summary>Equal-scale display ΔX/ΔY: raw dots, representative diamonds and correction-derived squares.</summary>
+/// <summary>Equal-scale ΔX/ΔY display. Point provenance is textual; NG always overrides series color.</summary>
 public sealed class CManualInspectionScatterControl : Control
 {
     private IReadOnlyList<CManualInspectionUiPoint> _points = [];
@@ -297,12 +298,12 @@ public sealed class CManualInspectionScatterControl : Control
             var x = cx + nx * size / 2; var y = cy - ny * size / 2;
             var group = _byHead ? point.HeadNo : point.CellNo;
             var index = _byHead ? Math.Max(0, group - 1) : groupIndices[group];
-            var brush = CManualInspectionDrawing.Color(CManualInspectionDrawing.HeadColors[index % CManualInspectionDrawing.HeadColors.Length]);
+            var brush = point.WorkingJudge == "NG" ? CManualInspectionDrawing.Color("#D16776")
+                : point.WorkingJudge == "ERROR" ? CManualInspectionDrawing.Color("#D39A45")
+                : CManualInspectionDrawing.Color(CManualInspectionDrawing.HeadColors[index % CManualInspectionDrawing.HeadColors.Length]);
             var selected = _selected.Contains(point.Key);
-            CManualInspectionDrawing.Marker(dc, new Point(x, y), point.UsesAppliedMeasurement || point.IsProxy ? 3.4 : 2.4,
-                brush, point.UsesAppliedMeasurement ? "square" : point.IsProxy ? "diamond" : "circle", point.UsesAppliedMeasurement || point.IsProxy);
-            if (point.WorkingJudge is "NG" or "ERROR")
-                dc.DrawLine(new Pen(brush, 1), new Point(x - 3, y + 3), new Point(x + 3, y - 3));
+            CManualInspectionDrawing.Marker(dc, new Point(x, y), point.WorkingJudge == "NG" ? 3.4 : 2.8,
+                brush, "circle", false);
             if (selected || point.Key == _hoverKey) selectedHits.Add((point, new Point(x, y)));
             _hits.Add((point.Key, new Point(x, y)));
             var bucketKey = ((int)Math.Floor(x / 24), (int)Math.Floor(y / 24));
@@ -328,8 +329,8 @@ public sealed class CManualInspectionScatterControl : Control
             }
         }
         dc.Pop();
-        var legend = IsOffsetData ? $"□ 통합 Offset  + 평균  · 표시 {_hits.Count:N0}/{Metrics.Count:N0} · 잔류 오차 아님"
-            : $"● 실측  ◇ 복사  □ 보정 기반  ╱ NG·오류  + 평균  · 표시 {_hits.Count:N0}/{Metrics.Count:N0}";
+        var legend = IsOffsetData ? $"통합 Offset · + 평균 · {_hits.Count:N0}/{Metrics.Count:N0}점"
+            : $"NG 빨강 · 출처는 점 위에서 확인 · + 평균 · {_hits.Count:N0}/{Metrics.Count:N0}점";
         CManualInspectionDrawing.Text(dc, this, legend, new Point(8, ActualHeight - 16), 9, Foreground, false, Math.Max(1, ActualWidth - 16));
         if (ActualWidth > 470)
         {
@@ -420,7 +421,7 @@ public sealed class CManualInspectionScatterControl : Control
         var point = _pointByKey[_hoverKey!];
         _tip.Content = $"{point.Key}\n" + (IsOffsetData
                 ? $"통합 Offset {point.BaseOffsetText} µm\n{(_dataKind == "OFFSETS_DRAFT" ? "미저장 작업 누적 보정량 · 실제 활성값은 아직 유지" : "모델에 저장된 누적 보정량 · 원측정 잔류 오차와 구분") }"
-                : $"{point.MeasurementStatusText} · Δ {point.MeasurementErrorText} µm\n{point.MeasurementBasisText}")
+                : $"{point.MeasurementStatusText} · Δ {point.MeasurementErrorText} µm\n출처: {CManualInspectionDrawing.MeasurementOrigin(point)}")
             + (group.Count > 1 ? $"\n같은 화면 위치에 {group.Count:N0}점 겹침 · 클릭: 한 점씩 순환 / Ctrl 클릭: 전체 선택·해제\n"
                 + string.Join("\n", group.Take(4).Select(hit => hit.Key)) + (group.Count > 4 ? "\n…" : "") : "\n클릭: 선택 / Ctrl 클릭: 선택 추가·해제");
         _tip.IsOpen = true; InvalidateVisual();

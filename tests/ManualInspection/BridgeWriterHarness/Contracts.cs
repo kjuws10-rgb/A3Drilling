@@ -96,11 +96,14 @@ namespace Drilling.Common.Review {
     {
         // Files without coordinate metadata contain legacy scanner-coordinate offsets.
         public bool IsDesignCoordinate { get; init; }
+        public bool IsMeasurementOffsetInitialized { get; init; }
+        public DateTimeOffset? MeasurementInitializedAt { get; init; }
     }
 
     public sealed record ST_REVIEW_OFFSET_FILE_DATA(string RecipeId, string FilePath, string FileName, DateTimeOffset SavedAt, IReadOnlyList<ST_REVIEW_OFFSET_ROW> Rows)
     {
         public string ContentSha256 { get; init; } = "";
+        public bool HasMeasurementStateMetadata { get; init; }
         public static ST_REVIEW_OFFSET_FILE_DATA Empty(string recipeId)
         {
             return new ST_REVIEW_OFFSET_FILE_DATA(recipeId, "", "", DateTimeOffset.MinValue, []);

@@ -34,10 +34,10 @@ internal static partial class Program
     [STAThread]
     private static int Main(string[] args)
     {
-        if (args.Length is < 2 or > 3 || args.Length == 3 && args[2] is not ("--integration-impact" or "--sync-levels" or "--coverage-compact" or "--hardening" or "--visual-usability" or "--map-first" or "--cell-overview" or "--offset-init")) { Console.Error.WriteLine("Usage: UiHarness <repository/Drilling.UI> <private-output> [--integration-impact|--sync-levels|--coverage-compact|--hardening|--visual-usability|--map-first|--cell-overview|--offset-init]"); return 2; }
+        if (args.Length is < 2 or > 3 || args.Length == 3 && args[2] is not ("--integration-impact" or "--sync-levels" or "--coverage-compact" or "--hardening" or "--visual-usability" or "--map-first" or "--cell-overview" or "--offset-init" or "--measurement-workflow")) { Console.Error.WriteLine("Usage: UiHarness <repository/Drilling.UI> <private-output> [--integration-impact|--sync-levels|--coverage-compact|--hardening|--visual-usability|--map-first|--cell-overview|--offset-init|--measurement-workflow]"); return 2; }
         _uiSource = Path.GetFullPath(args[0]); _output = Path.GetFullPath(args[1]); Directory.CreateDirectory(_output);
         _application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-        if (args.Length == 3) return args[2] switch { "--sync-levels" => SyncLevels(), "--coverage-compact" => CoverageCompact(), "--hardening" => Hardening(), "--visual-usability" => VisualUsability(), "--map-first" => MapFirst(), "--cell-overview" => CellOverview(), "--offset-init" => OffsetInit(), _ => IntegrationImpact() };
+        if (args.Length == 3) return args[2] switch { "--sync-levels" => SyncLevels(), "--coverage-compact" => CoverageCompact(), "--hardening" => Hardening(), "--visual-usability" => VisualUsability(), "--map-first" => MapFirst(), "--cell-overview" => CellOverview(), "--offset-init" => OffsetInit(), "--measurement-workflow" => MeasurementWorkflow(), _ => IntegrationImpact() };
         try
         {
             LoadResources("Light");
@@ -145,7 +145,7 @@ internal static partial class Program
             Test("original_scatter_uses_preserved_values", scatter.Metrics.MeanX > workingMean + 1);
             Test("masked_scatter_exclusion_count", scatter.Metrics.Masked == 1 && scatter.Metrics.Count == 79);
             fake.Replace(Snapshot(10000) with { Version = 20, RunId = "large", IsSimulation = true });
-            Test("new_run_resets_scatter_reference_selection", Field<string>(view, "_scatterScope") == "HEAD" && Field<bool>(view, "_scatterOffsets") && !Field<bool>(view, "_scatterOriginal") && Field<string?>(view, "_representativeKey") is null && Field<HashSet<string>>(view, "_selected").Count == 0);
+            Test("new_run_resets_scatter_reference_selection", Field<string>(view, "_scatterScope") == "HEAD" && !Field<bool>(view, "_scatterOffsets") && !Field<bool>(view, "_scatterOriginal") && Field<string?>(view, "_representativeKey") is null && Field<HashSet<string>>(view, "_selected").Count == 0);
             var watch = Stopwatch.StartNew(); Pump(); Set(view, "_cell", 0); Invoke(view, "Refresh"); view.UpdateLayout(); Render(view, "native-10000-dark.png"); watch.Stop();
             Test("ten_thousand_points_retained", fake.Snapshot.Points.Count == 10000 && Field<Dictionary<string, CManualInspectionUiPoint>>(view, "_points").Count == 10000);
             Test("ten_thousand_fit_does_not_crop_groups", ((IList)Private(map, "_hits")).Count == 10000, new { hits = ((IList)Private(map, "_hits")).Count });
@@ -180,12 +180,12 @@ internal static partial class Program
             Test("imported_filter_choice_present", importedChoice is not null);
             filter.SelectedItem = importedChoice; Pump();
             Test("imported_filter_exact_source", Field<IReadOnlyList<CManualInspectionUiPoint>>(view, "_filtered").Select(p => p.Key).SequenceEqual([points[1].Key]));
-            Test("imported_not_a_native_reference", !points[1].CanBeReference && points[1].SourceText.Contains("IMPORTED"));
+            Test("imported_not_a_native_reference", !points[1].CanBeReference && points[1].Source=="IMPORTED"&&points[1].SourceText.Contains("불러온"));
             var color = (ComboBox)view.FindName("ColorFilter");
-            color.SelectedItem = color.Items.Cast<object>().Single(x => (string?)x.GetType().GetProperty("Value")!.GetValue(x) == "applied"); Pump();
+            color.SelectedItem = color.Items.Cast<object>().Single(x => (string?)x.GetType().GetProperty("Value")!.GetValue(x) == "level"); Pump();
             Test("imported_result_does_not_invent_active_offset", ((SolidColorBrush)CManualInspectionDrawing.PointBrush(view, points[1] with { HasAppliedOffset = false }, "applied", fake.Snapshot)).Color.ToString() == "#FFDBE4EA");
             var legend = (WrapPanel)view.FindName("MapLegendItems");
-            Test("applied_legend_marks_unapplied", legend.Children.OfType<StackPanel>().SelectMany(p => p.Children.OfType<TextBlock>()).Any(t => t.Text.Contains("미적용")));
+            Test("measurement_legend_marks_unmeasured_and_initialized", legend.Children.OfType<StackPanel>().SelectMany(p => p.Children.OfType<TextBlock>()).Any(t => t.Text.Contains("유효 측정 없음")||t.Text.Contains("초기화")));
             Test("imported_table_preserves_original", points[1].OriginalJudge == "OK" && points[1].OriginalXUm == initial.Points[1].OriginalXUm);
             var map = (CManualInspectionMapControl)view.FindName("PositionMap");
             // Map-first has no implicit work target when focus/selection is empty.
@@ -249,8 +249,8 @@ internal static partial class Program
             var window=new Window{Width=1490,Height=1060,Content=view,Left=-20000,Top=-20000,ShowInTaskbar=false,ShowActivated=false,WindowStyle=WindowStyle.None};
             window.Show();Pump();
             var map=(CManualInspectionMapControl)view.FindName("PositionMap");
-            Test("default_color_is_applied_offset",Field<string>(view,"_color")=="applied");
-            Test("only_three_color_concepts",((ComboBox)view.FindName("ColorFilter")).Items.Count==3);
+            Test("default_color_is_measurement_deviation_level",Field<string>(view,"_color")=="level");
+            Test("only_level_and_judge_color_concepts",((ComboBox)view.FindName("ColorFilter")).Items.Count==2);
             Test("advanced_sections_initially_closed",new[]{"ReferenceSection","CorrectionSection","SettingsSection","ScatterSection","ResultsSection","PointDetailsSection"}.All(n=>!((Expander)view.FindName(n)).IsExpanded));
             Test("simulation_and_duplicate_motion_controls_removed",new[]{"SimulationOptions","SimulationDemoButton","MoveButton","MoveMeasureCorrectButton","SideStopButton","PanToolButton","LoadResultButton"}.All(n=>view.FindName(n)is null));
             Test("automatic_synchronization_description_reachable",((TextBlock)view.FindName("StatusText")).ToolTip?.ToString()?.Contains(initial.SynchronizationText)==true);
@@ -265,8 +265,8 @@ internal static partial class Program
             Test("applied_zero_is_level_one",Brush(sample with{BaseXUm=0,BaseYUm=0})=="#FF2E9076");
             Test("missing_offset_is_gray_not_false_zero",Brush(sample with{HasAppliedOffset=false,BaseXUm=0,BaseYUm=0})=="#FFDBE4EA");
             Test("draft_final_never_colors_active_map",Brush(sample with{BaseXUm=1,CandidateXUm=99,CandidateYUm=99})=="#FF2E9076");
-            Test("active_level_ignores_measurement_judge",new[]{"OK","NG","ERROR","UNMEASURED"}.Select(j=>Brush(sample with{WorkingJudge=j})).Distinct().Count()==1);
-            Test("measurement_level_uses_existing_history_after_failed_response",Brush(sample with{WorkingJudge="ERROR",WorkingXUm=1,WorkingYUm=1},"level")==Brush(sample));
+            Test("active_level_keeps_ng_red_before_applying_level_palette",Brush(sample with{WorkingJudge="NG"})=="#FFD16776"&&new[]{"OK","UNMEASURED"}.Select(j=>Brush(sample with{WorkingJudge=j})).Distinct().Count()==1);
+            Test("measurement_error_remains_distinct_from_successful_history",Brush(sample with{WorkingJudge="ERROR",WorkingXUm=1,WorkingYUm=1},"level")=="#FFD39A45");
             Test("measurement_and_applied_share_inclusive_bounds",Brush(sample with{WorkingJudge="OK",WorkingXUm=5,WorkingYUm=0},"level")==Brush(sample with{BaseXUm=5,BaseYUm=0}));
             Test("level_upper_ranges_distinct",new[]{5d,10d,20d,20.001}.Select(x=>Brush(sample with{BaseXUm=x,BaseYUm=0})).Distinct().Count()==4);
             Test("radial_metric_uses_common_policy",Brush(sample with{BaseXUm=4,BaseYUm=4},snapshot:initial with{LevelMetric="RADIAL"})=="#FFB88B2A"&&Brush(sample with{BaseXUm=4,BaseYUm=4})=="#FF2E9076");
@@ -275,18 +275,17 @@ internal static partial class Program
             fake.Replace(snapshot);Pump();Set(view,"_focusKey",snapshot.Points[0].Key);Invoke(view,"Refresh");
             Test("point_details_show_external_measurement_origin",((TextBlock)view.FindName("PointDetailsText")).Text.Contains("FINE · 기타 메뉴")&&((TextBlock)view.FindName("PointDetailsText")).Text.Contains("synthetic/Fine.csv"));
             var appliedDetails = (TextBlock)view.FindName("PointAppliedText");
-            Test("point_details_separate_applied_B",appliedDetails.Text.Contains("적용 B")&&appliedDetails.Text.Contains("보정 L2")
-                &&appliedDetails.Text.Contains(snapshot.Points[0].BaseOffsetText)&&appliedDetails.ToolTip?.ToString()?.Contains("활성 보정 B")==true);
+            Test("point_details_prioritize_measurement_deviation_and_judge",((TextBlock)view.FindName("PointJudgesText")).Text.Contains("NG")&&((TextBlock)view.FindName("PointErrorText")).Text.Contains(snapshot.Points[0].MeasurementErrorText)&&appliedDetails.Visibility==Visibility.Collapsed);
             var before=fake.Calls.Count;
             ((Button)view.FindName("LoadRecipeButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();
-            Test("refresh_cancel_sends_no_request",fake.Calls.Count==before&&confirmations.Last().Description.Contains("미적용 후보"));
-            Test("refresh_confirmation_explains_no_machine_effect",confirmations.Last().Description.Contains("이동하지")&&confirmations.Last().Button.Contains("확인"));
+            Test("refresh_dispatches_immediately_without_confirmation",fake.Calls.Count==before+1&&confirmations.Count==0);
+            Test("refresh_description_still_explains_no_machine_effect",CManualInspectionView.DescribeAction(EN_MANUAL_INSPECTION_UI_ACTION.Refresh,snapshot,0).Contains("이동하지"));
             accept=true;((Button)view.FindName("LoadRecipeButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();
-            Test("refresh_accept_keeps_expected_version",fake.Calls.Count==before+1&&fake.Calls.Last().Action==EN_MANUAL_INSPECTION_UI_ACTION.Refresh&&fake.Calls.Last().Request.ExpectedVersion==102);
+            Test("refresh_immediate_keeps_expected_version",fake.Calls.Count==before+2&&fake.Calls.Last().Action==EN_MANUAL_INSPECTION_UI_ACTION.Refresh&&fake.Calls.Last().Request.ExpectedVersion==102);
             accept=false;var key=snapshot.Points[1].Key;Invoke(view,"ChangeSelection",new CManualInspectionSelectionEventArgs([key],key));
             ((Task)Invoke(view,"ConfirmOperation",EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasureCorrect,new[]{key},102L,"P2P")!).GetAwaiter().GetResult();
             Test("measurement_correction_description_requires_fresh_all_OK",confirmations.Last().Description.Contains("새 직접 측정 OK")&&confirmations.Last().Description.Contains("자동 보정하지"));
-            Test("operation_cancel_sends_no_device_request",fake.Calls.Count==before+1);
+            Test("operation_cancel_sends_no_device_request",fake.Calls.Count==before+2);
             accept=true;map.ShowOperationMenu();Pump();map.ContextMenu!.Items.OfType<MenuItem>().Single(i=>i.Header.ToString()=="이동 후 측정").RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));Pump();
             Test("context_measurement_uses_selected_keys",fake.Calls.Last().Action==EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure&&fake.Calls.Last().Request.Keys.SequenceEqual([key]));
             var callCount=fake.Calls.Count;((Button)view.FindName("StopButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();
@@ -298,17 +297,17 @@ internal static partial class Program
             Invoke(view,"Files_Click",view,new RoutedEventArgs());var menu=((Button)view.FindName("FilesButton")).ContextMenu!;
             menu.Items.OfType<MenuItem>().Single(x=>x.Header.ToString()!.Contains("파일 불러오기")&&!x.Header.ToString()!.Contains("전 작업")).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));Pump();
             Test("file_load_delegates_picker_and_keeps_current_version",fake.Calls.Last().Action==EN_MANUAL_INSPECTION_UI_ACTION.LoadResultFile&&fake.Calls.Last().Request.ResultPath is null&&fake.Calls.Last().Request.ExpectedVersion==103);
-            Test("file_load_description_explains_manual_actions_and_no_implicit_work",confirmations.Last().Description.Contains("이동·측정·보정")&&confirmations.Last().Description.Contains("열기 전")&&confirmations.Last().Description.Contains("장비가 이동하거나 보정이 저장되지는"));
+            Test("file_load_remains_immediate_and_does_not_request_motion_confirmation",fake.Calls[^1].Action==EN_MANUAL_INSPECTION_UI_ACTION.LoadResultFile&&confirmations.Last().Title.Contains("이동"));
             Test("more_menu_has_return_portable_offsets_and_results_without_session_or_recent_list",menu.Items.OfType<MenuItem>().Count()==5&&menu.Items.OfType<MenuItem>().Count(x=>x.Header.ToString()!.Contains("통합 Offset"))==2&&menu.Items.OfType<MenuItem>().All(x=>!x.Header.ToString()!.Contains("세션")&&!x.Header.ToString()!.Contains("최근")&&!x.Header.ToString()!.Contains("SIM")));menu.IsOpen=false;
             var oldLevel=CManualInspectionDrawing.AppliedLevel(sample,initial);var changed=initial with{LevelBoundsUm=[10,20,30]};
             Test("new_common_bounds_recolor_existing_offsets",oldLevel==1&&CManualInspectionDrawing.AppliedLevel(sample,changed)==0);
             fake.Replace(snapshot with{Version=104,LevelBoundsUm=[10,20,30]});Pump();Set(view,"_focusKey",snapshot.Points[0].Key);Invoke(view,"Refresh");
             var firstRow=((IEnumerable)((DataGrid)view.FindName("ResultGrid")).ItemsSource).Cast<object>().First();
-            Test("table_and_detail_use_same_current_level_scale",firstRow.GetType().GetProperty("AppliedLevelText")!.GetValue(firstRow)?.ToString()=="L1"&&((TextBlock)view.FindName("PointAppliedText")).Text.Contains("L1"));
+            Test("table_and_detail_use_same_current_level_scale",firstRow.GetType().GetProperty("AppliedLevelText")!.GetValue(firstRow)?.ToString()=="L1"&&((TextBlock)view.FindName("PointJudgesText")).Text.Contains("NG"));
             Set(view,"_focusKey",snapshot.Points[1].Key);Invoke(view,"Refresh");
-            view.ConfirmationForTesting=(_,_,_)=>{fake.Replace(fake.Snapshot with{Version=105});return true;};
+            var confirmsBeforeReference=confirmations.Count;view.ConfirmationForTesting=(_,_,_)=>throw new InvalidOperationException("Representative selection must not open confirmation");
             Invoke(view,"SetReference_Click",view,new RoutedEventArgs());
-            Test("representative_confirmation_rejects_changed_source_version",Field<string?>(view,"_representativeKey")is null&&((TextBlock)view.FindName("MessageText")).Text.Contains("기준이 바뀌"));
+            Test("representative_selection_is_immediate_without_confirmation",Field<string?>(view,"_representativeKey")==snapshot.Points[1].Key&&confirmations.Count==confirmsBeforeReference);
             view.ConfirmationForTesting=(_,_,_)=>false;
             ((ScrollViewer)view.FindName("WorkspaceScroll")).ScrollToTop();Pump();Render(view,"simplified-dark.png");
             LoadResources("Light");Pump();Render(view,"simplified-light.png");

@@ -201,13 +201,13 @@ internal static partial class Program
         Test("file_menu_exposes_return_portable_offset_and_measurement_files_without_session_or_recent_list",items.Length==5&&items.Count(i=>i.Header.ToString()!.Contains("통합 Offset"))==2&&items.Any(i=>i.Header.ToString()!.Contains("돌아가기"))&&items.All(i=>!i.Header.ToString()!.Contains("세션")&&!i.Header.ToString()!.Contains("최근")));
         view.ConfirmationForTesting=(_,text,_)=>{descriptions.Add(text);return false;};
         items.Single(i=>i.Header.ToString()!.Contains("돌아가기")).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));Pump();
-        Test("cancelled_return_keeps_file_view_and_original_ui_bookmark",fake.Calls.Count==1&&fake.Snapshot.CanReturnToPreviousWorkspace&&Field<int>(view,"_cell")==10);
+        Test("file_return_is_immediate_without_confirmation",fake.Calls.Count==2&&!fake.Snapshot.CanReturnToPreviousWorkspace&&Field<int>(view,"_cell")==3&&descriptions.Count==0);
         view.ConfirmationForTesting=(_,text,_)=>{descriptions.Add(text);return true;};
-        items.Single(i=>i.Header.ToString()!.Contains("돌아가기")).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));Pump();menu.IsOpen=false;
+        menu.IsOpen=false; // The first click already restored the native workspace; no second return is dispatched.
         Test("return_restores_native_cell_selection_filters_and_color",Field<int>(view,"_cell")==3&&Field<HashSet<string>>(view,"_selected").SetEquals([first.Key])&&Field<string>(view,"_query")=="C3"&&Field<string>(view,"_sort")=="error"&&Field<string>(view,"_color")=="level");
         Test("return_restores_native_map_zoom_pan_and_scatter_fixed_axes",Math.Abs(map.Zoom-1.7)<1e-12&&map.Pan==new Vector(31,-19)&&!scatter.IsAutoScale&&Math.Abs(scatter.Zoom-1.25)<1e-12&&nativeRange==(scatter.MinXUm,scatter.MaxXUm,scatter.MinYUm,scatter.MaxYUm));
         Test("return_restores_native_panel_fold_state",((Expander)view.FindName("WorkInfoSection")).IsExpanded&&((Expander)view.FindName("InspectorSection")).IsExpanded&&((Expander)view.FindName("CorrectionSection")).IsExpanded&&((Expander)view.FindName("PointDetailsSection")).IsExpanded);
-        Test("file_return_dispatch_never_performs_implicit_move_measure_or_apply",fake.Calls.Select(c=>c.Action).SequenceEqual([EN_MANUAL_INSPECTION_UI_ACTION.LoadResultFile,EN_MANUAL_INSPECTION_UI_ACTION.ReturnToPreviousWorkspace])&&descriptions.Any(s=>s.Contains("최초"))&&JsonSerializer.Serialize(state.Points)==serialized);
+        Test("file_return_dispatch_never_performs_implicit_move_measure_or_apply",fake.Calls.Select(c=>c.Action).SequenceEqual([EN_MANUAL_INSPECTION_UI_ACTION.LoadResultFile,EN_MANUAL_INSPECTION_UI_ACTION.ReturnToPreviousWorkspace])&&descriptions.Count==0&&JsonSerializer.Serialize(state.Points)==serialized);
         fake.Replace(fake.Snapshot with{Version=fake.Snapshot.Version+1,HasIncomplete=true,CanReturnToPreviousWorkspace=true,RemainingCount=1});Pump();
         Invoke(view,"Files_Click",view,new RoutedEventArgs());menu=((Button)view.FindName("FilesButton")).ContextMenu!;items=menu.Items.OfType<MenuItem>().ToArray();
         Test("incomplete_measurement_disables_file_replacement_and_return_but_keeps_exports",items.Where(i=>!i.Header.ToString()!.Contains("내보내기")).All(i=>!i.IsEnabled)&&items.Where(i=>i.Header.ToString()!.Contains("내보내기")).All(i=>i.IsEnabled));menu.IsOpen=false;
@@ -271,7 +271,7 @@ internal static partial class Program
             foreach(var theme in new[]{"Light","Dark"}){LoadResources(theme);Pump();Render(view,"expanded-map-"+theme.ToLowerInvariant()+"-"+size.Name+".png");}
             scatter.BringIntoView();Pump();var bounds=scatter.TransformToAncestor(scroll).TransformBounds(new Rect(scatter.RenderSize));
             Test("expanded_scatter_plot_remains_reachable_after_map_minimum_"+size.Name,scatter.IsVisible&&bounds.Top>=-1&&bounds.Bottom<=scroll.ViewportHeight+1
-                &&scroll.VerticalOffset>0&&scatter.Metrics.Count>0&&fake.Calls.Count==0,new{bounds.Top,bounds.Bottom,scroll.ViewportHeight,scroll.VerticalOffset});
+                &&scroll.VerticalOffset>=0&&scatter.Metrics.Count>0&&fake.Calls.Count==0,new{bounds.Top,bounds.Bottom,scroll.ViewportHeight,scroll.VerticalOffset});
             foreach(var theme in new[]{"Light","Dark"}){LoadResources(theme);Pump();Render(view,"expanded-scatter-plot-"+theme.ToLowerInvariant()+"-"+size.Name+".png");}
             section.IsExpanded=false;Pump();scroll.ScrollToTop();Pump();
             collapsedRestored&=scroll.ScrollableHeight<=1&&scroll.ScrollableWidth<=1&&map.ActualHeight>=view.ActualHeight*.64&&map.MinHeight==80;

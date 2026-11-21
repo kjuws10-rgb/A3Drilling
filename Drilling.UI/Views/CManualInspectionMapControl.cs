@@ -55,7 +55,7 @@ public sealed class CManualInspectionMapControl : Control
     private CManualInspectionUiSnapshot _snapshot = new();
     private string? _representative;
     private string? _focusKey;
-    private string _colorMode = "applied";
+    private string _colorMode = "level";
     private string _layoutSignature = "";
     private bool _layoutDirty = true;
     private bool _gesture;
@@ -445,18 +445,19 @@ public sealed class CManualInspectionMapControl : Control
             }
             if (r.Width > 28 && r.Height > 18 && (polygon is null || minimum > 18))
             {
-                var mark = p.Key == _representative ? "★ " : p.IsMasked ? "× " : p.WorkingJudge == "ERROR" ? "! "
-                    : p.WorkingJudge == "NG" ? "NG " : p.IsProxy ? "◇ " : p.UsesAppliedMeasurement ? "□ "
-                    : !p.HasMeasurementHistory ? "· " : "";
-                var label = mark + "S" + p.ShotNo + (r.Width > 115 ? $" / B{p.BeamNo}" : "");
+                // Point identity stays readable; provenance is plain Korean in the tooltip rather
+                // than unexplained square/diamond/circle glyphs repeated in every matrix slot.
+                var state = p.Key == _representative ? "대표" : p.IsMasked ? "제외" : p.WorkingJudge == "NG" ? "NG"
+                    : p.WorkingJudge == "ERROR" ? "오류" : p.IsMeasurementOffsetInitialized ? "초기화" : "";
+                var label = "S" + p.ShotNo + (r.Width > 115 ? $" / B{p.BeamNo}" : "")
+                    + (r.Width > 75 && state.Length > 0 ? " · " + state : "");
                 var textWidth = Math.Max(1, polygon is null ? tile.Width - 10 : Math.Min(tile.Width - 10, minimum * .7));
                 var textX = polygon is null ? tile.Left + 5 : polygon.Average(point => point.X) - textWidth / 2;
                 CManualInspectionDrawing.Text(context, this, label, new Point(textX, tile.Top + Math.Max(2, tile.Height / 2 - 7)),
                     Math.Clamp(tile.Height / 3.3, 9, 12), textBrush, selected || focused, textWidth, singleLine: true);
             }
-            else if (minimum > 8 && (p.Key == _representative || p.IsMasked || p.WorkingJudge is "NG" or "ERROR" || !p.HasMeasurementHistory))
-                CManualInspectionDrawing.Text(context, this, p.Key == _representative ? "★" : p.IsMasked ? "×"
-                    : p.WorkingJudge is "NG" or "ERROR" ? "!" : "·", new Point(tile.Left + 2, tile.Top + 1), 9, textBrush, true);
+            else if (minimum > 12 && r.Width > 18 && p.WorkingJudge == "NG")
+                CManualInspectionDrawing.Text(context, this, "NG", new Point(tile.Left + 2, tile.Top + 1), 9, textBrush, true);
             if (filledPolygon is not null) context.Pop();
             AddHit(p, r, viewport, polygon);
         }
@@ -645,7 +646,7 @@ public sealed class CManualInspectionMapControl : Control
             _hoverKey = null; Cursor = Cursors.Hand;
             var cell = HitCell(at);
             var disabled = _snapshot.CellLayouts.FirstOrDefault(layout => layout.CellNo == cell)?.Enabled == false;
-            _tip.Content = HitAllCells(at) ? "전체 Cell의 Recipe 배치 보기" : $"Cell {cell}" + (disabled ? " · 미사용 Cell (조회만)" : " 열기 · Ctrl+클릭: Cell 전체 측정점 선택 추가/해제");
+            _tip.Content = HitAllCells(at) ? "전체 Cell의 Recipe 배치 보기" : $"Cell {cell}" + (disabled ? " · 미사용 Cell · 활성 측정점 없음" : " 열기 · Ctrl+클릭: Cell 전체 측정점 선택 추가/해제");
             _tip.IsOpen = true; InvalidateVisual(); return;
         }
         Cursor = IsPanTool ? Cursors.ScrollAll : Cursors.Cross;
@@ -655,10 +656,8 @@ public sealed class CManualInspectionMapControl : Control
         InvalidateVisual();
         _tip.SetResourceReference(Control.BackgroundProperty, "PreviewHoverTipBackgroundBrush");
         _tip.SetResourceReference(Control.ForegroundProperty, "PreviewHoverTipTextBrush");
-        _tip.Content = point is null ? null : $"{point.Key}\n{point.MeasurementStatusText} · 편차 {point.MeasurementErrorText} µm\n{point.MeasurementBasisText}\n" +
-            (point.HasAppliedOffset ? $"{(_snapshot.IsOffsetEditPending ? "작업 통합 Offset · 미저장" : "적용 보정 B")} {point.BaseOffsetText} µm · {(CManualInspectionDrawing.AppliedLevel(point,_snapshot) >= 0 ? "L"+(CManualInspectionDrawing.AppliedLevel(point,_snapshot)+1) : "Level 확인 필요")}" : "활성 보정 미적용") +
-            (string.IsNullOrWhiteSpace(point.DisplayedMeasurementOrigin) ? "" : "\n측정 출처: " + point.DisplayedMeasurementOrigin) +
-            (point.IsMasked ? "\nMasking · 측정 선택 제외" : point.IsProxy ? $"\n◇ 대표값 복사: {point.ReferenceKey}" : "");
+        _tip.Content = point is null ? null : $"{point.Identity}\n{point.MeasurementStatusText} · 편차 {point.MeasurementErrorText} µm\n출처: {CManualInspectionDrawing.MeasurementOrigin(point)}"
+            + (point.IsMasked ? "\nMasking · 측정 제외" : point.Key == _representative ? "\n대표값으로 선택됨" : "");
         _tip.IsOpen = point is not null;
     }
 
@@ -741,7 +740,7 @@ public sealed class CManualInspectionMapControl : Control
         var hidden = keys.Count(key => !_visibleKeys.Contains(key));
         menu.Items.Add(new MenuItem { Header = $"선택 {keys.Length}점" + (hidden > 0 ? $" · 현재 화면 숨김 {hidden}점 포함" : "")
             + $"\n{_focusKey ?? keys[0]}", IsEnabled = false });
-        menu.ToolTip = "현재 화면의 필터 밖에 숨김 선택이 있어도 선택 범위에 포함합니다. 실제 동작 전 확인 창에서 전체 대상을 확인하세요.";
+        menu.ToolTip = "숨김 선택도 대상에 포함됩니다. 이동 동작은 대상 확인 후 실행합니다.";
         menu.Items.Add(new Separator());
         foreach (var (title, action) in new[]
         {
@@ -888,14 +887,18 @@ internal static class CManualInspectionDrawing
     internal static Brush Resource(FrameworkElement owner, string key, Brush fallback) => owner.TryFindResource(key) as Brush ?? fallback;
     internal static int Level(CManualInspectionUiPoint point, CManualInspectionUiSnapshot snapshot)
     {
-        if (!point.HasMeasurementHistory) return -1;
+        if (point.IsMeasurementOffsetInitialized || !point.HasMeasurementHistory) return -1;
         return CManualInspectionLevels.Evaluate(point.MeasurementXUm, point.MeasurementYUm, snapshot.LevelMetric, snapshot.LevelBoundsUm) ?? -1;
     }
-    internal static int AppliedLevel(CManualInspectionUiPoint point, CManualInspectionUiSnapshot snapshot) => point.IsMasked || !point.HasAppliedOffset ? -1
+    internal static int AppliedLevel(CManualInspectionUiPoint point, CManualInspectionUiSnapshot snapshot) => point.IsMasked || point.IsMeasurementOffsetInitialized || !point.HasAppliedOffset ? -1
         : CManualInspectionLevels.Evaluate(point.BaseXUm, point.BaseYUm, snapshot.LevelMetric, snapshot.LevelBoundsUm) ?? -1;
     internal static Brush PointBrush(FrameworkElement owner, CManualInspectionUiPoint point, string mode, CManualInspectionUiSnapshot snapshot)
     {
         if (point.IsMasked) return Resource(owner, "ReviewMaskBackgroundBrush", Color("#EFF2F5"));
+        // A failed measurement must never look successful merely because its numeric error is small.
+        if (point.WorkingJudge == "NG") return Color("#D16776");
+        if (point.WorkingJudge == "ERROR") return Color("#D39A45");
+        if (point.IsMeasurementOffsetInitialized) return Color("#DBE4EA");
         if (mode == "applied") return LevelBrush(AppliedLevel(point, snapshot));
         if (mode == "head") return Color(HeadColors[Math.Max(0, point.HeadNo - 1) % HeadColors.Length]);
         if (mode == "level") return LevelBrush(Level(point, snapshot));
@@ -903,6 +906,13 @@ internal static class CManualInspectionDrawing
         return point.UsesAppliedMeasurement ? Color("#638CA8")
             : point.WorkingJudge switch { "OK" => Color("#3B9870"), "NG" => Color("#D16776"), "ERROR" => Color("#D39A45"), _ => Color("#DBE4EA") };
     }
+    internal static string MeasurementOrigin(CManualInspectionUiPoint point) => point.IsMasked ? "사용 제외"
+        : point.IsMeasurementOffsetInitialized ? "측정 보정 초기화 · 새 측정 전"
+        : point.IsProxy ? "대표값 복사 · " + point.ReferenceKey
+        : point.UsesAppliedMeasurement ? "기존 측정 보정 기반"
+        : point.Source == "IMPORTED" ? "불러온 측정 결과"
+        : point.Source == "MEASURED" ? "실측"
+        : "측정 전";
     private static Brush LevelBrush(int level) => Color(level switch { 0 => "#2E9076", 1 => "#B88B2A", 2 => "#CA754A", 3 => "#BE4F68", _ => "#DBE4EA" });
     internal static void Marker(DrawingContext dc, Point at, double radius, Brush color, string shape, bool hollow)
     {

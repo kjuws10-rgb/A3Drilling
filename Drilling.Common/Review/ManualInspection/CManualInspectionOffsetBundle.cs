@@ -39,11 +39,20 @@ public sealed record ST_MANUAL_OFFSET_BUNDLE_POINT(string Key, int CellNo, int H
     int BeamNo, double XMm, double YMm, bool Masked, string ShotId);
 
 /// <summary>One absolute, unscaled DESIGN-mm final Review value for a Cell/Shot shared by its Beams.</summary>
-public sealed record ST_MANUAL_OFFSET_BUNDLE_ROW(int CellNo, string ShotId, double XMm, double YMm);
+public sealed record ST_MANUAL_OFFSET_BUNDLE_ROW(int CellNo, string ShotId, double XMm, double YMm)
+{
+    /// <summary>True only for an explicit measurement-offset reset; a measured zero remains false.</summary>
+    public bool IsMeasurementOffsetInitialized { get; init; }
+    public DateTimeOffset? MeasurementInitializedAt { get; init; }
+}
 
 /// <summary>Rows outside the current Recipe/point geometry are retained only as audit, never imported.</summary>
 public sealed record ST_MANUAL_OFFSET_BUNDLE_HISTORY_ROW(int CellNo, string ShotId, double XMm,
-    double YMm, bool IsDesignCoordinate);
+    double YMm, bool IsDesignCoordinate)
+{
+    public bool IsMeasurementOffsetInitialized { get; init; }
+    public DateTimeOffset? MeasurementInitializedAt { get; init; }
+}
 
 /// <summary>
 /// Exact current pure-planner output. The aggregate offset and GX/GY are SCANNER mm, with MOF stage
@@ -64,8 +73,9 @@ public sealed record ST_MANUAL_OFFSET_BUNDLE_SHOT(int CellNo, int HeadNo, int Sh
 
 public static class CManualInspectionOffsetBundle
 {
-    public const string Schema = "a3-manual-inspection-offsets/1";
-    public const string ProgramVersion = "11.21.1";
+    public const string Schema = "a3-manual-inspection-offsets/2";
+    public const string LegacySchema = "a3-manual-inspection-offsets/1";
+    public const string ProgramVersion = "11.21.2";
     public const string ReferenceOnly = "REFERENCE_ONLY_NEVER_APPLY_PROTECTED_SETTINGS";
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -92,7 +102,7 @@ public static class CManualInspectionOffsetBundle
     public static string Serialize(ST_MANUAL_OFFSET_BUNDLE value)
     {
         Validate(value);
-        return JsonSerializer.Serialize(value,JsonOptions)+"\n";
+        return JsonSerializer.Serialize(value with { SchemaVersion = Schema },JsonOptions)+"\n";
     }
 
     public static ST_MANUAL_OFFSET_BUNDLE Deserialize(string json)
@@ -108,7 +118,7 @@ public static class CManualInspectionOffsetBundle
     public static void Validate(ST_MANUAL_OFFSET_BUNDLE value)
     {
         ArgumentNullException.ThrowIfNull(value);
-        if(value.SchemaVersion!=Schema || string.IsNullOrWhiteSpace(value.RecipeId)
+        if(value.SchemaVersion is not (Schema or LegacySchema) || string.IsNullOrWhiteSpace(value.RecipeId)
             || string.IsNullOrWhiteSpace(value.CoordinateSignature) || string.IsNullOrWhiteSpace(value.ProgramVersion)
             || value.ExportedAt==default || value.ReviewCoordinateSpace!="DESIGN" || value.ReviewUnit!="mm"
             || value.FinalCoordinateSpace!="SCANNER" || value.FinalCoordinateUnit!="mm"
@@ -121,6 +131,8 @@ public static class CManualInspectionOffsetBundle
         var rowKeys = new HashSet<string>(StringComparer.Ordinal);
         foreach(var row in value.ReviewRows)
             if(row is null || row.CellNo<=0 || !ValidShot(row.ShotId) || !Finite(row.XMm,row.YMm)
+                || row.IsMeasurementOffsetInitialized && (row.XMm!=0 || row.YMm!=0 || value.SchemaVersion==LegacySchema)
+                || !row.IsMeasurementOffsetInitialized && row.MeasurementInitializedAt.HasValue
                 || !rowKeys.Add(RowKey(row.CellNo,row.ShotId)))
                 throw new InvalidDataException("통합 Review Offset에 잘못된 값 또는 중복 Cell/Shot이 있습니다.");
         var usedRows = new HashSet<string>(StringComparer.Ordinal);
@@ -136,6 +148,8 @@ public static class CManualInspectionOffsetBundle
         var historicalKeys = new HashSet<string>(StringComparer.Ordinal);
         foreach(var row in value.RetainedHistoricalRows)
             if(row is null || row.CellNo<=0 || !ValidShot(row.ShotId) || !Finite(row.XMm,row.YMm)
+                || row.IsMeasurementOffsetInitialized && (row.XMm!=0 || row.YMm!=0 || value.SchemaVersion==LegacySchema)
+                || !row.IsMeasurementOffsetInitialized && row.MeasurementInitializedAt.HasValue
                 || rowKeys.Contains(RowKey(row.CellNo,row.ShotId)) || !historicalKeys.Add(RowKey(row.CellNo,row.ShotId)))
                 throw new InvalidDataException("참고용 이전 Offset 행이 유효하지 않거나 현재 맵과 중복됩니다.");
         foreach(var pair in value.ProtectedParameters)

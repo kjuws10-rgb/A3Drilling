@@ -171,7 +171,7 @@ internal static partial class Program
             var measure = menu.Items.OfType<MenuItem>().Single(i => i.Header.ToString()!.Contains("현재 위치"));
             var beforeCalls = fake.Calls.Count;
             accept = false; measure.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent)); Pump();
-            Test("context_measure_cancel_sends_no_request", fake.Calls.Count == beforeCalls && confirmations.Last().Contains("측정"));
+            Test("context_measure_is_immediate_without_popup", fake.Calls.Count == beforeCalls+1&&fake.Calls[^1].Action==EN_MANUAL_INSPECTION_UI_ACTION.Measure);
             accept = true; map.ShowOperationMenu(); Pump();
             map.ContextMenu!.Items.OfType<MenuItem>().Single(i => i.Header.ToString()!.Contains("현재 위치")).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent)); Pump();
             Test("context_current_measure_uses_only_focused_point", fake.Calls.Last().Action == EN_MANUAL_INSPECTION_UI_ACTION.Measure

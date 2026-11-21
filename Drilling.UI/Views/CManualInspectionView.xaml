@@ -1,4 +1,4 @@
-<UserControl x:Class="Drilling.UI.Views.CManualInspectionView"
+﻿<UserControl x:Class="Drilling.UI.Views.CManualInspectionView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:views="clr-namespace:Drilling.UI.Views"
@@ -194,7 +194,7 @@
           <Grid Grid.Row="0"><Grid.ColumnDefinitions><ColumnDefinition Width="*" MinWidth="80" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
             <TextBlock Text="2D 결과 지도" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold" FontSize="16" VerticalAlignment="Center" ToolTip="MANUAL INSPECTION · 지도에서 선택하고 우클릭으로 동작합니다." />
             <ComboBox Grid.Column="1" Width="114" Margin="6,0,0,0"  x:Name="CellFilter" Style="{StaticResource ManualComboBox}" DisplayMemberPath="Label" SelectionChanged="Filter_Changed" AutomationProperties.Name="지도 Cell 범위" ToolTip="지도와 결과 표의 Cell 범위입니다. 산포도는 별도 범위를 사용합니다." />
-            <ComboBox Grid.Column="2" Width="185" Margin="6,0,0,0"  x:Name="ColorFilter" Style="{StaticResource ManualComboBox}" SelectionChanged="Color_Changed" AutomationProperties.Name="지도 색상 기준" ToolTip="활성 보정 B / 측정 편차 / 측정 판정을 구분해서 봅니다." />
+            <ComboBox Grid.Column="2" Width="185" Margin="6,0,0,0"  x:Name="ColorFilter" Style="{StaticResource ManualComboBox}" SelectionChanged="Color_Changed" AutomationProperties.Name="지도 색상 기준" ToolTip="측정 편차 Level 또는 OK/NG" />
             <Button Grid.Column="3" Width="82" Margin="6,0,0,0"  x:Name="ZoomResetButton" Content="100% · 맞춤" Padding="5,2" FontSize="11" Style="{StaticResource ManualButton}" Click="ZoomReset_Click" ToolTip="전체 범위를 화면에 맞춥니다. 실제 장비 위치는 바뀌지 않습니다." />
             <Button Grid.Column="4" Width="66" Content="선택 ▾" Style="{StaticResource ManualButton}" Click="SelectionTools_Click" Padding="5,2" Margin="6,0,0,0" ToolTip="보이는 점 전체 / NG만 / 선택 해제" />
             <Button Grid.Column="5" Width="72" Margin="6,0,0,0"  x:Name="FilesButton" Content="파일 ▾" Padding="5,2" Style="{StaticResource ManualButton}" Click="Files_Click" ToolTip="통합 Offset 파일 가져오기·내보내기 · 측정 결과 CSV · 파일 열기 전 작업으로 돌아가기" />
@@ -214,13 +214,13 @@
           <Grid x:Name="WorkspaceBody"><Grid.Style><Style TargetType="Grid"><Setter Property="Height" Value="{Binding ViewportHeight,ElementName=WorkspaceScroll}" /><Style.Triggers>
             <DataTrigger Binding="{Binding IsExpanded,ElementName=ResultsSection}" Value="True"><Setter Property="Height" Value="Auto" /></DataTrigger>
             <DataTrigger Binding="{Binding IsExpanded,ElementName=ScatterSection}" Value="True"><Setter Property="Height" Value="Auto" /></DataTrigger>
-            <DataTrigger Binding="{Binding IsExpanded,ElementName=WorkInfoSection}" Value="True"><Setter Property="Height" Value="Auto" /></DataTrigger>
+
           </Style.Triggers></Style></Grid.Style><Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
             <Border x:Name="MapPanel" Grid.Row="0" Style="{StaticResource ManualPanel}" Padding="0" Margin="0,0,0,3" ClipToBounds="True"><Grid><Border x:Name="MapViewportFrame" ClipToBounds="True"><views:CManualInspectionMapControl x:Name="PositionMap" MinHeight="80" AutomationProperties.Name="측정 결과 2D 지도" AutomationProperties.HelpText="전체 Cell 버튼은 기판 배치로 전환합니다. Cell 번호 클릭은 단일 Cell 보기, Ctrl Cell 번호 클릭은 해당 Cell의 점들을 추가 선택하거나 해제합니다. Ctrl 클릭과 드래그로 복수 점 선택, Ctrl 휠 확대 축소, Alt 방향키 보기 이동. 더블클릭은 선택을 유지하며 화면에 맞춥니다. 우클릭 또는 Shift F10으로 동작을 엽니다." /></Border></Grid></Border>
             <Border Grid.Row="1" Style="{StaticResource ManualPanel}" Padding="4,2" Margin="0,0,0,2"><Expander x:Name="ResultsSection" Header="측정 결과 표" IsExpanded="False" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" FontWeight="SemiBold">
-                        <StackPanel Margin="0,10,0,0">
+                        <ScrollViewer x:Name="ResultsSectionContent" MaxHeight="190" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel Margin="0,6,0,0">
                             <TextBlock x:Name="ResultStatsText" Style="{StaticResource ManualLabel}" />
-                            <DataGrid x:Name="ResultGrid" Style="{StaticResource ManualGrid}" MaxHeight="360" MinHeight="100" SelectionChanged="ResultGrid_SelectionChanged" PreviewMouseLeftButtonDown="ResultGrid_LeftButtonDown" PreviewMouseRightButtonDown="ResultGrid_RightButtonDown">
+                            <DataGrid x:Name="ResultGrid" Style="{StaticResource ManualGrid}" MaxHeight="150" MinHeight="100" SelectionChanged="ResultGrid_SelectionChanged" PreviewMouseLeftButtonDown="ResultGrid_LeftButtonDown" PreviewMouseRightButtonDown="ResultGrid_RightButtonDown">
                                 <DataGrid.RowStyle><Style TargetType="DataGridRow"><Setter Property="Background" Value="{DynamicResource GridBackgroundBrush}" /><Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" /><Style.Triggers><DataTrigger Binding="{Binding IsSelected}" Value="True"><Setter Property="Background" Value="{DynamicResource MenuItemSelectedBackgroundBrush}" /></DataTrigger></Style.Triggers></Style></DataGrid.RowStyle>
                                 <DataGrid.Columns>
                                     <DataGridTemplateColumn Header="선택" Width="42"><DataGridTemplateColumn.CellTemplate><DataTemplate><CheckBox IsChecked="{Binding IsSelected,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsSelectable}" HorizontalAlignment="Center" VerticalAlignment="Center" /></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
@@ -228,20 +228,21 @@
                                     <DataGridTextColumn Header="측정 상태" Binding="{Binding Point.MeasurementStatusText}" Width="145" />
                                     <DataGridTextColumn Header="측정 편차 X/Y µm" Binding="{Binding Point.MeasurementErrorText}" Width="155" />
                                     <DataGridTextColumn Header="측정 Level" Binding="{Binding MeasurementLevelText}" Width="90" />
-                                    <DataGridTextColumn x:Name="ResultOffsetColumn" Header="적용 보정 X/Y µm" Binding="{Binding Point.BaseOffsetText}" Width="155" />
-                                    <DataGridTextColumn Header="보정 Level" Binding="{Binding AppliedLevelText}" Width="100" />
+                                    <DataGridTextColumn Visibility="Collapsed" x:Name="ResultOffsetColumn" Header="적용 보정 X/Y µm" Binding="{Binding Point.BaseOffsetText}" Width="155" />
+                                    <DataGridTextColumn Visibility="Collapsed" Header="보정 Level" Binding="{Binding AppliedLevelText}" Width="100" />
                                     <DataGridTextColumn Header="측정 출처" Binding="{Binding MeasurementOriginText}" Width="170" />
                                     <DataGridTextColumn Header="작업 상태" Binding="{Binding Point.SourceText}" Width="160" />
                                 </DataGrid.Columns>
                             </DataGrid>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0"><Button x:Name="PreviousPageButton" Content="이전" Style="{StaticResource ManualButton}" Click="PreviousPage_Click" /><TextBlock x:Name="PageText" Foreground="{DynamicResource TextMutedBrush}" FontSize="11" Margin="8,8,14,0" /><Button x:Name="NextPageButton" Content="다음" Style="{StaticResource ManualButton}" Click="NextPage_Click" /></StackPanel>
-                        </StackPanel>
+                        </StackPanel></ScrollViewer>
                         </Expander></Border>
             <Border Grid.Row="2" Style="{StaticResource ManualPanel}" Padding="4,2" Margin="0,0,0,2"><Expander x:Name="ScatterSection" Header="산포도 보기" IsExpanded="False" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" FontWeight="SemiBold">
-                            <StackPanel Margin="0,10,0,0">
-                                <ComboBox x:Name="ScatterDataCombo" Width="205" HorizontalAlignment="Left" Style="{StaticResource ManualComboBox}" SelectionChanged="Scatter_Changed" />
-                                <WrapPanel Margin="0,8,0,0"><Button x:Name="ScatterCellButton" Content="현재 셀" Tag="CELL" Style="{StaticResource ManualButton}" Click="ScatterScope_Click" /><Button x:Name="ScatterHeadButton" Content="전체 셀 · Head별" Tag="HEAD" Style="{StaticResource ManualButton}" Click="ScatterScope_Click" /><Button x:Name="ScatterCellsButton" Content="선택 셀들" Tag="CELLS" Style="{StaticResource ManualButton}" Click="ScatterScope_Click" /></WrapPanel>
-                                <WrapPanel Margin="0,2,0,2" VerticalAlignment="Center">
+                            <ScrollViewer x:Name="ScatterSectionContent" MaxHeight="260" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel Margin="0,6,0,0">
+                                <WrapPanel x:Name="ScatterQuickControls" Margin="0,0,0,2" VerticalAlignment="Center"><ComboBox x:Name="ScatterDataCombo" Width="160" HorizontalAlignment="Left" Margin="0,0,6,6" Style="{StaticResource ManualComboBox}" SelectionChanged="Scatter_Changed" /><Button x:Name="ScatterCellButton" Content="현재 셀" Tag="CELL" Style="{StaticResource ManualButton}" Click="ScatterScope_Click" /><Button x:Name="ScatterHeadButton" Content="전체 셀 · Head별" Tag="HEAD" Style="{StaticResource ManualButton}" Click="ScatterScope_Click" /><Button x:Name="ScatterCellsButton" Content="선택 셀들" Tag="CELLS" Style="{StaticResource ManualButton}" Click="ScatterScope_Click" /></WrapPanel>
+                                <Grid x:Name="ScatterPlotRow" Height="180" VerticalAlignment="Top"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="160" /></Grid.ColumnDefinitions><views:CManualInspectionScatterControl x:Name="ScatterPlot" MinHeight="160" Height="180" AutomationProperties.Name="통합 Offset·측정 산포도" AutomationProperties.HelpText="측정 편차를 현재 Cell·Head·선택 Cell 범위로 봅니다. 점을 클릭하면 지도와 선택이 연결됩니다. Ctrl 휠 또는 확대 축소 버튼으로 보기를 바꾸고 더블클릭하면 Auto로 맞춥니다. 원측정 기록은 기존 보정 기반 값을 포함하지 않습니다." /><ScrollViewer x:Name="ScatterStatisticsScroll" Grid.Column="1" Margin="10,0,0,0" Height="180" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel><TextBlock x:Name="ScatterMetricsText" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" FontWeight="Normal" TextWrapping="Wrap" /><TextBlock x:Name="ScatterExcludedText" Style="{StaticResource ManualLabel}" Margin="0,10,0,6" /><DataGrid x:Name="ScatterGroupsGrid" Style="{StaticResource ManualGrid}" MaxHeight="100" RowHeight="26" FontSize="10"><DataGrid.Columns><DataGridTextColumn Header="범위" Binding="{Binding Group}" Width="40" /><DataGridTextColumn Header="점" Binding="{Binding Count}" Width="35" /><DataGridTextColumn Header="평균 X/Y µm" Binding="{Binding Mean}" Width="*" /></DataGrid.Columns></DataGrid></StackPanel></ScrollViewer></Grid>
+                                <Expander x:Name="ScatterSettingsSection" Header="축 · 범위 설정" IsExpanded="False" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" FontWeight="Normal" Margin="0,4,0,0"><StackPanel Margin="0,5,0,0">
+                                    <WrapPanel Margin="0,2,0,2" VerticalAlignment="Center">
                                     <Button x:Name="ScatterAutoButton" Content="Auto" Style="{StaticResource ManualButton}" Click="ScatterAuto_Click" ToolTip="현재 범위의 유효 오차와 원점을 포함해 두 축을 자동으로 맞춥니다." />
                                     <TextBlock Text="고정 ±" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" VerticalAlignment="Center" Margin="4,0,4,6" />
                                     <TextBox x:Name="ScatterRangeInput" Text="20" Width="72" Style="{StaticResource ManualInput}" KeyDown="ScatterRange_KeyDown" Margin="0,0,4,6" AutomationProperties.Name="산포도 고정 축 반범위 마이크로미터" ToolTip="양수 µm를 입력한 뒤 Enter 또는 축 적용. X/Y 두 축에 같은 ±범위를 사용합니다." />
@@ -253,11 +254,57 @@
                                 </WrapPanel>
                                 <TextBlock x:Name="ScatterAxisText" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" FontWeight="Normal" TextWrapping="Wrap" Margin="0,0,0,5" />
                                 <StackPanel x:Name="ScatterScopeControls" Margin="0,4,0,7" />
-                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="205" /></Grid.ColumnDefinitions><views:CManualInspectionScatterControl x:Name="ScatterPlot" Height="310" AutomationProperties.Name="통합 Offset·측정 산포도" AutomationProperties.HelpText="기본은 전체 Cell·모든 Head의 통합 Offset입니다. 작업 결과·원측정 기록과 현재 Cell·선택 Cell 범위도 선택할 수 있습니다. 점을 클릭하면 지도와 선택이 연결됩니다. Ctrl 휠 또는 확대 축소 버튼으로 보기를 바꾸고 더블클릭하면 Auto로 맞춥니다. 원측정 기록은 기존 보정 기반 값을 포함하지 않습니다." /><StackPanel Grid.Column="1" Margin="10,6,0,0"><TextBlock x:Name="ScatterMetricsText" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" FontWeight="Normal" TextWrapping="Wrap" /><TextBlock x:Name="ScatterExcludedText" Style="{StaticResource ManualLabel}" Margin="0,10,0,6" /><DataGrid x:Name="ScatterGroupsGrid" Style="{StaticResource ManualGrid}" MaxHeight="145" RowHeight="26" FontSize="10"><DataGrid.Columns><DataGridTextColumn Header="범위" Binding="{Binding Group}" Width="40" /><DataGridTextColumn Header="점" Binding="{Binding Count}" Width="35" /><DataGridTextColumn Header="평균 X/Y µm" Binding="{Binding Mean}" Width="*" /></DataGrid.Columns></DataGrid></StackPanel></Grid>
+                                </StackPanel></Expander>
                                 <WrapPanel x:Name="ScatterLegendItems" Margin="0,4,0,2" /><TextBlock x:Name="ScatterLegendText" Style="{StaticResource ManualLabel}" />
-                            </StackPanel>
+                            </StackPanel></ScrollViewer>
                         </Expander></Border>
-            <Border Grid.Row="3" Style="{StaticResource ManualPanel}" Padding="4,2" Margin="0"><Expander x:Name="WorkInfoSection" Header="필터 · 범례 · 작업 정보" IsExpanded="False" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"><StackPanel Margin="6,6,6,2">
+
+          </Grid>
+        </ScrollViewer>
+        <Border Grid.Column="2" Background="{DynamicResource PanelAltBackgroundBrush}" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1" CornerRadius="5" Padding="2">
+          <Expander x:Name="InspectorSection" ExpandDirection="Left" IsExpanded="False" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Stretch" ToolTip="검사 · 보정 펼치기: 선택점 상세, 대표값 복사, 보정 계산·검증·적용, 설정">
+            <Expander.Header><TextBlock Text="검사 · 보정" FontWeight="SemiBold" FontSize="12" Margin="2,6"><TextBlock.LayoutTransform><RotateTransform Angle="-90" /></TextBlock.LayoutTransform></TextBlock></Expander.Header>
+            <ScrollViewer x:Name="InspectorScroll" Width="300" Margin="8,0,0,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel>
+                    <Border x:Name="PointSummaryPanel" Style="{StaticResource ManualPanel}" Padding="6" Margin="0,0,0,4" ToolTip="점 우클릭 또는 Shift+F10: 이동 · 측정 · 보정 · 상세">
+                        <StackPanel>
+                            <TextBlock x:Name="PointScopeText" Text="포커스 위치" Style="{StaticResource ManualLabel}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" /><TextBlock x:Name="PointTitleText" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="19" FontWeight="SemiBold" TextWrapping="Wrap" /><TextBlock x:Name="PointIdentityText" Style="{StaticResource ManualLabel}" Margin="0,2,0,4" />
+                            <TextBlock Visibility="Collapsed" x:Name="PointAppliedText" Foreground="{DynamicResource AccentTextBrush}" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,3" />
+                            <TextBlock x:Name="LastMeasurementText" Foreground="{DynamicResource AccentTextBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,5" /><Button x:Name="MeasureCurrentButton" Content="현 위치 측정" Tag="Measure" Style="{StaticResource ManualButton}" Click="Action_Click" ToolTip="현재 도착한 선택 위치 한 점을 측정합니다." /><TextBlock x:Name="PointJudgesText" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,3" /><TextBlock x:Name="PointErrorText" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,3" />
+                            <TextBlock x:Name="SelectionSummaryText" Style="{StaticResource ManualLabel}" Margin="0,8,0,3" Visibility="Collapsed" />
+                            <TextBlock x:Name="SelectionLevelsText" Style="{StaticResource ManualLabel}" Margin="0,0,0,6" Visibility="Collapsed" />
+                            <Expander x:Name="PointDetailsSection" Header="좌표 · 보정 · 출처" IsExpanded="False" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"><TextBlock x:Name="PointDetailsText" Style="{StaticResource ManualLabel}" Margin="0,7,0,4" /></Expander>
+                            <TextBlock x:Name="JobProgressText" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,9,0,5" /><ProgressBar x:Name="JobProgressBar" Height="7" Minimum="0" Maximum="100" Foreground="{DynamicResource AccentBrush}" />
+                            <Button x:Name="RetryButton" Content="남은 위치만 재측정" Tag="RetryRemaining" Style="{StaticResource ManualButton}" Click="Action_Click" Margin="0,8,0,0" />
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource ManualPanel}" Padding="4" Margin="0,0,0,4">
+                        <Expander x:Name="ReferenceSection" Header="대표값 복사" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="14" FontWeight="SemiBold">
+                            <StackPanel Margin="0,8,0,0"><TextBlock x:Name="ReferenceText" Foreground="{DynamicResource AccentTextBrush}" FontSize="12" FontWeight="Normal" TextWrapping="Wrap" Margin="0,0,0,8" /><Button x:Name="SetReferenceButton" Content="현재 점을 대표값으로" Style="{StaticResource ManualButton}" Click="SetReference_Click" /><TextBox x:Name="CopyReasonInput" Text="대표값 동일 반영" Style="{StaticResource ManualInput}" ToolTip="복사 사유" /><Button x:Name="CopyReferenceButton" Content="선택점에 복사" Style="{StaticResource ManualPrimaryButton}" Click="CopyReference_Click" /><Button x:Name="ClearReferenceButton" Content="대표 지정 해제" Style="{StaticResource ManualButton}" Click="ClearReference_Click" /><Button x:Name="UndoCopyButton" Content="직전 복사 취소" Tag="UndoCopy" Style="{StaticResource ManualButton}" Click="Action_Click" /><TextBlock Text="복사는 보정 후보를 만듭니다. 활성 보정에는 검증·적용 후 반영됩니다." Style="{StaticResource ManualLabel}" /></StackPanel>
+                        </Expander>
+                    </Border>
+                    <Border Style="{StaticResource ManualPanel}" Padding="4" Margin="0,0,0,4">
+                        <Expander x:Name="CorrectionSection" Header="보정 확인 · 적용" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="14" FontWeight="SemiBold">
+                            <StackPanel Margin="0,8,0,0">
+                                <TextBlock x:Name="CandidateStatusText" Foreground="{DynamicResource AccentTextBrush}" FontSize="12" /><TextBlock x:Name="CandidateContextText" Style="{StaticResource ManualLabel}" />
+                                <TextBlock x:Name="OffsetStateText" Style="{StaticResource ManualLabel}" Margin="0,0,0,7" TextWrapping="Wrap" />
+                                <WrapPanel Margin="0,0,0,4"><ComboBox x:Name="InitScopeCombo" Width="108" Style="{StaticResource ManualComboBox}" SelectionChanged="InitScope_Changed" /><ComboBox x:Name="InitCellCombo" Width="94" Style="{StaticResource ManualComboBox}" /><ComboBox x:Name="InitHeadCombo" Width="94" Style="{StaticResource ManualComboBox}" /></WrapPanel><Button x:Name="OffsetInitButton" Content="Offset Init" Tag="InitializeOffsets" Style="{StaticResource ManualButton}" Click="Action_Click" ToolTip="측정으로 누적된 통합 Offset만 화면에서 초기화합니다. 모델 저장 전에는 설비와 기존 파일이 바뀌지 않습니다." />
+                                <Button x:Name="CalculateButton" Content="1. 선택점 보정 계산" Tag="Calculate" Style="{StaticResource ManualButton}" Click="Action_Click" /><Button x:Name="ValidateButton" Content="2. 후보 검증" Tag="Validate" Style="{StaticResource ManualButton}" Click="Action_Click" /><Button x:Name="ApplyButton" Content="3. 모델 Offset 저장" Style="{StaticResource ManualPrimaryButton}" Click="Apply_Click" /><Button x:Name="RollbackButton" Content="직전 보정으로 원복" Style="{StaticResource ManualButton}" Click="Rollback_Click" />
+                                <TextBlock x:Name="IncompleteText" Foreground="{DynamicResource ButtonDangerBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,3,0,6" /><CheckBox x:Name="AllowManualCheck" Content="대표 복사 후보도 검증" Style="{StaticResource ManualCheck}" Checked="AllowManual_Changed" Unchecked="AllowManual_Changed" Margin="0,3,0,7" />
+                                <DataGrid x:Name="CandidateGrid" Style="{StaticResource ManualGrid}" MaxHeight="200" Margin="0,5,0,5"><DataGrid.Columns><DataGridTextColumn Header="대상" Binding="{Binding Key}" Width="140" /><DataGridTextColumn Header="후보 F µm" Binding="{Binding FinalText}" Width="145" /></DataGrid.Columns></DataGrid>
+                                <TextBlock x:Name="CandidateRowCountText" Style="{StaticResource ManualLabel}" /><TextBlock x:Name="ValidationText" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="11" FontWeight="Normal" TextWrapping="Wrap" Margin="0,4,0,6" />
+                            </StackPanel>
+                        </Expander>
+                    </Border>
+                    <Border Style="{StaticResource ManualPanel}" Padding="4" Margin="0,0,0,4">
+                        <Expander x:Name="SettingsSection" Header="설정 · 적용 이력" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="13">
+                            <StackPanel Margin="0,8,0,0"><TextBlock Text="측정 방식" Style="{StaticResource ManualLabel}" /><ComboBox x:Name="MeasurementModeCombo" Style="{StaticResource ManualComboBox}" /><TextBlock Text="Flying은 선택한 Cell·Head·행·Beam의 전체 유효점으로 확대됩니다. 현재 위치 측정은 상단 버튼 또는 우클릭에서 실행합니다." Style="{StaticResource ManualLabel}" Margin="0,6,0,8" /><Button x:Name="LevelsButton" Content="Level 범위" Style="{StaticResource ManualButton}" Click="Levels_Click" /><StackPanel x:Name="LevelSettingsPanel" Visibility="Collapsed" />
+                                <TextBlock Text="증감 상한 µm" Style="{StaticResource ManualLabel}" /><TextBox x:Name="DeltaLimitInput" Style="{StaticResource ManualInput}" /><TextBlock Text="총량 상한 µm" Style="{StaticResource ManualLabel}" Margin="0,6,0,4" /><TextBox x:Name="TotalLimitInput" Style="{StaticResource ManualInput}" /><TextBlock Text="Scanner Field mm" Style="{StaticResource ManualLabel}" Margin="0,6,0,4" /><TextBox x:Name="FieldLimitInput" Style="{StaticResource ManualInput}" /><Button x:Name="SaveLimitsButton" Content="한계 설정 적용" Style="{StaticResource ManualButton}" Click="Limits_Click" Margin="0,7,0,8" />
+                                <ItemsControl x:Name="RevisionItems"><ItemsControl.ItemTemplate><DataTemplate><TextBlock Text="{Binding DisplayText}" Foreground="{DynamicResource TextMutedBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,2" /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                            </StackPanel>
+                        </Expander>
+                    </Border>
+            <Border Style="{StaticResource ManualPanel}" Padding="4,2" Margin="0"><Expander x:Name="WorkInfoSection" Header="필터 · 범례 · 작업 정보" IsExpanded="False" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"><StackPanel Margin="6,6,6,2">
               <WrapPanel><StackPanel Width="160" Margin="0,0,8,6"><TextBlock Text="지도 측정 상태" Style="{StaticResource ManualLabel}" /><ComboBox x:Name="JudgeFilter" Style="{StaticResource ManualComboBox}" SelectionChanged="Filter_Changed" AutomationProperties.Name="지도 측정 상태 필터" ToolTip="측정됨에는 기존 보정 기반 이력도 포함됩니다. 실측 OK/NG는 수신 판정을 사용합니다." /></StackPanel>
                 <Button Content="−" Style="{StaticResource ManualButton}" Click="ZoomOut_Click" ToolTip="지도 축소 · Ctrl+휠 아래" AutomationProperties.Name="지도 축소" VerticalAlignment="Bottom" />
                 <Button Content="+" Style="{StaticResource ManualButton}" Click="ZoomIn_Click" ToolTip="지도 확대 · Ctrl+휠 위" AutomationProperties.Name="지도 확대" VerticalAlignment="Bottom" />
@@ -272,57 +319,12 @@
                     </WrapPanel>
                 </Expander>
               <TextBlock x:Name="FilterNoticeText" Foreground="{DynamicResource ButtonWarningBrush}" FontSize="11" TextWrapping="Wrap" />
-              <TextBlock x:Name="ColorDescriptionText" Style="{StaticResource ManualLabel}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
-              <WrapPanel x:Name="MapLegendItems" /><TextBlock x:Name="MapLegendText" Style="{StaticResource ManualLabel}" Visibility="Collapsed" />
-              <TextBlock Text="전체 Cell: 기판 배치 · Cell 번호 클릭: 단일 보기 · Ctrl+Cell 번호: 셀 복수 선택 · Ctrl+클릭/드래그: 점 선택 · Ctrl+휠: 확대/축소 · 더블클릭: 맞춤 · Alt+방향키: 보기 이동 · 우클릭: 동작" Style="{StaticResource ManualLabel}" />
+              <TextBlock x:Name="ColorDescriptionText" Style="{StaticResource ManualLabel}" TextWrapping="Wrap" />
+              <TextBlock Text="NG 빨강 · 미측정/초기화 회색 · 테두리: 선택/대표" Style="{StaticResource ManualLabel}" /><WrapPanel x:Name="MapLegendItems" /><TextBlock x:Name="MapLegendText" Style="{StaticResource ManualLabel}" Visibility="Collapsed" />
+              <TextBlock Text="Ctrl 선택 · 드래그 선택 · Ctrl 휠 확대 · 더블클릭 맞춤 · 우클릭 동작" Style="{StaticResource ManualLabel}" />
               <TextBlock x:Name="StagePositionText" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" FontFamily="Consolas" ToolTip="마지막 도착 확인 목표입니다. 실시간 모터 피드백이 아닙니다." />
               <TextBlock x:Name="PersistenceText" Foreground="{DynamicResource TextMutedBrush}" FontSize="10" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" />
             </StackPanel></Expander></Border>
-          </Grid>
-        </ScrollViewer>
-        <Border Grid.Column="2" Background="{DynamicResource PanelAltBackgroundBrush}" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1" CornerRadius="5" Padding="2">
-          <Expander x:Name="InspectorSection" ExpandDirection="Left" IsExpanded="False" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Stretch" ToolTip="검사 · 보정 펼치기: 선택점 상세, 대표값 복사, 보정 계산·검증·적용, 설정">
-            <Expander.Header><TextBlock Text="검사 · 보정" FontWeight="SemiBold" FontSize="12" Margin="2,6"><TextBlock.LayoutTransform><RotateTransform Angle="-90" /></TextBlock.LayoutTransform></TextBlock></Expander.Header>
-            <ScrollViewer x:Name="InspectorScroll" Width="300" Margin="8,0,0,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                <StackPanel>
-                    <Border x:Name="PointSummaryPanel" Style="{StaticResource ManualPanel}" Padding="6" Margin="0,0,0,4" ToolTip="점 우클릭 또는 Shift+F10: 이동 · 측정 · 보정 · 상세">
-                        <StackPanel>
-                            <TextBlock x:Name="PointScopeText" Text="포커스 위치" Style="{StaticResource ManualLabel}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" /><TextBlock x:Name="PointTitleText" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="19" FontWeight="SemiBold" TextWrapping="Wrap" /><TextBlock x:Name="PointIdentityText" Style="{StaticResource ManualLabel}" Margin="0,2,0,4" />
-                            <TextBlock x:Name="PointAppliedText" Foreground="{DynamicResource AccentTextBrush}" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,3" />
-                            <TextBlock x:Name="PointJudgesText" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,3" /><TextBlock x:Name="PointErrorText" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,3" />
-                            <TextBlock x:Name="SelectionSummaryText" Style="{StaticResource ManualLabel}" Margin="0,8,0,3" Visibility="Collapsed" />
-                            <TextBlock x:Name="SelectionLevelsText" Style="{StaticResource ManualLabel}" Margin="0,0,0,6" Visibility="Collapsed" />
-                            <Expander x:Name="PointDetailsSection" Header="좌표 · 보정 · 출처" IsExpanded="False" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"><TextBlock x:Name="PointDetailsText" Style="{StaticResource ManualLabel}" Margin="0,7,0,4" /></Expander>
-                            <TextBlock x:Name="JobProgressText" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,9,0,5" /><ProgressBar x:Name="JobProgressBar" Height="7" Minimum="0" Maximum="100" Foreground="{DynamicResource AccentBrush}" />
-                            <Button x:Name="RetryButton" Content="남은 위치만 재측정" Tag="RetryRemaining" Style="{StaticResource ManualButton}" Click="Action_Click" Margin="0,8,0,0" />
-                        </StackPanel>
-                    </Border>
-                    <Border Style="{StaticResource ManualPanel}" Padding="4" Margin="0,0,0,4">
-                        <Expander x:Name="ReferenceSection" Header="대표값 복사" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="14" FontWeight="SemiBold">
-                            <StackPanel Margin="0,8,0,0"><TextBlock x:Name="ReferenceText" Foreground="{DynamicResource AccentTextBrush}" FontSize="12" FontWeight="Normal" TextWrapping="Wrap" Margin="0,0,0,8" /><Button x:Name="SetReferenceButton" Content="현재 점을 대표값으로" Style="{StaticResource ManualButton}" Click="SetReference_Click" /><Button x:Name="CopyReferenceButton" Content="선택점에 복사" Style="{StaticResource ManualPrimaryButton}" Click="CopyReference_Click" /><Button x:Name="ClearReferenceButton" Content="대표 지정 해제" Style="{StaticResource ManualButton}" Click="ClearReference_Click" /><Button x:Name="UndoCopyButton" Content="직전 복사 취소" Tag="UndoCopy" Style="{StaticResource ManualButton}" Click="Action_Click" /><TextBlock Text="복사는 보정 후보를 만듭니다. 활성 보정에는 검증·적용 후 반영됩니다." Style="{StaticResource ManualLabel}" /></StackPanel>
-                        </Expander>
-                    </Border>
-                    <Border Style="{StaticResource ManualPanel}" Padding="4" Margin="0,0,0,4">
-                        <Expander x:Name="CorrectionSection" Header="보정 확인 · 적용" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="14" FontWeight="SemiBold">
-                            <StackPanel Margin="0,8,0,0">
-                                <TextBlock x:Name="CandidateStatusText" Foreground="{DynamicResource AccentTextBrush}" FontSize="12" /><TextBlock x:Name="CandidateContextText" Style="{StaticResource ManualLabel}" />
-                                <TextBlock x:Name="OffsetStateText" Style="{StaticResource ManualLabel}" Margin="0,0,0,7" TextWrapping="Wrap" />
-                                <Button x:Name="OffsetInitButton" Content="Offset Init" Tag="InitializeOffsets" Style="{StaticResource ManualButton}" Click="Action_Click" ToolTip="측정으로 누적된 통합 Offset만 화면에서 초기화합니다. 모델 저장 전에는 설비와 기존 파일이 바뀌지 않습니다." />
-                                <Button x:Name="CalculateButton" Content="1. 선택점 보정 계산" Tag="Calculate" Style="{StaticResource ManualButton}" Click="Action_Click" /><Button x:Name="ValidateButton" Content="2. 후보 검증" Tag="Validate" Style="{StaticResource ManualButton}" Click="Action_Click" /><Button x:Name="ApplyButton" Content="3. 모델 Offset 저장" Style="{StaticResource ManualPrimaryButton}" Click="Apply_Click" /><Button x:Name="RollbackButton" Content="직전 보정으로 원복" Style="{StaticResource ManualButton}" Click="Rollback_Click" />
-                                <TextBlock x:Name="IncompleteText" Foreground="{DynamicResource ButtonDangerBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,3,0,6" /><CheckBox x:Name="AllowManualCheck" Content="대표 복사 후보도 검증" Style="{StaticResource ManualCheck}" Checked="AllowManual_Changed" Unchecked="AllowManual_Changed" Margin="0,3,0,7" />
-                                <DataGrid x:Name="CandidateGrid" Style="{StaticResource ManualGrid}" MaxHeight="200" Margin="0,5,0,5"><DataGrid.Columns><DataGridTextColumn Header="대상" Binding="{Binding Key}" Width="140" /><DataGridTextColumn Header="후보 F µm" Binding="{Binding FinalText}" Width="145" /></DataGrid.Columns></DataGrid>
-                                <TextBlock x:Name="CandidateRowCountText" Style="{StaticResource ManualLabel}" /><TextBlock x:Name="ValidationText" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="11" FontWeight="Normal" TextWrapping="Wrap" Margin="0,4,0,6" />
-                            </StackPanel>
-                        </Expander>
-                    </Border>
-                    <Border Style="{StaticResource ManualPanel}" Padding="4" Margin="0,0,0,4">
-                        <Expander x:Name="SettingsSection" Header="설정 · 적용 이력" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="13">
-                            <StackPanel Margin="0,8,0,0"><TextBlock Text="측정 방식" Style="{StaticResource ManualLabel}" /><ComboBox x:Name="MeasurementModeCombo" Style="{StaticResource ManualComboBox}" /><TextBlock Text="Flying은 선택한 Cell·Head·행·Beam의 전체 유효점으로 확대됩니다. 현재 위치 한 점 측정은 점 우클릭에서 실행합니다." Style="{StaticResource ManualLabel}" Margin="0,6,0,8" /><Button x:Name="LevelsButton" Content="공통 Level 범위" Style="{StaticResource ManualButton}" Click="Levels_Click" />
-                                <TextBlock Text="증감 상한 µm" Style="{StaticResource ManualLabel}" /><TextBox x:Name="DeltaLimitInput" Style="{StaticResource ManualInput}" /><TextBlock Text="총량 상한 µm" Style="{StaticResource ManualLabel}" Margin="0,6,0,4" /><TextBox x:Name="TotalLimitInput" Style="{StaticResource ManualInput}" /><TextBlock Text="Scanner Field mm" Style="{StaticResource ManualLabel}" Margin="0,6,0,4" /><TextBox x:Name="FieldLimitInput" Style="{StaticResource ManualInput}" /><Button x:Name="SaveLimitsButton" Content="한계 설정 확인" Style="{StaticResource ManualButton}" Click="Limits_Click" Margin="0,7,0,8" />
-                                <ItemsControl x:Name="RevisionItems"><ItemsControl.ItemTemplate><DataTemplate><TextBlock Text="{Binding DisplayText}" Foreground="{DynamicResource TextMutedBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,2" /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
-                            </StackPanel>
-                        </Expander>
-                    </Border>
                 </StackPanel>
             </ScrollViewer>
           </Expander>

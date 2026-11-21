@@ -15,7 +15,7 @@
     },
     {
       "path": "Drilling.File/ReviewOffset/CReviewOffsetFile.cs",
-      "sha256": "837072d2fd9d6bd9ef7aa544338d8e6a963783e7920f0d65d556620c391ded88"
+      "sha256": "170e69c69387fc04c3d9e275c515ee51252127c3499dda687a2c6a93e5bc819d"
     },
     {
       "path": "Drilling.File/Parser/CCsvParser.cs",
@@ -23,7 +23,7 @@
     }
   ],
   "visionMethodSha256": "f62b142d6534c3eae52efde25186684ca75d0f12b8c293602ad0c93618f113ae",
-  "sourceManagerSha256": "4ea3719f3383893c65aeac18f8766eb65961593817fd49573d2b0ba455fcf1cf",
+  "sourceManagerSha256": "d78c3950a0297d14e913287f11e94e211c3887c51330ab5dc4abeb6982a67d60",
   "manualSources": [
     {
       "path": "Drilling.Common/Review/CManualInspectionCoordinateBridge.cs",
@@ -31,7 +31,7 @@
     },
     {
       "path": "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs",
-      "sha256": "744e1765794968cc60384c168bfb3b752ca88d072b477513dc0390918a14cd2c"
+      "sha256": "d5e3422648349afc8a7a748322deb836199943fcc1dfaec13d9ebdbcc0399105"
     }
   ],
   "hashScope": "Tested Windows source bytes; the extracted Vision converter is unchanged. Compiler input files are linked from the current repository."

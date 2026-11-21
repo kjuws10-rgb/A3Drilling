@@ -61,12 +61,13 @@ internal static partial class Program
             var version = fake.Snapshot.Version;
             view.ConfirmationForTesting = (_, _, _) => false;
             Invoke(view, "Apply_Click", view, new RoutedEventArgs());
-            Test("cancelled_apply_never_dispatches", fake.Calls.Count == before);
-            view.ConfirmationForTesting = (_, _, _) => { fake.Replace(fake.Snapshot with { Version = fake.Snapshot.Version + 1 }); return true; };
+            Test("apply_without_motion_dispatches_without_confirmation", fake.Calls.Count == before+1&&fake.Calls[^1].Action==EN_MANUAL_INSPECTION_UI_ACTION.Apply);
+            before=fake.Calls.Count;
+            view.ConfirmationForTesting = (_, _, _) => throw new InvalidOperationException("Save must not request confirmation");
             Invoke(view, "Apply_Click", view, new RoutedEventArgs()); Pump();
-            Test("external_review_update_during_apply_confirmation_never_dispatches_stale_request", fake.Calls.Count == before
-                && ((TextBlock)view.FindName("MessageText")).Text.Contains("바뀌"));
-            Test("apply_confirmation_used_frozen_version", fake.Snapshot.Version > version);
+            Test("apply_without_confirmation_dispatches_one_current_request", fake.Calls.Count == before+1&&fake.Calls[^1].Request.ExpectedVersion==version);
+            Test("apply_without_confirmation_does_not_invoke_confirmation_callback", fake.Snapshot.Version == version);
+            before=fake.Calls.Count;
             Execute(EN_MANUAL_INSPECTION_UI_ACTION.CopyReference, new() { ExpectedVersion = fake.Snapshot.Version - 1 });
             Test("common_request_gate_rejects_stale_copy", fake.Calls.Count == before);
             fake.Replace(fake.Snapshot with { Version = fake.Snapshot.Version + 1, IsReadOnly = true }); Pump();

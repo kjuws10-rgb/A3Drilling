@@ -53,6 +53,8 @@ public sealed record ST_MANUAL_POINT(
     public int Row { get; init; }
     public int Column { get; init; }
     public bool Masked { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public bool IsMeasurementOffsetInitialized { get; init; }
     public string Judge { get; init; } = "UNMEASURED";
     public string Source { get; init; } = "KEPT";
     public double? ErrorXUm { get; init; }
@@ -72,7 +74,7 @@ public sealed record ST_MANUAL_POINT(
     public string OffsetKey => $"C{CellNo}/S{ShotNo}";
     public bool HasFiniteError => ErrorXUm is double x && ErrorYUm is double y && double.IsFinite(x) && double.IsFinite(y);
     /// <summary>Correction eligibility includes an explicit file receipt; this does not relabel camera originals.</summary>
-    public bool IsDirectMeasurement => ProxySource is null && (Source == "MEASURED" || Source == "IMPORTED" && AdoptedFileMeasurement is not null);
+    public bool IsDirectMeasurement => !IsMeasurementOffsetInitialized && ProxySource is null && (Source == "MEASURED" || Source == "IMPORTED" && AdoptedFileMeasurement is not null);
     [System.Text.Json.Serialization.JsonIgnore]
     public ST_MANUAL_MEASUREMENT? CorrectionMeasurement => Source == "IMPORTED" ? AdoptedFileMeasurement : OriginalMeasurement ?? AdoptedFileMeasurement;
 }
@@ -100,6 +102,11 @@ public sealed record ST_MANUAL_CANDIDATE(
     /// <summary>Explicit zero initialization. Imported absolute maps are replacements but are not Init.</summary>
     [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
     public bool InitializeAllReviewRows { get; init; }
+    public IReadOnlyList<string> InitializationOffsetKeys { get; init; } = [];
+    public IReadOnlyList<string> InitializedOffsetKeys { get; init; } = [];
+    public IReadOnlyList<int> InitializationCellNos { get; init; } = [];
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool IsMeasurementOffsetInitialization => InitializeAllReviewRows || InitializationOffsetKeys.Count>0;
 }
 
 public sealed record ST_MANUAL_COPY_TARGET(
@@ -119,6 +126,10 @@ public sealed record ST_MANUAL_APPLY_SNAPSHOT(
 {
     public bool IsOffsetReplacement { get; init; }
     public bool InitializeAllReviewRows { get; init; }
+    public IReadOnlyList<string> InitializationOffsetKeys { get; init; } = [];
+    public IReadOnlyList<string> InitializedOffsetKeys { get; init; } = [];
+    public IReadOnlyList<int> InitializationCellNos { get; init; } = [];
+    public bool IsMeasurementOffsetInitialization => InitializeAllReviewRows || InitializationOffsetKeys.Count>0;
     /// <summary>
     /// Opaque native raw tokens whose Shot correction basis is consumed by this write, including Beam
     /// siblings. Durable storage records all entries, but only MEASURED driving rows are duplicate-gated.
@@ -130,11 +141,19 @@ public sealed record ST_MANUAL_APPLY_SNAPSHOT(
 
 public sealed record ST_MANUAL_RESTORE_SNAPSHOT(
     string Token, string RecipeId, string RunId, string BaseRevisionId, string RestoreTargetRevisionId,
-    IReadOnlyDictionary<string, ST_MANUAL_OFFSET> ValuesByPointKey);
+    IReadOnlyDictionary<string, ST_MANUAL_OFFSET> ValuesByPointKey)
+{
+    /// <summary>Zero values alone cannot distinguish initialized rows from a real zero measurement.</summary>
+    public IReadOnlyList<string> InitializedOffsetKeys { get; init; } = [];
+}
 
 public sealed record ST_MANUAL_REVISION(
     string Id, string ParentId, string Kind, string Reason, DateTimeOffset CreatedAt,
-    IReadOnlyDictionary<string, ST_MANUAL_OFFSET> ValuesByPointKey);
+    IReadOnlyDictionary<string, ST_MANUAL_OFFSET> ValuesByPointKey)
+{
+    /// <summary>Saved initialization state for this revision, independent of later unsaved measurements.</summary>
+    public IReadOnlyList<string> InitializedOffsetKeys { get; init; } = [];
+}
 
 public sealed record ST_MANUAL_OPERATION_PREVIEW(
     EN_MANUAL_OPERATION_KIND Kind, IReadOnlyList<string> Keys, IReadOnlyList<string> ExcludedMaskedKeys,

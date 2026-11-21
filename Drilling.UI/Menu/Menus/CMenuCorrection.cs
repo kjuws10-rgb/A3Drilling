@@ -4123,10 +4123,11 @@
                         var previous = merged.GetValueOrDefault(key);
                         var current = previous is null ? (X: 0.0, Y: 0.0) : CReviewOffsetData.ToDesign(parameters, request.TargetHeads.GetValueOrDefault(key, request.HeadNo), previous.ReviewOffsetX, previous.ReviewOffsetY, previous.IsDesignCoordinate);
                         var delta = deltas[key];
-                        merged[key] = previous is { IsDesignCoordinate: true } && !initialize && delta == (0, 0) ? previous : target with
+                        merged[key] = previous is { IsDesignCoordinate: true } && !initialize && delta == (0, 0) ? previous with { IsMeasurementOffsetInitialized = false } : target with
                         {
                             ReviewOffsetX = initialize ? 0 : CRoughCorrectionPanel.Round(current.X + delta.X),
-                            ReviewOffsetY = initialize ? 0 : CRoughCorrectionPanel.Round(current.Y + delta.Y)
+                            ReviewOffsetY = initialize ? 0 : CRoughCorrectionPanel.Round(current.Y + delta.Y),
+                            IsMeasurementOffsetInitialized = initialize
                         };
                     }
 

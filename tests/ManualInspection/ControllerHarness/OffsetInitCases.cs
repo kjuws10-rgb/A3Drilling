@@ -76,11 +76,11 @@ internal static partial class Program
             var(f,c)=await Loaded();c.ChooseFile=(_,_)=>null;await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ImportOffsetBundle);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ExportOffsetBundle);
             True(!c.Snapshot.IsOffsetEditPending&&f.ExportedBundles.Count==0&&f.Saves==0&&f.Executed.Count==0);
         });
-        await Check("offset_init_zero_to_zero_saved_rows_are_explicit_l1_before_and_after_refresh",async()=>
+        await Check("offset_init_zero_to_zero_saved_rows_are_explicit_initialized_gray_before_and_after_refresh",async()=>
         {
             var(f,c)=await Loaded();True(c.Snapshot.Points.All(p=>!p.HasAppliedOffset));await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Validate);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Apply);
-            True(c.Snapshot.Points.All(p=>p.HasAppliedOffset&&p.AppliedLevel==0&&p.BaseXUm==0&&p.BaseYUm==0));
-            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Refresh);True(c.Snapshot.Points.All(p=>p.HasAppliedOffset&&p.AppliedLevel==0&&p.BaseXUm==0&&p.BaseYUm==0)&&f.Saves==1&&f.Executed.Count==0);
+            True(c.Snapshot.Points.All(p=>p.HasAppliedOffset&&p.IsMeasurementOffsetInitialized&&!p.HasMeasurementHistory&&p.AppliedLevel is null&&p.BaseXUm==0&&p.BaseYUm==0));
+            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Refresh);True(c.Snapshot.Points.All(p=>p.HasAppliedOffset&&p.IsMeasurementOffsetInitialized&&!p.HasMeasurementHistory&&p.AppliedLevel is null&&p.BaseXUm==0&&p.BaseYUm==0)&&f.Saves==1&&f.Executed.Count==0);
         });
         await Check("corrupt_checkpoint_is_archived_as_exact_bytes_before_reconnect_and_fresh_measurement",async()=>
         {

@@ -42,6 +42,7 @@ public sealed record CManualInspectionUiPoint
     public int Row { get; init; }
     public int Column { get; init; }
     public bool IsMasked { get; init; }
+    public bool IsMeasurementOffsetInitialized { get; init; }
     public double DesignXmm { get; init; }
     public double DesignYmm { get; init; }
     public string WorkingJudge { get; init; } = "UNMEASURED";
@@ -74,19 +75,19 @@ public sealed record CManualInspectionUiPoint
     /// measurement-derived history, including interpolated/copied values and explicitly saved zero.
     /// These properties never change native raw, judge, correction eligibility or consumed tokens.
     /// </summary>
-    public bool HasWorkingMeasurement => WorkingJudge is "OK" or "NG" && Finite(WorkingXUm) && Finite(WorkingYUm);
-    public bool HasMeasurementHistory => !IsMasked && (HasWorkingMeasurement || HasAppliedOffset);
-    public bool UsesAppliedMeasurement => !IsMasked && HasAppliedOffset && !HasWorkingMeasurement;
+    public bool HasWorkingMeasurement => !IsMeasurementOffsetInitialized && WorkingJudge is "OK" or "NG" && Finite(WorkingXUm) && Finite(WorkingYUm);
+    public bool HasMeasurementHistory => !IsMasked && !IsMeasurementOffsetInitialized && (HasWorkingMeasurement || HasAppliedOffset);
+    public bool UsesAppliedMeasurement => !IsMasked && !IsMeasurementOffsetInitialized && HasAppliedOffset && !HasWorkingMeasurement;
     public double? MeasurementXUm => UsesAppliedMeasurement ? BaseXUm : HasWorkingMeasurement ? WorkingXUm : null;
     public double? MeasurementYUm => UsesAppliedMeasurement ? BaseYUm : HasWorkingMeasurement ? WorkingYUm : null;
     public string MeasurementErrorText => Pair(MeasurementXUm, MeasurementYUm);
-    public string MeasurementStatusText => IsMasked ? "Masking" : UsesAppliedMeasurement
+    public string MeasurementStatusText => IsMasked ? "Masking" : IsMeasurementOffsetInitialized ? "초기화 · 미측정" : UsesAppliedMeasurement
         ? "측정됨 · 보정기반" + (WorkingJudge == "ERROR" ? " · 최근 수신 오류" : "")
         : WorkingJudge switch { "OK" => "OK · 측정됨", "NG" => "NG · 측정됨", "ERROR" => "수신 오류", "UNMEASURED" => "미측정", _ => WorkingJudge };
-    public string MeasurementBasisText => UsesAppliedMeasurement ? "보정기반 편차 · 기존 적용 Review Offset"
+    public string MeasurementBasisText => IsMeasurementOffsetInitialized ? "측정 Offset 초기화" : UsesAppliedMeasurement ? "보정기반 편차 · 기존 적용 Review Offset"
         : HasWorkingMeasurement ? IsProxy ? "대표값 복사 편차" : "측정 결과 편차" : "유효 편차 없음";
     public string MeasurementSourceCode => UsesAppliedMeasurement ? "CORRECTION_BASED" : IsProxy ? "MANUAL" : Source;
-    public bool CanBeReference => !IsMasked && !IsProxy && (Source == "MEASURED" || CanUseImportedForCorrection)
+    public bool CanBeReference => !IsMeasurementOffsetInitialized && !IsMasked && !IsProxy && (Source == "MEASURED" || CanUseImportedForCorrection)
         && WorkingJudge is "OK" or "NG" && Finite(WorkingXUm) && Finite(WorkingYUm);
     public string Identity => $"C{CellNo} / H{HeadNo:00} / S{ShotNo} / B{BeamNo}";
     public string WorkingErrorText => Pair(WorkingXUm, WorkingYUm);
@@ -94,8 +95,8 @@ public sealed record CManualInspectionUiPoint
     public string BaseOffsetText => Pair(BaseXUm, BaseYUm);
     public string CandidateOffsetText => CandidateXUm.HasValue && CandidateYUm.HasValue
         ? Pair(CandidateXUm, CandidateYUm) : "—";
-    public string SourceText => UsesAppliedMeasurement ? "보정기반 측정 · 적용 이력"
-        : IsProxy ? "◇ 대표값 복사 · MANUAL" : Source == "MEASURED" ? "직접 측정" : Source == "IMPORTED" ? "불러온 측정 · IMPORTED" : Source;
+    public string SourceText => IsMeasurementOffsetInitialized ? "초기화" : UsesAppliedMeasurement ? "보정기반 측정 · 적용 이력"
+        : IsProxy ? "대표값 복사" : Source == "MEASURED" ? "직접 측정" : Source == "IMPORTED" ? "불러온 측정" : Source;
     public string ReferenceText => string.IsNullOrEmpty(ReferenceKey) ? "—" : ReferenceKey;
     public static bool Finite(double? value) => value.HasValue && double.IsFinite(value.Value);
     public static string Number(double? value, bool sign = false) => Finite(value)
@@ -171,6 +172,9 @@ public sealed record CManualInspectionUiSnapshot
     public bool IsOffsetEditPending { get; init; }
     public bool OffsetInitPending { get; init; }
     public string OffsetSummaryText { get; init; } = "모델별 최신 누적 Review Offset 하나를 사용합니다.";
+    public string? LastMeasuredPointKey { get; init; }
+    public long MeasurementSequence { get; init; }
+    public string LastMeasurementText { get; init; } = "";
     public IReadOnlyList<CManualInspectionUiCellLayout> CellLayouts { get; init; } = [];
     public bool CellLayoutYDown { get; init; } = true;
     public double GlassWidthMm { get; init; }
@@ -225,6 +229,9 @@ public sealed record CManualInspectionUiRequest
     public double Speed { get; init; } = 1;
     public bool AllowManual { get; init; }
     public string Reason { get; init; } = "";
+    public string OffsetInitScope { get; init; } = "ALL";
+    public int? OffsetInitCellNo { get; init; }
+    public int? OffsetInitHeadNo { get; init; }
     public double? DeltaLimitUm { get; init; }
     public double? TotalLimitUm { get; init; }
     public double? ScannerFieldMm { get; init; }

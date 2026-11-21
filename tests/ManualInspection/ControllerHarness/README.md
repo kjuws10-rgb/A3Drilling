@@ -1,5 +1,7 @@
 # Manual Inspection Controller 교차검증
 
+`11.21.2`의 측정 결과 즉시 알림·범위 Init·0값 상태·원복 경계 신규 16개는 `MeasurementWorkflowCases.cs`에 있다. 기존 실제 Assembly 127개와 합쳐 143개이며, 소스 링크 140개는 중복 사전 검사다. 확인창 유무는 WPF 시험에서, 실제 요청 버전·도착·정지·Run 및 저장 경계는 Controller에서 별도로 검증한다. 최신 근거는 [MEASUREMENT_WORKFLOW_QA.md](../MEASUREMENT_WORKFLOW_QA.md)와 최종 manifest를 따른다.
+
 실제 Controller·공통 엔진을 실행하고 장비 Backend만 비동기 fake로 대체한다. 일반 WPF `Application`과 STA Dispatcher만 만들며 설비 `Drilling.UI.App`, `CRootView`, 실제 장비 Manager·벤더 SDK는 생성하지 않는다.
 
 ```powershell

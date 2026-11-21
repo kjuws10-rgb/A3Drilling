@@ -1,0 +1,409 @@
+{
+  "schemaVersion": "a3-manual-inspection-validation/8",
+  "baseCommit": "50f02b0cc44e3b627b483d9b8fff54119abe8eab",
+  "featureBranch": "feature/manual-inspection-offsets-20261121.1",
+  "verifiedDate": "2026-11-21",
+  "verifiedSourceIdentity": "current production working-tree SHA-256, staged canonical Git bytes and final built UI/Common assemblies; tests do not start equipment",
+  "build": {
+    "solution": "Drilling.sln",
+    "configuration": "Release",
+    "warnings": 0,
+    "errors": 0,
+    "logSha256": "e8ec4edf0cb1d7f2a9715afa1fc0df924cf052e2c0c5d6128badc2c5dfb17e55",
+    "uiAssemblySha256": "8ad8c14970cd70a906322352dbbcec228327be194c657a5fb72b392a66138276",
+    "commonAssemblySha256": "01c5f2aea08a3362312727dae07f386c32045fc24ad831bd3ff747a51f355e45"
+  },
+  "checks": {
+    "core": {
+      "count": 131,
+      "passed": true,
+      "reportSha256": "4a5a2c1511a82179e8f9dc82ecb6b6d862d13efbb71d89959db1659114bf15a8",
+      "reportRelativePath": "final/core.json",
+      "scope": "Linked production ManualInspection common files only; synthetic values/fake field evaluator. No equipment, WPF, SDK or device scripts executed."
+    },
+    "productionController": {
+      "count": 127,
+      "passed": true,
+      "reportSha256": "307e995ef990d475f78c3e860b576b615251187be0c164a52cb6bc032b5840b6",
+      "reportRelativePath": "final/controller-production.json",
+      "scope": "Actual new production Controller+Common+UI contract; synthetic async fake Backend. Generic WPF Application/STA only; Drilling.UI.App/Root/device Manager not constructed. No SDK/motion/PLC/Vision executed.",
+      "assemblySha256": "8ad8c14970cd70a906322352dbbcec228327be194c657a5fb72b392a66138276",
+      "loadedVendorAssemblies": []
+    },
+    "productionBackendRead": {
+      "count": 38,
+      "passed": true,
+      "reportSha256": "c1ede7d88b7fc1c6f19687732715974248f69b742ef6de7ae2c920f014c46ef3",
+      "reportRelativePath": "final/backend-read.json",
+      "scope": "Actual UI production adapter + actual pure Review/Recipe/Setting managers, parser/writer; synthetic temp data; no equipment Manager/App/Root or vendor objects.",
+      "assemblySha256": {
+        "Drilling.UI": "8ad8c14970cd70a906322352dbbcec228327be194c657a5fb72b392a66138276",
+        "Drilling.Common": "01c5f2aea08a3362312727dae07f386c32045fc24ad831bd3ff747a51f355e45"
+      }
+    },
+    "nativeUi": {
+      "count": 49,
+      "passed": true,
+      "reportSha256": "3742795835c69745875c0dd46dbd19826915ff5b765da3461d48ed31530f5316",
+      "reportRelativePath": "final/ui-base/ui-results.json",
+      "scope": "Standalone STA WPF view with fake controller and current application theme/styles. No equipment app, vendor DLL, controller, laser or source script execution."
+    },
+    "nativeUiIntegration": {
+      "count": 23,
+      "passed": true,
+      "reportSha256": "ac90101841082077705a3a5a0449087049c26d662ebe6cb990baf48588a7a582",
+      "reportRelativePath": "final/ui-integration/ui-integration-impact-results.json",
+      "scope": "Targeted native UI changes only; the prior49 suite is not repeated. Imported source, same resolved F, Beam row expansion, history dispatch, level-name policy. Fake controller only."
+    },
+    "nativeUiSyncLevels": {
+      "count": 34,
+      "passed": true,
+      "reportSha256": "d2455ce39c2deeed663a7d8cf0cb6b6d89acb57269100f23c42f359f6c58fcde",
+      "reportRelativePath": "final/ui-sync/ui-sync-levels-results.json",
+      "scope": "Native WPF with fake controller, applied/measurement Level policy, simplified controls and real description/confirmation dispatch. No equipment app or SDK."
+    },
+    "coverageCompactUi": {
+      "count": 71,
+      "passed": true,
+      "reportSha256": "5f8b1de722fd338e01118f3a78414c7a860c9d071cd20590cb14602e7e9a155a",
+      "reportRelativePath": "final/ui-coverage/ui-coverage-compact-results.json",
+      "scope": "Real WPF View/Map/Scatter and app themes with synthetic immutable points/fake controller. Existing correction history is a display projection, not native raw. No equipment App/Root/SDK or motion."
+    },
+    "uiHardening": {
+      "count": 30,
+      "passed": true,
+      "reportSha256": "f4408e1635c373dde41b9ad5113ea70e75174215496d7a02c69bb27c6fdf7d1b",
+      "reportRelativePath": "final/ui-hardening/ui-hardening-results.json",
+      "scope": "Actual WPF view and current themes with a request-recording fake controller. No equipment app, vendor SDK, Vision or motion execution."
+    },
+    "visualUsability": {
+      "count": 105,
+      "passed": true,
+      "reportSha256": "8dd9f00364b016983ff8a972a21d9811283f226fdbe7e76cf8bc8ed6b2e8619f",
+      "reportRelativePath": "final/ui-visual/ui-visual-usability-results.json",
+      "scope": "Actual WPF sources/themes and synthetic points with request-recording fake Controller. DPI125/150 uses equivalent DIP space and high-resolution bitmap rendering, not an OS monitor DPI change. No equipment App/Root/SDK/Vision/motion."
+    },
+    "mapFirstUi": {
+      "count": 73,
+      "passed": true,
+      "reportSha256": "3b9a56e09ecbce6e20981b5515338826a2ef691186315dedc061ab7cc2de7640",
+      "reportRelativePath": "final/ui-mapfirst/ui-map-first-results.json",
+      "scope": "Source-linked WPF and current app themes, immutable synthetic points/fake controller. DPI is equivalent DIP/render emulation. Double-click helper is called by the real mouse-down handler; no physical input injection or equipment App/SDK/Vision/motion."
+    },
+    "cellOverviewUi": {
+      "count": 72,
+      "passed": true,
+      "reportSha256": "01228d36ee69b9ae3950ec92a37e0e0c5b95ce5056045fd6beda7c4ac71d8697",
+      "reportRelativePath": "final/ui-cell/ui-cell-overview-results.json",
+      "scope": "Actual source-linked WPF View/Map/Scatter and current themes; synthetic immutable Recipe cell geometry and measurement values; fake Controller. No equipment App/Root/vendor object, OS input injection, Vision/motion or script execution. DIP125/150 is equivalent space/rendering only."
+    },
+    "offsetInitUi": {
+      "count": 37,
+      "passed": true,
+      "reportSha256": "3996b771a332cdb7d7b0fa9823919d55d8349cea1984cffc2418d732a9e0ded6",
+      "reportRelativePath": "final/ui-offset/ui-offset-init-results.json",
+      "scope": "Current source-linked WPF Manual Inspection and app themes with synthetic immutable snapshots/fake controller. No equipment App/Root/Manager/vendor SDK, PLC/Vision/motion or scripts."
+    },
+    "scope": {
+      "count": 28,
+      "passed": true,
+      "reportSha256": "dcfaf2a7d6792e590e8134c5f3d7b33c74b21fd0e14fed6e50659ee4c0897489",
+      "reportRelativePath": "final/scope.json"
+    },
+    "hashConsistency": {
+      "passed": true,
+      "reportSha256": "70711d1827422e1c56b403775c3c27a12b224a6c45cadbde0b492da5645aca81",
+      "reportRelativePath": "final/hash-consistency.json"
+    }
+  },
+  "inheritedUnchangedEvidence": {
+    "bridgeWriter": {
+      "count": 35,
+      "passed": true,
+      "reportSha256": "f8c343ec6c890b66c14d779a32dff80ee9719abf5e959e584375e585a1302e1e",
+      "scope": "New production coordinate bridge, original pure planner/axis transform, production offset writer and CSV parser. Source-derived fixture contracts/static Vision conversion only. Synthetic temporary CSVs; no device, WPF, SDK or scripts.",
+      "sourceCommit": "798359edaba1afb24977ea81185c0086d7fd57b3",
+      "repeatedForThisChange": false,
+      "preservation": "Underlying source is unchanged; verified by scope/Git comparison. Not counted as rerun."
+    },
+    "externalProjection": {
+      "count": 53,
+      "passed": true,
+      "reportSha256": "4f3c5b89dc3f9a67c86184d58210e4a0da00209e7fac22849af723fcea2681b3",
+      "scope": "Actual Common pure projection and DTOs. Synthetic saved results/recipe geometry; no equipment App/Root/Manager, SDK, PLC, Vision or motion execution.",
+      "assemblySha256": "cd1b9336fa5fe3e5551d0be686e37fadb40aefad08c2b04cd4e25fab64cf9f85",
+      "loadedVendorAssemblies": [],
+      "sourceCommit": "798359edaba1afb24977ea81185c0086d7fd57b3",
+      "repeatedForThisChange": false,
+      "preservation": "Underlying source is unchanged; verified by scope/Git comparison. Not counted as rerun."
+    }
+  },
+  "uiSourceVerificationSha256": "70711d1827422e1c56b403775c3c27a12b224a6c45cadbde0b492da5645aca81",
+  "uiHarnessSha256": {
+    "tests/ManualInspection/UiHarness/CellOverviewCases.cs": "63ded16e15b92b13d4777fd0f0a584037988cc6188f9b5ab769ffad85687a688",
+    "tests/ManualInspection/UiHarness/CoverageCompactCases.cs": "ddcddd41faab83eea45f0b9f18a7fe932512f2ba63fb80c0d9f3d2256d297470",
+    "tests/ManualInspection/UiHarness/HardeningCases.cs": "f02406e0f562549f788bad68432399d28c8119d36a41e8f2c7997410ff55f69e",
+    "tests/ManualInspection/UiHarness/ManualInspection.UiHarness.csproj": "7e0908b2841b56e677b6fd9e3ee34cbf260e9ab05e52586998d64354fdcc4b06",
+    "tests/ManualInspection/UiHarness/MapFirstCases.cs": "d2efab683bd194af161c398054f0457c1afad6594cdb9187e6ec66d05979a0ba",
+    "tests/ManualInspection/UiHarness/OffsetInitCases.cs": "2e58de2f7851709acb2b0b0781543ef3ca96b9925c1850ecf05622444e6fa8f7",
+    "tests/ManualInspection/UiHarness/Program.cs": "9e587d897cd0ef059168da05f18e8c8c4e20f93b8fd052d0888e16b94470b092",
+    "tests/ManualInspection/UiHarness/VisualUsabilityCases.cs": "1bcfb97a0ef3c0bfe85594188d5cb37790a82e04add4c96ed7fa2fb9e04ca108"
+  },
+  "uiPassTotal": 494,
+  "presentationObservations": [
+    {
+      "matrixPoints": 4000,
+      "receivedPoints": 120,
+      "fullMatrixPublications": 5,
+      "clock": "deterministic fixed presentation clock",
+      "allMeasurementsRetained": true,
+      "deviceTimingChanged": false
+    }
+  ],
+  "nativeDirectionalFocusCases": {
+    "count": 2,
+    "status": "inconclusive; excluded from pass count",
+    "reason": "Both standard system and flat ContextMenu rejected Focus() in the same off-screen nonactivated test window."
+  },
+  "previews": {
+    "images/offset-11.21.1-scatter-dark.png": {
+      "sha256": "876c672eb9714e46b66b40f0f0ddbce99b7c44563b85416bf5314aee31554a3e",
+      "data": "current source-linked WPF with synthetic Recipe/measurement values; not equipment capture"
+    },
+    "images/offset-11.21.1-scatter-light.png": {
+      "sha256": "d0da07f0e852eacd839a066a6c6c5e57a0f2c401818231c172624244871db4db",
+      "data": "current source-linked WPF with synthetic Recipe/measurement values; not equipment capture"
+    },
+    "images/offset-11.21.1-init-dark.png": {
+      "sha256": "449dfe01974da958f6a10de37895e7280a562c95941ae30bbc286ba8b3192fb1",
+      "data": "current source-linked WPF with synthetic Recipe/measurement values; not equipment capture"
+    },
+    "images/offset-11.21.1-init-light.png": {
+      "sha256": "e528427679e6fa4378942f7f1c4d234c27fe59d87ca14cf769c01c1bcc7ad3af",
+      "data": "current source-linked WPF with synthetic Recipe/measurement values; not equipment capture"
+    }
+  },
+  "previousPreviewEvidence": {
+    "sourceCommit": "7c6cd31ecaa5b201e6138c59fa757f2f87e292d8",
+    "previews": {
+      "images/visual-dark.png": {
+        "sha256": "febe41d803ff1264edc5b19684d8ebe4213c72a1cba73b533714bafb21d7c35b",
+        "data": "synthetic WPF harness data; not equipment capture"
+      },
+      "images/visual-light-scatter.png": {
+        "sha256": "cd379e7a68bb9731d824b0fdc083f2894f02c1c88602d5a55dded82675f86172",
+        "data": "synthetic WPF harness data; not equipment capture"
+      },
+      "images/visual-context-dark.png": {
+        "sha256": "b1a966ab426203633a90575588c221ebaf2f8a2f5051a223853ae640ceed28c3",
+        "data": "synthetic WPF harness data; not equipment capture"
+      },
+      "images/visual-compact-dark.png": {
+        "sha256": "983a72b2ce84cc8cbfb98ade98b727f6fa03a360dd7723e83c659dd0a10ed6d3",
+        "data": "synthetic WPF harness data; not equipment capture"
+      }
+    },
+    "images/map-first-dark.png": {
+      "sha256": "d39130f7c50a39c02b7f2078d4aea95779895017a820e3df41e1c90ab75eac05",
+      "data": "synthetic WPF harness data; not equipment capture"
+    },
+    "images/map-first-light.png": {
+      "sha256": "f81d14bd5f9b20ae30b0a725e529a74c52d4880bafa497ade816f878259b50fd",
+      "data": "synthetic WPF harness data; not equipment capture"
+    },
+    "images/map-first-inspector.png": {
+      "sha256": "59c768892e9795f081d073b6e8f8e3b1cf6c03d81b7ac0dbac59cd77c80deb64",
+      "data": "synthetic WPF harness data; not equipment capture"
+    },
+    "images/map-first-work-info.png": {
+      "sha256": "8a48b1d92e6fac45ce63743d763e3a824684c49eb11addb0cd79b1988a98138e",
+      "data": "synthetic WPF harness data; not equipment capture"
+    },
+    "images/cell-overview-dark.png": {
+      "sha256": "529d1b9fc4a895287bd4fc753e78454a92205b58077fcc82e1d949f513ffbe13",
+      "data": "current source-linked WPF with synthetic Recipe/measurement data; not equipment capture"
+    },
+    "images/cell-overview-light.png": {
+      "sha256": "92030cddcbf6622140e361bbf10def438dfc33f48dc692a73e4aee5b8c1e7ca2",
+      "data": "current source-linked WPF with synthetic Recipe/measurement data; not equipment capture"
+    },
+    "images/cell-scatter-light.png": {
+      "sha256": "b710eb163d03ea7af1fe045fc4f11e18420533d39bdb71f478cf32c05cca73b3",
+      "data": "current source-linked WPF with synthetic Recipe/measurement data; not equipment capture"
+    },
+    "images/scatter-auto-small.png": {
+      "sha256": "8910be03c7d998419069c06ce7f529fc1dc6a537497c1314d72004010b63fee3",
+      "data": "current source-linked WPF with synthetic Recipe/measurement data; not equipment capture"
+    }
+  },
+  "productionSha256": {
+    "Drilling.Common/Review/CManualInspectionCoordinateBridge.cs": "faf320044ebb800f2f5216cf0900c2e23b6d12d8a2cb86e089825bc8d97d9344",
+    "Drilling.Common/Review/CManualInspectionResultProjection.cs": "03223a4c6310d266c0e462fdaf246a6c2da99d58c60419c5c04341f9a5893bcb",
+    "Drilling.Common/Review/CReviewManager.cs": "17e6c9745bf88b857564cb5fb04402c08b12077566c76fabac2407ef3b59fa14",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs": "c8ed29f4ce2151d9fe63ba9188740c93aa18d5ce1801877c5b4b1a946f07fe19",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs": "fb582e6392a44ec60a5389959e32a53d27570301ac31426ad0183a655446ff44",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs": "0be17d14a48bcb954c06cefba96bfc058a8017de704e6874120590bbb37d7288",
+    "Drilling.Common/Station/CStageReviewSequences.cs": "49e1a43341978bc8ae28013cebce4827cb99e933b04df32aab4ad74d5a9402a7",
+    "Drilling.File/ReviewOffset/CReviewOffsetFile.cs": "4de8063d0e1a4e3b40f5156a43c6440dd7149e7c449ac2f79fb3902cabe5c66a",
+    "Drilling.File/ReviewResult/CReviewResultFile.cs": "48d76ca790635663fc3f247f5e88483dbb9c318d6f1a1bd8ecec4761005ee3cc",
+    "Drilling.UI/CRootView.cs": "b3f201a4639014f7163347a8106945ae06dbc7d18dce4fb2851b67d33f43a7ba",
+    "Drilling.UI/Drilling.UI.csproj": "d66b6fb92a50e95567aea80d1490bc302ce3f34774d8d82c1069523f8a77c7e8",
+    "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs": "3288dd50cbbcff0bf9ae4559d2f6bc8e6c7d94876bb7ceb47dfbf49705ea9e4b",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "f8ff2b5b42cf1343c74e8000cdc799cd19be1fceacedf3bc224dac513619492c",
+    "Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs": "8e7a239bcbaf630383e9330fcb53ddb0cdf538111d8a1f754867524c1808164c",
+    "Drilling.UI/Menu/Menus/CManualInspectionUpdateMonitor.cs": "a5d8854aea32ae9eb9cf4cfa05c99cf6ab0548dddcebd7fa32a94335ab94a1e0",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.ManualInspection.cs": "12af934e028a18f1b714d7be9a3e777434f6b21e66b16184e294b5acccbe17df",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.cs": "3eaac7a8a1ea367063d44325e584f69ede325385bd04cdb5f1292eb511c793f0",
+    "Drilling.UI/Views/CCorrectionView.xaml": "850404c76dda72d2d741b74f07a8161966f6cd55d173697bebaf619ee79e296c",
+    "Drilling.UI/Views/CCorrectionView.xaml.cs": "aad7dd20f74ecfb6876c917e11ae1ef2e6494aad5d5c9ada9fb4ac9596c4e980",
+    "Drilling.UI/Views/CManualInspectionMapControl.cs": "cfb8a9373e9ded6e79593d970fa432f8df73de3b67fa533cf6cf873eb9b70dfd",
+    "Drilling.UI/Views/CManualInspectionScatterControl.cs": "e4891b3c94a8786d8df9536a6a373b1a503ef2b05e76c96d25e47e5b736bf4dc",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "6aad895902a40a4889d2ec6ed6587dc9b50761b8c0ff78a4c05324690f5ed7cb",
+    "Drilling.UI/Views/CManualInspectionView.xaml": "49c343f288891498307fd3e18c65692ccbc223d45118abe1988f3926f9d3c755",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "eb9df4701332d7a2302cebbd15864f4a5dc2a53e7541d8b35400893427eedcd8"
+  },
+  "behaviorGuarantees": [
+    "one whole-Cell navigation button in a single-Cell map; existing real Recipe overview and filled logical tiles retained",
+    "Simple/Rough/Fine/One/All/Line share one latest cumulative Review map; previous version files are never summed again",
+    "Offset Init is a full-model zero draft; active values and old files remain until explicit validated save; cancel restores pre-edit work",
+    "Init and absolute bundle replacements clear hidden saved legacy rows before overlaying current model values; protected settings never written",
+    "absolute portable Review values replace rather than add; protected snapshots and final scanner coordinates are reference only",
+    "same-model display Beam growth/shrink maps to a single validated Cell/Shot value with current Recipe geometry checks",
+    "old working raw/proxy eligibility is cleared after replacement commit; original/history/consumption receipts retained",
+    "there is no user read-only mode; source recheck flags reconnect current geometry before fresh measurement",
+    "uncertain old raw is not promoted; changed frames preserve old/target checkpoints in Recovery and require target reconfirmation",
+    "file/native context and connected engine commit together after recovery succeeds; failed recovery cannot overwrite pre-file native checkpoint",
+    "scatter defaults to cumulative applied offsets across all Cells/Heads and Auto; raw residual cannot hide B and missing rows are not invented zeros",
+    "UI snapshots distinguish unsaved working offsets from actual active values; explicit saved zero rows remain L1 before/after refresh",
+    "ordinary Review coordinate/writer/sequence modules, other Correction menus, Config/Data and application themes remain unchanged"
+  ],
+  "notExecuted": [
+    "equipment App/Root/Manager",
+    "vendor SDK execution/loading",
+    "motion/PLC/Vision",
+    "AeroScript",
+    "laser processing",
+    "actual OS monitor DPI switch",
+    "native foreground-menu Up/Down focus traversal",
+    "physical OS double-click injection",
+    "physical machining precision qualification"
+  ],
+  "masterMerged": false,
+  "productionGitBlobSha256": {
+    "Drilling.Common/Review/CManualInspectionCoordinateBridge.cs": "faf320044ebb800f2f5216cf0900c2e23b6d12d8a2cb86e089825bc8d97d9344",
+    "Drilling.Common/Review/CManualInspectionResultProjection.cs": "03223a4c6310d266c0e462fdaf246a6c2da99d58c60419c5c04341f9a5893bcb",
+    "Drilling.Common/Review/CReviewManager.cs": "0f60982912dd06d8d50d20503b31bf0133da7adfc1f4f4d1e0360ddc766ffc60",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs": "c8ed29f4ce2151d9fe63ba9188740c93aa18d5ce1801877c5b4b1a946f07fe19",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs": "fb582e6392a44ec60a5389959e32a53d27570301ac31426ad0183a655446ff44",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs": "0be17d14a48bcb954c06cefba96bfc058a8017de704e6874120590bbb37d7288",
+    "Drilling.Common/Station/CStageReviewSequences.cs": "dc6b23b087399d5dff853ed47628c5edf156168df9ce9d971d02de1b7bfef179",
+    "Drilling.File/ReviewOffset/CReviewOffsetFile.cs": "ac53f13073bd44a59d65f207d38dc21e9cace3506ba950efa505ff1d9a6ae3d3",
+    "Drilling.File/ReviewResult/CReviewResultFile.cs": "fe57ec9538f0032480b6fd73b32b4c93633bd095fe11ca05123ce07fa71292d0",
+    "Drilling.UI/CRootView.cs": "fe3e65ce811d26664d64ed1155bfe623bc547bddd9f785d3dd6ae3eb7ee16963",
+    "Drilling.UI/Drilling.UI.csproj": "e4fa2d9f23967ddaef655211fb50f4abe2c40a005fb688bc82a2aff9f7a30040",
+    "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs": "3288dd50cbbcff0bf9ae4559d2f6bc8e6c7d94876bb7ceb47dfbf49705ea9e4b",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "f8ff2b5b42cf1343c74e8000cdc799cd19be1fceacedf3bc224dac513619492c",
+    "Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs": "8e7a239bcbaf630383e9330fcb53ddb0cdf538111d8a1f754867524c1808164c",
+    "Drilling.UI/Menu/Menus/CManualInspectionUpdateMonitor.cs": "a5d8854aea32ae9eb9cf4cfa05c99cf6ab0548dddcebd7fa32a94335ab94a1e0",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.ManualInspection.cs": "12af934e028a18f1b714d7be9a3e777434f6b21e66b16184e294b5acccbe17df",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.cs": "11cf844b10fe749f7ec171079b0f9cf2f4b7995f10dc5dbd26f7e8e7b1bb9e7f",
+    "Drilling.UI/Views/CCorrectionView.xaml": "ae9f6bbd40970212f2788a06d6e8fb5499496a153bb0d8e05a07f8b6850ae4f6",
+    "Drilling.UI/Views/CCorrectionView.xaml.cs": "b963c5748d9da1342a527f8b946c93ffcf4e483ed1568ecc514b2816fd1a1fec",
+    "Drilling.UI/Views/CManualInspectionMapControl.cs": "cfb8a9373e9ded6e79593d970fa432f8df73de3b67fa533cf6cf873eb9b70dfd",
+    "Drilling.UI/Views/CManualInspectionScatterControl.cs": "e4891b3c94a8786d8df9536a6a373b1a503ef2b05e76c96d25e47e5b736bf4dc",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "6aad895902a40a4889d2ec6ed6587dc9b50761b8c0ff78a4c05324690f5ed7cb",
+    "Drilling.UI/Views/CManualInspectionView.xaml": "49c343f288891498307fd3e18c65692ccbc223d45118abe1988f3926f9d3c755",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "eb9df4701332d7a2302cebbd15864f4a5dc2a53e7541d8b35400893427eedcd8"
+  },
+  "uiSourceSha256": {
+    "Views/CManualInspectionUiContract.cs": "6aad895902a40a4889d2ec6ed6587dc9b50761b8c0ff78a4c05324690f5ed7cb",
+    "Views/CManualInspectionMapControl.cs": "cfb8a9373e9ded6e79593d970fa432f8df73de3b67fa533cf6cf873eb9b70dfd",
+    "Views/CManualInspectionScatterControl.cs": "e4891b3c94a8786d8df9536a6a373b1a503ef2b05e76c96d25e47e5b736bf4dc",
+    "Views/CManualInspectionView.xaml": "49c343f288891498307fd3e18c65692ccbc223d45118abe1988f3926f9d3c755",
+    "Views/CManualInspectionView.xaml.cs": "eb9df4701332d7a2302cebbd15864f4a5dc2a53e7541d8b35400893427eedcd8"
+  },
+  "productionChangedPaths": [
+    "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
+    "Drilling.UI/Drilling.UI.csproj",
+    "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs",
+    "Drilling.UI/Views/CManualInspectionMapControl.cs",
+    "Drilling.UI/Views/CManualInspectionScatterControl.cs",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs",
+    "Drilling.UI/Views/CManualInspectionView.xaml",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs"
+  ],
+  "cellOverviewObservations": [
+    {
+      "kind": "small-error-axis",
+      "maximumErrorUm": 3e-05,
+      "actualAutoHalfRange": 3.3600000000000004e-05
+    },
+    {
+      "kind": "overview-layout",
+      "mapWidth": 1121.24,
+      "mapHeight": 537.1400000000001,
+      "cells": 4,
+      "points": 64,
+      "centres": {
+        "3": {
+          "X": 463.2167567567567,
+          "Y": 111.86594594594591
+        },
+        "10": {
+          "X": 592.635135135135,
+          "Y": 111.86594594594591
+        },
+        "8": {
+          "X": 463.2167567567567,
+          "Y": 268.06054054054044
+        },
+        "22": {
+          "X": 592.635135135135,
+          "Y": 268.06054054054044
+        }
+      }
+    },
+    {
+      "kind": "rotated-recipe-cell",
+      "boundary": [
+        {
+          "Xmm": 0,
+          "Ymm": 0
+        },
+        {
+          "Xmm": 300,
+          "Ymm": 120
+        },
+        {
+          "Xmm": 240,
+          "Ymm": 420
+        },
+        {
+          "Xmm": -60,
+          "Ymm": 300
+        }
+      ],
+      "pointCount": 1
+    },
+    {
+      "kind": "expanded-map-access",
+      "Name": "compact",
+      "mapMinExpanded": 240,
+      "collapsedMapHeight": 386.24,
+      "ScrollableHeight": 0
+    },
+    {
+      "kind": "expanded-map-access",
+      "Name": "wide",
+      "mapMinExpanded": 361.728,
+      "collapsedMapHeight": 707.84,
+      "ScrollableHeight": 0
+    }
+  ],
+  "programVersion": "11.21.1",
+  "assemblyVersion": "2026.11.21.1",
+  "previousManifest": "history/validation-50f02b0.json"
+}
