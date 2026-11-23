@@ -75,9 +75,9 @@ internal static partial class Program
             Test("unsaved_candidate_does_not_create_measured_coverage", !candidate.HasMeasurementHistory && candidate.MeasurementXUm is null);
             Test("invalid_stored_numeric_does_not_create_a_level", invalid.HasMeasurementHistory
                 && CManualInspectionDrawing.Level(invalid, state) == -1);
-            Test("correction_based_point_is_not_a_direct_reference", !based.CanBeReference && !zero.CanBeReference && !error.CanBeReference);
+            Test("correction_based_and_error_points_can_be_marked_without_native_relabel", based.CanBeReference && zero.CanBeReference && error.CanBeReference && based.Source != "MEASURED");
             Test("copied_working_measurement_preserves_original_distinction", proxy.HasMeasurementHistory && !proxy.UsesAppliedMeasurement
-                && proxy.MeasurementXUm == 6 && proxy.OriginalXUm == 9 && !proxy.CanBeReference);
+                && proxy.MeasurementXUm == 6 && proxy.OriginalXUm == 9 && proxy.CanBeReference);
             Test("measurement_level_covers_same_B_across_cells_heads", CManualInspectionDrawing.Level(based, state)
                 == CManualInspectionDrawing.Level(based with { CellNo = 9, HeadNo = 8 }, state));
             string Brush(CManualInspectionUiPoint point, string mode) => ((SolidColorBrush)CManualInspectionDrawing.PointBrush(view, point, mode, state)).Color.ToString();

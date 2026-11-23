@@ -54,7 +54,7 @@ internal static partial class Program
             var q = w.GetPoint(b.Key); True(q.Judge == "NG" && q.OriginalMeasurement == original && q.OriginalMeasurement!.Judge == "ERROR");
             True(!w.ValidateCandidate(true).Ok);
         });
-        Check("proxy_cannot_become_representative", () => { var w = Workspace(); var p = w.PreviewReferenceCopy(Key(1), [Key(2)]); w.ConfirmReferenceCopy(p, [Key(2)], "QA"); Throws(() => w.PreviewReferenceCopy(Key(2), [Key(3)])); });
+        Check("proxy_reference_keeps_frozen_root_final", () => { var w = Workspace(); var p = w.PreviewReferenceCopy(Key(1), [Key(2)]); w.ConfirmReferenceCopy(p, [Key(2)], "QA"); var second=w.PreviewReferenceCopy(Key(2), [Key(3)]);Offset(second.Final,p.Final.XUm,p.Final.YUm);True(second.OriginReferenceKey==Key(1)); });
         Check("copy_preview_rejects_changed_selection", () => { var w = Workspace(); var p = w.PreviewReferenceCopy(Key(1), [Key(2)]); Throws(() => w.ConfirmReferenceCopy(p, [Key(3)], "QA")); });
         Check("copy_preview_rejects_changed_measurement", () => { var w = Workspace(); var p = w.PreviewReferenceCopy(Key(1), [Key(2)]); w.RecordMeasurement(Key(1), Measurement(2, 1, raw: "NEW_RAW")); Throws(() => w.ConfirmReferenceCopy(p, [Key(2)], "QA")); });
         Check("copy_reason_required", () => { var w = Workspace(); var p = w.PreviewReferenceCopy(Key(1), [Key(2)]); Throws(() => w.ConfirmReferenceCopy(p, [Key(2)], " ")); });
@@ -355,11 +355,11 @@ internal static partial class Program
             var fresh = new CManualInspectionWorkspace(); fresh.RestoreSession(w.CaptureSession(), w.Context!, w.Points, w.ActiveOffsets, InsideField);
             True(fresh.Operation!.BaseRevisionId == Initial.RevisionId && fresh.Context!.RevisionId == "REV1" && !fresh.HasIncompleteMeasurements && !fresh.IsBusy);
         });
-        Check("masked_unassigned_head_zero_is_display_only", () =>
+        Check("masked_unassigned_head_zero_is_marker_only_without_coordinate_evidence", () =>
         {
             var masked = Point(1, head: 1) with { HeadNo = 0, Masked = true }; var w = Workspace([masked, Point(2)]);
             True(w.Points.Count == 2); Throws(() => w.PreviewOperation(EN_MANUAL_OPERATION_KIND.MoveMeasure, [masked.Key]));
-            Throws(() => w.BuildDirectCandidate([masked.Key])); Throws(() => w.PreviewReferenceCopy(masked.Key, [Key(2)]));
+            Throws(() => w.BuildDirectCandidate([masked.Key]));Throws(()=>w.PreviewReferenceCopy(masked.Key,[Key(2)]));
             Throws(() => Workspace([masked with { Masked = false }]));
         });
         Check("imported_result_is_not_direct_reference_until_new_measurement", () =>
@@ -463,12 +463,13 @@ internal static partial class Program
             True(w.ValidateCandidate(true).Ok); var second = w.CreateApplySnapshot(true); w.CommitApplied(second, "REV_GROUP_B", "QA group B");
             Offset(w.ActiveOffsets[Key(1)], 10, 0); Offset(w.ActiveOffsets[Key(2)], 13, 0); Offset(w.ActiveOffsets[Key(3)], 13, 0);
         });
-        Check("consumed_reference_after_rollback_requires_fresh_measurement_on_restored_basis", () =>
+        Check("rollback_reference_uses_saved_base_without_readding_consumed_raw", () =>
         {
             var w = Workspace([Point(1, 3, 0), Point(2)], new() { [Key(1)] = new(10, 0) });
             w.BuildDirectCandidate([Key(1)]); True(w.ValidateCandidate(false).Ok); Apply(w, "REV_REF");
             var restore = w.CreateRestorePreviousSnapshot(); w.CommitRestored(restore, "REV_RESTORE", "QA rollback");
-            Throws(()=>w.PreviewReferenceCopy(Key(1), [Key(2)])); Offset(w.ActiveOffsets[Key(1)],10,0);
+            var copy=w.PreviewReferenceCopy(Key(1), [Key(2)]);Offset(copy.Final,10,0);True(copy.ReferenceValueKind=="APPLIED_OFFSET"&&copy.ErrorXUm is null);
+            w.ConfirmReferenceCopy(copy,[Key(2)],"Saved base after rollback");True(!w.ValidateCandidate(true).Ok);Offset(w.ActiveOffsets[Key(1)],10,0);
             True(w.GetPoint(Key(1)).OriginalMeasurement is not null&&!w.GetPoint(Key(1)).HasFiniteError);
         });
         Check("session_restore_preserves_consumed_reference_final", () =>
@@ -571,6 +572,7 @@ internal static partial class Program
         RunOffsetInitChecks();
         RunMeasurementWorkflowChecks();
         RunBulkHistoryChecks();
+        RunReferenceValueChecks();
         var output = args.Length == 2 && args[0] == "--report" ? args[1] : Path.Combine(AppContext.BaseDirectory, "manual-inspection-results.json");
         var report = new { schemaVersion = "a3-manual-inspection-core-tests/1", passed = Failed == 0, count = Results.Count, failed = Failed, tests = Results, sourceFiles = SourceInputs(),
             scope = "Linked production ManualInspection common files only; synthetic values/fake field evaluator. No equipment, WPF, SDK or device scripts executed." };

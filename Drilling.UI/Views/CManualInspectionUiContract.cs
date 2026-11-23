@@ -65,6 +65,9 @@ public sealed record CManualInspectionUiPoint
     /// <summary>Engine-resolved reference F; consumed raw must resolve to B, not B + the same raw again.</summary>
     public double? ReferenceFinalXUm { get; init; }
     public double? ReferenceFinalYUm { get; init; }
+    public string ReferenceValueKind { get; init; } = "";
+    public string ReferenceValueJudge { get; init; } = "";
+    public string ReferenceValueUnavailableReason { get; init; } = "";
     public string Source { get; init; } = "KEPT";
     public bool IsProxy { get; init; }
     public string ReferenceKey { get; init; } = "";
@@ -88,8 +91,12 @@ public sealed record CManualInspectionUiPoint
     public string MeasurementBasisText => IsMeasurementOffsetInitialized ? "측정 Offset 초기화" : UsesAppliedMeasurement ? "보정기반 편차 · 기존 적용 Review Offset"
         : HasWorkingMeasurement ? IsProxy ? "대표값 복사 편차" : "측정 결과 편차" : "유효 편차 없음";
     public string MeasurementSourceCode => UsesAppliedMeasurement ? "CORRECTION_BASED" : IsProxy ? "MANUAL" : Source;
-    public bool CanBeReference => !IsMeasurementOffsetInitialized && !IsMasked && !IsProxy && (Source == "MEASURED" || CanUseImportedForCorrection)
-        && WorkingJudge is "OK" or "NG" && Finite(WorkingXUm) && Finite(WorkingYUm);
+    public bool CanBeReference => !string.IsNullOrWhiteSpace(Key);
+    public bool CanCopyAsReference => !IsMeasurementOffsetInitialized && string.IsNullOrEmpty(ReferenceValueUnavailableReason)
+        && (ReferenceFinalXUm.HasValue || ReferenceFinalYUm.HasValue
+            ? Finite(ReferenceFinalXUm) && Finite(ReferenceFinalYUm)
+            : HeadNo is >= 1 and <= 8 && !IsProxy && (Source == "MEASURED" || CanUseImportedForCorrection) && HasWorkingMeasurement
+                || HasAppliedOffset && Finite(BaseXUm) && Finite(BaseYUm));
     public string Identity => $"C{CellNo} / H{HeadNo:00} / S{ShotNo} / B{BeamNo}";
     public string WorkingErrorText => Pair(WorkingXUm, WorkingYUm);
     public string OriginalErrorText => Pair(OriginalXUm, OriginalYUm);
@@ -164,6 +171,7 @@ public sealed record CManualInspectionUiSnapshot
     public long Version { get; init; }
     public string RecipeId { get; init; } = "—";
     public string RunId { get; init; } = "—";
+    public string CoordinateSignature { get; init; } = "";
     public string ActiveRevisionId { get; init; } = "—";
     public string SourcePath { get; init; } = "";
     public bool IsSimulation { get; init; }

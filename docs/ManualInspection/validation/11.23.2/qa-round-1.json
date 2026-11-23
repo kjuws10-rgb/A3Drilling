@@ -1,0 +1,94 @@
+{
+  "round": 1,
+  "status": "independent_contract_trace_complete",
+  "passed": true,
+  "baseCommit": "89e92a015802523ba81b871a752d0c71e62e627f",
+  "reviewedAt": "2026-11-23T22:34:43.630408+09:00",
+  "sourceBaseSha256": {
+    "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs": "24de89c0bc30b659ba2c4b3c6555cd4d79b467f76a865bbac058d5a6d7a2ceb9",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs": "ec57d2c2b252676d8fe65d22cd20a10fe83a543c083b7677fb49f40b3b20749f",
+    "Drilling.Common/Review/CManualInspectionCoordinateBridge.cs": "faf320044ebb800f2f5216cf0900c2e23b6d12d8a2cb86e089825bc8d97d9344",
+    "Drilling.Common/Review/CManualInspectionResultProjection.cs": "03223a4c6310d266c0e462fdaf246a6c2da99d58c60419c5c04341f9a5893bcb",
+    "Drilling.Common/Recipe/CShotCoordinatePlanBuilder.cs": "1aae4cf012a52ee08305dee90b5f650a61e2b1ca10485815cf9c797cd3795c6e",
+    "Drilling.File/ReviewOffset/CReviewOffsetFile.cs": "52cfdfbf2fce4faecc74cd807f54a4ff837c2d8cee3459b379347d643051444f",
+    "Drilling.UI/Views/CManualInspectionMapControl.cs": "0f9b4d6c831bc887d243f6dba5a940a8078d3c205ddcdbb9f0cc74b2d8f7cebd",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "fd9bfc313769a7ce0fa284a27e0a7da8eca3f4d084f62d50cb829a1485e760e6",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "0a86851302b9bf477b364eaee9cde200f2c2f3404392514fbead7a978baa71d4",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "c04ec29d61b45b96e61580a43c0d94e0c828cead0bd8f5f522011a51708496ea",
+    "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs": "79b8bc0367725c22314369e740d8038fa3ec51bf8ba32db6f1ae5730e97f452e",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.cs": "a7523686c1ac3805899022e42113e0127c3f75f030f8d4d0d50a0f0586a0c75f",
+    "Drilling.UI/Menu/Menus/CMenuRecipe.cs": "02aaf32cd83fd58e577cc4dcec98d2aedd801bb998dae3b87e0d9884b94135f9",
+    "Drilling.UI/Menu/Menus/CMenuMonitor.cs": "53f19371d1345668ac17e0dc0279b853714f4ea516c9c021dba872463758aea1",
+    "Drilling.UI/Menu/Menus/CReviewOffsetDisplaySnapshot.cs": "789b5e3d4b8e2d8bf6db455cb4bc7a459ddf920ba59a21431de129c07ab5e4e3"
+  },
+  "scope": "Independent read-only source and compatibility contract tracing, not runtime correctness qualification",
+  "selectionContractConfirmedByParent": [
+    "Arrow selects one next valid point; no wrapping",
+    "Ctrl+Arrow selects the last valid point in current displayed row/column band; not focus-only or additive",
+    "Shift+Arrow extends or contracts a 2D rectangle from a fixed anchor to focus",
+    "Ctrl+Shift+Arrow extends a 2D rectangle to the row/column edge",
+    "Range excludes filtered/masked/disabled points; zoom-offscreen valid points remain navigable with RevealPoint",
+    "Keyboard Configure feedback preserves anchor; mouse/external selection/scope/geometry/filter changes reset it"
+  ],
+  "cellLabelBoundaries": [
+    "Base OnRender suppresses physical layout labels when width<15 or height<6; fallback frame text also has size gates",
+    "A Cell whose body intersects viewport but header is panned outside viewport can lose its label",
+    "New fixed/readable screen overlay labels must not move/repack true Cell geometry or point layout",
+    "If label position/size changes, its clickable screen hit rectangle must match drawing; retain genuine polygon hit rules and disabled/metadata-only cells"
+  ],
+  "representativeContract": [
+    "Representative designation is a UI selection property and should accept any known point independent of measurement validation",
+    "Copy/apply eligibility remains separate: missing/Init/nonfinite data cannot become successful measured zero",
+    "Active dictionaries contain neutral zero for every point, so finite B alone is insufficient evidence; authoritative Init/missing metadata and stored correction provenance distinguish valid measured zero",
+    "Direct fresh OK/NG resolves final F as existing candidate final or B+raw; consumed direct raw resolves to current B, preventing raw reaccumulation",
+    "Proxy representative must use its frozen F and captured origin lineage, not its target OriginalMeasurement as a new reference token",
+    "B-based representative needs explicit correction-based provenance/kind/basis identity; do not fabricate camera OriginalMeasurement or relabel it MEASURED",
+    "Copy of NG preserves NG and red display; correction validation must continue rejecting NG even though it can be designated/copied",
+    "Proxy chaining requires cycle/self/ancestor checks before mutation, or safe flattened immutable lineage retaining immediate source separately",
+    "Source revision is provenance, while Run/coordinate/values/fingerprint protect current action; unrelated saved Shot revisions must not invalidate still-valid frozen proxies without reason"
+  ],
+  "unitsAndCompatibility": [
+    "Workspace Base/Delta/Final/Error and UI contract values are DESIGN micrometres",
+    "Native Backend bridge converts Stage/legacy SCANNER errors to DESIGN micrometres and saves DESIGN millimetres; source Head-to-target Head copy must not apply scanner flip/scale twice",
+    "CSV stays one correction per Cell/Shot; sibling Beams share final B; conflicting final values must reject atomically",
+    "Raw driving/companion ledger consumption, consumed zero handling and representative immutable source snapshots remain distinct",
+    "Review camera target stays design/AK/Beam/Shift reference and must not receive accumulated B again",
+    "Recipe runtime overlay remains a temporary copy; editor managed items/Recipe CSV never acquire measurement offset storage",
+    "Monitor/Recipe latest-file revision polling and per-model isolation must be unaffected",
+    "Hardware/Default/FirstBeam/Distortion and other Correction numeric algorithms remain unchanged",
+    "Undo/Redo10 and Init absence metadata must retain compatibility with old sessions/portable offset files; new proxy metadata defaults must be explicit and malformed metadata must not gain lineage"
+  ],
+  "minimumRegressionMatrix": [
+    "any point (masked/init/missing/error/proxy/NG) can be designated without numeric/raw/device changes",
+    "designation-only on missing/Init then copy rejects with target/raw/candidate unchanged",
+    "valid stored B zero vs missing zero separated in copy/save/session",
+    "fresh raw0 first apply valid; consumed direct raw uses B rather than B+raw",
+    "direct/active-B/proxy representative copies preserve correct kind/origin and DESIGN units across Heads",
+    "NG source copy preserves NG/red and blocks selected/model bulk saving",
+    "A-to-B-to-C proxy lineage stable and A-to-B-to-A/self/ancestor copy rejected before mutation",
+    "same-Shot sibling beams consistent or conflicting F rejected atomically",
+    "representative source remeasurement after copy does not rewrite captured copy basis",
+    "unrelated Shot save then pending proxy validation/session roundtrip remains valid when appropriate",
+    "source Run/coordinate/model changes reject stale copy confirmation",
+    "delta/total/Field limits, masked operation targets and missing original raw remain protected",
+    "Undo/Redo/Init after raw/B/proxy copies preserve raw original and expected absent state",
+    "Ctrl/Shift/CtrlShift ranges expand/contract from anchor correctly under filters/zoom/rotation and cross-Cell geometry",
+    "keyboard range never dispatches hardware movement; Space/menu/Esc safety unchanged",
+    "all visible Cell numbers readable at zoom-out, header panned out, filters, disabled/meta-only cells",
+    "Recipe save input and other model B untouched after expanded representatives",
+    "legacy proxy sessions plus new kinds roundtrip; tampered kind/root/token/cycle rejected"
+  ],
+  "notExecuted": [
+    "equipment App/Root/Manager",
+    "vendor DLL loading or decompilation",
+    "motion/Vision/PLC/AeroScript/laser",
+    "production source or test source edits",
+    "Git commit/push/merge"
+  ],
+  "parentPolicyDecisions": [
+    "Representative marker allowed for every known point, including pending Init/import edit, NG/ERROR/Init/Masking/no-value; copying and equipment guards remain separate",
+    "Same-frame raw/state/source changes preserve marker; model/coordinate-frame changes clear it",
+    "B-only finite F may be copied as a working value with original unknown/NG/null-error state preserved; no additional permission to save an unmeasured absolute B correction is added",
+    "Unadopted mode/Run/coordinate-mismatched imported values can be designated but cannot obtain copy/apply permission merely because working errors are finite; require native/explicitly adopted validated direct lineage, authoritative saved B, or captured proxy provenance"
+  ]
+}

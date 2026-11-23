@@ -22,6 +22,7 @@ internal static partial class Program
             RunOverviewPointerGestureChecks(observations);
             RunEmptyReviewMenuChecks();
             RunMapKeyboardChecks();
+            RunPersistentCellLabelChecks(observations);
         }
         catch(Exception e){Test("celloverview_unexpected_exception",false,e.ToString());}
         var files=new[]{"Views/CManualInspectionUiContract.cs","Views/CManualInspectionMapControl.cs","Views/CManualInspectionScatterControl.cs","Views/CManualInspectionView.xaml","Views/CManualInspectionView.xaml.cs"};
@@ -371,6 +372,12 @@ internal static partial class Program
             Test("move_measure_menu_"+entry.Name+"_depends_on_pending_edit_not_empty_value",action.IsEnabled==!entry.Pending&&work==0);
             menu.IsOpen=false;
         }
+        CManualInspectionSelectionEventArgs? maskedFocus=null;map.SelectionRequested+=(_,args)=>maskedFocus=args;
+        var maskedPoint=seed with{IsMasked=true};var maskedState=new CManualInspectionUiSnapshot{Version=708,RecipeId="MASKED-REFERENCE",RunId="NO-DEVICE",Points=[maskedPoint]};
+        map.Configure(maskedState,maskedState.Points,maskedState.Points,[],null,null,"level","masked-reference");Pump();
+        var maskedRect=Slots(map)[maskedPoint.Key];var maskedAt=new Point(maskedRect.Left+maskedRect.Width/2,maskedRect.Top+maskedRect.Height/2);
+        Invoke(map,"BeginPointerGesture",maskedAt,ModifierKeys.None,1);Invoke(map,"CompletePointerGesture",maskedAt);Pump();
+        Test("masked_point_click_can_focus_reference_without_selecting_measurement_target",maskedFocus is{Additive:true,FocusKey:var maskedKey}&&maskedKey==maskedPoint.Key&&maskedFocus.Keys.Count==0&&work==0&&map.ContextMenu?.IsOpen!=true);
         window.Close();
         foreach(var entry in new[]{(Name:"initial_empty_model",Applied:false),(Name:"loaded_saved_init_model",Applied:true)})
         {
@@ -413,15 +420,49 @@ internal static partial class Program
         KeyPress(Key.Right);
         Test("map_keyboard_right_follows_displayed_row_across_head_numbers",focus==Point(3,0,1)&&selected.Count==1&&navigation==0&&work==0);
         KeyPress(Key.Down,ModifierKeys.Control);
-        Test("map_keyboard_ctrl_arrow_adds_neighbour_without_replacing_existing_selection",focus==Point(3,1,1)&&selected.SetEquals([Point(3,0,1),Point(3,1,1)]));
+        Test("map_keyboard_ctrl_arrow_selects_column_end_as_one_point",focus==Point(8,3,1)&&selected.SetEquals([Point(8,3,1)]));
+        Configure(at:Point(3,1,1));
         KeyPress(Key.Left);KeyPress(Key.Up);
         Test("map_keyboard_left_and_up_return_to_visual_neighbours",focus==Point(3,0,0)&&selected.Count==1);
+        Configure(at:Point(3,1,1));KeyPress(Key.Right,ModifierKeys.Shift);
+        Test("map_keyboard_shift_arrow_extends_from_fixed_anchor",focus==Point(3,1,2)&&selected.SetEquals([Point(3,1,1),Point(3,1,2)]));
+        KeyPress(Key.Down,ModifierKeys.Shift);
+        Test("map_keyboard_shift_two_axes_forms_rectangular_range",selected.SetEquals([Point(3,1,1),Point(3,1,2),Point(3,2,1),Point(3,2,2)]));
+        KeyPress(Key.Left,ModifierKeys.Shift);KeyPress(Key.Up,ModifierKeys.Shift);
+        Test("map_keyboard_reverse_shift_shrinks_back_to_anchor",focus==Point(3,1,1)&&selected.SetEquals([Point(3,1,1)]));
+        KeyPress(Key.Left,ModifierKeys.Shift);KeyPress(Key.Right);KeyPress(Key.Down,ModifierKeys.Shift);
+        Test("map_keyboard_plain_arrow_resets_range_anchor",focus==Point(3,2,1)&&selected.SetEquals([Point(3,1,1),Point(3,2,1)]));
+        Configure(at:Point(3,1,1));KeyPress(Key.Right,ModifierKeys.Control|ModifierKeys.Shift);
+        Test("map_keyboard_ctrl_shift_selects_rectangular_range_to_visual_row_end",focus==Point(10,1,3)&&selected.Count==7&&selected.All(key=>state.Points.Single(p=>p.Key==key).Row==1));
+        KeyPress(Key.Left,ModifierKeys.Control|ModifierKeys.Shift);
+        Test("map_keyboard_reverse_ctrl_shift_contracts_range_instead_of_union",focus==Point(3,1,0)&&selected.SetEquals([Point(3,1,0),Point(3,1,1)]));
+        KeyPress(Key.Right,ModifierKeys.Control);
+        Test("map_keyboard_ctrl_without_shift_collapses_previous_range",focus==Point(10,1,3)&&selected.SetEquals([Point(10,1,3)]));
+        Configure(at:Point(3,1,1));KeyPress(Key.Right,ModifierKeys.Shift);
+        selected.Clear();focus=Point(10,2,1);selected.Add(focus);Publish();Pump();KeyPress(Key.Down,ModifierKeys.Shift);
+        Test("map_keyboard_external_selection_resets_old_anchor",focus==Point(10,3,1)&&selected.SetEquals([Point(10,2,1),Point(10,3,1)]));
+        Configure(at:Point(3,1,1));KeyPress(Key.Right,ModifierKeys.Shift);
+        state=state with{Version=state.Version+1,Points=state.Points.Select(p=>p with{WorkingJudge="OK"}).ToArray()};visible=state.Points;Publish();Pump();KeyPress(Key.Down,ModifierKeys.Shift);
+        Test("map_keyboard_measurement_status_refresh_keeps_same_geometry_anchor",selected.SetEquals([Point(3,1,1),Point(3,1,2),Point(3,2,1),Point(3,2,2)]));
         var mask=initial.Points.Select(p=>p.CellNo==3&&p.Row==0&&p.Column==1?p with{IsMasked=true}:p).ToArray();
         var filtered=mask.Where(p=>!(p.CellNo==3&&p.Row==0&&p.Column==2)).ToArray();
         Configure(initial with{Points=mask},filtered,mask.First(p=>p.CellNo==3&&p.Row==0&&p.Column==0).Key);KeyPress(Key.Right);
         Test("map_keyboard_skips_masked_and_filtered_positions",focus==Point(3,0,3)&&selected.Count==1,"Actual focus: "+focus);
         KeyPress(Key.Right);
         Test("map_keyboard_right_crosses_actual_cell_boundary_without_entering_single_cell",focus==Point(10,0,0)&&navigation==0&&work==0,"Actual focus: "+focus);
+        Configure(initial with{Points=mask},filtered,mask.First(p=>p.CellNo==3&&p.Row==0&&p.Column==0).Key);KeyPress(Key.Right,ModifierKeys.Shift);
+        Test("map_keyboard_shift_range_excludes_masked_and_hidden_interior_points",focus==Point(3,0,3)&&selected.SetEquals([Point(3,0,0),Point(3,0,3)]));
+        var rowOnly=initial.Points.Where(p=>p.CellNo==3&&!(p.Row==0&&p.Column>=2)).ToArray();
+        Configure(show:rowOnly,at:initial.Points.First(p=>p.CellNo==3&&p.Row==0&&p.Column==0).Key);KeyPress(Key.Right,ModifierKeys.Control);
+        Test("map_keyboard_ctrl_end_stays_on_filtered_logical_row_without_diagonal_wrap",focus==Point(3,0,1)&&selected.Count==1);
+        Configure(at:initial.Points.First(p=>p.CellNo==10&&p.Row==3&&p.Column==3).Key);KeyPress(Key.Right,ModifierKeys.Control);
+        Test("map_keyboard_ctrl_at_line_edge_never_wraps_into_another_row",focus==Point(10,3,3)&&selected.Count==1);
+        Configure(at:initial.Points.First(p=>p.CellNo==3&&p.Row==0&&p.Column==0).Key);KeyPress(Key.Right,ModifierKeys.Shift);
+        visible=state.Points.Where(p=>!(p.CellNo==3&&p.Column==0)).ToArray();Publish();Pump();KeyPress(Key.Down,ModifierKeys.Shift);
+        Test("map_keyboard_filter_change_resets_old_anchor_to_current_visible_focus",selected.SetEquals([Point(3,0,1),Point(3,1,1)]));
+        Configure(at:initial.Points.First(p=>p.CellNo==3&&p.Row==0&&p.Column==0).Key);KeyPress(Key.Right,ModifierKeys.Shift);
+        state=state with{RunId="NEW-COORDINATE-RUN"};Publish();Pump();KeyPress(Key.Down,ModifierKeys.Shift);
+        Test("map_keyboard_source_frame_change_cannot_reuse_previous_anchor",selected.SetEquals([Point(3,0,1),Point(3,1,1)]));
         Configure(at:Point(3,3,0));KeyPress(Key.Down);
         Test("map_keyboard_down_crosses_to_cell_below_using_recipe_placement",focus==Point(8,0,0)&&navigation==0&&work==0);
         Configure(at:Point(8,0,3));KeyPress(Key.Right);
@@ -465,6 +506,49 @@ internal static partial class Program
         var keyboardArgs=new KeyEventArgs(Keyboard.PrimaryDevice,PresentationSource.FromVisual(native)!,1,Key.Right){RoutedEvent=Keyboard.PreviewKeyDownEvent};
         native.RaiseEvent(keyboardArgs);Pump();
         Test("map_keyboard_native_preview_event_selects_in_real_view_without_equipment_request",keyboardArgs.Handled&&Field<HashSet<string>>(view,"_selected").Count==1&&Field<int>(view,"_cell")==0&&fake.Calls.Count==0);
+        host.Close();
+    }
+
+    private static void RunPersistentCellLabelChecks(List<object> observations)
+    {
+        var seed=OverviewSnapshot().Points[0];
+        var cells=Enumerable.Range(1,48).Select(number=>
+        {
+            var x=10+(number-1)%8*28d;var y=10+(number-1)/8*24d;
+            var dx=number%7==0?new Vector(10,3):new Vector(12,0);var dy=number%7==0?new Vector(-2,8):new Vector(0,10);
+            var a=new Point(x,y);var b=a+dx;var d=a+dy;var c=a+dx+dy;
+            return new CManualInspectionUiCellLayout{CellNo=number,Enabled=number!=7,BoundaryMm=[new(a.X,a.Y),new(b.X,b.Y),new(c.X,c.Y),new(d.X,d.Y)]};
+        }).ToArray();
+        var points=cells.Select(cell=>seed with{Key="LABEL-C"+cell.CellNo,CellNo=cell.CellNo,HeadNo=1,Row=0,Column=0,IsMasked=!cell.Enabled}).ToArray();
+        var snapshot=new CManualInspectionUiSnapshot{Version=3001,RecipeId="SYNTHETIC-LABELS",RunId="NO-DEVICE",GlassWidthMm=240,GlassHeightMm=160,CellLayoutYDown=true,CellLayouts=cells,Points=points};
+        var map=new CManualInspectionMapControl();var navigation=new List<int>();var selection=0;var work=0;
+        map.CellRequested+=(_,cell)=>navigation.Add(cell);map.SelectionRequested+=(_,_)=>selection++;map.OperationRequested+=(_,_)=>work++;
+        var host=new Window{Width=1000,Height=700,Content=map,Left=-20000,Top=-20000,ShowInTaskbar=false,ShowActivated=false,WindowStyle=WindowStyle.None};host.Show();
+        map.Configure(snapshot,points,points,[],null,null,"level","cell-labels",true);Pump();
+        (int Cell,Rect Rect,string Text,bool Enabled)[] Labels()=>Field<IList>(map,"_cellLabels").Cast<object>().Select(label=>
+            ((int)label.GetType().GetProperty("CellNo")!.GetValue(label)!,
+                (Rect)label.GetType().GetProperty("Bounds")!.GetValue(label)!,
+                (string)label.GetType().GetProperty("Text")!.GetValue(label)!,
+                (bool)label.GetType().GetProperty("Enabled")!.GetValue(label)!)).ToArray();
+        string GeometryJson()=>JsonSerializer.Serialize(new{snapshot.Points,snapshot.CellLayouts,snapshot.GlassWidthMm,snapshot.GlassHeightMm,snapshot.CellLayoutYDown});
+        var fitted=Labels();var geometry=Slots(map);var original=GeometryJson();
+        Test("overview_every_cell_has_persistent_number_without_hover",fitted.Length==48&&fitted.All(label=>label.Text.Contains("Cell "+label.Cell))&&Field<string?>(map,"_hoverKey") is null);
+        Test("overview_cell_labels_distinguish_disabled_cells",fitted.Single(label=>label.Cell==7) is{Enabled:false,Text:var text}&&text.Contains("미사용"));
+        map.RestoreView(.4,default);Pump();var small=Labels();
+        Test("overview_small_cells_keep_screen_space_readable_label_dimensions",small.Length==48&&small.All(label=>label.Rect.Height>=20&&label.Rect.Width>=65)&&small.All(label=>label.Rect.Size==fitted.Single(old=>old.Cell==label.Cell).Rect.Size));
+        Test("overview_dense_cell_labels_do_not_overlap",small.SelectMany((label,i)=>small.Skip(i+1).Select(other=>!label.Rect.IntersectsWith(other.Rect))).All(value=>value));
+        Test("overview_dense_cell_labels_stay_inside_viewport",small.All(label=>label.Rect.Left>=0&&label.Rect.Top>=20&&label.Rect.Right<=map.ActualWidth&&label.Rect.Bottom<=map.ActualHeight));
+        Test("overview_label_collision_avoidance_never_moves_real_cell_or_point_geometry",geometry.All(pair=>Slots(map)[pair.Key]==pair.Value)&&GeometryJson()==original);
+        var clickedLabel=small.Single(item=>item.Cell==37);var at=new Point(clickedLabel.Rect.Left+clickedLabel.Rect.Width/2,clickedLabel.Rect.Top+clickedLabel.Rect.Height/2);
+        Invoke(map,"BeginPointerGesture",at,ModifierKeys.None,1);Invoke(map,"CompletePointerGesture",at);Pump();
+        Test("overview_displaced_screen_label_still_enters_its_named_cell",navigation.SequenceEqual([37])&&selection==0&&work==0);
+        foreach(var theme in new[]{"Dark","Light"}){LoadResources(theme);Pump();Render(map,"cell-labels-48-small-"+theme.ToLowerInvariant()+".png");}
+        map.RestoreView(3,new Vector(-450,-400));Pump();var zoomed=Labels();
+        Test("overview_zoomed_visible_cell_labels_keep_fixed_size_and_click_identity",zoomed.Length>0&&zoomed.All(item=>item.Rect.Size==fitted.Single(old=>old.Cell==item.Cell).Rect.Size)&&zoomed.All(item=>(int?)Invoke(map,"HitOverviewCell",new Point(item.Rect.Left+item.Rect.Width/2,item.Rect.Top+item.Rect.Height/2))==item.Cell));
+        map.Configure(snapshot,points,points,[],null,null,"level","cell-labels-fallback",true);Pump();
+        map.Configure(snapshot with{CellLayouts=[]},points,points,[],null,null,"level","cell-labels-fallback",true);Pump();
+        Test("overview_logical_fallback_also_keeps_all_cell_numbers",Labels().Length==48);
+        observations.Add(new{kind="fixed-cell-labels",cellCount=48,zoom=.4,fontSizeDip=11,minimumLabelSizeDip=new{Width=65,Height=21},physicalGeometryUnchanged=true});
         host.Close();
     }
     private static void RunExpandedScatterMapChecks(List<object> observations)

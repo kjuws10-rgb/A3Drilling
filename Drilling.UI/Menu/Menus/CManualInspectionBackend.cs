@@ -268,6 +268,8 @@ public sealed class CManualInspectionBackend(
                 var basis = baselineByRow.TryGetValue($"{target.CellNo}:{Normalize(matrix)}", out var offset)
                     ? CManualInspectionCoordinateBridge.FromFile(offset, _parameters, Math.Max(1, target.HeadNo)) : ST_MANUAL_OFFSET.Zero;
                 if (offset is not null) appliedKeys.Add(key);
+                p = p with { HasAppliedOffsetEvidence=offset is { IsMeasurementOffsetInitialized: false }
+                    && (offset.IsDesignCoordinate || target.HeadNo is >= 1 and <= 8) };
                 if (offset is null || offset.IsMeasurementOffsetInitialized) emptyOffsetKeys.Add(p.OffsetKey);
                 if (observations.TryGetValue(rowKey, out var observation))
                     imported[key] = new(observation.FilePath, observation.Row.SavedAt, observation.Origin);

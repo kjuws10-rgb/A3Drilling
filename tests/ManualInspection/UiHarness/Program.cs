@@ -34,10 +34,10 @@ internal static partial class Program
     [STAThread]
     private static int Main(string[] args)
     {
-        if (args.Length is < 2 or > 3 || args.Length == 3 && args[2] is not ("--integration-impact" or "--sync-levels" or "--coverage-compact" or "--hardening" or "--visual-usability" or "--map-first" or "--cell-overview" or "--offset-init" or "--measurement-workflow" or "--bulk-history")) { Console.Error.WriteLine("Usage: UiHarness <repository/Drilling.UI> <private-output> [--integration-impact|--sync-levels|--coverage-compact|--hardening|--visual-usability|--map-first|--cell-overview|--offset-init|--measurement-workflow|--bulk-history]"); return 2; }
+        if (args.Length is < 2 or > 3 || args.Length == 3 && args[2] is not ("--integration-impact" or "--sync-levels" or "--coverage-compact" or "--hardening" or "--visual-usability" or "--map-first" or "--cell-overview" or "--offset-init" or "--measurement-workflow" or "--bulk-history" or "--representative")) { Console.Error.WriteLine("Usage: UiHarness <repository/Drilling.UI> <private-output> [--integration-impact|--sync-levels|--coverage-compact|--hardening|--visual-usability|--map-first|--cell-overview|--offset-init|--measurement-workflow|--bulk-history|--representative]"); return 2; }
         _uiSource = Path.GetFullPath(args[0]); _output = Path.GetFullPath(args[1]); Directory.CreateDirectory(_output);
         _application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-        if (args.Length == 3) return args[2] switch { "--sync-levels" => SyncLevels(), "--coverage-compact" => CoverageCompact(), "--hardening" => Hardening(), "--visual-usability" => VisualUsability(), "--map-first" => MapFirst(), "--cell-overview" => CellOverview(), "--offset-init" => OffsetInit(), "--measurement-workflow" => MeasurementWorkflow(), "--bulk-history" => BulkHistory(), _ => IntegrationImpact() };
+        if (args.Length == 3) return args[2] switch { "--sync-levels" => SyncLevels(), "--coverage-compact" => CoverageCompact(), "--hardening" => Hardening(), "--visual-usability" => VisualUsability(), "--map-first" => MapFirst(), "--cell-overview" => CellOverview(), "--offset-init" => OffsetInit(), "--measurement-workflow" => MeasurementWorkflow(), "--bulk-history" => BulkHistory(), "--representative" => Representative(), _ => IntegrationImpact() };
         try
         {
             LoadResources("Light");
@@ -127,14 +127,14 @@ internal static partial class Program
             Invoke(view, "ChangeSelection", new CManualInspectionSelectionEventArgs([key1], key1));
             Test("masked_click_cannot_select", Field<HashSet<string>>(view, "_selected").Count == 0);
             Set(view, "_focusKey", fake.Snapshot.Points[23].Key); Invoke(view, "Refresh"); Invoke(view, "SetReference_Click", view, new RoutedEventArgs());
-            Test("proxy_cannot_be_representative", Field<string?>(view, "_representativeKey") is null);
+            Test("proxy_can_be_marked_representative", Field<string?>(view, "_representativeKey") == fake.Snapshot.Points[23].Key);
             Set(view, "_focusKey", fake.Snapshot.Points[11].Key); Invoke(view, "Refresh"); Invoke(view, "SetReference_Click", view, new RoutedEventArgs());
             Test("direct_ng_can_be_representative", Field<string?>(view, "_representativeKey") == fake.Snapshot.Points[11].Key);
             Test("representative_does_not_mutate_original", fake.Snapshot.Points[11].OriginalJudge == "OK" && fake.Snapshot.Points[11].WorkingJudge == "NG");
             var reference = fake.Snapshot.Points[11] with { BaseXUm = 4, BaseYUm = 5, WorkingXUm = 2, WorkingYUm = 3, CandidateXUm = 70, CandidateYUm = 80 };
             fake.Replace(fake.Snapshot with { Version = 12, CandidateStatus = "DRAFT" });
             var candidateF = ((double?, double?))Invoke(view, "ReferenceValues", reference)!;
-            Test("representative_uses_pending_final_F", candidateF == (70.0, 80.0));
+            Test("legacy_reference_fallback_ignores_unresolved_candidate_fields", candidateF == (6.0, 8.0));
             fake.Replace(fake.Snapshot with { Version = 13, CandidateStatus = "APPLIED" });
             var appliedF = ((double?, double?))Invoke(view, "ReferenceValues", reference)!;
             Test("applied_candidate_not_reused_as_reference_F", appliedF == (6.0, 8.0));
@@ -180,7 +180,7 @@ internal static partial class Program
             Test("imported_filter_choice_present", importedChoice is not null);
             filter.SelectedItem = importedChoice; Pump();
             Test("imported_filter_exact_source", Field<IReadOnlyList<CManualInspectionUiPoint>>(view, "_filtered").Select(p => p.Key).SequenceEqual([points[1].Key]));
-            Test("imported_not_a_native_reference", !points[1].CanBeReference && points[1].Source=="IMPORTED"&&points[1].SourceText.Contains("불러온"));
+            Test("imported_reference_marker_keeps_imported_source_label", points[1].CanBeReference && points[1].Source=="IMPORTED"&&points[1].SourceText.Contains("불러온"));
             var color = (ComboBox)view.FindName("ColorFilter");
             color.SelectedItem = color.Items.Cast<object>().Single(x => (string?)x.GetType().GetProperty("Value")!.GetValue(x) == "level"); Pump();
             Test("imported_result_does_not_invent_active_offset", ((SolidColorBrush)CManualInspectionDrawing.PointBrush(view, points[1] with { HasAppliedOffset = false }, "applied", fake.Snapshot)).Color.ToString() == "#FFDBE4EA");

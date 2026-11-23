@@ -16,6 +16,7 @@
     <Compile Include="OffsetInitCases.cs" />
     <Compile Include="MeasurementWorkflowCases.cs" />
     <Compile Include="BulkHistoryCases.cs" />
+    <Compile Include="RepresentativeCases.cs" />
   </ItemGroup>
   <ItemGroup Condition="'$(UseActualAssemblies)' != 'true'">
     <Compile Include="Contracts.cs" />

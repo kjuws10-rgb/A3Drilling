@@ -1,10 +1,11 @@
-"""Verify manual interaction, integrated selection correction and saved-offset display scope. Never starts equipment."""
+"""Verify manual interaction, standard selection, representative data and unchanged cross-menu scope. Never starts equipment."""
 import argparse,hashlib,json,re,subprocess
 from pathlib import Path
 import xml.etree.ElementTree as ET
 ROOT=Path(__file__).resolve().parents[2]
-BASE="367a7276822d73d7709cd64f94847ee979c4d557"
+BASE="89e92a015802523ba81b871a752d0c71e62e627f"
 EXISTING={
+ "Drilling.UI/CRootView.cs","Drilling.UI/Menu/Menus/CMenuMonitor.cs","Drilling.UI/Menu/Menus/CMenuRecipe.cs","Drilling.UI/Menu/Menus/CReviewOffsetDisplaySnapshot.cs",
  "Drilling.Common/Station/CStageReviewSequences.cs","Drilling.File/ReviewResult/CReviewResultFile.cs",
  "Drilling.Common/Review/CReviewManager.cs","Drilling.File/ReviewOffset/CReviewOffsetFile.cs",
  "Drilling.UI/Views/CCorrectionView.xaml","Drilling.UI/Views/CCorrectionView.xaml.cs",
@@ -15,8 +16,8 @@ CHANGED={
  "Drilling.UI/Drilling.UI.csproj","Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs",
  "Drilling.UI/Menu/Menus/CManualInspectionController.cs","Drilling.UI/Views/CManualInspectionMapControl.cs",
  "Drilling.UI/Views/CManualInspectionView.xaml.cs","Drilling.UI/Views/CManualInspectionUiContract.cs","Drilling.UI/Views/CManualInspectionView.xaml",
- "Drilling.UI/CRootView.cs","Drilling.UI/Menu/Menus/CMenuMonitor.cs","Drilling.UI/Menu/Menus/CMenuRecipe.cs",
- "Drilling.UI/Menu/Menus/CReviewOffsetDisplaySnapshot.cs"}
+ "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
+ "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs","Drilling.UI/Menu/Menus/CManualInspectionBackend.cs"}
 
 def git(*a):return subprocess.check_output(["git",*a],cwd=ROOT)
 def old(path):return git("show",f"{BASE}:{path}").decode("utf-8-sig").replace("\r\n","\n")
@@ -28,8 +29,8 @@ def main():
  paths=set(git("diff","--name-only",BASE,"--").decode().splitlines())|set(git("ls-files","--others","--exclude-standard").decode().splitlines())
  check("changed_paths_are_authorized",all(x in CHANGED or x.startswith(("tests/ManualInspection/","docs/ManualInspection/")) for x in paths))
  check("configuration_runtime_data_vendor_and_themes_unchanged",not any(x.startswith(("Config/","Data/","Drilling.UI/Themes/","Drilling.Common/Interface/","Drilling.Common/Motion/")) or x.endswith((".dll",".exe")) for x in paths))
- check("daily_program_and_portable_version_11_23_1",ET.parse(ROOT/"Drilling.UI/Drilling.UI.csproj").findtext(".//Version")=="2026.11.23.1" and 'ProgramVersion = "11.23.1"' in current("Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs"))
- for path in sorted(EXISTING|{"Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs", "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs", "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs"}):check("unchanged:"+path,old(path)==current(path))
+ check("daily_program_and_portable_version_11_23_2",ET.parse(ROOT/"Drilling.UI/Drilling.UI.csproj").findtext(".//Version")=="2026.11.23.2" and 'ProgramVersion = "11.23.2"' in current("Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs"))
+ for path in sorted(EXISTING|{"Drilling.UI/CRootView.cs", "Drilling.UI/Menu/Menus/CMenuMonitor.cs", "Drilling.UI/Menu/Menus/CMenuRecipe.cs", "Drilling.UI/Menu/Menus/CReviewOffsetDisplaySnapshot.cs"}):check("unchanged:"+path,old(path)==current(path))
  # The coordinate planner shares a file with metadata; its arithmetic is outside this change.
  path="Drilling.Common/Recipe/CShotCoordinatePlanBuilder.cs";a=old(path);b=current(path)
  check("coordinate_plan_builder_body_unchanged",a.split("public static class CReviewOffsetData",1)[0]==b.split("public static class CReviewOffsetData",1)[0])

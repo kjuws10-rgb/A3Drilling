@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="Drilling.UI.Views.CManualInspectionView"
+<UserControl x:Class="Drilling.UI.Views.CManualInspectionView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:views="clr-namespace:Drilling.UI.Views"
@@ -216,7 +216,7 @@
             <DataTrigger Binding="{Binding IsExpanded,ElementName=ScatterSection}" Value="True"><Setter Property="Height" Value="Auto" /></DataTrigger>
 
           </Style.Triggers></Style></Grid.Style><Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-            <Border x:Name="MapPanel" Grid.Row="0" Style="{StaticResource ManualPanel}" Padding="0" Margin="0,0,0,3" ClipToBounds="True"><Grid><Border x:Name="MapViewportFrame" ClipToBounds="True"><views:CManualInspectionMapControl x:Name="PositionMap" MinHeight="80" AutomationProperties.Name="측정 결과 2D 지도" AutomationProperties.HelpText="전체 Cell 버튼은 기판 배치로 전환합니다. Cell 번호 클릭은 단일 Cell 보기, Ctrl Cell 번호 클릭은 해당 Cell의 점들을 추가 선택하거나 해제합니다. Ctrl 클릭과 드래그로 복수 점 선택, Ctrl 휠 확대 축소, Alt 방향키 보기 이동. 더블클릭은 선택을 유지하며 화면에 맞춥니다. 우클릭 또는 Shift F10으로 동작을 엽니다." /></Border></Grid></Border>
+            <Border x:Name="MapPanel" Grid.Row="0" Style="{StaticResource ManualPanel}" Padding="0" Margin="0,0,0,3" ClipToBounds="True"><Grid><Border x:Name="MapViewportFrame" ClipToBounds="True"><views:CManualInspectionMapControl x:Name="PositionMap" MinHeight="80" AutomationProperties.Name="측정 결과 2D 지도" AutomationProperties.HelpText="전체 Cell에서 셀 내부나 번호 클릭은 해당 Cell을 엽니다. 드래그로 점을 선택하고 Ctrl 드래그로 추가합니다. 방향키는 한 점, Ctrl 방향키는 행·열 끝, Shift 방향키는 범위 선택, Ctrl Shift 방향키는 끝까지 범위 선택입니다. Space는 동작 메뉴, Esc는 메뉴 닫기, Alt 방향키는 보기 이동, Ctrl 휠은 확대 축소, 더블클릭은 맞춤입니다." /></Border></Grid></Border>
             <Border Grid.Row="1" Style="{StaticResource ManualPanel}" Padding="4,2" Margin="0,0,0,2"><Expander x:Name="ResultsSection" Header="측정 결과 표" IsExpanded="False" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" FontWeight="SemiBold">
                         <ScrollViewer x:Name="ResultsSectionContent" MaxHeight="190" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel Margin="0,6,0,0">
                             <TextBlock x:Name="ResultStatsText" Style="{StaticResource ManualLabel}" />
@@ -325,7 +325,7 @@
               <TextBlock x:Name="FilterNoticeText" Foreground="{DynamicResource ButtonWarningBrush}" FontSize="11" TextWrapping="Wrap" />
               <TextBlock x:Name="ColorDescriptionText" Style="{StaticResource ManualLabel}" TextWrapping="Wrap" />
               <TextBlock Text="NG 빨강 · 미측정/초기화 회색 · 테두리: 선택/대표" Style="{StaticResource ManualLabel}" /><WrapPanel x:Name="MapLegendItems" /><TextBlock x:Name="MapLegendText" Style="{StaticResource ManualLabel}" Visibility="Collapsed" />
-              <TextBlock Text="Ctrl 선택 · 드래그 선택 · Ctrl 휠 확대 · 더블클릭 맞춤 · 우클릭 동작" Style="{StaticResource ManualLabel}" />
+              <TextBlock Text="방향키 이동 · Ctrl 끝 · Shift 범위 · Ctrl+Shift 끝까지 · Space 메뉴 · Esc 닫기" Style="{StaticResource ManualLabel}" />
               <TextBlock x:Name="StagePositionText" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" FontFamily="Consolas" ToolTip="마지막 도착 확인 목표입니다. 실시간 모터 피드백이 아닙니다." />
               <TextBlock x:Name="PersistenceText" Foreground="{DynamicResource TextMutedBrush}" FontSize="10" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" />
             </StackPanel></Expander></Border>

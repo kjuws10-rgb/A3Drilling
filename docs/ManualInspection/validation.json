@@ -1,8 +1,8 @@
 {
-  "schemaVersion": "a3-manual-inspection-validation/11",
-  "programVersion": "11.23.1",
-  "baseCommit": "367a7276822d73d7709cd64f94847ee979c4d557",
-  "featureBranch": "feature/manual-inspection-cell-click-20261123.1",
+  "schemaVersion": "a3-manual-inspection-validation/12",
+  "programVersion": "11.23.2",
+  "baseCommit": "89e92a015802523ba81b871a752d0c71e62e627f",
+  "featureBranch": "feature/manual-inspection-selection-reference-20261123.2",
   "verifiedDate": "2026-11-23",
   "passed": true,
   "build": {
@@ -10,135 +10,161 @@
     "configuration": "Release",
     "warnings": 0,
     "errors": 0,
-    "logSha256": "d6a17e90f852c36355ff6149d705e4265b8d9aba41579e1810e1eaf16210a67f",
-    "uiAssemblySha256": "d655ac5c929b4cc996efcc109816b6fbdfbf4100113e39a7b9202564815c1316",
-    "commonAssemblySha256": "5b44428deb65f6ea2ebe58faa5bc069155884df7886849f649c8d8bb36c05b88"
+    "logSha256": "64842136a082a886b888d801117e6cca5aafe6efc5634fcdad8b2e53f28f6359",
+    "uiAssemblySha256": "b11b8f1488338343079f88d966fc6eed2146954a1a1933ba3cf7df6f799ce5b8",
+    "commonAssemblySha256": "68d9a64a6fcf885a30e9090eaea8131294b4e27768072438f96c907b82015dd8"
   },
   "checks": {
     "core-results.json": {
       "passed": true,
-      "count": 180,
-      "path": "validation/11.23.1/core-results.json",
-      "sha256": "2de8db3f6ef828b867395a01519e6c80779e24c641ab0a50f6735526cbd45e00"
+      "count": 197,
+      "path": "validation/11.23.2/core-results.json",
+      "sha256": "9377a083c5b050d7c4f55a02f07c3c89533b9c8d87fa019a3d05f086a3882311"
     },
     "controller-production.json": {
       "passed": true,
-      "count": 178,
-      "path": "validation/11.23.1/controller-production.json",
-      "sha256": "26b9e84811fb8bacc3987bafbbd804b60a721b3db899af1957d8b8110d10efe5"
+      "count": 185,
+      "path": "validation/11.23.2/controller-production.json",
+      "sha256": "94021fd4c36d0a305de9d226aaeaba56ba23650aea1f0424cfd518a75d75ad39"
     },
     "backend-read.json": {
       "passed": true,
-      "count": 91,
-      "path": "validation/11.23.1/backend-read.json",
-      "sha256": "f0fcd15b353878b5816a56f2d4ba3e900052eac4332b763df6125df4491fbd51"
+      "count": 96,
+      "path": "validation/11.23.2/backend-read.json",
+      "sha256": "399395112392753608b48e242eae985e2723b3e67b2914113b7f09ffce4779b0"
     }
   },
   "wpf": {
     "passed": true,
-    "count": 640,
+    "count": 713,
     "modes": [
       {
         "mode": "bulk-history",
         "passed": true,
         "count": 46,
-        "path": "validation/11.23.1/ui-bulk-history-results.json",
-        "sha256": "66d1751b3dda596b4617f2900d5f195d3fd566d3e59f06ebcb670920a4cafdb7"
+        "path": "validation/11.23.2/ui-bulk-history-results.json",
+        "sha256": "1bc76cd4d044e8ee698c7c5c4eea043f6f67977c5087d86bfd6c75d0ea796282"
       },
       {
         "mode": "cell-overview",
         "passed": true,
-        "count": 133,
-        "path": "validation/11.23.1/ui-cell-overview-results.json",
-        "sha256": "a1aad2bf6ee958c6a06ffa09f6ce64b757d513da5ba6cbe33c8eced978f9025f"
+        "count": 157,
+        "path": "validation/11.23.2/ui-cell-overview-results.json",
+        "sha256": "16482b83217278099c14b30dc3fdce590b6c09343507616fc2ec3338dd44fddb"
       },
       {
         "mode": "coverage-compact",
         "passed": true,
         "count": 71,
-        "path": "validation/11.23.1/ui-coverage-compact-results.json",
-        "sha256": "6db925124c28fa24c712748a327e75c5061f9d7dd0beebbde1599fb861eeade0"
+        "path": "validation/11.23.2/ui-coverage-compact-results.json",
+        "sha256": "30cfe590c9acb8a3b140bf82445d45ecec38471e413bfa50a2973736dfbbb27c"
       },
       {
         "mode": "hardening",
         "passed": true,
         "count": 30,
-        "path": "validation/11.23.1/ui-hardening-results.json",
-        "sha256": "f9e3a7e863253e2930e491a57e34dd062da5cc96098927171e70672065b40eda"
+        "path": "validation/11.23.2/ui-hardening-results.json",
+        "sha256": "86a90388a3b98a45807f732e481ff43faf3d6e23dd4c52ab53e2c3032b06e9ad"
       },
       {
         "mode": "integration-impact",
         "passed": true,
         "count": 23,
-        "path": "validation/11.23.1/ui-integration-impact-results.json",
-        "sha256": "8a746bd3016bbf7dc5c8ad9b5184be27b974d0386eaf5a23c8768a99d6186a13"
+        "path": "validation/11.23.2/ui-integration-impact-results.json",
+        "sha256": "e371fced562983b3ec0800d69aa8765abfbae0f4cd4e67c80fe3ebedd730e4f2"
       },
       {
         "mode": "map-first",
         "passed": true,
         "count": 73,
-        "path": "validation/11.23.1/ui-map-first-results.json",
-        "sha256": "431c37714a51b2d96631bd580082c5682a3bf64187ee8d182cd7fb856ff64e87"
+        "path": "validation/11.23.2/ui-map-first-results.json",
+        "sha256": "a17fd7b18a2a5aa65ba7fe081751d88199ae39804d932f78e65d15a7dfaac87c"
       },
       {
         "mode": "measurement-workflow",
         "passed": true,
         "count": 39,
-        "path": "validation/11.23.1/ui-measurement-workflow-results.json",
-        "sha256": "d66b68ce64eaf4728f73cdb59b4574bf11671383f66e7ce56bad6c345f48dc4a"
+        "path": "validation/11.23.2/ui-measurement-workflow-results.json",
+        "sha256": "f2e8f5e68114adc58cf7fd5d641c797ef563aaeed4a85497194fea7fffc9a261"
       },
       {
         "mode": "native",
         "passed": true,
         "count": 49,
-        "path": "validation/11.23.1/ui-results.json",
-        "sha256": "06cb3dee04c65e420e4ec757a0b58cda39a4d05f1c0eebd9b6e0edd1776a8c85"
+        "path": "validation/11.23.2/ui-results.json",
+        "sha256": "7e719327ffdfe96ed824a75bbcbf2a5c75a68610e3aa0294d11bb376f35e8f25"
       },
       {
         "mode": "offset-init",
         "passed": true,
         "count": 37,
-        "path": "validation/11.23.1/ui-offset-init-results.json",
-        "sha256": "b75f5d854f8c489e87de6c3c25b30bebe76d46ddab688a0b4a57d003efa64c16"
+        "path": "validation/11.23.2/ui-offset-init-results.json",
+        "sha256": "e19ba554a9634b1d5a5209f58e190c110f7af86176e2cb9dc95fde40cd6259b2"
+      },
+      {
+        "mode": "representative",
+        "passed": true,
+        "count": 49,
+        "path": "validation/11.23.2/ui-representative-results.json",
+        "sha256": "6d5822d625cf79d39bce6f42ebf260bb94aabfce5b9ae37966b45fdc83ccd371"
       },
       {
         "mode": "sync-levels",
         "passed": true,
         "count": 34,
-        "path": "validation/11.23.1/ui-sync-levels-results.json",
+        "path": "validation/11.23.2/ui-sync-levels-results.json",
         "sha256": "302f5b36b833b78b52a43f33799054e353f0f37dfaf9392e6766e3b3c817d79e"
       },
       {
         "mode": "visual-usability",
         "passed": true,
         "count": 105,
-        "path": "validation/11.23.1/ui-visual-usability-results.json",
-        "sha256": "a8d39a5251fef8ca2b076e3c4acfc3f263387b6402490c0333391069c8b2c26d"
+        "path": "validation/11.23.2/ui-visual-usability-results.json",
+        "sha256": "d6b87dde62915a95890aa19698cd9a4611d47d5cb7bcd29cc9953bb9567baaa7"
       }
     ]
   },
   "scope": {
     "passed": true,
-    "count": 33,
-    "report": "validation/11.23.1/scope-results.json"
+    "count": 34,
+    "report": "validation/11.23.2/scope-results.json"
   },
   "independentReview": {
     "passed": true,
-    "path": "validation/11.23.1/independent-review.json",
-    "sha256": "463f045de29e3a40f7376795754d594b8ab222aba26c702d7eb9fb0d0bd67e88"
+    "rounds": [
+      {
+        "round": 1,
+        "path": "validation/11.23.2/qa-round-1.json",
+        "sha256": "9cadeb2948aa60c5b032ea435c71fcb7050b24f88cac1a90b59376c779093371"
+      },
+      {
+        "round": 2,
+        "path": "validation/11.23.2/qa-round-2.json",
+        "sha256": "bf959930aa9826cc0a0a0ba7ab1c3d1eef76d54df929161d8773231ab9db5b80"
+      },
+      {
+        "round": 3,
+        "path": "validation/11.23.2/qa-round-3.json",
+        "sha256": "8cc7b18ce4ffd8e5ab3d34af4bc4f91433620e1ecffa886a63fcafed5fd7b726"
+      }
+    ],
+    "peerReport": "validation/11.23.2/peer-reference-review.json"
   },
-  "documentationLinks": 17,
+  "documentationLinks": 22,
   "productionSha256": {
     "Drilling.Common/Review/CManualInspectionCoordinateBridge.cs": "faf320044ebb800f2f5216cf0900c2e23b6d12d8a2cb86e089825bc8d97d9344",
     "Drilling.Common/Review/CManualInspectionResultProjection.cs": "03223a4c6310d266c0e462fdaf246a6c2da99d58c60419c5c04341f9a5893bcb",
     "Drilling.Common/Review/CReviewManager.cs": "d78c3950a0297d14e913287f11e94e211c3887c51330ab5dc4abeb6982a67d60",
-    "Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs": "93e97b03672b648de0c580afc3f616dfcd28b735c81a7420750863e63fbc521e",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs": "817f4e22b0d4751ff87a7bdca6ef1bae2a917846b346987f8d4454c3085d5768",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs": "bab8e44e537583ef70fa17b39eee4ccf8c5ca1c4d5000d63b7e97d61fc050de5",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs": "ac67757c52cc757d5f5bf6c1280c14f87f7a02f312a65477c84f7313b5860386",
     "Drilling.Common/Station/CStageReviewSequences.cs": "49e1a43341978bc8ae28013cebce4827cb99e933b04df32aab4ad74d5a9402a7",
     "Drilling.File/ReviewOffset/CReviewOffsetFile.cs": "170e69c69387fc04c3d9e275c515ee51252127c3499dda687a2c6a93e5bc819d",
     "Drilling.File/ReviewResult/CReviewResultFile.cs": "48d76ca790635663fc3f247f5e88483dbb9c318d6f1a1bd8ecec4761005ee3cc",
     "Drilling.UI/CRootView.cs": "cc23a576c580c60ff245609853fa75fe32d896b7bf01b08277700eaed68f68ac",
-    "Drilling.UI/Drilling.UI.csproj": "cca20932d5c8a4aa82cb3e5d8cdfcaf0d9b7ebc46db2e53f30b8319f4378c6c3",
-    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "c04ec29d61b45b96e61580a43c0d94e0c828cead0bd8f5f522011a51708496ea",
+    "Drilling.UI/Drilling.UI.csproj": "ebd8b1ee594070206e544fec411ab8c2a623412dd5fc52aeb0d56caeff902085",
+    "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs": "e6885216719d043cc2dd3d1e296f4b09b64124cb4a33359b699f7e035199d121",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "6952ed65bc4cb8a7df763c9cf73643740d57d6b8831bbc8eec4986309018ec56",
     "Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs": "8e7a239bcbaf630383e9330fcb53ddb0cdf538111d8a1f754867524c1808164c",
     "Drilling.UI/Menu/Menus/CManualInspectionUpdateMonitor.cs": "a5d8854aea32ae9eb9cf4cfa05c99cf6ab0548dddcebd7fa32a94335ab94a1e0",
     "Drilling.UI/Menu/Menus/CMenuCorrection.ManualInspection.cs": "12af934e028a18f1b714d7be9a3e777434f6b21e66b16184e294b5acccbe17df",
@@ -147,13 +173,17 @@
     "Drilling.UI/Menu/Menus/CReviewOffsetDisplaySnapshot.cs": "789b5e3d4b8e2d8bf6db455cb4bc7a459ddf920ba59a21431de129c07ab5e4e3",
     "Drilling.UI/Views/CCorrectionView.xaml": "850404c76dda72d2d741b74f07a8161966f6cd55d173697bebaf619ee79e296c",
     "Drilling.UI/Views/CCorrectionView.xaml.cs": "aad7dd20f74ecfb6876c917e11ae1ef2e6494aad5d5c9ada9fb4ac9596c4e980",
-    "Drilling.UI/Views/CManualInspectionMapControl.cs": "0f9b4d6c831bc887d243f6dba5a940a8078d3c205ddcdbb9f0cc74b2d8f7cebd",
+    "Drilling.UI/Views/CManualInspectionMapControl.cs": "1ba5879799346cb66a4100bc2800a9f4f3e3e05b23ae4ee10b6f225e5f72dc6e",
     "Drilling.UI/Views/CManualInspectionScatterControl.cs": "df7e0a29296a9197cede3accb3da2eb2c2ececec28081f7786abe76ccfbfa451",
-    "Drilling.UI/Views/CManualInspectionUiContract.cs": "fd9bfc313769a7ce0fa284a27e0a7da8eca3f4d084f62d50cb829a1485e760e6",
-    "Drilling.UI/Views/CManualInspectionView.xaml": "84fb0cd6e0aca65751d5e6f4ceb716882c72b178c731cede9ba43ccc1fb01df0",
-    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "0a86851302b9bf477b364eaee9cde200f2c2f3404392514fbead7a978baa71d4"
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "0e66cbf6f241125473771218ee812b135a79365ac4577d65a880b851ba7cd475",
+    "Drilling.UI/Views/CManualInspectionView.xaml": "33727e38d5ecd4d52fc737355ae68230c2b563ee44441f12712cb5e3218b65c4",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "d7e8386ca69bca1c3982b7a8bb53b5da0b7abcd71c2227b0f5a016ef1171f9b6"
   },
   "userWorkflow": [
+    "Ctrl arrows = end, Shift arrows = rectangle range, Ctrl Shift = range to end",
+    "Every existing point can be marked representative; copying requires a finite value with provenance",
+    "Existing neutral zero is never invented as a measurement",
+    "Cell labels remain readable without hover and preserve physical layout",
     "MoveMeasure displays results only",
     "ApplySelectedOffsets = selected direct calculation + validation + one save",
     "BulkApply = whole-model eligible measurements",
@@ -171,7 +201,7 @@
   ],
   "verificationScope": "Synthetic tests using linked source or actual assemblies. Equipment App/Root/Manager, vendor SDK, PLC, Vision, motion, AeroScript and laser not executed. Root display wiring source-reviewed; Menu display methods tested separately.",
   "previousEvidence": {
-    "path": "history/validation-367a727.json",
+    "path": "history/validation-89e92a0.json",
     "writerCount": 35,
     "projectionCount": 53,
     "rerun": false,

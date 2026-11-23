@@ -85,7 +85,7 @@ internal static partial class Program
             var reference=Point(1,1,0);var target=Point(2,judge:"UNMEASURED") with{OriginalMeasurement=null};var w=Workspace([reference,target]);
             var copy=w.PreviewReferenceCopy(reference.Key,[target.Key]);w.ConfirmReferenceCopy(copy,[target.Key],"explicit proxy with no target raw");var saved=w.CaptureSession();
             var restored=new CManualInspectionWorkspace();restored.RestoreSession(saved,w.Context!,w.Points,w.ActiveOffsets,InsideField);
-            True(restored.Context!.LineageValid&&restored.GetPoint(target.Key).ProxySource is not null&&restored.GetPoint(target.Key).OriginalMeasurement is {Judge:"UNMEASURED",ErrorXUm:null,ErrorYUm:null});
+            True(restored.Context!.LineageValid&&restored.GetPoint(target.Key).ProxySource is not null&&restored.GetPoint(target.Key).OriginalMeasurement is null);
             restored.BuildBulkCandidate();True(restored.ValidateCandidate(true).Ok);
         });
         Check("bulk_proxy_over_edited_import_without_original_raw_does_not_fabricate_raw_or_lose_lineage_on_restore",()=>

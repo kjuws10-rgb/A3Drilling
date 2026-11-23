@@ -87,6 +87,7 @@ internal static partial class Program
         await RunBulkReentryChecks();
         await RunAutomaticOffsetDraftRecoveryChecks();
         await RunSelectedCorrectionChecks();
+        await RunRepresentativeChecks();
         await Check("generic_sta_application_and_no_loaded_vendor_assemblies",async()=>{True(Application.Current.GetType()==typeof(Application));True(!VendorAssemblies().Any());await Task.CompletedTask;});
         var path=args.Length==2&&args[0]=="--report"?args[1]:Path.Combine(AppContext.BaseDirectory,"controller-results.json");Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         var assembly=typeof(CManualInspectionController).Assembly;
@@ -352,7 +353,7 @@ internal static partial class Program
             var points=Enumerable.Range(1,3).Select(i=>{var judge=i==1&&ng?"NG":"OK";var m=new ST_MANUAL_MEASUREMENT(judge,i==1?3:1,-1,"RAW-"+i,context.RecipeId,context.RunId,context.CoordinateSignature){RawData="Synthetic raw "+i};return new ST_MANUAL_POINT("P"+i,1,1,i,11,.1*i,.2*i){Row=i==3?1:0,Column=i-1,Judge=judge,Source="MEASURED",ErrorXUm=m.ErrorXUm,ErrorYUm=m.ErrorYUm,OriginalMeasurement=m,MeasurementVersion=1};}).ToArray();
             Source=new(context,points,points.ToDictionary(p=>p.Key,_=>ST_MANUAL_OFFSET.Zero),new(30,200,5),(_,_,_)=>new(true,"synthetic field"),5,5,"","Synthetic current source"){ReadOnly=readOnly};
         }
-        public async Task<CManualInspectionSource> LoadAsync(string? p,CancellationToken t,IReadOnlyList<string>?displayKeys=null){Loads++;LoadedPaths.Add(p);var captured=p is not null&&FileSources.TryGetValue(p,out var file)?file:Source;if(LoadHook is not null)await LoadHook(captured,t);t.ThrowIfCancellationRequested();return captured;}
+        public async Task<CManualInspectionSource> LoadAsync(string? p,CancellationToken t,IReadOnlyList<string>?displayKeys=null){Loads++;LoadedPaths.Add(p);var captured=p is not null&&FileSources.TryGetValue(p,out var file)?file:Source;if(LoadHook is not null)await LoadHook(captured,t);t.ThrowIfCancellationRequested();return captured with { Points=captured.Points.Select(point=>point with { HasAppliedOffsetEvidence=captured.AppliedOffsetKeys.Contains(point.Key)&&captured.StoredInitializedOffsetKeys?.Contains(point.OffsetKey)!=true&&!point.IsMeasurementOffsetInitialized }).ToArray() };}
         public void GuardOperation(){Guards++;if(RejectGuard)throw new InvalidOperationException("Synthetic equipment safety interlock");}
         public Task EnsureCurrentAsync(CManualInspectionSource source,CancellationToken t){Ensures++;t.ThrowIfCancellationRequested();if(Stale)throw new InvalidOperationException("Changed native context");return Task.CompletedTask;}
         public async Task<CManualInspectionMeasurement> ExecutePointAsync(CManualInspectionSource s,string key,EN_MANUAL_OPERATION_KIND kind,Action<string>progress,CancellationToken token)
@@ -372,9 +373,10 @@ internal static partial class Program
             if(json.RootElement.TryGetProperty("InitializedOffsetKeys",out var state))
             {
                 var initialized=state.EnumerateArray().Select(x=>x.GetString()!).ToHashSet(StringComparer.Ordinal);
-                Source=Source with{StoredInitializedOffsetKeys=initialized,Points=Source.Points.Select(p=>initialized.Contains(p.OffsetKey)
-                    ?p with{IsMeasurementOffsetInitialized=true,Judge="UNMEASURED",Source="KEPT",ErrorXUm=null,ErrorYUm=null,ProxySource=null,AdoptedFileMeasurement=null}
-                    :p with{IsMeasurementOffsetInitialized=false}).ToArray()};
+                var applied=Source.AppliedOffsetKeys.Concat(Source.Points.Where(p=>!initialized.Contains(p.OffsetKey)).Select(p=>p.Key)).ToHashSet(StringComparer.Ordinal);
+                Source=Source with{StoredInitializedOffsetKeys=initialized,AppliedOffsetKeys=applied,Points=Source.Points.Select(p=>initialized.Contains(p.OffsetKey)
+                    ?p with{IsMeasurementOffsetInitialized=true,HasAppliedOffsetEvidence=false,Judge="UNMEASURED",Source="KEPT",ErrorXUm=null,ErrorYUm=null,ProxySource=null,AdoptedFileMeasurement=null}
+                    :p with{IsMeasurementOffsetInitialized=false,HasAppliedOffsetEvidence=applied.Contains(p.Key)}).ToArray()};
             }
             return id;
         }

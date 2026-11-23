@@ -24,6 +24,7 @@ public partial class CManualInspectionView : UserControl
     {
         public string RecipeId { get; init; } = "";
         public string RunId { get; init; } = "";
+        public string CoordinateSignature { get; init; } = "";
         public string[] Keys { get; init; } = [];
         public string? FocusKey { get; init; }
         public string? ReferenceKey { get; init; }
@@ -244,7 +245,7 @@ public partial class CManualInspectionView : UserControl
                 if (cellsChanged) _scatterProjectedPoints = null;
             }
             _selected.RemoveWhere(k => !_points.ContainsKey(k));
-            var workspaceIdentity = _snapshot.RecipeId + "|" + _snapshot.RunId;
+            var workspaceIdentity = _snapshot.RecipeId + "|" + _snapshot.RunId + "|" + _snapshot.CoordinateSignature;
             if (_runId != workspaceIdentity)
             {
                 _runId = workspaceIdentity; _selected.Clear(); _focusKey = null; _representativeKey = null;
@@ -255,9 +256,8 @@ public partial class CManualInspectionView : UserControl
                 PositionMap.IsPanTool = false; PositionMap.Cursor = Cursors.Cross;
                 _scatterCells.Clear(); if (_cell != 0) _scatterCells.Add(_cell);
             }
-            // External Review imports can replace a point without changing its key. A previously
-            // selected direct reference must not remain usable after it becomes imported/proxy/B-only.
-            if (_representativeKey is not null && (!_points.TryGetValue(_representativeKey, out var reference) || !reference.CanBeReference))
+            // Marking a point is independent of whether its current value can be copied.
+            if (_representativeKey is not null && !_points.ContainsKey(_representativeKey))
                 _representativeKey = null;
             var cells = _cellChoices;
             var heads = _headChoices;
@@ -367,15 +367,21 @@ public partial class CManualInspectionView : UserControl
     private void RefreshReference()
     {
         var reference = _representativeKey is not null && _points.TryGetValue(_representativeKey, out var p) ? p : null;
-        if (reference is null) ReferenceText.Text = "실측 또는 검증된 파일 결과의 OK/NG 점을 선택한 뒤 ‘대표값으로 지정’하세요.";
+        if (reference is null) ReferenceText.Text = "원하는 점을 선택한 뒤 ‘대표값으로 지정’하세요.";
         else
         {
             var (x, y) = ReferenceValues(reference);
-            ReferenceText.Text = $"★ {reference.Key} · {reference.WorkingJudge} · {(reference.CanUseImportedForCorrection ? "검증된 파일 결과" : "직접 측정")}\n대표 최종 F {CManualInspectionUiPoint.Pair(x, y)} µm · 대표 편차 {reference.WorkingErrorText} µm";
+            var source = reference.IsProxy ? "복사값" : reference.ReferenceValueKind == "APPLIED_OFFSET" ? "기존 보정"
+                : reference.IsMeasurementOffsetInitialized || !reference.CanCopyAsReference ? "미측정·근거 확인 필요" : "측정값";
+            ReferenceText.Text = $"★ {reference.Key} · {(string.IsNullOrEmpty(reference.ReferenceValueJudge)?reference.WorkingJudge:reference.ReferenceValueJudge)} · {source}\n" + (reference.CanCopyAsReference
+                ? $"대표 Offset {CManualInspectionUiPoint.Pair(x, y)} µm"
+                : "대표점 지정됨 · 현재 복사할 값 없음");
         }
         ReferenceText.SetResourceReference(TextBlock.ForegroundProperty, reference?.WorkingJudge == "NG" ? "ButtonDangerBrush" : "AccentTextBrush");
         var count = _selected.Count(k => k != _representativeKey && _points.TryGetValue(k, out var q) && !q.IsMasked);
         CopyReferenceButton.Content = $"같은 오프셋 · 상태 적용 · {count}점";
+        CopyReferenceButton.ToolTip = reference?.CanCopyAsReference == true ? "대표 Offset과 현재 판정을 복사합니다. 모델 저장 검증은 별도입니다."
+            : reference?.ReferenceValueUnavailableReason ?? "대표점의 복사할 값이 필요합니다.";
     }
     private (double? X, double? Y) ReferenceValues(CManualInspectionUiPoint point)
     {
@@ -383,9 +389,10 @@ public partial class CManualInspectionView : UserControl
         // the engine. The preview must use that same F rather than re-add displayed raw.
         if (point.ReferenceFinalXUm.HasValue || point.ReferenceFinalYUm.HasValue)
             return (point.ReferenceFinalXUm, point.ReferenceFinalYUm);
-        return !string.Equals(_snapshot.CandidateStatus, "APPLIED", StringComparison.OrdinalIgnoreCase)
-            && point.CandidateXUm.HasValue && point.CandidateYUm.HasValue
-                ? (point.CandidateXUm, point.CandidateYUm) : (point.BaseXUm + point.WorkingXUm, point.BaseYUm + point.WorkingYUm);
+        if (!point.CanCopyAsReference) return (null, null);
+        if (point.IsProxy || !(point.Source == "MEASURED" || point.CanUseImportedForCorrection))
+            return (point.BaseXUm, point.BaseYUm);
+        return (point.BaseXUm + point.WorkingXUm, point.BaseYUm + point.WorkingYUm);
     }
     private void RefreshCorrection()
     {
@@ -512,10 +519,10 @@ public partial class CManualInspectionView : UserControl
         RedoOffsetsButton.IsEnabled=operate && _snapshot.CanRedoOffsets;
         RedoOffsetsButton.Content=$"다시 적용 ({_snapshot.RedoOffsetCount})";
         OffsetHistoryText.Text=_snapshot.OffsetHistoryText;
-        SetReferenceButton.IsEnabled = operate && FocusPoint?.CanBeReference == true;
+        SetReferenceButton.IsEnabled = idle && FocusPoint?.CanBeReference == true;
         ClearReferenceButton.IsEnabled = idle && _representativeKey is not null;
         CopyReferenceButton.IsEnabled = operate && !_snapshot.HasIncomplete && _representativeKey is not null
-            && _points.TryGetValue(_representativeKey, out var reference) && reference.CanBeReference
+            && _points.TryGetValue(_representativeKey, out var reference) && reference.CanCopyAsReference
             && _selected.Any(k => k != _representativeKey && _points.TryGetValue(k, out var p) && !p.IsMasked);
         UndoCopyButton.IsEnabled = operate && !_snapshot.HasIncomplete && _snapshot.CanUndoCopy;
         UndoCopyButton.Visibility = _snapshot.CanUndoCopy ? Visibility.Visible : Visibility.Collapsed;
@@ -697,14 +704,14 @@ public partial class CManualInspectionView : UserControl
     {
         if (Ancestor<CheckBox>(e.OriginalSource as DependencyObject) is not null) return;
         var row = Ancestor<DataGridRow>(e.OriginalSource as DependencyObject)?.Item as GridRow; if (row is null) return;
-        if (row.Point.IsMasked) { ShowMessage("Masking 위치는 측정 대상으로 선택하지 않습니다."); e.Handled = true; return; }
+        if (row.Point.IsMasked) { ChangeSelection(new([], row.Point.Key, true)); e.Handled = true; return; }
         var ctrl = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
         ChangeSelection(new([row.Point.Key], row.Point.Key, ctrl, ctrl)); e.Handled = true;
     }
     private void ResultGrid_RightButtonDown(object sender, MouseButtonEventArgs e)
     {
         var row = Ancestor<DataGridRow>(e.OriginalSource as DependencyObject)?.Item as GridRow; if (row is null) return;
-        if (row.Point.IsMasked) { ShowMessage("Masking 위치는 이동·측정·보정 대상에서 제외됩니다."); e.Handled = true; return; }
+        if (row.Point.IsMasked) { ChangeSelection(new([], row.Point.Key, true)); e.Handled = true; return; }
         ChangeSelection(new(_selected.Contains(row.Point.Key) ? [] : [row.Point.Key], row.Point.Key, _selected.Contains(row.Point.Key)));
         PositionMap.ShowOperationMenu(); e.Handled = true;
     }
@@ -783,7 +790,7 @@ public partial class CManualInspectionView : UserControl
     }
     private void SetReference_Click(object sender, RoutedEventArgs e)
     {
-        if (Busy || FocusPoint?.CanBeReference != true) { ShowMessage("유효한 실측 점을 선택하세요."); return; }
+        if (Busy || FocusPoint?.CanBeReference != true) { ShowMessage("대표점으로 지정할 위치를 선택하세요."); return; }
         _representativeKey=FocusPoint.Key; Refresh();
     }
 
@@ -803,7 +810,7 @@ public partial class CManualInspectionView : UserControl
     };
     private WorkspaceViewBookmark CaptureWorkspaceView() => new()
     {
-        RecipeId = _snapshot.RecipeId, RunId = _snapshot.RunId, Keys = _selected.ToArray(), FocusKey = _focusKey, ReferenceKey = _representativeKey,
+        RecipeId = _snapshot.RecipeId, RunId = _snapshot.RunId, CoordinateSignature = _snapshot.CoordinateSignature, Keys = _selected.ToArray(), FocusKey = _focusKey, ReferenceKey = _representativeKey,
         Cell = _cell, Head = _head, Judge = _judge, Source = _source, Query = _query, Sort = _sort, Color = _color, Page = _page,
         MapZoom = PositionMap.Zoom, MapPan = PositionMap.Pan,
         ScatterScope = _scatterScope, ScatterHead = _scatterHead, ScatterOriginal = _scatterOriginal, ScatterOffsets = _scatterOffsets,
@@ -821,7 +828,7 @@ public partial class CManualInspectionView : UserControl
         // A file view is a temporary navigation context. Restore presentation only after the
         // controller has successfully restored the original workspace and verified its lineage.
         Refresh();
-        var sameFrame = bookmark.RecipeId == _snapshot.RecipeId && bookmark.RunId == _snapshot.RunId;
+        var sameFrame = bookmark.RecipeId == _snapshot.RecipeId && bookmark.RunId == _snapshot.RunId && bookmark.CoordinateSignature == _snapshot.CoordinateSignature;
         _cell = bookmark.Cell == 0 || _cellChoices.Contains(bookmark.Cell) ? bookmark.Cell : _cellChoices.FirstOrDefault();
         _head = bookmark.Head == 0 || _headChoices.Contains(bookmark.Head) ? bookmark.Head : 0;
         _judge = bookmark.Judge; _source = bookmark.Source; _query = bookmark.Query; _sort = bookmark.Sort; _color = bookmark.Color is "level" or "judge" ? bookmark.Color : "level"; _page = bookmark.Page;
@@ -1034,7 +1041,7 @@ public partial class CManualInspectionView : UserControl
 
     private async void CopyReference_Click(object sender,RoutedEventArgs e)
     {
-        if (Busy || _snapshot.HasIncomplete || _representativeKey is null || !_points.TryGetValue(_representativeKey,out var reference) || !reference.CanBeReference) return;
+        if (Busy || _snapshot.HasIncomplete || _representativeKey is null || !_points.TryGetValue(_representativeKey,out var reference) || !reference.CanCopyAsReference) return;
         var keys=_selected.Where(k=>k!=reference.Key && _points.TryGetValue(k,out var p) && !p.IsMasked).ToArray();
         if (keys.Length==0) { ShowMessage("대표점 이외의 대상을 선택하세요.");return; }
         var reason=string.IsNullOrWhiteSpace(CopyReasonInput.Text)?"대표값 동일 반영":CopyReasonInput.Text.Trim();

@@ -533,6 +533,7 @@ public sealed class CManualInspectionController : IManualInspectionController
                     && value.XMm==p.XMm && value.YMm==p.YMm && value.Masked==p.Masked
                     ? value with { Source="IMPORTED",ProxySource=null,AdoptedFileMeasurement=null,
                         IsMeasurementOffsetInitialized=p.IsMeasurementOffsetInitialized,
+                        HasAppliedOffsetEvidence=p.HasAppliedOffsetEvidence,
                         Judge=p.IsMeasurementOffsetInitialized?"UNMEASURED":value.Judge,
                         ErrorXUm=p.IsMeasurementOffsetInitialized?null:value.ErrorXUm,
                         ErrorYUm=p.IsMeasurementOffsetInitialized?null:value.ErrorYUm } : p).ToArray();
@@ -1088,9 +1089,14 @@ public sealed class CManualInspectionController : IManualInspectionController
             if (offsetEdit && f is { } workingOffset) b=workingOffset;
             var correctionBased = !initialized && !p.Masked && _source?.AppliedOffsetKeys.Contains(p.Key)==true
                 && !(p.Judge is "OK" or "NG" && p.HasFiniteError);
-            ST_MANUAL_OFFSET? reference = null;
-            if (!p.Masked && p.IsDirectMeasurement && p.HasFiniteError && p.Judge is "OK" or "NG")
-                try { reference = _engine.ResolveReferenceFinal(p.Key); } catch (InvalidOperationException) { }
+            ST_MANUAL_REFERENCE_VALUE? reference = null;
+            var referenceReason = "";
+            if (p.IsMeasurementOffsetInitialized) referenceReason = "초기화·미측정 상태에는 복사할 값이 없습니다.";
+            else if (!(p.IsDirectMeasurement && p.HasFiniteError) && p.ProxySource is null && !p.HasAppliedOffsetEvidence)
+                referenceReason = "현재 모델에서 새로 측정하거나 저장된 보정값이 필요합니다.";
+            else
+                try { reference = _engine.ResolveReferenceValue(p.Key); }
+                catch (InvalidOperationException error) { referenceReason = error.Message; }
             var projected=new CManualInspectionUiPoint
             {
                 Key=p.Key,CellNo=p.CellNo,HeadNo=p.HeadNo,ShotNo=p.ShotNo,BeamNo=p.BeamNo,Row=p.Row,Column=p.Column,IsMasked=p.Masked,
@@ -1105,7 +1111,8 @@ public sealed class CManualInspectionController : IManualInspectionController
                 DisplayedMeasurementOrigin=correctionBased ? "보정기반 측정 · 기존 적용 Review Offset" : p.ProxySource is not null ? "대표값 복사 · " + p.ProxySource.ReferenceKey
                     : p.Source=="MEASURED" ? "직접 측정 · Manual Inspection" : _displayedImports.GetValueOrDefault(p.Key)?.Origin ?? "",
                 MeasurementSourcePath=correctionBased ? _source?.Context.RevisionId ?? "" : p.Source=="IMPORTED" ? _displayedImports.GetValueOrDefault(p.Key)?.Path ?? "" : "",
-                ReferenceFinalXUm=reference?.XUm,ReferenceFinalYUm=reference?.YUm,
+                ReferenceFinalXUm=reference?.Final.XUm,ReferenceFinalYUm=reference?.Final.YUm,
+                ReferenceValueKind=reference?.Kind ?? "",ReferenceValueJudge=reference?.Judge ?? "",ReferenceValueUnavailableReason=referenceReason,
                 ReferenceKey=p.ProxySource?.ReferenceKey ?? "",MeasurementToken=p.CorrectionMeasurement?.RawToken ?? "",
                 Details=$"DESIGN µm · {p.Judge}\n원측정: {p.OriginalMeasurement?.RawData}\n파일 입력: {p.AdoptedFileMeasurement?.RawData}\n{p.ProxySource?.Reason}"
             };
@@ -1116,6 +1123,7 @@ public sealed class CManualInspectionController : IManualInspectionController
                 HasAppliedOffset=!p.Masked,AppliedLevel=p.Masked||initialized?null:CManualInspectionLevels.Evaluate(b.XUm,b.YUm,_levelMetric,_levelBounds),
                 AppliedMetricUm=p.Masked||initialized?null:CManualInspectionLevels.Metric(b.XUm,b.YUm,_levelMetric),
                 ReferenceFinalXUm=null,ReferenceFinalYUm=null,
+                ReferenceValueUnavailableReason="작업 Offset을 저장하거나 편집을 취소한 뒤 복사하세요.",
                 DisplayedMeasurementOrigin="작업 통합 Offset · 미저장 · 실제 활성값은 유지",MeasurementSourcePath="저장 전 작업값"
             } : projected;
         }).ToArray();
@@ -1129,7 +1137,7 @@ public sealed class CManualInspectionController : IManualInspectionController
             OffsetSummaryText=offsetEdit?"작업 통합 Offset · 미저장 · 모델 Offset 저장 시 반영 · HW/Default/First/Distortion 유지"
                 :"모델별 최신 누적 Review Offset 하나 · Simple/Rough/Fine/One/All/Line 통합 · 보호 Offset 별도 유지",
             CellLayouts=_source?.CellLayouts ?? [],GlassWidthMm=_source?.GlassWidthMm ?? 0,GlassHeightMm=_source?.GlassHeightMm ?? 0,
-            Version=++_version,RecipeId=c?.RecipeId ?? "—",RunId=c?.RunId ?? "—",ActiveRevisionId=c?.RevisionId ?? "—",
+            Version=++_version,RecipeId=c?.RecipeId ?? "—",RunId=c?.RunId ?? "—",CoordinateSignature=c?.CoordinateSignature ?? "",ActiveRevisionId=c?.RevisionId ?? "—",
             SourcePath=_source?.SourcePath ?? "",IsSimulation=_backend.IsSimulation,IsBusy=IsBusy,
             SyncPending=_syncPending,SynchronizationText=_synchronizationText,ImportedResultCount=_source?.ImportedResults.Count ?? 0,
             RecentResults=_source?.RecentResults.Select(r=>new CManualInspectionUiResultFile(r.FilePath,

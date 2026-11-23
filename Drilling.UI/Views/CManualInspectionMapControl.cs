@@ -41,6 +41,9 @@ public sealed class CManualInspectionMapControl : Control
     private readonly List<(CManualInspectionUiPoint Point, Rect Bounds)> _hits = [];
     private readonly List<(Rect Bounds, Rect Grid, string Title, string Extents)> _frames = [];
     private readonly List<(int CellNo, Rect Header, Rect AllCells)> _cellHeaders = [];
+    private sealed record CellLabel(int CellNo, Rect Bounds, Point Anchor, string Text, bool Enabled);
+    private readonly List<CellLabel> _cellLabels = [];
+    private string _cellLabelLayoutKey = "";
     private readonly Dictionary<string, Point[]> _overviewPolygons = new(StringComparer.Ordinal);
     private readonly List<Point[]> _overviewFrames = [];
     private readonly List<Point[]?> _hitPolygons = [];
@@ -55,6 +58,8 @@ public sealed class CManualInspectionMapControl : Control
     private CManualInspectionUiSnapshot _snapshot = new();
     private string? _representative;
     private string? _focusKey;
+    private string? _keyboardAnchorKey;
+    private bool _publishingKeyboardSelection;
     private string _colorMode = "level";
     private string _layoutSignature = "";
     private bool _layoutDirty = true;
@@ -100,7 +105,7 @@ public sealed class CManualInspectionMapControl : Control
         ToolTipService.SetInitialShowDelay(this, 180);
         ToolTipService.SetShowDuration(this, 15000);
         AutomationProperties.SetName(this, "리뷰 측정 위치 논리 행렬");
-        AutomationProperties.SetHelpText(this, "전체 Cell 보기에서는 셀 내부를 클릭하면 해당 Cell을 엽니다. 드래그로 측정점을 선택하고 Ctrl 드래그로 추가합니다. 단일 Cell에서는 Ctrl 클릭으로 복수 선택합니다. 방향키로 측정점 선택, Space로 동작 메뉴, Esc로 메뉴 닫기, Ctrl 휠 확대, Alt 방향키 화면 이동, 더블클릭 맞춤을 제공합니다.");
+        AutomationProperties.SetHelpText(this, "전체 Cell 보기에서는 셀 내부를 클릭하면 해당 Cell을 엽니다. 드래그로 측정점을 선택하고 Ctrl 드래그로 추가합니다. 단일 Cell에서는 Ctrl 클릭으로 복수 선택합니다. 방향키는 한 점, Ctrl 방향키는 행·열 끝, Shift 방향키는 사각 범위, Ctrl Shift 방향키는 끝까지 범위를 선택합니다. Space는 동작 메뉴, Esc는 메뉴 닫기, Ctrl 휠은 확대, Alt 방향키는 화면 이동, 더블클릭은 맞춤입니다.");
         SizeChanged += (_, _) => { _layoutDirty = true; InvalidateVisual(); };
         Unloaded += (_, _) => { CancelGesture(true); _tip.IsOpen = false; if (ContextMenu is not null) ContextMenu.IsOpen = false; };
     }
@@ -119,10 +124,14 @@ public sealed class CManualInspectionMapControl : Control
             pair.First.Key == pair.Second.Key && pair.First.CellNo == pair.Second.CellNo && pair.First.HeadNo == pair.Second.HeadNo
             && pair.First.Row == pair.Second.Row && pair.First.Column == pair.Second.Column && pair.First.BeamNo == pair.Second.BeamNo);
         var nextVisibleKeys = visiblePoints.Select(p => p.Key).ToHashSet(StringComparer.Ordinal);
+        var nextSelected = new HashSet<string>(selectedKeys, StringComparer.Ordinal);
         var layoutFingerprint = string.Join(";", snapshot.CellLayouts.Select(cell => cell.CellNo + ":" + cell.Enabled + ":"
             + string.Join("/", cell.BoundaryMm.Select(vertex => FormattableString.Invariant($"{vertex.Xmm:R},{vertex.Ymm:R}")))))
             + FormattableString.Invariant($"|{snapshot.CellLayoutYDown}|{snapshot.GlassWidthMm:R}|{snapshot.GlassHeightMm:R}|{showCellOverview}");
         var scopeIdentity = snapshot.RunId + "|" + scopeSignature + "|" + allScopedPoints.Count + "|" + layoutFingerprint;
+        if (!sameGeometry || !_visibleKeys.SetEquals(nextVisibleKeys) || _layoutSignature != scopeIdentity
+            || !_publishingKeyboardSelection && (!_selected.SetEquals(nextSelected) || _focusKey != focusKey))
+            _keyboardAnchorKey = null;
         if (_cellLayoutFingerprint != layoutFingerprint)
         { _cellLayoutFingerprint = layoutFingerprint; sameGeometry = false; InvalidateClickSelection(); }
         if (!samePoints || !_visibleKeys.SetEquals(nextVisibleKeys) || _snapshot.Version != snapshot.Version
@@ -138,7 +147,7 @@ public sealed class CManualInspectionMapControl : Control
         _visible = visiblePoints;
         if (!samePoints) _pointByKey = allScopedPoints.ToDictionary(p => p.Key, StringComparer.Ordinal);
         _visibleKeys = nextVisibleKeys;
-        _selected = new HashSet<string>(selectedKeys, StringComparer.Ordinal);
+        _selected = nextSelected;
         _focusKey = focusKey;
         _representative = representativeKey;
         _colorMode = colorMode;
@@ -204,6 +213,7 @@ public sealed class CManualInspectionMapControl : Control
         if (!_layoutDirty) return;
         _layoutDirty = false;
         _slots.Clear(); _frames.Clear(); _cellHeaders.Clear(); _overviewPolygons.Clear(); _overviewFrames.Clear(); _glassBounds = Rect.Empty;
+        _cellLabels.Clear(); _cellLabelLayoutKey = "";
         _hasRecipeLayout = false;
         var width = Math.Max(80, ActualWidth);
         var height = Math.Max(80, ActualHeight);
@@ -463,14 +473,22 @@ public sealed class CManualInspectionMapControl : Control
             if (filledPolygon is not null) context.Pop();
             AddHit(p, r, viewport, polygon);
         }
-        if (_hasRecipeLayout)
+        if (_showCellOverview)
         {
-            for (var i = 0; i < _cellHeaders.Count; i++)
+            BuildCellLabels(viewport);
+            foreach (var label in _cellLabels)
             {
-                var header = _cellHeaders[i];
-                var r = Screen(header.Header); if (!r.IntersectsWith(viewport) || r.Width < 15 || r.Height < 6) continue;
-                context.DrawRectangle(CManualInspectionDrawing.Resource(this, "PanelBackgroundBrush", Background ?? Brushes.Transparent), new Pen(accent, .7), r);
-                CManualInspectionDrawing.Text(context, this, _frames[i].Title + " ▸", new Point(r.Left + 3, r.Top + 1), Math.Min(11, Math.Max(7, r.Height - 3)), Foreground, true, Math.Max(1, r.Width - 5), singleLine: true);
+                if (!label.Bounds.Contains(label.Anchor))
+                    context.DrawLine(new Pen(line, .7), label.Anchor,
+                        new(Math.Clamp(label.Anchor.X, label.Bounds.Left, label.Bounds.Right), Math.Clamp(label.Anchor.Y, label.Bounds.Top, label.Bounds.Bottom)));
+            }
+            foreach (var label in _cellLabels)
+            {
+                context.DrawRoundedRectangle(CManualInspectionDrawing.Resource(this, "PanelBackgroundBrush", Background ?? Brushes.Transparent),
+                    new Pen(label.Enabled ? accent : line, .8), label.Bounds, 3, 3);
+                CManualInspectionDrawing.Text(context, this, label.Text, new(label.Bounds.Left + 5, label.Bounds.Top + 2), 11,
+                    label.Enabled ? Foreground : CManualInspectionDrawing.Resource(this, "TextSecondaryBrush", Foreground ?? Brushes.Gray),
+                    true, label.Bounds.Width - 10, singleLine: true);
             }
         }
         if (!_allCellsButton.IsEmpty)
@@ -490,6 +508,46 @@ public sealed class CManualInspectionMapControl : Control
         if (IsKeyboardFocusWithin)
             context.DrawRectangle(null, new Pen(CManualInspectionDrawing.Resource(this, "AccentBrush", Brushes.SteelBlue), 2),
                 new Rect(1, 1, Math.Max(1, ActualWidth - 2), Math.Max(1, ActualHeight - 2)));
+    }
+
+    private void BuildCellLabels(Rect viewport)
+    {
+        var key = FormattableString.Invariant($"{_layoutSignature}|{_zoom:R}|{_pan.X:R}|{_pan.Y:R}|{ActualWidth:R}|{ActualHeight:R}");
+        if (_cellLabelLayoutKey == key) return;
+        _cellLabelLayoutKey = key;
+        _cellLabels.Clear();
+        if (ActualWidth < 45 || ActualHeight < 48) return;
+        var occupied = new List<Rect>();
+        foreach (var group in _cellHeaders.Select((header, index) => (Header: header, Frame: _frames[index])).GroupBy(item => item.Header.CellNo))
+        {
+            var displayed = group.Select(item => Screen(item.Frame.Bounds)).Where(rect => rect.IntersectsWith(viewport)).ToArray();
+            if (displayed.Length == 0) continue;
+            var frame = displayed.Aggregate(Rect.Union);
+            var enabled = _snapshot.CellLayouts.FirstOrDefault(cell => cell.CellNo == group.Key)?.Enabled != false;
+            var text = $"Cell {group.Key}" + (enabled ? "" : " · 미사용");
+            var width = Math.Min(Math.Max(65, text.Length * 7 + 12), Math.Max(1, ActualWidth - 8));
+            const double height = 21;
+            var desired = new Rect(Math.Clamp(frame.Left, 4, Math.Max(4, ActualWidth - width - 4)),
+                Math.Clamp(frame.Top, 24, Math.Max(24, ActualHeight - height - 4)), width, height);
+            bool Free(Rect rect) => occupied.All(other => !rect.IntersectsWith(other));
+            var bounds = desired;
+            if (!Free(bounds))
+            {
+                var bestDistance = double.PositiveInfinity;
+                // Find a nearby free screen-space label lane; only labels move. Cell polygons,
+                // point slots, Recipe coordinates and hit testing retain their physical layout.
+                for (var y = 24d; y + height <= ActualHeight - 4; y += height + 3)
+                    for (var x = 4d; x + width <= ActualWidth - 4; x += width + 4)
+                    {
+                        var candidate = new Rect(x, y, width, height);
+                        if (!Free(candidate)) continue;
+                        var distance = (candidate.TopLeft - desired.TopLeft).LengthSquared;
+                        if (distance < bestDistance) { bestDistance = distance; bounds = candidate; }
+                    }
+            }
+            var reserved = bounds; reserved.Inflate(2, 1); occupied.Add(reserved);
+            _cellLabels.Add(new(group.Key, bounds, new(Math.Clamp(frame.Left + 5, 0, ActualWidth), Math.Clamp(frame.Top + 5, 0, ActualHeight)), text, enabled));
+        }
     }
 
     private Point Screen(Point point) => new(point.X * _zoom + _pan.X, point.Y * _zoom + _pan.Y);
@@ -568,6 +626,9 @@ public sealed class CManualInspectionMapControl : Control
 
     private int? HitCell(Point at)
     {
+        if (_showCellOverview)
+            for (var i = _cellLabels.Count - 1; i >= 0; i--)
+                if (_cellLabels[i].Bounds.Contains(at)) return _cellLabels[i].CellNo;
         for (var i = _cellHeaders.Count - 1; i >= 0; i--) if (Screen(_cellHeaders[i].Header).Contains(at)) return _cellHeaders[i].CellNo;
         return null;
     }
@@ -728,7 +789,11 @@ public sealed class CManualInspectionMapControl : Control
             else if(!_showCellOverview)
             {
                 var point = Hit(end);
-                if (point?.IsMasked == true) MessageRequested?.Invoke("Masking 위치는 측정 대상으로 선택하지 않습니다.");
+                if (point?.IsMasked == true)
+                {
+                    SelectionRequested?.Invoke(this, new([], point.Key, true));
+                    MessageRequested?.Invoke("Masking 위치는 대표점으로 지정할 수 있으며 이동·측정 대상에서는 제외됩니다.");
+                }
                 else if (point is not null) SelectionRequested?.Invoke(this, new([point.Key], point.Key, additive, additive));
                 else if (!additive) SelectionRequested?.Invoke(this, new([], null));
             }
@@ -769,7 +834,11 @@ public sealed class CManualInspectionMapControl : Control
         var point = Hit(e.GetPosition(this));
         if (point is null) return;
         Focus();
-        if (point.IsMasked) MessageRequested?.Invoke("Masking 위치는 이동·측정·보정 대상에서 제외됩니다.");
+        if (point.IsMasked)
+        {
+            SelectionRequested?.Invoke(this, new([], point.Key, true));
+            MessageRequested?.Invoke("Masking 위치는 대표점으로 지정할 수 있으며 이동·측정·보정 대상에서는 제외됩니다.");
+        }
         else
         {
             if (!_selected.Contains(point.Key)) SelectionRequested?.Invoke(this, new([point.Key], point.Key));
@@ -849,7 +918,7 @@ public sealed class CManualInspectionMapControl : Control
             return true;
         }
         if (key is Key.Left or Key.Right or Key.Up or Key.Down)
-        { SelectDirectionalPoint(key, modifiers.HasFlag(ModifierKeys.Control)); return true; }
+        { SelectDirectionalPoint(key, modifiers.HasFlag(ModifierKeys.Control), modifiers.HasFlag(ModifierKeys.Shift)); return true; }
         if (key == Key.Space || key == Key.Apps || key == Key.F10 && modifiers.HasFlag(ModifierKeys.Shift))
         { if (!isRepeat) ShowOperationMenu(); return true; }
         if (key == Key.Escape && _gesture) { CancelGesture(true); return true; }
@@ -864,7 +933,7 @@ public sealed class CManualInspectionMapControl : Control
         return true;
     }
 
-    private void SelectDirectionalPoint(Key direction, bool additive)
+    private void SelectDirectionalPoint(Key direction, bool toEnd, bool extend)
     {
         if (_gesture) CancelGesture(false);
         InvalidateClickSelection(); _tip.IsOpen = false;
@@ -892,16 +961,31 @@ public sealed class CManualInspectionMapControl : Control
                 var cross = Math.Abs(direction is Key.Left or Key.Right ? delta.Y : delta.X);
                 return (Slot: slot, Forward: forward, Cross: cross);
             }).Where(candidate => candidate.Forward > 1e-7).ToArray();
-            // Favor neighbours within the requested 90-degree cone, then distance/alignment.
-            // This follows displayed geometry across Cell/Head borders without wrapping rows or
-            // relying on Cell numbers, which need not match the physical Recipe arrangement.
-            next = candidates.OrderBy(candidate => candidate.Cross <= candidate.Forward ? 0 : 1)
-                .ThenBy(candidate => Math.Sqrt(candidate.Forward * candidate.Forward + candidate.Cross * candidate.Cross)
+            // Ctrl follows this displayed row/column to its last available point. Hidden/Masking
+            // positions are skipped consistently with single-step navigation, and no row wraps.
+            var halfBand = (direction is Key.Left or Key.Right ? current.Bounds.Height : current.Bounds.Width) / 2;
+            var line = candidates.Where(candidate => candidate.Cross < halfBand - 1e-7 || candidate.Cross < 1e-7).ToArray();
+            if (toEnd)
+                next = line.OrderByDescending(candidate => candidate.Forward).ThenBy(candidate => candidate.Cross)
+                    .ThenBy(candidate => candidate.Slot.Point.Key, StringComparer.Ordinal).Select(candidate => candidate.Slot).FirstOrDefault();
+            else next = (line.Length > 0 ? line : candidates.Where(candidate => candidate.Cross <= candidate.Forward))
+                .OrderBy(candidate => Math.Sqrt(candidate.Forward * candidate.Forward + candidate.Cross * candidate.Cross)
                     * (1 + 2 * candidate.Cross / candidate.Forward))
                 .ThenBy(candidate => candidate.Slot.Point.Key, StringComparer.Ordinal).Select(candidate => candidate.Slot).FirstOrDefault();
         }
+        next ??= current;
         if (next is null) return;
-        SelectionRequested?.Invoke(this, new([next.Point.Key], next.Point.Key, additive));
+        var anchor = extend ? eligible.FirstOrDefault(slot => slot.Point.Key == _keyboardAnchorKey) ?? current ?? next : next;
+        _keyboardAnchorKey = anchor.Point.Key;
+        var range = new Rect(Centre(anchor), Centre(next));
+        range.Inflate(1e-7, 1e-7);
+        var keys = extend ? eligible.Where(slot => range.Contains(Centre(slot))).Select(slot => slot.Point.Key).ToArray() : [next.Point.Key];
+        if (!_selected.SetEquals(keys) || _focusKey != next.Point.Key)
+        {
+            _publishingKeyboardSelection = true;
+            try { SelectionRequested?.Invoke(this, new(keys, next.Point.Key)); }
+            finally { _publishingKeyboardSelection = false; }
+        }
         RevealPoint(next.Point.Key);
     }
 

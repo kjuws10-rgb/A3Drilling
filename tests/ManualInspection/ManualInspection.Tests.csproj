@@ -12,6 +12,7 @@
     <Compile Include="OffsetInitCases.cs" />
     <Compile Include="MeasurementWorkflowCases.cs" />
     <Compile Include="BulkHistoryCases.cs" />
+    <Compile Include="ReferenceValueCases.cs" />
     <Compile Include="../../Drilling.Common/Review/ManualInspection/*.cs" Link="Production/%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

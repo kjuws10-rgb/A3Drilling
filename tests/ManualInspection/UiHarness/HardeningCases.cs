@@ -20,9 +20,9 @@ internal static partial class Program
             window.Show(); Pump();
             var map = (CManualInspectionMapControl)view.FindName("PositionMap");
             var scatter = (CManualInspectionScatterControl)view.FindName("ScatterPlot");
-            var first = fake.Snapshot.Points.First(p => p.CellNo == 1 && p.HeadNo == 1 && p.CanBeReference);
-            var target = fake.Snapshot.Points.First(p => p.CellNo == 1 && p.HeadNo == 2 && p.CanBeReference);
-            var another = fake.Snapshot.Points.First(p => p.CellNo == 2 && p.HeadNo == 1 && p.CanBeReference);
+            var first = fake.Snapshot.Points.First(p => p.CellNo == 1 && p.HeadNo == 1 && p.CanCopyAsReference && !p.IsProxy);
+            var target = fake.Snapshot.Points.First(p => p.CellNo == 1 && p.HeadNo == 2 && p.CanCopyAsReference && !p.IsProxy);
+            var another = fake.Snapshot.Points.First(p => p.CellNo == 2 && p.HeadNo == 1 && p.CanCopyAsReference && !p.IsProxy);
             void ClickScatter(CManualInspectionUiPoint point, bool additive = false) =>
                 Invoke(view, "Scatter_SelectionRequested", scatter, new CManualInspectionSelectionEventArgs([point.Key], point.Key, additive));
             IReadOnlyList<CManualInspectionUiPoint> Visible() => Field<IReadOnlyList<CManualInspectionUiPoint>>(map, "_visible");
@@ -49,8 +49,8 @@ internal static partial class Program
             Test("direct_reference_enables_copy_to_other_selected_point", ((Button)view.FindName("CopyReferenceButton")).IsEnabled);
             fake.Replace(fake.Snapshot with { Version = fake.Snapshot.Version + 1,
                 Points = fake.Snapshot.Points.Select(p => p.Key == first.Key ? p with { Source = "IMPORTED" } : p).ToArray() }); Pump();
-            Test("external_source_change_invalidates_representative", Field<string?>(view, "_representativeKey") is null
-                && !((Button)view.FindName("CopyReferenceButton")).IsEnabled && !((TextBlock)view.FindName("ReferenceText")).Text.Contains(first.Key));
+            Test("external_source_change_keeps_selected_representative_with_updated_value_eligibility", Field<string?>(view, "_representativeKey") == first.Key
+                && ((TextBlock)view.FindName("ReferenceText")).Text.Contains(first.Key));
 
             fake.Replace(fake.Snapshot with { Version = fake.Snapshot.Version + 1, IsReadOnly = true, Message = "" }); Pump();
             Test("legacy_readonly_flag_does_not_show_readonly_mode", !((TextBlock)view.FindName("MessageText")).Text.Contains("조회 전용"));

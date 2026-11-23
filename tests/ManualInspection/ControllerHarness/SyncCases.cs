@@ -47,7 +47,7 @@ internal static partial class Program
             await c.SynchronizeExternalAsync();
             var p = c.Snapshot.Points.Single(p => p.Key == "P1");
             Near(p.WorkingXUm!.Value, 7);
-            True(p.Source == "IMPORTED" && !p.CanBeReference && p.MeasurementSourcePath.EndsWith("external-1.csv", StringComparison.Ordinal));
+            True(p.Source == "IMPORTED" && p.CanBeReference && !p.CanCopyAsReference && p.MeasurementSourcePath.EndsWith("external-1.csv", StringComparison.Ordinal));
             True(p.DisplayedMeasurementOrigin.Contains("FINE", StringComparison.OrdinalIgnoreCase));
             True(!c.Snapshot.SyncPending && f.Saves == 0 && f.Executed.Count == 0);
         });

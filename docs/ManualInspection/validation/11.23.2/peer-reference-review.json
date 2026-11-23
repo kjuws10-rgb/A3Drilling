@@ -1,0 +1,56 @@
+{
+  "version": "11.23.2",
+  "reviewer": "/root/bulk_history_engine_1123",
+  "reviewType": "Round 3 independent source review of reference-selection UI/engine interfaces",
+  "passed": true,
+  "productionEdited": false,
+  "equipmentExecuted": false,
+  "newFindings": [],
+  "sourceHashes": {
+    "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs": "817F4E22B0D4751FF87A7BDCA6EF1BAE2A917846B346987F8D4454C3085D5768",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs": "AC67757C52CC757D5F5BF6C1280C14F87F7A02F312A65477C84F7313B5860386",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "0E66CBF6F241125473771218EE812B135A79365AC4577D65A880B851BA7CD475",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "D7E8386CA69BCA1C3982B7A8BB53B5DA0B7ABCD71C2227B0F5A016EF1171F9B6",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "6952ED65BC4CB8A7DF763C9CF73643740D57D6B8831BBC8EEC4986309018EC56",
+    "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs": "E6885216719D043CC2DD3D1E296F4B09B64124CB4A33359B699F7E035199D121",
+    "Drilling.UI/Views/CManualInspectionMapControl.cs": "1BA5879799346CB66A4100BC2800A9F4F3E3E05B23AE4EE10B6F225E5F72DC6E"
+  },
+  "checks": [
+    {
+      "topic": "Any existing point can be marked independently of copy eligibility",
+      "result": "CanBeReference only requires a nonempty Key; the View resolves FocusPoint from the actual snapshot, enables SetReference while idle, and does not clear a marker merely because its value becomes unavailable.",
+      "evidence": ["CManualInspectionUiContract.cs:94", "CManualInspectionView.xaml.cs:256", "CManualInspectionView.xaml.cs:522", "CManualInspectionView.xaml.cs:791"]
+    },
+    {
+      "topic": "Copy requires engine-authoritative value evidence",
+      "result": "The Controller projects ResolveReferenceValue's final pair and failure reason. CanCopyAsReference rejects Init, unavailable reason and partial final pairs. CopyReference calls Preview/Confirm again after Current, rather than trusting only a button predicate.",
+      "evidence": ["CManualInspectionUiContract.cs:95", "CManualInspectionController.cs:264", "CManualInspectionController.cs:1090", "CManualInspectionWorkspace.cs:371", "CManualInspectionWorkspace.cs:429"]
+    },
+    {
+      "topic": "Missing, partial, Init and measured numeric zero remain distinct",
+      "result": "Missing/Init has no reference value. A partial raw pair is not a finite measurement; only independently proved stored B can provide an APPLIED_OFFSET reference and its error pair remains null. An actual stored zero needs HasAppliedOffsetEvidence and stays a value; arbitrary arithmetic zero is insufficient. Session restoration takes this evidence from the actual host geometry, not the saved session claim.",
+      "evidence": ["CManualInspectionModels.cs:61", "CManualInspectionModels.cs:84", "CManualInspectionWorkspace.cs:374", "CManualInspectionWorkspace.cs:420", "CManualInspectionWorkspace.cs:1039", "CManualInspectionBackend.cs:271"]
+    },
+    {
+      "topic": "NG reference status is copied without granting correction approval",
+      "result": "Direct valid NG can supply its value. ConfirmReferenceCopy preserves Judge and nullable errors on targets, without fabricating OriginalMeasurement. PreviewBulkCorrection excludes NG and actual selected-offset application also requires OK finite measured errors; lower candidate validation retains the NG guard.",
+      "evidence": ["CManualInspectionWorkspace.cs:405", "CManualInspectionWorkspace.cs:467", "CManualInspectionWorkspace.cs:241", "CManualInspectionWorkspace.cs:538", "CManualInspectionController.cs:789"]
+    },
+    {
+      "topic": "Masked point focus is connected to unrestricted marker UI but not motion targets",
+      "result": "Single-Cell map click and result-table click emit no target keys with additive focus only. Overview mouse click still enters its Cell. The reference button accepts that focus; rectangle/arrow target collections, move/measure and copied targets retain Masking exclusion.",
+      "evidence": ["CManualInspectionMapControl.cs:CompletePointerGesture", "CManualInspectionMapControl.cs:OnMouseRightButtonDown", "CManualInspectionView.xaml.cs:703", "CManualInspectionView.xaml.cs:711", "CManualInspectionWorkspace.cs:437"]
+    },
+    {
+      "topic": "Proxy copying freezes value/provenance and cannot re-add consumed raw",
+      "result": "Proxy values carry immutable final F, origin, immediate historical source, nullable errors and proof. Direct consumed measurements resolve to active B rather than B+raw. Preview/Confirm fingerprint changes, session proof checks, root/self-cycle guards and candidate current-B validation remain connected.",
+      "evidence": ["CManualInspectionModels.cs:37", "CManualInspectionWorkspace.cs:377", "CManualInspectionWorkspace.cs:411", "CManualInspectionWorkspace.cs:440", "CManualInspectionWorkspace.cs:455", "CManualInspectionWorkspace.cs:981", "CManualInspectionWorkspace.cs:1266"]
+    }
+  ],
+  "policyBoundary": {
+    "description": "Marking a point, copying a known offset and approving real model correction remain separate. A copied stored B with UNMEASURED or missing error pair can be marked/copied as a truthful working snapshot but is not an actual selected/bulk correction target.",
+    "reviewedConcern": "PreviewBulkCorrection filters missing finite error pairs before proxy handling. The actual Controller ApplySelectedOffsets applies the same finite-error/eligibility policy, so the real UI paths are consistent. Lower-level BuildDirectCandidate/ValidateCandidate can inspect a manual F but the Controller does not promote such partial results to selected/bulk application.",
+    "status": "intentional interface separation; no confirmed new defect"
+  },
+  "validationScope": "Read-only production diff, nearby callers and existing ReferenceValueCases source were inspected. No new build, test run, equipment process, vendor loading, commit or master operation was performed by this peer review. Parent's broader completed test totals are not recounted as independently executed here."
+}

@@ -1,12 +1,29 @@
-# MANUAL INSPECTION · 11.23.1
+# MANUAL INSPECTION · 11.23.2
 
-브랜치: `feature/manual-inspection-cell-click-20261123.1`
+브랜치: `feature/manual-inspection-selection-reference-20261123.2`
 
-기준 Commit: `367a7276822d73d7709cd64f94847ee979c4d557`
+기준 Commit: `89e92a015802523ba81b871a752d0c71e62e627f`
 
 **master에는 병합하지 않는다.** 기존 테마와 지도 중심 구성을 유지한다.
 
-## 11.23.1에서 달라진 조작
+## 11.23.2 · 표준 선택과 대표점
+
+| 단축키 | 동작 |
+| --- | --- |
+| 방향키 | 다음 측정점 한 개 선택 |
+| Ctrl+방향키 | 현재 화면 행·열의 끝으로 이동해 한 점 선택 |
+| Shift+방향키 | 기준점부터 사각 범위 선택·축소 |
+| Ctrl+Shift+방향키 | 기준점부터 행·열 끝까지 범위 선택 |
+| Space / Esc | 컨텍스트 메뉴 열기 / 닫기 |
+| Alt+방향키 | 화면 보기 이동 |
+
+전체 Cell 번호는 마우스를 올리지 않아도 표시하고, 축소해도 글자 크기를 유지한다. 번호와 실제 셀의 연결을 표시하며 셀 배치를 바꾸지 않는다.
+
+어떤 점이든 대표로 지정할 수 있다. 검증 전·NG·복사된 점·기존 보정·미측정·초기화·Masking도 지정이 가능하다. 값 없는 점은 값을 만들지 않고 복사할 수 없다고 표시한다. 실제 값의 복사와 보정 저장은 출처·판정·단위·한계 검사를 각각 유지한다.
+
+[현재 변경 설명](STANDARD_SELECTION_REFERENCE_11.23.2.md) · [3회 교차검증](../../tests/ManualInspection/STANDARD_SELECTION_REFERENCE_QA.md)
+
+## 11.23.1에서 유지한 조작
 
 - **전체 Cell:** 셀 모양 안 어디든 클릭하면 해당 셀로 들어간다. Ctrl+클릭도 같은 동작이다. 측정점 다중 선택은 드래그로 하고, Ctrl+드래그는 기존 선택에 더한다.
 - **키보드:** 방향키로 화면의 측정점 선택을 옮긴다. Space는 컨텍스트 메뉴, Esc는 메뉴 닫기다. Alt+방향키는 보기 이동을 유지하며 실제 장비 이동은 메뉴에서 확인한다.
@@ -54,10 +71,12 @@
 
 ## 미리보기와 검증
 
-[전체 Cell · Dark](images/manual-11.23.1-overview-dark.png) · [선택점 보정 · Light](images/manual-11.23.1-selected-light.png)
+[셀 번호 · Dark](images/manual-11.23.2-overview-dark.png) · [축소한 48셀 · Light](images/manual-11.23.2-48cells-light.png) · [대표 지정](images/manual-11.23.2-reference-dark.png)
 
 그림은 합성값으로 실제 WPF를 렌더한 미리보기이며 실장비 캡처가 아니다. 최종 시험 수치·소스/Assembly/그림 SHA는 [validation.json](validation.json)에 기록한다. 실제 장비 App·벤더 SDK·PLC·Vision·모션·AeroScript·레이저와 물리 보정 정밀도는 실행 검증하지 않았다.
 
-이전 [11.21.2 설명](MEASUREMENT_WORKFLOW_11.21.2.md)과 [그 시점 manifest](history/validation-61578db.json)는 당시 기록으로 보존한다. 현재 측정/일괄 보정·이력·값 없음 정책은 위 11.23.1을 따른다. [전체 시험 안내](../../tests/ManualInspection/README.md) · [첨부 HTML 원본](Reference/A3_Review_Workspace.html)
+이전 [11.21.2 설명](MEASUREMENT_WORKFLOW_11.21.2.md)과 [그 시점 manifest](history/validation-61578db.json)는 당시 기록으로 보존한다. 현재 측정/일괄 보정·이력·값 없음 정책은 위 11.23.2를 따른다. [전체 시험 안내](../../tests/ManualInspection/README.md) · [첨부 HTML 원본](Reference/A3_Review_Workspace.html)
 
 이전 11.23.0의 [동작 설명](BULK_HISTORY_11.23.0.md)과 [검증 manifest](history/validation-367a727.json)는 당시 기록으로 보존한다. 새 조작·통합 저장·표시 갱신은 현재 설명을 따른다.
+
+이전11.23.1의 [변경 설명](CELL_CLICK_OFFSET_SYNC_11.23.1.md)과 [검증 manifest](history/validation-89e92a0.json)는 당시 기록이다. 대표 지정과 단축키는 현재11.23.2를 따른다.

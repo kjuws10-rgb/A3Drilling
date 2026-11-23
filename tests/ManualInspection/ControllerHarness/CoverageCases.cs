@@ -17,7 +17,7 @@ internal static partial class Program
                 && p.MeasurementStatusText.Contains("측정") && p.MeasurementBasisText.Contains("보정")
                 && p.MeasurementSourceCode == "CORRECTION_BASED"));
             True(c.Snapshot.Points.All(p => p.WorkingJudge == "UNMEASURED" && p.WorkingXUm is null
-                && p.OriginalXUm is null && p.MeasurementToken == "" && !p.CanBeReference));
+                && p.OriginalXUm is null && p.MeasurementToken == "" && p.CanBeReference&&p.CanCopyAsReference));
             Near(c.Snapshot.Points[0].MeasurementXUm!.Value, 7);
             True(c.Snapshot.Points[1].MeasurementXUm == 0 && c.Snapshot.Points[1].AppliedLevel == 0
                 && f.Saves == 0 && f.Executed.Count == 0);

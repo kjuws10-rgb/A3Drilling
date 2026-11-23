@@ -35,12 +35,18 @@ public sealed record ST_MANUAL_MEASUREMENT(
 }
 
 public sealed record ST_MANUAL_PROXY(
-    string ReferenceKey, string ReferenceJudge, double ErrorXUm, double ErrorYUm,
+    string ReferenceKey, string ReferenceJudge, double? ErrorXUm, double? ErrorYUm,
     ST_MANUAL_OFFSET FinalOffset, string Reason, string RunId, DateTimeOffset CopiedAt)
 {
     public string CoordinateSignature { get; init; } = "";
     public string ReferenceMeasurementToken { get; init; } = "";
     public string OriginalSource { get; init; } = "";
+    /// <summary>Historical immediate copy source at CopiedAt; not a live value dependency.</summary>
+    public string CopiedFromKey { get; init; } = "";
+    public string ReferenceValueKind { get; init; } = "";
+    public string ReferenceValueSource { get; init; } = "";
+    public string BasisRevisionId { get; init; } = "";
+    public string ReferenceValueProof { get; init; } = "";
 }
 
 /// <summary>
@@ -55,6 +61,9 @@ public sealed record ST_MANUAL_POINT(
     public bool Masked { get; init; }
     [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
     public bool IsMeasurementOffsetInitialized { get; init; }
+    /// <summary>True only when the host confirms a persisted, non-Init Review offset row.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public bool HasAppliedOffsetEvidence { get; init; }
     public string Judge { get; init; } = "UNMEASURED";
     public string Source { get; init; } = "KEPT";
     public double? ErrorXUm { get; init; }
@@ -114,8 +123,19 @@ public sealed record ST_MANUAL_COPY_TARGET(
 
 public sealed record ST_MANUAL_COPY_PREVIEW(
     string ReferenceKey, IReadOnlyList<string> SelectionKeys, IReadOnlyList<ST_MANUAL_COPY_TARGET> Targets,
-    IReadOnlyList<string> ExcludedMaskedKeys, string Judge, double ErrorXUm, double ErrorYUm,
-    ST_MANUAL_OFFSET Final, string Fingerprint);
+    IReadOnlyList<string> ExcludedMaskedKeys, string Judge, double? ErrorXUm, double? ErrorYUm,
+    ST_MANUAL_OFFSET Final, string Fingerprint)
+{
+    public string OriginReferenceKey { get; init; } = "";
+    public string ReferenceValueToken { get; init; } = "";
+    public string ReferenceValueKind { get; init; } = "";
+    public string ReferenceValueSource { get; init; } = "";
+    public string BasisRevisionId { get; init; } = "";
+}
+
+public sealed record ST_MANUAL_REFERENCE_VALUE(string OriginReferenceKey, string Judge,
+    double? ErrorXUm, double? ErrorYUm, ST_MANUAL_OFFSET Final, string Token, string Kind,
+    string Source, string BasisRevisionId);
 
 /// <summary>All values are immutable copies; the host writes its real offset file before CommitApplied.</summary>
 public sealed record ST_MANUAL_APPLY_SNAPSHOT(

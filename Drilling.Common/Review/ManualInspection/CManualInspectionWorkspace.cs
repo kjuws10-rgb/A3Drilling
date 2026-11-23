@@ -34,8 +34,6 @@ public sealed class CManualInspectionWorkspace
     private string? _pendingWriteFingerprint;
     private ST_MANUAL_APPLY_SNAPSHOT? _pendingApply;
     private ST_MANUAL_RESTORE_SNAPSHOT? _pendingRestore;
-    private IReadOnlyList<ST_MANUAL_CANDIDATE_ROW>? _referenceRows;
-    private Dictionary<string, ST_MANUAL_CANDIDATE_ROW> _referenceRowsByKey = new(StringComparer.Ordinal);
     private long _generation;
 
     public ST_MANUAL_CONTEXT? Context { get; private set; }
@@ -108,7 +106,6 @@ public sealed class CManualInspectionWorkspace
         if (!sameRun) { _appliedMeasurements.Clear(); _consumedMeasurementHistory.Clear(); _appliedCandidates.Clear(); }
         Context = context; Limits = limits; _fieldEvaluator = fieldEvaluator;
         Candidate = null; Operation = null; _copyUndo = null; _offsetEditPreviousCandidate = null;
-        _referenceRows = null; _referenceRowsByKey.Clear();
         _history.Clear(); _candidateBackups.Clear();
         _revisions.Clear();
         _revisions.Add(new(context.RevisionId, "", "INITIAL", "현재 실제 Review Offset 기준", DateTimeOffset.UtcNow, Freeze(_active))
@@ -368,40 +365,71 @@ public sealed class CManualInspectionWorkspace
     /// are never replaced with this resolved final correction.
     /// </summary>
     public ST_MANUAL_OFFSET ResolveReferenceFinal(string referenceKey)
+        => ResolveReferenceValue(referenceKey).Final;
+
+    /// <summary>A reference value is a captured DESIGN-µm value, not an approval or invented raw.</summary>
+    public ST_MANUAL_REFERENCE_VALUE ResolveReferenceValue(string referenceKey)
     {
         RequireLoaded(); var reference = GetPoint(referenceKey);
-        if (!reference.IsDirectMeasurement || reference.Masked || reference.Judge is not ("OK" or "NG") || !reference.HasFiniteError)
-            throw new InvalidOperationException("직접 측정한 OK 또는 NG 점만 대표값으로 사용할 수 있습니다. 복사본은 대표점이 아닙니다.");
-        RequireMeasurementLineage(reference);
-        var token = MeasurementToken(reference);
-        if (WasConsumed(referenceKey, token))
-            return _active[referenceKey];
-
-        ST_MANUAL_CANDIDATE_ROW? row = null;
-        if (Candidate is { State: not EN_MANUAL_CANDIDATE_STATE.Applied })
+        if (reference.IsMeasurementOffsetInitialized)
+            throw new InvalidOperationException("대표점으로 지정할 수 있지만 초기화·미측정 상태에는 복사할 값이 없습니다.");
+        if (reference.ProxySource is { } proxy)
         {
-            GuardCandidateBase(Candidate);
-            if (!ReferenceEquals(_referenceRows, Candidate.Rows))
+            ReferenceAncestors(referenceKey, _points);
+            if (proxy.ReferenceKey == referenceKey || !_points.ContainsKey(proxy.ReferenceKey)
+                || proxy.RunId != Context!.RunId || proxy.CoordinateSignature != Context.CoordinateSignature
+                || proxy.ReferenceJudge != reference.Judge || proxy.ErrorXUm != reference.ErrorXUm || proxy.ErrorYUm != reference.ErrorYUm
+                || !KnownReferenceKind(proxy.ReferenceValueKind) || !ValidProxyValueProof(proxy)
+                || !proxy.FinalOffset.IsFinite || string.IsNullOrWhiteSpace(proxy.ReferenceMeasurementToken))
+                throw new InvalidOperationException("대표 복사값의 출처 또는 좌표 기준을 확인할 수 없습니다.");
+            if (string.IsNullOrEmpty(proxy.ReferenceValueKind))
             {
-                _referenceRowsByKey = Candidate.Rows.ToDictionary(item => item.Key, StringComparer.Ordinal);
-                _referenceRows = Candidate.Rows;
+                var stored = reference.HasAppliedOffsetEvidence && !ActiveInitializedOffsetKeys.Contains(reference.OffsetKey)
+                    && Equal(_active[referenceKey],proxy.FinalOffset);
+                if (!stored)
+                {
+                    if (GetPoint(proxy.ReferenceKey).ProxySource is not null)
+                        throw new InvalidOperationException("이전 복사값의 원본 근거를 다시 확인하세요.");
+                    var root = ResolveReferenceValue(proxy.ReferenceKey);
+                    if (root.Token!=proxy.ReferenceMeasurementToken || !Equal(root.Final,proxy.FinalOffset)
+                        || root.Judge!=proxy.ReferenceJudge || root.ErrorXUm!=proxy.ErrorXUm || root.ErrorYUm!=proxy.ErrorYUm)
+                        throw new InvalidOperationException("이전 복사값의 근거를 확인할 수 없습니다. 원본을 다시 지정하거나 새로 측정하세요.");
+                }
             }
-            _referenceRowsByKey.TryGetValue(referenceKey, out row);
+            return new(proxy.ReferenceKey, reference.Judge, reference.ErrorXUm, reference.ErrorYUm,
+                proxy.FinalOffset, proxy.ReferenceMeasurementToken,
+                string.IsNullOrWhiteSpace(proxy.ReferenceValueKind) ? "MEASURED" : proxy.ReferenceValueKind,
+                string.IsNullOrWhiteSpace(proxy.ReferenceValueSource) ? "MANUAL" : proxy.ReferenceValueSource,
+                string.IsNullOrWhiteSpace(proxy.BasisRevisionId) ? Context.RevisionId : proxy.BasisRevisionId);
         }
-        var error = new ST_MANUAL_OFFSET(reference.ErrorXUm!.Value, reference.ErrorYUm!.Value);
-        if (row is not null && (row.Source != "MEASURED" || row.MeasurementToken != token
-            || row.OffsetKey != reference.OffsetKey || !Equal(row.Base, _active[referenceKey])
-            || !Equal(row.Delta, error) || !Equal(Add(row.Base, row.Delta), row.Final)))
-            throw new InvalidOperationException("대표점 후보가 현재 직접 원측정/기준과 다릅니다. 후보를 다시 계산하세요.");
-        var final = row?.Final ?? Add(_active[referenceKey], error);
+        if (reference.HeadNo is >= 1 and <= 8 && reference.IsDirectMeasurement && reference.HasFiniteError)
+        {
+            RequireMeasurementLineage(reference);
+            var raw = reference.CorrectionMeasurement ?? reference.OriginalMeasurement;
+            var rawToken = raw is null ? "" : MeasurementToken(referenceKey, raw);
+            var consumed = rawToken.Length > 0 && WasConsumed(referenceKey, rawToken);
+            var error = new ST_MANUAL_OFFSET(reference.ErrorXUm!.Value, reference.ErrorYUm!.Value);
+            var finalValue = consumed ? _active[referenceKey] : Add(_active[referenceKey], error);
+            if (!finalValue.IsFinite) throw new InvalidOperationException("대표 최종 보정값이 유효하지 않습니다.");
+            var kind = consumed ? "APPLIED_MEASUREMENT" : "MEASURED";
+            var token = rawToken.Length > 0 ? rawToken : Digest(new { referenceKey, Kind=kind, Context!.RunId,
+                Context.CoordinateSignature, Context.RevisionId, reference.Source, reference.Judge, error, Final=finalValue });
+            return new(referenceKey, reference.Judge, reference.ErrorXUm, reference.ErrorYUm, finalValue,
+                token, kind, reference.Source, Context!.RevisionId);
+        }
+        if (!reference.HasAppliedOffsetEvidence || ActiveInitializedOffsetKeys.Contains(reference.OffsetKey))
+            throw new InvalidOperationException("대표점으로 지정할 수 있지만 복사할 측정값이나 저장 보정값이 없습니다.");
+        var final = _active[referenceKey];
         if (!final.IsFinite) throw new InvalidOperationException("대표 최종 보정값이 유효하지 않습니다.");
-        return final;
+        return new(referenceKey, reference.HeadNo is >= 1 and <= 8 ? reference.Judge : "UNMEASURED", null, null, final,
+            Digest(new { referenceKey, Kind="APPLIED_OFFSET", Context!.RunId, Context.CoordinateSignature,
+                Context.RevisionId, Final=final }), "APPLIED_OFFSET", reference.Source, Context.RevisionId);
     }
 
     public ST_MANUAL_COPY_PREVIEW PreviewReferenceCopy(string referenceKey, IEnumerable<string> selectedKeys)
     {
         GuardCorrection(); GuardNoOffsetEdit(); var reference = GetPoint(referenceKey);
-        var final = ResolveReferenceFinal(referenceKey);
+        var value = ResolveReferenceValue(referenceKey); var final = value.Final;
         if (Candidate is { State: not EN_MANUAL_CANDIDATE_STATE.Applied }) GuardCandidateBase(Candidate);
         var selection = Select(selectedKeys, excludeMasked: false);
         var requested = selection.Where(key => key != referenceKey).ToArray();
@@ -409,9 +437,16 @@ public sealed class CManualInspectionWorkspace
         var excluded = requested.Where(key => GetPoint(key).Masked).ToArray();
         var targets = requested.Where(key => !GetPoint(key).Masked).ToArray();
         if (targets.Length == 0) throw new InvalidOperationException("선택 대상이 모두 Masking 영역입니다.");
+        if (targets.Contains(value.OriginReferenceKey, StringComparer.Ordinal))
+            throw new InvalidOperationException("대표값의 원본 점으로 다시 복사할 수 없습니다. 순환 복사를 제외하세요.");
+        var ancestors = ReferenceAncestors(referenceKey, _points);
+        if (targets.Any(ancestors.Contains))
+            throw new InvalidOperationException("대표값의 이전 원본으로 돌아가는 순환 복사는 할 수 없습니다.");
         var rows = targets.Select(key => new ST_MANUAL_COPY_TARGET(key, GetPoint(key).Judge, _active[key], Subtract(final, _active[key]))).ToArray();
-        return new(referenceKey, ReadOnly(selection), ReadOnly(rows), ReadOnly(excluded), reference.Judge,
-            reference.ErrorXUm!.Value, reference.ErrorYUm!.Value, final, CopyFingerprint(referenceKey, selection));
+        return new(referenceKey, ReadOnly(selection), ReadOnly(rows), ReadOnly(excluded), value.Judge,
+            value.ErrorXUm, value.ErrorYUm, final, CopyFingerprint(referenceKey, selection))
+        { OriginReferenceKey=value.OriginReferenceKey,ReferenceValueToken=value.Token,ReferenceValueKind=value.Kind,
+            ReferenceValueSource=value.Source,BasisRevisionId=value.BasisRevisionId };
     }
 
     public ST_MANUAL_CANDIDATE ConfirmReferenceCopy(ST_MANUAL_COPY_PREVIEW preview, IEnumerable<string> selectedKeys, string reason)
@@ -432,20 +467,22 @@ public sealed class CManualInspectionWorkspace
             // An explicitly unmeasured/error state is a truthful original state, not an invented measurement.
             // A missing successful raw measurement remains missing and is never fabricated from copied values.
             var original = point.OriginalMeasurement;
-            if (original is null && point.Judge is "ERROR" or "UNMEASURED")
-                original = new(point.Judge, point.ErrorXUm, point.ErrorYUm, "", Context!.RecipeId, Context.RunId, Context.CoordinateSignature)
-                { MeasuredAt = DateTimeOffset.MinValue };
+            var captured = new ST_MANUAL_PROXY(current.OriginReferenceKey, current.Judge, current.ErrorXUm, current.ErrorYUm, current.Final, reason.Trim(), Context!.RunId, at)
+            { CoordinateSignature = Context.CoordinateSignature, ReferenceMeasurementToken = current.ReferenceValueToken,
+                CopiedFromKey=current.ReferenceKey,ReferenceValueKind=current.ReferenceValueKind,
+                ReferenceValueSource=current.ReferenceValueSource,BasisRevisionId=current.BasisRevisionId,
+                OriginalSource = point.ProxySource?.OriginalSource ?? point.Source };
+            captured = captured with { ReferenceValueProof=ProxyValueProof(captured) };
             _points[target.Key] = point with
             {
                 Judge = current.Judge, ErrorXUm = current.ErrorXUm, ErrorYUm = current.ErrorYUm, Source = "MANUAL",
                 OriginalMeasurement = original,
-                ProxySource = new(current.ReferenceKey, current.Judge, current.ErrorXUm, current.ErrorYUm, current.Final, reason.Trim(), Context!.RunId, at)
-                { CoordinateSignature = Context.CoordinateSignature, ReferenceMeasurementToken = MeasurementToken(GetPoint(current.ReferenceKey)), OriginalSource = point.ProxySource?.OriginalSource ?? point.Source },
+                ProxySource = captured,
                 IsMeasurementOffsetInitialized=false
             };
             AddHistory(point, _points[target.Key], "REFERENCE_COPY", reason.Trim());
             rows[target.Key] = new(target.Key, point.OffsetKey, point.CellNo, point.HeadNo, point.ShotNo, point.BeamNo,
-                target.Base, target.Delta, current.Final, "MANUAL", current.ReferenceKey, reason.Trim(), "");
+                target.Base, target.Delta, current.Final, "MANUAL", current.OriginReferenceKey, reason.Trim(), "");
         }
         _generation++; Candidate = NewCandidate(rows.Values); _copyUndo = new(beforeCandidate, beforePoints, Fingerprint());
         Log("REFERENCE_COPY", $"{current.ReferenceKey} → {current.Targets.Count}점; 작업판정·편차·최종 F 복사, 원측정 보존");
@@ -515,6 +552,8 @@ public sealed class CManualInspectionWorkspace
                     errors.Add($"{row.Key}: 대표 복사 출처와 후보가 일치하지 않습니다.");
                 if (point.ProxySource is { } proxy && (proxy.RunId != Context!.RunId || proxy.CoordinateSignature != Context.CoordinateSignature || string.IsNullOrWhiteSpace(proxy.ReferenceMeasurementToken)))
                     errors.Add($"{row.Key}: 대표 복사 후 좌표 기준/Run이 바뀌었거나 원측정 계보가 없습니다. 새 기준으로 복사하세요.");
+                if (point.ProxySource is { } proof && (!KnownReferenceKind(proof.ReferenceValueKind) || !ValidProxyValueProof(proof)))
+                    errors.Add($"{row.Key}: 대표 복사값의 저장된 근거가 변경되었습니다. 다시 복사하세요.");
             }
             else if (row.Source == "MEASURED")
             {
@@ -621,7 +660,7 @@ public sealed class CManualInspectionWorkspace
             {
                 if(!affected.Contains(before.OffsetKey)) continue;
                 var after=before with { Judge="UNMEASURED",Source="KEPT",ErrorXUm=null,ErrorYUm=null,ProxySource=null,AdoptedFileMeasurement=null,ExternalObservedAt=null,
-                    IsMeasurementOffsetInitialized=initialized.Contains(before.OffsetKey) };
+                    IsMeasurementOffsetInitialized=initialized.Contains(before.OffsetKey),HasAppliedOffsetEvidence=!initialized.Contains(before.OffsetKey) };
                 _points[before.Key]=after;
                 AddHistory(before,after,"OFFSET_REPLACED","통합 Offset 기준 변경 · 옛 잔차/대표값 재사용 해제 · 실제 원측정은 이력 보존");
             }
@@ -633,7 +672,7 @@ public sealed class CManualInspectionWorkspace
             // the shared correction state of every Beam at that Shot, including a genuine zero.
             var measuredShots=snapshot.Rows.Select(row=>row.OffsetKey).ToHashSet(StringComparer.Ordinal);
             foreach(var point in _points.Values.Where(p=>measuredShots.Contains(p.OffsetKey)).ToArray())
-                _points[point.Key]=point with { IsMeasurementOffsetInitialized=false };
+                _points[point.Key]=point with { IsMeasurementOffsetInitialized=false,HasAppliedOffsetEvidence=true };
         }
         _appliedCandidates.Add(candidate.Id); Context = Context with { RevisionId = newRevisionId };
         Candidate = candidate with
@@ -707,10 +746,10 @@ public sealed class CManualInspectionWorkspace
         // zero remains measured, whereas a restored Init zero must return to the gray state.
         foreach (var before in _points.Values.ToArray())
         {
-            var after = changedShots.Contains(before.OffsetKey)
+            var after = (changedShots.Contains(before.OffsetKey)
                 ? before with { IsMeasurementOffsetInitialized = initialized.Contains(before.OffsetKey), Judge = "UNMEASURED", Source = "KEPT", ErrorXUm = null,
                     ErrorYUm = null, ProxySource = null, AdoptedFileMeasurement = null, ExternalObservedAt = null }
-                : before;
+                : before) with { HasAppliedOffsetEvidence=!initialized.Contains(before.OffsetKey) };
             if (before != after) { _points[before.Key] = after; AddHistory(before, after, "OFFSET_RESTORED", "저장된 초기화 상태 복원 · 원측정 이력 보존"); }
         }
         _active.Clear(); foreach (var pair in actual) _active.Add(pair.Key, pair.Value);
@@ -939,11 +978,14 @@ public sealed class CManualInspectionWorkspace
             {
                 // Copy provenance belongs to the representative; the target may never have
                 // produced its own successful raw (including an edited/imported legacy result).
-                if (point.Source != "MANUAL" || point.Judge is not ("OK" or "NG")
+                if (point.Source != "MANUAL"
                     || proxy.ReferenceKey == point.Key || !geometry.ContainsKey(proxy.ReferenceKey) || proxy.RunId != expectedContext.RunId
                     || proxy.CoordinateSignature != expectedContext.CoordinateSignature || string.IsNullOrWhiteSpace(proxy.ReferenceMeasurementToken)
                     || proxy.ReferenceJudge != point.Judge || !proxy.FinalOffset.IsFinite || string.IsNullOrWhiteSpace(proxy.Reason)
-                    || proxy.ErrorXUm != point.ErrorXUm || proxy.ErrorYUm != point.ErrorYUm)
+                    || proxy.ErrorXUm != point.ErrorXUm || proxy.ErrorYUm != point.ErrorYUm
+                    || !KnownReferenceKind(proxy.ReferenceValueKind) || !ValidProxyValueProof(proxy)
+                    || proxy.CopiedFromKey is null || proxy.ReferenceValueSource is null || proxy.BasisRevisionId is null
+                    || proxy.CopiedFromKey.Length > 0 && (proxy.CopiedFromKey == point.Key || !geometry.ContainsKey(proxy.CopiedFromKey)))
                     lineage = false;
             }
             // A labelled IMPORTED point is retained for viewing/reinspection and is not an eligible
@@ -955,6 +997,9 @@ public sealed class CManualInspectionWorkspace
             if (point.AdoptedFileMeasurement is { } adopted)
                 try { ValidateMeasurement(adopted,expectedContext); } catch (InvalidOperationException) { lineage=false; }
         }
+        var storedPoints = session.Points.ToDictionary(point=>point.Key,StringComparer.Ordinal);
+        foreach (var point in session.Points.Where(point=>point.ProxySource is not null))
+            try { ReferenceAncestors(point.Key, storedPoints); } catch (InvalidOperationException) { lineage=false; }
         var ids = new HashSet<string>(StringComparer.Ordinal);
         var previousRevisionId = "";
         foreach (var revision in session.Revisions)
@@ -990,7 +1035,8 @@ public sealed class CManualInspectionWorkspace
         }
         if (session.Candidate is { } savedCandidate) ValidateSessionCandidate(savedCandidate, geometry, expectedContext, ids);
         var temporary = new CManualInspectionWorkspace();
-        temporary.Load(expectedContext with { LineageValid = lineage }, session.Points, actualBaseValuesByPointKey, session.Limits, fieldEvaluator,
+        temporary.Load(expectedContext with { LineageValid = lineage }, session.Points.Select(point=>point with
+            { HasAppliedOffsetEvidence=geometry[point.Key].HasAppliedOffsetEvidence }), actualBaseValuesByPointKey, session.Limits, fieldEvaluator,
             active.InitializedOffsetKeys.ToHashSet(StringComparer.Ordinal));
         if (session.Operation is { } operation)
         {
@@ -1217,6 +1263,33 @@ public sealed class CManualInspectionWorkspace
         // RawData preserves the original response, which can contain a fresh request UID or timestamp.
         // The host's stable semantic RawToken deliberately excludes those transport-only changes.
         ? MeasurementToken(point.Key,measurement) : "";
+    private static bool KnownReferenceKind(string? kind) => kind is "" or "MEASURED" or "APPLIED_MEASUREMENT" or "APPLIED_OFFSET";
+    private static string ProxyValueProof(ST_MANUAL_PROXY proxy) => Digest(new { proxy.ReferenceKey,proxy.ReferenceJudge,
+        proxy.ErrorXUm,proxy.ErrorYUm,proxy.FinalOffset,proxy.ReferenceMeasurementToken,proxy.ReferenceValueKind,
+        proxy.ReferenceValueSource,proxy.BasisRevisionId,proxy.RunId,proxy.CoordinateSignature,proxy.CopiedFromKey,proxy.CopiedAt,
+        proxy.OriginalSource,proxy.Reason });
+    private static bool ValidProxyValueProof(ST_MANUAL_PROXY proxy) =>
+        string.IsNullOrEmpty(proxy.ReferenceValueKind) && string.IsNullOrEmpty(proxy.ReferenceValueProof)
+        || !string.IsNullOrWhiteSpace(proxy.ReferenceValueProof) && proxy.ReferenceValueProof==ProxyValueProof(proxy);
+    private static HashSet<string> ReferenceAncestors(string key, IReadOnlyDictionary<string,ST_MANUAL_POINT> points)
+    {
+        var ancestors = new HashSet<string>(StringComparer.Ordinal);
+        var states = new Dictionary<string,byte>(StringComparer.Ordinal);
+        var pending = new Stack<(string Key,bool Exit)>(); pending.Push((key,false));
+        while (pending.TryPop(out var item))
+        {
+            if (item.Exit) { states[item.Key]=2;continue; }
+            if (string.IsNullOrWhiteSpace(item.Key) || !points.TryGetValue(item.Key,out var point))
+                throw new InvalidOperationException("대표 복사의 원본 위치가 없습니다.");
+            var state=states.GetValueOrDefault(item.Key);
+            if(state==1) throw new InvalidOperationException("대표 복사 출처에 순환 관계가 있습니다.");
+            if(state==2) continue;
+            states[item.Key]=1;ancestors.Add(item.Key);pending.Push((item.Key,true));
+            if(point.ProxySource is not { } proxy) continue;
+            pending.Push((proxy.ReferenceKey,false));
+        }
+        return ancestors;
+    }
     private string MeasurementToken(string key,ST_MANUAL_MEASUREMENT measurement)
         => Digest(new { Context!.RunId, Key=key, measurement.RawToken, measurement.CoordinateSignature });
     private string SourceFingerprint() => Digest(new

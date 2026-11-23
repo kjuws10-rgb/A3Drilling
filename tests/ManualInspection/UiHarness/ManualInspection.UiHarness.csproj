@@ -14,6 +14,7 @@
     <Compile Include="OffsetInitCases.cs" />
     <Compile Include="MeasurementWorkflowCases.cs" />
     <Compile Include="BulkHistoryCases.cs" />
+    <Compile Include="RepresentativeCases.cs" />
     <Compile Include="../../../Drilling.UI/Views/CManualInspectionUiContract.cs" Link="CManualInspectionUiContract.cs" />
     <Compile Include="../../../Drilling.UI/Views/CManualInspectionMapControl.cs" Link="CManualInspectionMapControl.cs" />
     <Compile Include="../../../Drilling.UI/Views/CManualInspectionScatterControl.cs" Link="CManualInspectionScatterControl.cs" />
