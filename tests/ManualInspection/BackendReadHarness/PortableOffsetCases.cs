@@ -32,7 +32,7 @@ internal static partial class Program
         });
         await Check("portable_offset_includes_protected_reference_only_and_exact_planner_coordinates",async()=>
         {
-            var(f,s,_,b)=await Export();True(b.SchemaVersion==CManualInspectionOffsetBundle.Schema&&b.ProgramVersion=="11.23.0"&&b.ReviewCoordinateSpace=="DESIGN"&&b.ReviewUnit=="mm"&&b.FinalCoordinateSpace=="SCANNER"&&b.FinalCoordinateUnit=="mm");
+            var(f,s,_,b)=await Export();True(b.SchemaVersion==CManualInspectionOffsetBundle.Schema&&b.ProgramVersion=="11.23.1"&&b.ReviewCoordinateSpace=="DESIGN"&&b.ReviewUnit=="mm"&&b.FinalCoordinateSpace=="SCANNER"&&b.FinalCoordinateUnit=="mm");
             True(b.ProtectedSnapshotPolicy==CManualInspectionOffsetBundle.ReferenceOnly&&b.ProtectedParameters["H01_DEFAULT_OFFSET_X"]=="0.025"&&b.ProtectedParameters["H01_FIRST_BEAM_OFFSET_X"]=="0.012"&&b.ProtectedParameters["CELL1_A1_ALIGN_OFFSET_X"]=="0.0015"&&b.ProtectedParameters["HeadGapX"]=="110"&&!b.ProtectedParameters.ContainsKey("TEST_PASSWORD"));
             var p=Params(f);foreach(var setting in f.SettingRows)p[setting.Key]=setting.Value;CReviewOffsetData.ApplyToParameters(p,await f.Offsets.LoadLatest("QA"));var plan=CShotCoordinatePlanBuilder.Build(p);
             True(b.FinalCoordinates.Count==plan.Shots.Count&&b.Points.Count==s.Points.Count);

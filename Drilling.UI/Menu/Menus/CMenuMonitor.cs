@@ -1,4 +1,4 @@
-﻿namespace Drilling.UI.Menu.Menus
+namespace Drilling.UI.Menu.Menus
 {
     using Drilling.Common.Interface;
     using System.Globalization;
@@ -96,6 +96,9 @@
         private bool _isMelsecWriteUnlocked;
         private bool _liveRefreshRunning;
         private int? _lastLiveRefreshHash;
+        private bool _coordinateReviewOffsetRefreshRunning;
+        private string _coordinateReviewOffsetVersion = "";
+        private string _coordinateReviewOffsetError = "";
         private static readonly string[] MonitorTabs = ["PRODUCT", "LASER", "ATTENUATOR", "BET", "MELSEC", "XPS", "PICO MOTOR", "COORDINATE VIEWER", "LOG VIEWER"];
         private static readonly string[] HomeTypeOptions = ["1: Current Position as HOME", "4: Negative End Limit as HOME", "5: End Run Offset Init (Service)"];
         public IReadOnlyList<ST_SCREEN_SECTION> DeviceTabs { get; private set; } = [];
@@ -890,10 +893,10 @@
                     return Task.CompletedTask;
                 }
 
-                if (selectedTab is "COORDINATE VIEWER" or "LOG VIEWER")
-                {
+                if (selectedTab == "COORDINATE VIEWER")
+                    return RefreshCoordinateReviewOffsets(cancellationToken);
+                if (selectedTab == "LOG VIEWER")
                     return Task.CompletedTask;
-                }
 
                 if (OperationFields.Count > 0)
                 {
@@ -1029,6 +1032,41 @@
 
             return Task.CompletedTask;
         }
+
+        // The coordinate viewer is mostly static. Poll the authoritative Review file version,
+        // and rebuild only when that model's saved offset changes (including Undo/Redo/Init).
+        // Never write Recipe parameters or issue a device operation from this display refresh.
+        private async Task RefreshCoordinateReviewOffsets(CancellationToken token)
+        {
+            if (_coordinateReviewOffsetRefreshRunning) return;
+            _coordinateReviewOffsetRefreshRunning = true;
+            try
+            {
+                var selectedRecipe = (_selectedRecipeIdProvider() ?? "").Trim();
+                var recipe = await LoadSelectedCoordinateRecipe(token);
+                if (recipe is null) return;
+                var saved = await Task.Run(() => _reviewOffsetFile.LoadLatest(recipe.Id, token), token);
+                token.ThrowIfCancellationRequested();
+                if (NormalizeMonitorScreenTab(_selectedTabAccessor()) != "COORDINATE VIEWER"
+                    || !selectedRecipe.Equals((_selectedRecipeIdProvider() ?? "").Trim(), StringComparison.OrdinalIgnoreCase)) return;
+                var version = CoordinateReviewOffsetVersion(recipe.Id, saved);
+                if (version == _coordinateReviewOffsetVersion) return;
+                await _refreshCurrentScreen();
+                _coordinateReviewOffsetError = "";
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
+            catch (Exception error)
+            {
+                // Keep the last good display, report a failed read once, and retry on the next tick.
+                if (_coordinateReviewOffsetError != error.Message)
+                    _setStatusMessage("Review Offset 화면 갱신 실패: " + error.Message);
+                _coordinateReviewOffsetError = error.Message;
+            }
+            finally { _coordinateReviewOffsetRefreshRunning = false; }
+        }
+
+        internal static string CoordinateReviewOffsetVersion(string recipeId, ST_REVIEW_OFFSET_FILE_DATA file)
+            => CReviewOffsetDisplaySnapshot.GetRevisionIdentity(recipeId, file);
 
         private int CreateLiveRefreshHash(string selectedTab, ST_MONITOR_STATUS_SNAPSHOT monitorSnapshot)
         {
@@ -3275,6 +3313,7 @@
                 parameterMap,
                 cellCount,
                 currentCellNo);
+            _coordinateReviewOffsetVersion = CoordinateReviewOffsetVersion(recipe.Id, reviewOffsetFile);
             return new ST_MONITOR_COORDINATE_VIEWER_DATA(
                 CreateCoordinateBasisOptions(_coordinateBasis), 
                 valueRows, 

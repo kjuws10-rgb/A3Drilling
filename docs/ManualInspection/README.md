@@ -1,10 +1,20 @@
-# MANUAL INSPECTION · 11.23.0
+# MANUAL INSPECTION · 11.23.1
 
-브랜치: `feature/manual-inspection-bulk-history-20261123.0`
+브랜치: `feature/manual-inspection-cell-click-20261123.1`
 
-기준 Commit: `61578dbefbef8d5d5ebe83e4ec289e452771904f`
+기준 Commit: `367a7276822d73d7709cd64f94847ee979c4d557`
 
 **master에는 병합하지 않는다.** 기존 테마와 지도 중심 구성을 유지한다.
+
+## 11.23.1에서 달라진 조작
+
+- **전체 Cell:** 셀 모양 안 어디든 클릭하면 해당 셀로 들어간다. Ctrl+클릭도 같은 동작이다. 측정점 다중 선택은 드래그로 하고, Ctrl+드래그는 기존 선택에 더한다.
+- **키보드:** 방향키로 화면의 측정점 선택을 옮긴다. Space는 컨텍스트 메뉴, Esc는 메뉴 닫기다. Alt+방향키는 보기 이동을 유지하며 실제 장비 이동은 메뉴에서 확인한다.
+- **선택점 보정:** 선택한 점의 계산 → 검증 → 모델 저장을 하나로 진행한다. 세 버튼을 차례로 누르지 않는다. **일괄 보정**은 모델 전체, **선택점 보정**은 선택한 대상이다.
+- 초기화/통합 Offset 편집 중에는 상황에 맞는 저장 버튼만 표시하고 저장 전에 자동 검증한다. 적용 전 확인창에서 취소하면 저장하지 않는다.
+- 저장한 Review Offset은 같은 모델의 Correction 현재값·Recipe 최종 좌표 미리보기·Monitor 좌표 보기에 반영한다. Recipe 편집 원본이나 다른 모델의 보정값은 바꾸지 않는다.
+
+[현재 변경·검증 설명](CELL_CLICK_OFFSET_SYNC_11.23.1.md) · [현재 QA](../../tests/ManualInspection/CELL_CLICK_OFFSET_SYNC_QA.md)
 
 ## 측정하고 따로 보정하기
 
@@ -31,8 +41,8 @@
 
 | 작업 | 조작 |
 | --- | --- |
-| 전체 Cell / 단일 Cell | 제목 옆 전체 Cell 버튼 → 실제 Recipe 배치, Cell # 클릭 → 해당 Cell |
-| 복수 선택 | Ctrl+클릭·드래그, Ctrl+Cell # |
+| 전체 Cell / 단일 Cell | 제목 옆 전체 Cell → 실제 Recipe 배치, 셀 내부 어디든 클릭 → 해당 Cell |
+| 복수 선택 | 전체 Cell은 드래그·Ctrl+드래그, 단일 Cell은 Ctrl+클릭·드래그 |
 | 지도 확대·보기 이동 | Ctrl+휠 / Alt+드래그·방향키 / 더블클릭 맞춤 |
 | 장비 동작 | 점 우클릭 → 이동만 / 이동 후 측정 / 현 위치 측정 |
 | 대표값 복사 | 대표 지정 → 대상 선택 → 같은 값·판정 복사. NG는 빨강이며 일괄 보정에서 제외 |
@@ -44,8 +54,10 @@
 
 ## 미리보기와 검증
 
-[기본 화면 · Dark](images/bulk-11.23.0-dark.png) · [Light](images/bulk-11.23.0-light.png) · [보정 이력](images/bulk-11.23.0-history-dark.png) · [값 없는 기준](images/bulk-11.23.0-empty-light.png)
+[전체 Cell · Dark](images/manual-11.23.1-overview-dark.png) · [선택점 보정 · Light](images/manual-11.23.1-selected-light.png)
 
 그림은 합성값으로 실제 WPF를 렌더한 미리보기이며 실장비 캡처가 아니다. 최종 시험 수치·소스/Assembly/그림 SHA는 [validation.json](validation.json)에 기록한다. 실제 장비 App·벤더 SDK·PLC·Vision·모션·AeroScript·레이저와 물리 보정 정밀도는 실행 검증하지 않았다.
 
-이전 [11.21.2 설명](MEASUREMENT_WORKFLOW_11.21.2.md)과 [그 시점 manifest](history/validation-61578db.json)는 당시 기록으로 보존한다. 현재 측정/일괄 보정·이력·값 없음 정책은 위 11.23.0을 따른다. [전체 시험 안내](../../tests/ManualInspection/README.md) · [첨부 HTML 원본](Reference/A3_Review_Workspace.html)
+이전 [11.21.2 설명](MEASUREMENT_WORKFLOW_11.21.2.md)과 [그 시점 manifest](history/validation-61578db.json)는 당시 기록으로 보존한다. 현재 측정/일괄 보정·이력·값 없음 정책은 위 11.23.1을 따른다. [전체 시험 안내](../../tests/ManualInspection/README.md) · [첨부 HTML 원본](Reference/A3_Review_Workspace.html)
+
+이전 11.23.0의 [동작 설명](BULK_HISTORY_11.23.0.md)과 [검증 manifest](history/validation-367a727.json)는 당시 기록으로 보존한다. 새 조작·통합 저장·표시 갱신은 현재 설명을 따른다.

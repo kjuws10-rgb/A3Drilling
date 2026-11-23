@@ -83,6 +83,10 @@ internal static partial class Program
         await RunOffsetInitChecks();
         await RunMeasurementWorkflowChecks();
         await RunBulkHistoryChecks();
+        await RunEmptyOffsetMeasurementChecks();
+        await RunBulkReentryChecks();
+        await RunAutomaticOffsetDraftRecoveryChecks();
+        await RunSelectedCorrectionChecks();
         await Check("generic_sta_application_and_no_loaded_vendor_assemblies",async()=>{True(Application.Current.GetType()==typeof(Application));True(!VendorAssemblies().Any());await Task.CompletedTask;});
         var path=args.Length==2&&args[0]=="--report"?args[1]:Path.Combine(AppContext.BaseDirectory,"controller-results.json");Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         var assembly=typeof(CManualInspectionController).Assembly;
@@ -90,6 +94,233 @@ internal static partial class Program
         Console.WriteLine($"Controller tests: {Results.Count-Failed}/{Results.Count} passed. Report: {path}");return Failed==0?0:1;
     }
     private static string[] VendorAssemblies()=>AppDomain.CurrentDomain.GetAssemblies().Select(a=>a.GetName().Name??"").Where(n=>new[]{"Aerotech","Automation1","ACS.SPii","Newport.XPS","CmdLib","DeviceIOLib","NpEthernet","NpSerial","UsbDllWrap"}.Any(s=>n.Contains(s,StringComparison.OrdinalIgnoreCase))).ToArray();
+    private static async Task RunSelectedCorrectionChecks()
+    {
+        await Check("selected_correction_calculates_validates_and_saves_only_selection_with_one_context_check",async()=>
+        {
+            var(f,c)=await Loaded();var checks=f.Ensures;var guards=f.Guards;
+            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P1","P3"]);
+            True(f.Saves==1&&f.Executed.Count==0&&f.Ensures==checks+1&&f.Guards==guards+1&&c.Snapshot.UndoOffsetCount==1);
+            Near(c.Snapshot.Points.Single(p=>p.Key=="P1").BaseXUm,3);Near(c.Snapshot.Points.Single(p=>p.Key=="P2").BaseXUm,0);Near(c.Snapshot.Points.Single(p=>p.Key=="P3").BaseXUm,1);
+        });
+        await Check("selected_correction_ng_masked_and_missing_selection_reject_atomically",async()=>
+        {
+            foreach(var kind in new[]{"NG","MASKED","MISSING","EMPTY"})
+            {
+                var(f,c)=Fixture();f.Source=f.Source with { Points=f.Source.Points.Select(p=>p.Key!="P2"?p:kind switch
+                    { "NG"=>p with { Judge="NG" },"MASKED"=>p with { Masked=true },"MISSING"=>p with { Judge="UNMEASURED",ErrorXUm=null,ErrorYUm=null,OriginalMeasurement=null },_=>p }).ToArray() };
+                await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);
+                await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,kind=="EMPTY"?[]:["P1","P2"]));
+                True(f.Saves==0&&f.Executed.Count==0&&c.Snapshot.Points.All(p=>p.BaseXUm==0)&&c.Snapshot.UndoOffsetCount==0);
+            }
+        });
+        await Check("selected_correction_limits_failure_never_saves_valid_companion_points",async()=>
+        {
+            var(f,c)=Fixture();f.Source=f.Source with { Points=f.Source.Points.Select(p=>p.Key=="P2"?p with
+                { ErrorXUm=999,OriginalMeasurement=p.OriginalMeasurement! with { ErrorXUm=999 } }:p).ToArray() };
+            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);
+            await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P1","P2"]));
+            True(f.Saves==0&&f.SavedConsumption.Count==0&&c.Snapshot.Points.All(p=>p.BaseXUm==0)&&!c.IsBusy);
+        });
+        await Check("selected_real_zero_first_apply_then_repeat_is_one_save_and_undo_redo_preserve_empty_semantics",async()=>
+        {
+            var(f,c)=Fixture();f.Source=f.Source with { Points=f.Source.Points.Select(p=>p with { Judge="UNMEASURED",Source="KEPT",ErrorXUm=null,ErrorYUm=null,OriginalMeasurement=null,IsMeasurementOffsetInitialized=true }).ToArray(),
+                StoredInitializedOffsetKeys=f.Source.Points.Select(p=>p.OffsetKey).ToHashSet(StringComparer.Ordinal) };
+            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);f.NewX=0;f.NewY=0;
+            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1"]);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P1"]);
+            True(f.Saves==1&&!c.Snapshot.Points[0].IsMeasurementOffsetInitialized&&c.Snapshot.Points[0].HasMeasurementHistory);
+            await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P1"]));True(f.Saves==1);
+            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.UndoOffsets);True(c.Snapshot.Points[0].IsMeasurementOffsetInitialized&&!c.Snapshot.Points[0].HasMeasurementHistory);
+            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.RedoOffsets);True(!c.Snapshot.Points[0].IsMeasurementOffsetInitialized&&c.Snapshot.Points[0].HasMeasurementHistory&&f.Saves==3);
+        });
+        await Check("selected_representative_copy_applies_captured_final_once_without_extra_manual_checkbox",async()=>
+        {
+            var(f,c)=await Loaded();await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,["P2"],r=>r with { ReferenceKey="P1",Reason="Synthetic verified copy" });
+            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P2"]);Near(c.Snapshot.Points.Single(p=>p.Key=="P2").BaseXUm,3);
+            await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P2"]));True(f.Saves==1&&f.Executed.Count==0);
+        });
+        await Check("selected_correction_failed_writer_can_retry_without_consumption_or_partial_save",async()=>
+        {
+            var(f,c)=await Loaded();f.FailSave=true;await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P1"]));
+            True(f.Saves==0&&f.SavedConsumption.Count==0&&c.Snapshot.Points.All(p=>p.BaseXUm==0)&&!c.IsBusy);
+            f.FailSave=false;await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P1"]);True(f.Saves==1&&c.Snapshot.UndoOffsetCount==1);
+        });
+        await Check("selected_correction_rapid_repeat_during_write_never_creates_second_save",async()=>
+        {
+            var(f,c)=await Loaded();var entered=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var release=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            f.SaveHook=async token=>{entered.TrySetResult();await release.Task.WaitAsync(token);};
+            var first=Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P1"]);await entered.Task.WaitAsync(TimeSpan.FromSeconds(3));
+            try { await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P1"]));True(f.Saves==0); }
+            finally { release.TrySetResult(); }
+            await first;await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P1"]));True(f.Saves==1&&!c.IsBusy);
+        });
+        await Check("pending_init_save_revalidates_after_limits_change_without_separate_validate_action",async()=>
+        {
+            var(f,c)=await Loaded();await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets);
+            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.UpdateLimits,null,r=>r with { DeltaLimitUm=30,TotalLimitUm=200,ScannerFieldMm=5 });
+            True(c.Snapshot.IsOffsetEditPending&&!c.Snapshot.ValidationPassed);var checks=f.Ensures;
+            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Apply);
+            True(f.Saves==1&&f.Ensures==checks+1&&!c.Snapshot.IsOffsetEditPending&&c.Snapshot.Points.All(p=>p.IsMeasurementOffsetInitialized));
+        });
+        await Check("pending_import_save_runs_validation_and_rejects_unsafe_values_without_write",async()=>
+        {
+            var(f,c)=await Loaded();f.ImportedBundleValues=f.Source.Points.ToDictionary(p=>p.Key,_=>new ST_MANUAL_OFFSET(42,-9));
+            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ImportOffsetBundle,null,r=>r with { ResultPath="synthetic-offsets.json" });
+            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.UpdateLimits,null,r=>r with { DeltaLimitUm=5,TotalLimitUm=10,ScannerFieldMm=5 });
+            await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Apply));
+            True(f.Saves==0&&c.Snapshot.IsOffsetEditPending&&!c.Snapshot.ValidationPassed&&c.Snapshot.Points.All(p=>p.BaseXUm==42));
+            True(f.Source.Values.Values.All(value=>value==ST_MANUAL_OFFSET.Zero));
+        });
+    }
+    private static async Task RunAutomaticOffsetDraftRecoveryChecks()
+    {
+        await Check("first_model_load_archives_unsaved_offset_init_exact_bytes_without_relocking_measurement",async()=>
+        {
+            var(f,previous)=await Loaded();await Do(previous,EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets);
+            var sessionPath=Directory.GetFiles(Path.Combine(f.StateDirectory,"Sessions"),"*.json").Single();var bytes=await File.ReadAllBytesAsync(sessionPath);
+            var reopened=new CManualInspectionController(f);await Do(reopened,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);
+            var backup=Directory.GetFiles(Path.Combine(f.StateDirectory,"Recovery"),"offset-draft-*.json").Single();
+            True(File.ReadAllBytes(backup).SequenceEqual(bytes)&&!File.ReadAllBytes(sessionPath).SequenceEqual(bytes)
+                &&!reopened.Snapshot.IsOffsetEditPending&&!reopened.IsBusy&&f.Saves==0&&f.Executed.Count==0);
+            await Do(reopened,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1"]);
+            True(f.Executed.SequenceEqual(["P1"])&&f.Saves==0&&reopened.Snapshot.Points.Single(p=>p.Key=="P1").HasWorkingMeasurement);
+        });
+        await Check("automatic_import_draft_recovery_keeps_saved_base_raw_ledger_and_undo_redo_history",async()=>
+        {
+            var(f,previous)=await Loaded();
+            for(var n=1;n<=2;n++){f.NewX=n;await Do(previous,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1"]);await Do(previous,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply);}
+            var before=previous.Snapshot;f.ImportedBundleValues=f.Source.Points.ToDictionary(p=>p.Key,_=>new ST_MANUAL_OFFSET(42,-9));
+            await Do(previous,EN_MANUAL_INSPECTION_UI_ACTION.ImportOffsetBundle,null,r=>r with { ResultPath="synthetic-portable.json" });
+            var reopened=new CManualInspectionController(f);await Do(reopened,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);
+            True(!reopened.Snapshot.IsOffsetEditPending&&reopened.Snapshot.ActiveRevisionId==before.ActiveRevisionId
+                &&reopened.Snapshot.Points.Select(p=>p.BaseXUm).SequenceEqual(before.Points.Select(p=>p.BaseXUm))
+                &&reopened.Snapshot.Points.Select(p=>p.OriginalXUm).SequenceEqual(before.Points.Select(p=>p.OriginalXUm))
+                &&reopened.Snapshot.UndoOffsetCount==2&&reopened.Snapshot.RedoOffsetCount==0&&f.Saves==2&&f.Executed.Count==2);
+            await Throws(()=>Do(reopened,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply));True(f.Saves==2);
+            await Do(reopened,EN_MANUAL_INSPECTION_UI_ACTION.UndoOffsets);True(f.Saves==3&&reopened.Snapshot.RedoOffsetCount==1);
+        });
+        await Check("explicit_session_import_keeps_archived_unsaved_offset_draft_and_live_workspace_edit_stays_pending",async()=>
+        {
+            var(f,previous)=await Loaded();await Do(previous,EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets);
+            var sourcePath=Directory.GetFiles(Path.Combine(f.StateDirectory,"Sessions"),"*.json").Single();var explicitPath=Path.Combine(f.StateDirectory,"explicit-draft.json");
+            await File.WriteAllBytesAsync(explicitPath,await File.ReadAllBytesAsync(sourcePath));
+            await Throws(()=>Do(previous,EN_MANUAL_INSPECTION_UI_ACTION.Refresh));True(previous.Snapshot.IsOffsetEditPending&&f.Saves==0);
+            var reopened=new CManualInspectionController(f);await Do(reopened,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);
+            reopened.ChooseFile=(_,_)=>explicitPath;await Do(reopened,EN_MANUAL_INSPECTION_UI_ACTION.ImportSession);
+            True(reopened.Snapshot.IsOffsetEditPending&&reopened.Snapshot.OffsetInitPending&&f.Saves==0&&f.Executed.Count==0);
+            await Throws(()=>Do(reopened,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1"]));
+            await Do(reopened,EN_MANUAL_INSPECTION_UI_ACTION.CancelOffsetEdit);await Do(reopened,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1"]);
+            True(f.Executed.SequenceEqual(["P1"])&&f.Saves==0);
+        });
+        await Check("draft_recovery_backup_failure_never_overwrites_original_checkpoint_and_retry_is_safe",async()=>
+        {
+            var(f,previous)=await Loaded();await Do(previous,EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets);
+            var sessionPath=Directory.GetFiles(Path.Combine(f.StateDirectory,"Sessions"),"*.json").Single();var bytes=await File.ReadAllBytesAsync(sessionPath);
+            var recovery=Path.Combine(f.StateDirectory,"Recovery");await File.WriteAllTextAsync(recovery,"synthetic file blocks Recovery directory");
+            var reopened=new CManualInspectionController(f);await Throws(()=>Do(reopened,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe));
+            True(File.ReadAllBytes(sessionPath).SequenceEqual(bytes)&&f.Saves==0&&f.Executed.Count==0&&!reopened.IsBusy);
+            await Throws(()=>Do(reopened,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe));True(File.ReadAllBytes(sessionPath).SequenceEqual(bytes));
+            File.Delete(recovery);await Do(reopened,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);
+            True(Directory.GetFiles(recovery,"offset-draft-*.json").Any(path=>File.ReadAllBytes(path).SequenceEqual(bytes))
+                &&!reopened.Snapshot.IsOffsetEditPending&&f.Saves==0&&f.Executed.Count==0);
+            await Do(reopened,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1"]);True(f.Executed.SequenceEqual(["P1"]));
+        });
+        await Check("failed_draft_backup_only_blocks_its_checkpoint_and_other_recipe_still_saves_measurements",async()=>
+        {
+            var(f,previous)=await Loaded();await Do(previous,EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets);var sourceA=f.Source;
+            var pathA=Directory.GetFiles(Path.Combine(f.StateDirectory,"Sessions"),"*.json").Single();var bytesA=await File.ReadAllBytesAsync(pathA);
+            var recovery=Path.Combine(f.StateDirectory,"Recovery");await File.WriteAllTextAsync(recovery,"synthetic Recovery directory blocker");
+            var reopened=new CManualInspectionController(f);await Throws(()=>Do(reopened,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe));
+            var context=f.Source.Context with { RecipeId="QB",RunId="RUN-QB",CoordinateSignature="COORD-QB" };
+            f.Source=f.Source with { Context=context,Points=f.Source.Points.Select(p=>p with
+                { OriginalMeasurement=p.OriginalMeasurement! with { RecipeId=context.RecipeId,RunId=context.RunId,CoordinateSignature=context.CoordinateSignature } }).ToArray() };
+            await Do(reopened,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);
+            await Do(reopened,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1"]);
+            var pathB=Directory.GetFiles(Path.Combine(f.StateDirectory,"Sessions"),"*.json").Single(path=>path!=pathA);
+            var bytesB=await File.ReadAllBytesAsync(pathB);
+            True(reopened.Snapshot.RecipeId=="QB"&&System.Text.Encoding.UTF8.GetString(bytesB).Contains("NEW-RAW-")
+                &&File.ReadAllBytes(pathA).SequenceEqual(bytesA)&&f.Saves==0);
+            f.Source=sourceA;await Throws(()=>Do(reopened,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe));
+            True(File.ReadAllBytes(pathA).SequenceEqual(bytesA)&&File.ReadAllBytes(pathB).SequenceEqual(bytesB));
+            File.Delete(recovery);await Do(reopened,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);
+            True(!reopened.Snapshot.IsOffsetEditPending&&reopened.Snapshot.RecipeId=="QA"
+                &&Directory.GetFiles(recovery,"offset-draft-*.json").Any(path=>File.ReadAllBytes(path).SequenceEqual(bytesA)));
+        });
+    }
+    private static async Task RunBulkReentryChecks()
+    {
+        await Check("bulk_apply_pending_writer_rejects_rapid_repeat_and_same_raw_after_success",async()=>
+        {
+            var(f,c)=await Loaded();var entered=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var release=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            f.SaveHook=async token=>{entered.TrySetResult();await release.Task.WaitAsync(token);};
+            var first=Do(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply);await entered.Task.WaitAsync(TimeSpan.FromSeconds(3));
+            try
+            {
+                True(c.IsBusy&&!c.Snapshot.CanBulkApply&&f.Saves==0);
+                await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply));True(f.Saves==0&&f.Executed.Count==0);
+            }
+            finally { release.TrySetResult(); }
+            await first;var revision=c.Snapshot.ActiveRevisionId;
+            await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply));
+            True(f.Saves==1&&f.Executed.Count==0&&c.Snapshot.ActiveRevisionId==revision&&c.Snapshot.UndoOffsetCount==1&&!c.IsBusy);
+        });
+        await Check("bulk_apply_cancelled_writer_does_not_consume_measurement_or_leave_command_locked",async()=>
+        {
+            var(f,c)=await Loaded();var entered=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            f.SaveHook=async token=>{entered.TrySetResult();await Task.Delay(Timeout.Infinite,token);};
+            using var cancellation=new CancellationTokenSource();
+            var first=c.ExecuteAsync(EN_MANUAL_INSPECTION_UI_ACTION.BulkApply,new(){ExpectedVersion=c.Snapshot.Version},cancellation.Token);
+            await entered.Task.WaitAsync(TimeSpan.FromSeconds(3));cancellation.Cancel();await first;
+            True(f.Saves==0&&f.SavedConsumption.Count==0&&f.Executed.Count==0&&!c.IsBusy&&c.Snapshot.Points.All(p=>p.BaseXUm==0)&&c.Snapshot.UndoOffsetCount==0);
+            f.SaveHook=null;await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply);
+            True(f.Saves==1&&c.Snapshot.UndoOffsetCount==1&&!c.IsBusy);
+        });
+        await Check("bulk_apply_rechecks_equipment_guard_before_any_write",async()=>
+        {
+            var(f,c)=await Loaded();f.RejectGuard=true;await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply));
+            True(f.Saves==0&&f.SavedConsumption.Count==0&&f.Executed.Count==0&&!c.IsBusy);
+            f.RejectGuard=false;await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply);True(f.Saves==1&&f.Executed.Count==0);
+        });
+    }
+    private static async Task RunEmptyOffsetMeasurementChecks()
+    {
+        static void Empty(FakeBackend backend)=>backend.Source=backend.Source with
+        {
+            Points=backend.Source.Points.Select(p=>p with { Judge="UNMEASURED",Source="KEPT",ErrorXUm=null,ErrorYUm=null,
+                OriginalMeasurement=null,MeasurementVersion=0,IsMeasurementOffsetInitialized=true }).ToArray(),
+            StoredInitializedOffsetKeys=backend.Source.Points.Select(p=>p.OffsetKey).ToHashSet(StringComparer.Ordinal)
+        };
+        await Check("fresh_model_without_measured_offset_accepts_move_then_measure_without_implicit_save",async()=>
+        {
+            var(f,c)=Fixture();Empty(f);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);
+            True(!c.Snapshot.IsOffsetEditPending&&c.Snapshot.Points.All(p=>p.IsMeasurementOffsetInitialized&&!p.HasMeasurementHistory&&p.WorkingXUm is null));
+            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1"]);
+            var measured=c.Snapshot.Points.Single(p=>p.Key=="P1");
+            True(f.Executed.SequenceEqual(["P1"])&&f.Saves==0&&measured.WorkingJudge=="OK"&&!measured.IsMeasurementOffsetInitialized&&measured.HasWorkingMeasurement&&c.Snapshot.CanBulkApply);
+            True(c.Snapshot.Points.Where(p=>p.Key!="P1").All(p=>p.IsMeasurementOffsetInitialized&&!p.HasMeasurementHistory));
+        });
+        await Check("saved_offset_init_accepts_new_real_zero_measurement_and_retains_unsaved_model_empty_state",async()=>
+        {
+            var(f,c)=await Loaded();await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets);
+            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Apply);var revision=c.Snapshot.ActiveRevisionId;f.NewX=0;f.NewY=0;
+            True(!c.Snapshot.IsOffsetEditPending&&c.Snapshot.Points.All(p=>p.IsMeasurementOffsetInitialized));
+            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1"]);
+            var measured=c.Snapshot.Points.Single(p=>p.Key=="P1");
+            True(f.Executed.SequenceEqual(["P1"])&&f.Saves==1&&c.Snapshot.ActiveRevisionId==revision
+                &&measured.WorkingXUm==0&&measured.WorkingJudge=="OK"&&!measured.IsMeasurementOffsetInitialized
+                &&measured.HasMeasurementHistory&&f.Source.StoredInitializedOffsetKeys!.Contains(f.Source.Points[0].OffsetKey));
+        });
+        await Check("saved_offset_init_keeps_masked_point_and_equipment_guard_restrictions",async()=>
+        {
+            var(f,c)=Fixture();Empty(f);f.Source=f.Source with { Points=f.Source.Points.Select(p=>p.Key=="P2"?p with { Masked=true }:p).ToArray() };
+            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);
+            await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P2"]));True(f.Executed.Count==0&&f.Saves==0);
+            f.RejectGuard=true;await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1"]));
+            True(f.Executed.Count==0&&f.Saves==0&&!c.IsBusy&&!c.Snapshot.HasIncomplete&&c.Snapshot.Points.All(p=>p.IsMeasurementOffsetInitialized));
+        });
+    }
     private static Task Do(CManualInspectionController c,EN_MANUAL_INSPECTION_UI_ACTION action,IReadOnlyList<string>?keys=null,Func<CManualInspectionUiRequest,CManualInspectionUiRequest>?edit=null){var r=new CManualInspectionUiRequest{ExpectedVersion=c.Snapshot.Version,Keys=keys??[]};return c.ExecuteAsync(action,edit?.Invoke(r)??r);}
     private static async Task Prepared(CManualInspectionController c){await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Calculate,["P1"]);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Validate);}
     private static (FakeBackend,CManualInspectionController) Fixture(bool readOnly=false,bool ngReference=false){var f=new FakeBackend(Path.Combine(Root,Guid.NewGuid().ToString("N")),readOnly,ngReference);return(f,new(f));}
@@ -99,7 +330,7 @@ internal static partial class Program
     private static async Task Check(string name,Func<Task>a){try{await a();Results.Add(new{name,passed=true});Console.WriteLine("PASS "+name);}catch(Exception e){Failed++;Results.Add(new{name,passed=false,error=e.ToString()});Console.WriteLine("FAIL "+name+": "+e.Message);}}
     private sealed class FakeBackend:IManualInspectionBackend
     {
-        public bool IsSimulation=>Simulation;public string StateDirectory{get;}public CManualInspectionSource Source;public int Loads,Saves,StopCalls;public bool FailSave,Stale,Hold,Simulation;public string? FailKey;public double NewX=.5;public string NewJudge="OK";public readonly List<string> Executed=[],SourceIds=[],FlyingKeys=[];
+        public bool IsSimulation=>Simulation;public string StateDirectory{get;}public CManualInspectionSource Source;public int Loads,Saves,StopCalls,Ensures,Guards;public bool FailSave,Stale,Hold,Simulation;public string? FailKey;public double NewX=.5,NewY=-.25;public string NewJudge="OK";public readonly List<string> Executed=[],SourceIds=[],FlyingKeys=[];
         public readonly List<KeyValuePair<string,string>> ReceiptSeeds=[],SavedConsumption=[];
         public Func<CManualInspectionSource,CancellationToken,Task>? LoadHook;
         public readonly Dictionary<string,CManualInspectionSource> FileSources=new(StringComparer.OrdinalIgnoreCase);
@@ -111,7 +342,7 @@ internal static partial class Program
         public Func<CancellationToken,Task>? SaveHook;
         public Action? StopHook;
         public Action<string>? PointHook;
-        public bool CancellationCallbackThrows;
+        public bool CancellationCallbackThrows,RejectGuard;
         public IReadOnlyList<string> WatchRoots { get; set; } = [];
         public IReadOnlyList<KeyValuePair<string,string>> ConsumedMeasurements=>ReceiptSeeds.Concat(SavedConsumption).Distinct().ToArray();
         public readonly TaskCompletionSource Entered=new(TaskCreationOptions.RunContinuationsAsynchronously),CancelObserved=new(TaskCreationOptions.RunContinuationsAsynchronously),Release=new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -122,12 +353,12 @@ internal static partial class Program
             Source=new(context,points,points.ToDictionary(p=>p.Key,_=>ST_MANUAL_OFFSET.Zero),new(30,200,5),(_,_,_)=>new(true,"synthetic field"),5,5,"","Synthetic current source"){ReadOnly=readOnly};
         }
         public async Task<CManualInspectionSource> LoadAsync(string? p,CancellationToken t,IReadOnlyList<string>?displayKeys=null){Loads++;LoadedPaths.Add(p);var captured=p is not null&&FileSources.TryGetValue(p,out var file)?file:Source;if(LoadHook is not null)await LoadHook(captured,t);t.ThrowIfCancellationRequested();return captured;}
-        public void GuardOperation(){}
-        public Task EnsureCurrentAsync(CManualInspectionSource source,CancellationToken t){t.ThrowIfCancellationRequested();if(Stale)throw new InvalidOperationException("Changed native context");return Task.CompletedTask;}
+        public void GuardOperation(){Guards++;if(RejectGuard)throw new InvalidOperationException("Synthetic equipment safety interlock");}
+        public Task EnsureCurrentAsync(CManualInspectionSource source,CancellationToken t){Ensures++;t.ThrowIfCancellationRequested();if(Stale)throw new InvalidOperationException("Changed native context");return Task.CompletedTask;}
         public async Task<CManualInspectionMeasurement> ExecutePointAsync(CManualInspectionSource s,string key,EN_MANUAL_OPERATION_KIND kind,Action<string>progress,CancellationToken token)
         {
             Executed.Add(key);PointHook?.Invoke(key);Entered.TrySetResult();if(Hold){using var registration=CancellationCallbackThrows?token.Register(()=>throw new IOException("Synthetic cancellation callback failure")):default;try{await Task.Delay(Timeout.Infinite,token);}catch(OperationCanceledException){CancelObserved.TrySetResult();await Release.Task;throw;}}
-            token.ThrowIfCancellationRequested();if(key==FailKey)throw new TimeoutException("Synthetic missing response");var p=s.Points.First(p=>p.Key==key);var m=new ST_MANUAL_MEASUREMENT(NewJudge,NewX,-.25,"NEW-RAW-"+NewX,s.Context.RecipeId,s.Context.RunId,s.Context.CoordinateSignature){RawData="Synthetic new raw"};return new(key,m,p.XMm,p.YMm);
+            token.ThrowIfCancellationRequested();if(key==FailKey)throw new TimeoutException("Synthetic missing response");var p=s.Points.First(p=>p.Key==key);var m=new ST_MANUAL_MEASUREMENT(NewJudge,NewX,NewY,"NEW-RAW-"+NewX,s.Context.RecipeId,s.Context.RunId,s.Context.CoordinateSignature){RawData="Synthetic new raw"};return new(key,m,p.XMm,p.YMm);
         }
         public async Task ExecuteFlyingAsync(CManualInspectionSource s,IReadOnlyList<string>keys,Action<CManualInspectionMeasurement>measured,Action<string>progress,CancellationToken token){FlyingKeys.AddRange(keys);foreach(var k in keys)measured(await ExecutePointAsync(s,k,EN_MANUAL_OPERATION_KIND.Flying,progress,token));}
         public async Task<string> SaveAsync(CManualInspectionSource s,IReadOnlyDictionary<string,ST_MANUAL_OFFSET>values,string identity,IReadOnlyList<ST_MANUAL_CANDIDATE_ROW>rows,CancellationToken token,IReadOnlyDictionary<string,string>?consumedMeasurements=null)

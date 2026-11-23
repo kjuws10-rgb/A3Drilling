@@ -1,0 +1,124 @@
+{
+  "schemaVersion": "a3-manual-inspection-ui-integration-impact/1",
+  "passed": true,
+  "tests": 23,
+  "failures": 0,
+  "scope": "Targeted native UI changes only; the prior49 suite is not repeated. Imported source, same resolved F, Beam row expansion, history dispatch, level-name policy. Fake controller only.",
+  "checks": [
+    {
+      "name": "arrival_label_not_live_motor_feedback",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "unknown_arrival_shown_as_dash",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "imported_filter_choice_present",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "imported_filter_exact_source",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "imported_not_a_native_reference",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "imported_result_does_not_invent_active_offset",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "measurement_legend_marks_unmeasured_and_initialized",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "imported_table_preserves_original",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "raw_history_uses_controller_full_history",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "raw_history_request_current_version",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "busy_history_disabled_consistent_with_serial_controller",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "consumed_raw_uses_engine_resolved_F",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "partial_resolved_F_does_not_guess_other_axis",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "candidate_status_case_insensitive",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "flying_keeps_selected_Beam_row",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "flying_excludes_masked_in_same_row",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "level_names_trimmed",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "duplicate_trimmed_level_names_rejected",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "long_level_names_rejected",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "blank_level_names_rejected",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "impact_checks_send_no_motion_or_correction",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "real_profile_has_no_SIM_fixture_action",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "SIM_profile_has_no_fixture_action",
+      "passed": true,
+      "details": null
+    }
+  ]
+}

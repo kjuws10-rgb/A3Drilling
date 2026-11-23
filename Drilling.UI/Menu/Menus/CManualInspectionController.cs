@@ -22,6 +22,7 @@ public sealed class CManualInspectionController : IManualInspectionController
     private CManualInspectionWorkspace _engine = new();
     private WorkspaceBookmark? _previousWorkspace;
     private bool _loadFailureRecovered;
+    private string? _offsetDraftRecoveryBlockedPath;
     private readonly SemaphoreSlim _command = new(1, 1);
     private readonly Action<string> _report;
     private readonly TimeProvider _presentationTime;
@@ -171,7 +172,8 @@ public sealed class CManualInspectionController : IManualInspectionController
             or EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure or EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasureCorrect
             or EN_MANUAL_INSPECTION_UI_ACTION.Measure or EN_MANUAL_INSPECTION_UI_ACTION.RetryRemaining
             or EN_MANUAL_INSPECTION_UI_ACTION.Apply or EN_MANUAL_INSPECTION_UI_ACTION.Rollback
-            or EN_MANUAL_INSPECTION_UI_ACTION.BulkApply or EN_MANUAL_INSPECTION_UI_ACTION.UndoOffsets or EN_MANUAL_INSPECTION_UI_ACTION.RedoOffsets;
+            or EN_MANUAL_INSPECTION_UI_ACTION.BulkApply or EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets
+            or EN_MANUAL_INSPECTION_UI_ACTION.UndoOffsets or EN_MANUAL_INSPECTION_UI_ACTION.RedoOffsets;
         _cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var token = _cancellation.Token;
         _loadFailureRecovered=false;
@@ -243,7 +245,18 @@ public sealed class CManualInspectionController : IManualInspectionController
                     var check = _engine.ValidateCandidate(_allowManual);
                     _status = check.Ok ? "현재 후보 검증 통과 · 아직 활성 보정에 저장하지 않았습니다." : string.Join("\n", check.Errors); break;
                 case EN_MANUAL_INSPECTION_UI_ACTION.Apply:
-                    _allowManual = request.AllowManual; await Apply(token); break;
+                    _allowManual = request.AllowManual;
+                    if (_engine.HasPendingOffsetEdit)
+                    {
+                        await Current(token);
+                        var editedCheck = _engine.ValidateCandidate(_allowManual);
+                        if (!editedCheck.Ok) throw new InvalidOperationException("Offset을 저장하지 않았습니다.\n" + string.Join("\n", editedCheck.Errors));
+                        await Apply(token, sourceVerified: true);
+                    }
+                    else await Apply(token);
+                    break;
+                case EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets:
+                    await ApplySelectedOffsets(request.Keys, token); break;
                 case EN_MANUAL_INSPECTION_UI_ACTION.BulkApply: await BulkApply(token); break;
                 case EN_MANUAL_INSPECTION_UI_ACTION.Rollback:
                 case EN_MANUAL_INSPECTION_UI_ACTION.UndoOffsets: await Restore(token,false); break;
@@ -308,7 +321,7 @@ public sealed class CManualInspectionController : IManualInspectionController
     {
         _loadFailureRecovered = false;
         if (path is not null) { await OpenResultWorkspace(path, token,preserveFileWork); return; }
-        var previous = _source is not null ? _engine.CaptureSession() : null;
+        var previous = _source is not null && !IsOffsetDraftRecoveryBlocked(SessionPath()) ? _engine.CaptureSession() : null;
         if (previous is not null) SaveLocalSession();
         if (!keepBackend) _backend = _production;
         _status = "실제 Recipe·Setting·보정·측정 위치를 확인하는 중…"; Publish();
@@ -325,26 +338,58 @@ public sealed class CManualInspectionController : IManualInspectionController
         var saved = SessionPath();
         if (path is null && (sameFrame || System.IO.File.Exists(saved)))
         {
+            var backingUpOffsetDraft = false;
+            var deferredOffsetDraft = false;
             try
             {
                 if (sameFrame)
                     _engine.RestoreSession(ExpandSession(previous!, next), next.Context, next.Points, next.Values, next.FieldEvaluator,next.StoredInitializedOffsetKeys);
                 else
                 {
-                    var bundle = JsonSerializer.Deserialize<SessionBundle>(await System.IO.File.ReadAllTextAsync(saved, token))
+                    var bytes = await System.IO.File.ReadAllBytesAsync(saved, token);
+                    using var reader = new StreamReader(new MemoryStream(bytes), Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+                    var bundle = JsonSerializer.Deserialize<SessionBundle>(await reader.ReadToEndAsync(token))
                         ?? throw new InvalidDataException("빈 보관 자료");
-                    _engine.RestoreSession(ExpandSession(bundle.Session, next), next.Context, next.Points, next.Values, next.FieldEvaluator,next.StoredInitializedOffsetKeys);
+                    var restored = bundle.Session;
+                    if (_backend is not CManualInspectionReplayBackend
+                        && restored.Candidate is { IsOffsetReplacement: true, State: not EN_MANUAL_CANDIDATE_STATE.Applied }
+                        && restored.Operation is not { Kind: not EN_MANUAL_OPERATION_KIND.Move, RemainingKeys.Count: > 0 })
+                    {
+                        // A prior process's unsaved Init/import is not the active model. Keep
+                        // that exact checkpoint before opening the saved baseline for new work.
+                        // In-memory workspaces and explicit ImportSession retain their draft.
+                        backingUpOffsetDraft = true;
+                        ArchiveOffsetDraft(bytes);
+                        backingUpOffsetDraft = false;
+                        if (IsOffsetDraftRecoveryBlocked(saved)) _offsetDraftRecoveryBlockedPath = null;
+                        restored = restored with { Candidate = restored.OffsetEditPreviousCandidate, OffsetEditPreviousCandidate = null };
+                        deferredOffsetDraft = true;
+                    }
+                    _engine.RestoreSession(ExpandSession(restored, next), next.Context, next.Points, next.Values, next.FieldEvaluator,next.StoredInitializedOffsetKeys);
                     RestoreOptions(bundle);
+                    if (IsOffsetDraftRecoveryBlocked(saved)) _offsetDraftRecoveryBlockedPath = null;
                 }
                 _engine.MergeImportedObservations(next.Points, next.ImportedResults.ToDictionary(p => p.Key, p => p.Value.SavedAt));
-                _status = "최근 외부 측정과 같은 기준의 작업 상태를 함께 표시했습니다. 자동 동작은 시작하지 않습니다.";
+                _status = deferredOffsetDraft
+                    ? "이전 미저장 Offset 편집 원문은 Recovery에 보존했습니다. 현재 저장된 모델 기준으로 열어 새 측정할 수 있습니다."
+                    : "최근 외부 측정과 같은 기준의 작업 상태를 함께 표시했습니다. 자동 동작은 시작하지 않습니다.";
             }
-            catch (OperationCanceledException) { throw; }
+            catch (OperationCanceledException)
+            {
+                _source = next with { ReadOnly = true };
+                if (!sameFrame) _offsetDraftRecoveryBlockedPath = Path.GetFullPath(saved);
+                throw;
+            }
             catch (Exception e)
             {
                 // Keep the conflicting saved file and do not quietly clear an interrupted same-run session.
                 _source = next with { ReadOnly = true };
                 _status = "보관 자료는 유지합니다. 다음 동작 때 현재 모델 기준을 연결해 새 측정할 수 있습니다.\n" + e.Message;
+                if (backingUpOffsetDraft)
+                {
+                    _offsetDraftRecoveryBlockedPath = Path.GetFullPath(saved);
+                    throw new IOException("이전 미저장 Offset 편집의 복구 백업에 실패하여 모델 열기를 중단했습니다. 원본 작업 파일을 보존했으며 저장·측정은 실행하지 않았습니다.\n" + e.Message, e);
+                }
             }
         }
         else _status = next.Description + " · 현재 모델에서 편집·새 측정 가능";
@@ -738,13 +783,32 @@ public sealed class CManualInspectionController : IManualInspectionController
         _engine.BuildBulkCandidate(); _allowManual=preview.ManualCount>0;
         var validation=_engine.ValidateCandidate(_allowManual);
         if(!validation.Ok) throw new InvalidOperationException("일괄 보정을 저장하지 않았습니다.\n"+string.Join("\n",validation.Errors));
-        await Apply(token);
+        await Apply(token, sourceVerified: true);
         _status=$"일괄 보정 {preview.Keys.Count:N0}점 저장 · NG {preview.ExcludedNg:N0} / 미측정 {preview.ExcludedUnmeasured:N0} / 적용됨 {preview.ExcludedConsumed:N0}점 제외";
     }
 
-    private async Task Apply(CancellationToken token)
+    private async Task ApplySelectedOffsets(IReadOnlyList<string> keys, CancellationToken token)
     {
         await Current(token);
+        var selected = keys.Distinct(StringComparer.Ordinal).Select(_engine.GetPoint).ToArray();
+        if (selected.Length == 0) throw new InvalidOperationException("보정할 측정 위치를 선택하세요.");
+        if (selected.Any(point => point.Masked)) throw new InvalidOperationException("선택한 위치에 Masking이 포함되어 보정을 저장하지 않았습니다.");
+        if (selected.Any(point => point.Judge != "OK" || point.IsMeasurementOffsetInitialized || !point.HasFiniteError))
+            throw new InvalidOperationException("선택한 위치에 NG·미측정·초기화 결과가 있어 보정을 저장하지 않았습니다. 새 OK 측정 결과를 선택하세요.");
+        var eligible = _engine.PreviewBulkCorrection().Keys.ToHashSet(StringComparer.Ordinal);
+        if (selected.Any(point => !eligible.Contains(point.Key)))
+            throw new InvalidOperationException("선택한 위치에 이미 적용했거나 출처를 확인할 수 없는 결과가 있어 보정을 저장하지 않았습니다. 새 측정 결과를 선택하세요.");
+        var candidate = _engine.BuildDirectCandidate(selected.Select(point => point.Key));
+        _allowManual = candidate.Rows.Any(row => row.Source == "MANUAL");
+        var validation = _engine.ValidateCandidate(_allowManual);
+        if (!validation.Ok) throw new InvalidOperationException("선택점 보정을 저장하지 않았습니다.\n" + string.Join("\n", validation.Errors));
+        await Apply(token, sourceVerified: true);
+        _status = $"선택점 보정 {selected.Length:N0}점 저장 완료 · 선택 범위만 계산·검증·저장했습니다.";
+    }
+
+    private async Task Apply(CancellationToken token, bool sourceVerified = false)
+    {
+        if (!sourceVerified) await Current(token);
         var snapshot = _engine.CreateApplySnapshot(_allowManual);
         try
         {
@@ -968,12 +1032,27 @@ public sealed class CManualInspectionController : IManualInspectionController
         using var file=new FileStream(destination,FileMode.CreateNew,FileAccess.Write,FileShare.Read);
         file.Write(bytes);file.Flush(true);
     }
+    private void ArchiveOffsetDraft(byte[] bytes)
+    {
+        var directory = Path.Combine(_backend.StateDirectory, "Recovery");
+        Directory.CreateDirectory(directory);
+        var destination = Path.Combine(directory, "offset-draft-" + DateTimeOffset.Now.ToString("yyyyMMdd-HHmmss-fffffff", CultureInfo.InvariantCulture)
+            + "-" + Guid.NewGuid().ToString("N") + ".json");
+        using (var file = new FileStream(destination, FileMode.CreateNew, FileAccess.Write, FileShare.Read))
+        { file.Write(bytes); file.Flush(true); }
+        if (!System.IO.File.ReadAllBytes(destination).AsSpan().SequenceEqual(bytes))
+            throw new IOException("미저장 Offset 복구 백업의 원문 검증에 실패했습니다.");
+    }
     private void SaveLocalSession()
     {
         if (_source is null || _source.ReadOnly) return;
-        CManualInspectionBackend.AtomicText(SessionPath(), JsonSerializer.Serialize(Bundle(), JsonOptions));
+        var path = SessionPath();
+        if (IsOffsetDraftRecoveryBlocked(path)) return;
+        CManualInspectionBackend.AtomicText(path, JsonSerializer.Serialize(Bundle(), JsonOptions));
         _lastCheckpoint = DateTimeOffset.UtcNow; _persistence = "자동 보관 " + DateTimeOffset.Now.ToString("HH:mm:ss");
     }
+    private bool IsOffsetDraftRecoveryBlocked(string path) => _offsetDraftRecoveryBlockedPath is not null
+        && string.Equals(Path.GetFullPath(path), _offsetDraftRecoveryBlockedPath, StringComparison.OrdinalIgnoreCase);
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
     public sealed record SessionBundle(int SchemaVersion, bool Simulation, string Scenario, ST_MANUAL_SESSION Session,
         bool AllowManual, string LevelMetric, double[] LevelBounds, string[] LevelNames);

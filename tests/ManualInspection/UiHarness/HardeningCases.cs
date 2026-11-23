@@ -57,16 +57,21 @@ internal static partial class Program
             fake.Replace(fake.Snapshot with { Version = fake.Snapshot.Version + 1, IsReadOnly = false, Message = "" }); Pump();
             Test("read_only_recovery_clears_old_notice", ((TextBlock)view.FindName("MessageText")).Visibility == Visibility.Collapsed);
 
+            fake.Replace(fake.Snapshot with { CanApply=true,ValidationPassed=true,CandidateStatus="VALIDATED",CandidateRows=[new CManualInspectionUiCandidateRow{Key=target.Key,Source="MEASURED",FinalXUm=1}] });Pump();
             var before = fake.Calls.Count;
             var version = fake.Snapshot.Version;
             view.ConfirmationForTesting = (_, _, _) => false;
-            Invoke(view, "Apply_Click", view, new RoutedEventArgs());
-            Test("apply_without_motion_dispatches_without_confirmation", fake.Calls.Count == before+1&&fake.Calls[^1].Action==EN_MANUAL_INSPECTION_UI_ACTION.Apply);
+            Invoke(view, "Apply_Click", view, new RoutedEventArgs());Pump();
+            Test("apply_confirmation_cancel_dispatches_nothing", fake.Calls.Count == before);
             before=fake.Calls.Count;
-            view.ConfirmationForTesting = (_, _, _) => throw new InvalidOperationException("Save must not request confirmation");
+            view.ConfirmationForTesting = (_, _, _) => true;
             Invoke(view, "Apply_Click", view, new RoutedEventArgs()); Pump();
-            Test("apply_without_confirmation_dispatches_one_current_request", fake.Calls.Count == before+1&&fake.Calls[^1].Request.ExpectedVersion==version);
-            Test("apply_without_confirmation_does_not_invoke_confirmation_callback", fake.Snapshot.Version == version);
+            Test("apply_confirmation_accept_dispatches_one_current_request", fake.Calls.Count == before+1&&fake.Calls[^1].Request.ExpectedVersion==version);
+            before=fake.Calls.Count;
+            view.ConfirmationForTesting = (_, _, _) => throw new InvalidOperationException("synthetic confirmation failure");
+            Invoke(view, "Apply_Click", view, new RoutedEventArgs());Pump();
+            Test("apply_confirmation_failure_keeps_model_and_version", fake.Calls.Count==before&&fake.Snapshot.Version == version);
+            view.ConfirmationForTesting = (_, _, _) => true;
             before=fake.Calls.Count;
             Execute(EN_MANUAL_INSPECTION_UI_ACTION.CopyReference, new() { ExpectedVersion = fake.Snapshot.Version - 1 });
             Test("common_request_gate_rejects_stale_copy", fake.Calls.Count == before);

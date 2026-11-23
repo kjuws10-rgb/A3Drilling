@@ -20,7 +20,7 @@ public enum EN_MANUAL_INSPECTION_UI_ACTION
     ExportCsv, Move, MoveMeasure, MoveMeasureCorrect, Measure, RetryRemaining, Stop,
     Calculate, Validate, Apply, Rollback, CopyReference, UndoCopy, UpdateLimits, SetAllowManual, UpdateLevels, ShowPoint,
     ReturnToPreviousWorkspace, InitializeOffsets, CancelOffsetEdit, ExportOffsetBundle, ImportOffsetBundle,
-    BulkApply, UndoOffsets, RedoOffsets
+    BulkApply, UndoOffsets, RedoOffsets, ApplySelectedOffsets
 }
 
 /// <summary>Recipe preview's global DESIGN-mm polygon, before scanner/stage transforms.</summary>

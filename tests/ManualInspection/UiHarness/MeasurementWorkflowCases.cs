@@ -63,10 +63,13 @@ internal static partial class Program
             Test("workflow_all_init_keeps_all_scope_without_popup",fake.Calls.Count==before+1&&fake.Calls[^1].Request.OffsetInitScope=="ALL"&&confirmations==0);
             var movingBefore=fake.Calls.Count;((Task)Invoke(view,"ConfirmOperation",EN_MANUAL_INSPECTION_UI_ACTION.Move,new[]{p.Key},fake.Snapshot.Version,"P2P")!).GetAwaiter().GetResult();Pump();
             Test("workflow_motion_still_requires_confirmation_and_cancel_prevents_dispatch",confirmations==1&&fake.Calls.Count==movingBefore);
-            var cb=0;view.ConfirmationForTesting=(_,_,_)=>{cb++;return false;};Click("ValidateButton");
-            Test("workflow_validate_is_immediate_without_movement_confirmation",cb==0&&fake.Calls[^1].Action==EN_MANUAL_INSPECTION_UI_ACTION.Validate);
-            Find<Expander>("SettingsSection").IsExpanded=true;Pump();Click("LevelsButton");
-            Test("workflow_level_settings_open_inline_without_popup",cb==0&&Find<StackPanel>("LevelSettingsPanel").Visibility==Visibility.Visible);
+            fake.Replace(fake.Snapshot with{CandidateRows=[new CManualInspectionUiCandidateRow{Key=p.Key,Source="MEASURED"}],CandidateStatus="DRAFT"});Pump();
+            var cb=0;var beforeValidation=fake.Calls.Count;view.ConfirmationForTesting=(_,_,_)=>{cb++;return false;};Click("CalculateButton");
+            Test("workflow_selected_correction_requires_confirmation_and_cancel_is_inert",cb==1&&fake.Calls.Count==beforeValidation);
+            view.ConfirmationForTesting=(_,_,_)=>{cb++;return true;};Click("CalculateButton");
+            Test("workflow_selected_correction_accept_dispatches_integrated_action",cb==2&&fake.Calls.Count==beforeValidation+1&&fake.Calls[^1].Action==EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets);
+            var beforeSettingsConfirmation=cb;Find<Expander>("SettingsSection").IsExpanded=true;Pump();Click("LevelsButton");
+            Test("workflow_level_settings_open_inline_without_popup",cb==beforeSettingsConfirmation&&Find<StackPanel>("LevelSettingsPanel").Visibility==Visibility.Visible);
             foreach(var size in new[]{(1490,900),(1120,560)})
             {
                 window.Width=size.Item1;window.Height=size.Item2;Find<Expander>("InspectorSection").IsExpanded=false;Find<Expander>("ResultsSection").IsExpanded=false;Find<Expander>("ScatterSection").IsExpanded=false;Pump();

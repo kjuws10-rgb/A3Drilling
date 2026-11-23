@@ -1,0 +1,159 @@
+{
+  "schemaVersion": "a3-manual-inspection-ui-hardening/1",
+  "passed": true,
+  "tests": 30,
+  "failures": 0,
+  "scope": "Actual WPF view and current themes with a request-recording fake controller. No equipment app, vendor SDK, Vision or motion execution.",
+  "checks": [
+    {
+      "name": "hidden_scatter_target_is_outside_current_map_filters",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "same_cell_scatter_click_reveals_hidden_head_judge_source_search_target",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_click_selects_target_without_device_request",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "already_visible_scatter_click_preserves_useful_filter",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "cross_cell_scatter_focus_reveals_cell_and_preserves_ctrl_selection",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "direct_reference_enables_copy_to_other_selected_point",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "external_source_change_invalidates_representative",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "legacy_readonly_flag_does_not_show_readonly_mode",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "read_only_recovery_clears_old_notice",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "apply_confirmation_cancel_dispatches_nothing",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "apply_confirmation_accept_dispatches_one_current_request",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "apply_confirmation_failure_keeps_model_and_version",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "common_request_gate_rejects_stale_copy",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "legacy_readonly_flag_does_not_block_request_Move",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "legacy_readonly_flag_does_not_block_request_Measure",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "legacy_readonly_flag_does_not_block_request_Apply",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "legacy_readonly_flag_does_not_block_request_CopyReference",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "legacy_readonly_flag_does_not_block_request_UpdateLimits",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "legacy_readonly_flag_does_not_block_request_UpdateLevels",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "legacy_readonly_flag_does_not_block_request_SetAllowManual",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "read_only_allows_non_device_action_ShowPoint",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "read_only_allows_non_device_action_ExportCsv",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "read_only_allows_non_device_action_ExportSession",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "read_only_allows_non_device_action_Refresh",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "read_only_allows_non_device_action_LoadResultFile",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "read_only_allows_non_device_action_ImportSession",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "busy_request_gate_keeps_showpoint_disabled",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "stop_bypasses_busy_readonly_and_stale_guards",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "local_validation_message_survives_same_snapshot_refresh",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "new_snapshot_replaces_old_local_notice",
+      "passed": true,
+      "details": null
+    }
+  ]
+}

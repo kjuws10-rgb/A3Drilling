@@ -111,12 +111,13 @@ public partial class CManualInspectionView : UserControl
     private bool _updating;
     private bool _attached;
     private int _requests;
+    private bool _actionConfirmationPending;
     private int _refreshPending;
     private long _lastMeasurementSequence;
     private long _lastLimitsVersion = -1;
     private string _lastLimitsSignature = "";
     private const int PageSize = 50;
-    private bool Busy => _snapshot.IsBusy || _requests > 0;
+    private bool Busy => _snapshot.IsBusy || _requests > 0 || _actionConfirmationPending;
     // A narrow UI-test seam: tests inspect the exact description and accept/cancel without a modal loop.
     internal Func<string, string, string, bool>? ConfirmationForTesting { get; set; }
 
@@ -397,8 +398,8 @@ public partial class CManualInspectionView : UserControl
         CandidateStatusText.SetResourceReference(TextBlock.ForegroundProperty, _snapshot.IsOffsetEditPending ? "ButtonWarningBrush" : applied || _snapshot.CanApply && _snapshot.ValidationPassed ? "StatusReadyBrush" : "AccentTextBrush");
         CorrectionSection.Header = _snapshot.IsOffsetEditPending ? "통합 Offset · 저장 전" : applied ? "보정 · 적용 완료" : _snapshot.CandidateRows.Count > 0 ? $"보정 확인 · 후보 {_snapshot.CandidateRows.Count:N0}점" : "보정 확인 · 적용";
         CandidateContextText.Text = _snapshot.IsOffsetEditPending
-            ? $"전체 모델 · {_snapshot.CandidateRows.Count:N0}점\n화면 작업값 → 검증 후 모델 Offset 저장"
-            : $"선택 전체 {_selected.Count:N0}점 · 후보 {_snapshot.CandidateRows.Count:N0}점\nB(현재) + Δ(증감) → F(적용 후)";
+            ? $"작업 Offset {_snapshot.CandidateRows.Count:N0}점 · 저장 시 검증 후 모델에 반영"
+            : $"선택점 보정: 선택 {_selected.Count:N0}점만 · 일괄 보정: 현재 모델 전체";
         CandidateContextText.ToolTip = "기준 활성 보정 " + _snapshot.ActiveRevisionId + "\n후보 F는 검증값 적용 전까지 지도 활성 B 색상에 포함되지 않습니다.";
         if (_snapshot.IsOffsetEditPending) CandidateContextText.ToolTip = "화면은 전체 모델의 작업 통합 Offset을 표시합니다. 저장 전에는 실제 활성 보정이 유지됩니다. 범위 초기화 시 나머지 모델 보정은 보존합니다.";
         OffsetStateText.Text = string.IsNullOrWhiteSpace(_snapshot.OffsetSummaryText)
@@ -494,14 +495,16 @@ public partial class CManualInspectionView : UserControl
             ? "초기화/가져오기 전 작업·측정 표시로 돌아갑니다. 활성 모델 보정과 원본 파일은 변경하지 않습니다."
             : $"{(initScope == "CELL" ? "선택 Cell 전체" : initScope == "HEAD" ? "선택 Head 전체" : "모델 전체")}의 측정 누적 보정만 화면에서 초기화합니다. 하드웨어·Default·First Beam·Distortion과 기존 파일은 유지합니다. 모델 저장 시 반영됩니다.";
         CalculateButton.IsEnabled = operate && hasSelection && !_snapshot.HasIncomplete;
-        ValidateButton.IsEnabled = writable && !_snapshot.HasIncomplete && _snapshot.CandidateRows.Count > 0 && !string.Equals(_snapshot.CandidateStatus, "APPLIED", StringComparison.OrdinalIgnoreCase);
-        ApplyButton.IsEnabled = writable && !_snapshot.HasIncomplete && _snapshot.CanApply && _snapshot.ValidationPassed;
-        ApplyButton.ToolTip = ApplyButton.IsEnabled ? _snapshot.IsOffsetEditPending
-            ? "화면의 전체 작업 통합 Offset을 현재 모델에 저장합니다. 저장이 성공한 뒤 실제 활성 보정에 반영됩니다."
-            : "검증한 후보를 포함한 통합 보정값을 현재 모델에 저장합니다. 저장하면 현재 모델에 반영합니다."
+        ValidateButton.Visibility = Visibility.Collapsed;
+        ValidateButton.IsEnabled = false;
+        ApplyButton.Visibility = _snapshot.IsOffsetEditPending ? Visibility.Visible : Visibility.Collapsed;
+        ApplyButton.Content = _snapshot.OffsetInitPending ? "초기화 저장" : "가져온 Offset 저장";
+        ApplyButton.IsEnabled = writable && !_snapshot.HasIncomplete && _snapshot.IsOffsetEditPending && _snapshot.CandidateRows.Count > 0;
+        ApplyButton.ToolTip = ApplyButton.IsEnabled
+            ? "작업 Offset을 검증한 뒤 현재 모델에 저장합니다. 검증이 실패하면 저장하지 않습니다."
             : Busy ? "현재 동작 정리 후 사용할 수 있습니다."
             : _snapshot.HasIncomplete ? "남은 측정을 완료한 뒤 계산·검증하세요."
-            : "후보 계산과 검증을 통과해야 활성 보정으로 저장할 수 있습니다.";
+            : "저장할 초기화 또는 가져온 Offset 작업이 없습니다.";
         BulkApplyButton.IsEnabled=operate && !_snapshot.HasIncomplete && _snapshot.CanBulkApply;
         BulkSummaryText.Text=_snapshot.BulkSummaryText;
         RollbackButton.IsEnabled = operate && _snapshot.CanUndoOffsets;
@@ -864,6 +867,54 @@ public partial class CManualInspectionView : UserControl
             { ShowMessage("작업 통합 Offset을 모델에 저장하거나 ‘Offset 편집 취소’한 뒤 이동·측정·파일 전환을 진행하세요."); return; }
             if (current.HasIncomplete && (action is EN_MANUAL_INSPECTION_UI_ACTION.LoadResultFile or EN_MANUAL_INSPECTION_UI_ACTION.ReturnToPreviousWorkspace))
             { ShowMessage("미완료 측정의 잔여점을 완료한 뒤 파일을 불러오거나 이전 작업으로 돌아가세요."); return; }
+        }
+        if (action is EN_MANUAL_INSPECTION_UI_ACTION.BulkApply or EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets or EN_MANUAL_INSPECTION_UI_ACTION.Calculate
+            or EN_MANUAL_INSPECTION_UI_ACTION.Validate or EN_MANUAL_INSPECTION_UI_ACTION.Apply)
+        {
+            bool CanConfirm(CManualInspectionUiSnapshot snapshot) => !snapshot.HasIncomplete && (action switch
+            {
+                EN_MANUAL_INSPECTION_UI_ACTION.BulkApply => !snapshot.IsOffsetEditPending && snapshot.CanBulkApply && snapshot.BulkEligibleCount > 0,
+                EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets => !snapshot.IsOffsetEditPending && frozen.Keys.Count > 0,
+                EN_MANUAL_INSPECTION_UI_ACTION.Calculate => !snapshot.IsOffsetEditPending && frozen.Keys.Count > 0,
+                EN_MANUAL_INSPECTION_UI_ACTION.Validate => snapshot.CandidateRows.Count > 0 && snapshot.CandidateStatus != "APPLIED",
+                _ => snapshot.IsOffsetEditPending ? snapshot.CandidateRows.Count > 0 : snapshot.CanApply && snapshot.ValidationPassed
+            });
+            if (!CanConfirm(current))
+            { ShowMessage("현재 결과에서는 해당 보정 작업을 실행할 수 없습니다. 대상과 후보 상태를 확인하세요."); return; }
+            var confirmingController = _controller;
+            var panel = new StackPanel();
+            panel.Children.Add(Label($"Recipe {current.RecipeId} · Run {current.RunId}"));
+            var (title, confirmText, description) = action switch
+            {
+                EN_MANUAL_INSPECTION_UI_ACTION.BulkApply => ("일괄 보정 적용 확인", "일괄 보정 적용",
+                    $"현재 모델 전체의 유효한 측정 {current.BulkEligibleCount:N0}점에 보정을 적용합니다.\n{current.BulkSummaryText}\n선택·화면 필터와 관계없이 새 OK 측정과 대표값 복사 결과를 적용합니다.\nNG·미측정·이미 적용한 결과는 제외합니다.\n하드웨어·Default·First Beam·Distortion Offset은 유지하며, 저장 후 최대 10회 되돌릴 수 있습니다."),
+                EN_MANUAL_INSPECTION_UI_ACTION.Calculate => ("선택점 보정 계산 확인", "보정 후보 계산",
+                    $"선택한 {frozen.Keys.Distinct(StringComparer.Ordinal).Count():N0}점의 유효한 측정값으로 보정 후보를 계산합니다.\n현재 보정값에 측정 편차를 더한 후보이며, 기존 후보가 있으면 새 계산으로 바뀝니다.\n이 단계에서는 모델 Offset 파일에 저장하지 않습니다."),
+                EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets => ("선택점 보정 확인", "선택점 보정 적용",
+                    $"선택한 {frozen.Keys.Distinct(StringComparer.Ordinal).Count():N0}점만 계산·검증하여 현재 모델에 저장합니다.\n같은 Shot의 Beam은 보정값을 공유합니다.\n검증에 실패하면 저장하지 않습니다. NG·미측정·Masking은 보정할 수 없습니다.\n보호 Offset과 이전 파일은 유지하며, 저장 후 최대 10회 되돌릴 수 있습니다."),
+                EN_MANUAL_INSPECTION_UI_ACTION.Validate => ("후보 검증 확인", "후보 검증",
+                    $"현재 후보 {current.CandidateRows.Count:N0}점의 출처·중복 적용·보정 한계·Scanner Field를 확인합니다.\n검증 결과는 후보에 표시하며, 통과하더라도 모델 Offset 파일에 저장하지 않습니다."),
+                _ => (current.OffsetInitPending ? "초기화 저장 확인" : "가져온 Offset 저장 확인", current.OffsetInitPending ? "초기화 저장" : "가져온 Offset 저장",
+                    $"작업 Offset {current.CandidateRows.Count:N0}점의 최종 보정값을 검증한 뒤 현재 모델에 저장합니다.\n검증에 실패하면 저장하지 않습니다.\n"+
+                    (current.OffsetInitPending ? "선택 범위의 측정 기반 Offset은 ‘값 없음’ 상태로 저장됩니다.\n" : "이후 가공·Review는 저장된 최신 누적 Review Offset을 사용합니다.\n")+
+                    "하드웨어·Default·First Beam·Distortion Offset과 기존 이력 파일은 보존합니다.\n저장된 보정 상태는 최대 10회 되돌릴 수 있습니다.")
+            };
+            panel.Children.Add(Label(description));
+            panel.Children.Add(Label("장비를 이동하지 않습니다. 취소하면 후보와 모델 보정값은 변경되지 않습니다."));
+            bool accepted;
+            // ShowDialog runs a nested dispatcher. Lock before opening it so a second click
+            // cannot create another confirmation or dispatch a second write behind this one.
+            _actionConfirmationPending = true; RefreshButtons();
+            try { accepted = Confirm(title, panel, confirmText); }
+            catch (Exception error) { ShowMessage("작업 확인창을 열지 못했습니다. " + error.Message); return; }
+            finally { _actionConfirmationPending = false; RefreshButtons(); }
+            if (!accepted) { ShowMessage(confirmText + "을 취소했습니다."); return; }
+            if (!ReferenceEquals(confirmingController, _controller) || _controller is null
+                || frozen.ExpectedVersion != _controller.Snapshot.Version)
+            { Refresh(); ShowMessage("확인 중 측정 기준이 바뀌었습니다. 현재 자료를 확인한 뒤 다시 요청하세요."); return; }
+            current = _controller.Snapshot;
+            if (Busy || current.IsBusy || !CanConfirm(current))
+            { Refresh(); ShowMessage("현재 작업 상태에서는 해당 보정을 실행할 수 없습니다. 현재 결과를 확인하세요."); return; }
         }
         var beforeFile = action == EN_MANUAL_INSPECTION_UI_ACTION.LoadResultFile
             ? current.CanReturnToPreviousWorkspace ? _workspaceViewBookmark : CaptureWorkspaceView() : null;

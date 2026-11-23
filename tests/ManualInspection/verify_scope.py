@@ -1,23 +1,23 @@
-"""Verify bulk correction/history and Review-empty scope. Never starts equipment."""
+"""Verify manual interaction, integrated selection correction and saved-offset display scope. Never starts equipment."""
 import argparse,hashlib,json,re,subprocess
 from pathlib import Path
 import xml.etree.ElementTree as ET
 ROOT=Path(__file__).resolve().parents[2]
-BASE="61578dbefbef8d5d5ebe83e4ec289e452771904f"
+BASE="367a7276822d73d7709cd64f94847ee979c4d557"
 EXISTING={
  "Drilling.Common/Station/CStageReviewSequences.cs","Drilling.File/ReviewResult/CReviewResultFile.cs",
  "Drilling.Common/Review/CReviewManager.cs","Drilling.File/ReviewOffset/CReviewOffsetFile.cs",
- "Drilling.UI/CRootView.cs","Drilling.UI/Views/CCorrectionView.xaml","Drilling.UI/Views/CCorrectionView.xaml.cs",
+ "Drilling.UI/Views/CCorrectionView.xaml","Drilling.UI/Views/CCorrectionView.xaml.cs",
  "Drilling.Common/Review/CManualInspectionCoordinateBridge.cs","Drilling.Common/Review/CManualInspectionResultProjection.cs",
  "Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs","Drilling.UI/Menu/Menus/CManualInspectionUpdateMonitor.cs",
  "Drilling.UI/Menu/Menus/CMenuCorrection.ManualInspection.cs","Drilling.UI/Views/CManualInspectionScatterControl.cs"}
 CHANGED={
- "Drilling.Common/Recipe/CShotCoordinatePlanBuilder.cs","Drilling.UI/Menu/Menus/CMenuCorrection.cs",
- "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Offset.cs","Drilling.UI/Drilling.UI.csproj",
- "Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs","Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs",
- "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs","Drilling.UI/Menu/Menus/CManualInspectionBackend.cs",
+ "Drilling.UI/Drilling.UI.csproj","Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs",
  "Drilling.UI/Menu/Menus/CManualInspectionController.cs","Drilling.UI/Views/CManualInspectionMapControl.cs",
- "Drilling.UI/Views/CManualInspectionUiContract.cs","Drilling.UI/Views/CManualInspectionView.xaml","Drilling.UI/Views/CManualInspectionView.xaml.cs"}
+ "Drilling.UI/Views/CManualInspectionView.xaml.cs","Drilling.UI/Views/CManualInspectionUiContract.cs","Drilling.UI/Views/CManualInspectionView.xaml",
+ "Drilling.UI/CRootView.cs","Drilling.UI/Menu/Menus/CMenuMonitor.cs","Drilling.UI/Menu/Menus/CMenuRecipe.cs",
+ "Drilling.UI/Menu/Menus/CReviewOffsetDisplaySnapshot.cs"}
+
 def git(*a):return subprocess.check_output(["git",*a],cwd=ROOT)
 def old(path):return git("show",f"{BASE}:{path}").decode("utf-8-sig").replace("\r\n","\n")
 def current(path):return (ROOT/path).read_text(encoding="utf-8-sig")
@@ -28,8 +28,8 @@ def main():
  paths=set(git("diff","--name-only",BASE,"--").decode().splitlines())|set(git("ls-files","--others","--exclude-standard").decode().splitlines())
  check("changed_paths_are_authorized",all(x in CHANGED or x.startswith(("tests/ManualInspection/","docs/ManualInspection/")) for x in paths))
  check("configuration_runtime_data_vendor_and_themes_unchanged",not any(x.startswith(("Config/","Data/","Drilling.UI/Themes/","Drilling.Common/Interface/","Drilling.Common/Motion/")) or x.endswith((".dll",".exe")) for x in paths))
- check("daily_program_and_portable_version_11_23_0",ET.parse(ROOT/"Drilling.UI/Drilling.UI.csproj").findtext(".//Version")=="2026.11.23.0" and 'ProgramVersion = "11.23.0"' in current("Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs"))
- for path in sorted(EXISTING):check("unchanged:"+path,old(path)==current(path))
+ check("daily_program_and_portable_version_11_23_1",ET.parse(ROOT/"Drilling.UI/Drilling.UI.csproj").findtext(".//Version")=="2026.11.23.1" and 'ProgramVersion = "11.23.1"' in current("Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs"))
+ for path in sorted(EXISTING|{"Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs", "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs", "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs"}):check("unchanged:"+path,old(path)==current(path))
  # The coordinate planner shares a file with metadata; its arithmetic is outside this change.
  path="Drilling.Common/Recipe/CShotCoordinatePlanBuilder.cs";a=old(path);b=current(path)
  check("coordinate_plan_builder_body_unchanged",a.split("public static class CReviewOffsetData",1)[0]==b.split("public static class CReviewOffsetData",1)[0])

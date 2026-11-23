@@ -62,6 +62,7 @@ public sealed class CManualInspectionMapControl : Control
     private bool _panning;
     private bool _additive;
     private bool _moved;
+    private int? _overviewClickCell;
     private sealed record ClickSelection(string[] Keys, string? FocusKey, long Version, string Scope);
     private ClickSelection? _selectionBeforeClick;
     private bool _canRestoreClickSelection;
@@ -99,7 +100,7 @@ public sealed class CManualInspectionMapControl : Control
         ToolTipService.SetInitialShowDelay(this, 180);
         ToolTipService.SetShowDuration(this, 15000);
         AutomationProperties.SetName(this, "리뷰 측정 위치 논리 행렬");
-        AutomationProperties.SetHelpText(this, "행과 열의 논리 배치입니다. Ctrl 클릭으로 복수 선택, 드래그로 영역 선택, Ctrl 휠로 확대, Alt 방향키로 화면 이동, 더블클릭으로 선택을 유지한 화면 맞춤, 우클릭으로 동작을 선택합니다.");
+        AutomationProperties.SetHelpText(this, "전체 Cell 보기에서는 셀 내부를 클릭하면 해당 Cell을 엽니다. 드래그로 측정점을 선택하고 Ctrl 드래그로 추가합니다. 단일 Cell에서는 Ctrl 클릭으로 복수 선택합니다. 방향키로 측정점 선택, Space로 동작 메뉴, Esc로 메뉴 닫기, Ctrl 휠 확대, Alt 방향키 화면 이동, 더블클릭 맞춤을 제공합니다.");
         SizeChanged += (_, _) => { _layoutDirty = true; InvalidateVisual(); };
         Unloaded += (_, _) => { CancelGesture(true); _tip.IsOpen = false; if (ContextMenu is not null) ContextMenu.IsOpen = false; };
     }
@@ -180,6 +181,7 @@ public sealed class CManualInspectionMapControl : Control
     }
     public bool TryCancelGesture()
     {
+        if (TryCloseOperationMenu()) return true;
         if (!_gesture) return false;
         CancelGesture(true); return true;
     }
@@ -209,8 +211,8 @@ public sealed class CManualInspectionMapControl : Control
             ? new Rect(Math.Max(8, width - 93), 1, 82, 18) : Rect.Empty;
         var groups = _all.GroupBy(p => (p.CellNo, p.HeadNo))
             .OrderBy(g => g.Key.CellNo).ThenBy(g => g.Key.HeadNo).ToArray();
-        if (groups.Length == 0) return;
         if (_showCellOverview && BuildRecipeOverview(width, height)) { _hasRecipeLayout = true; return; }
+        if (groups.Length == 0) return;
         // A logical Row/Column matrix, not a drawing in stage millimetres. Packing balances the
         // readable slot size; each group's independent width/height then fills its allotted area.
         var shapes = groups.Select(g => (Columns: g.Select(p => p.Column).Distinct().Count(), Rows: g.Select(p => p.Row).Distinct().Count())).ToArray();
@@ -569,6 +571,24 @@ public sealed class CManualInspectionMapControl : Control
         for (var i = _cellHeaders.Count - 1; i >= 0; i--) if (Screen(_cellHeaders[i].Header).Contains(at)) return _cellHeaders[i].CellNo;
         return null;
     }
+    private int? HitOverviewCell(Point at)
+    {
+        if(!_showCellOverview || !double.IsFinite(at.X) || !double.IsFinite(at.Y)
+            || at.X<0 || at.Y<0 || at.X>ActualWidth || at.Y>ActualHeight) return null;
+        BuildLayout();
+        // The labelled Cell header remains a button even for a rotated Cell whose axis-aligned
+        // label may extend beyond the polygon. Everywhere else must hit the actual Cell shape.
+        if(HitCell(at) is int headerCell) return headerCell;
+        var modelAt=new Point((at.X-_pan.X)/_zoom,(at.Y-_pan.Y)/_zoom);
+        for(var i=_frames.Count-1;i>=0;i--)
+        {
+            var inside=_hasRecipeLayout
+                ?ContainsPolygon(_overviewFrames[i],modelAt)
+                :_frames[i].Bounds.Contains(modelAt);
+            if(inside) return _cellHeaders[i].CellNo;
+        }
+        return null;
+    }
     private bool HitAllCells(Point at) => !_allCellsButton.IsEmpty && _allCellsButton.Contains(at)
         || _cellHeaders.Any(header => !header.AllCells.IsEmpty && Screen(header.AllCells).Contains(at));
     private bool ActivateCellHeader(Point at, bool control)
@@ -577,7 +597,7 @@ public sealed class CManualInspectionMapControl : Control
         { CancelGesture(false); AllCellsRequested?.Invoke(this, EventArgs.Empty); return true; }
         var cell = HitCell(at); if (cell is null) return false;
         CancelGesture(false);
-        if (!control) CellRequested?.Invoke(this, cell.Value);
+        if (_showCellOverview || !control) CellRequested?.Invoke(this, cell.Value);
         else
         {
             var enabled = _snapshot.CellLayouts.FirstOrDefault(layout => layout.CellNo == cell.Value)?.Enabled != false;
@@ -593,16 +613,28 @@ public sealed class CManualInspectionMapControl : Control
     {
         base.OnMouseLeftButtonDown(e);
         Focus(); _tip.IsOpen = false;
-        if (TryResetOnDoubleClick(e.ClickCount)) { e.Handled = true; return; }
-        if (ActivateCellHeader(e.GetPosition(this), Keyboard.Modifiers.HasFlag(ModifierKeys.Control))) { e.Handled = true; return; }
+        BeginPointerGesture(e.GetPosition(this),Keyboard.Modifiers,e.ClickCount);
+        if(_gesture) CaptureMouse();
+        e.Handled=true;
+    }
+
+    private void BeginPointerGesture(Point at,ModifierKeys modifiers,int clickCount)
+    {
+        if(!double.IsFinite(at.X) || !double.IsFinite(at.Y)) return;
+        if(_gesture) CancelGesture(true);
+        if(TryResetOnDoubleClick(clickCount)) return;
+        var pan=IsPanTool || modifiers.HasFlag(ModifierKeys.Alt);
+        // Defer overview navigation until release. A header/body press can become a rectangle
+        // selection, and Ctrl changes drag additivity rather than the meaning of a Cell click.
+        if(!pan && !_showCellOverview && ActivateCellHeader(at,modifiers.HasFlag(ModifierKeys.Control))) return;
         RememberSelectionBeforeClick();
         _gesture = true; _moved = false;
-        _panning = IsPanTool || Keyboard.Modifiers.HasFlag(ModifierKeys.Alt);
+        _panning = pan;
         if (_panning) InvalidateClickSelection();
-        _additive = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
-        _start = _last = e.GetPosition(this); _startPan = _pan;
+        _additive = modifiers.HasFlag(ModifierKeys.Control);
+        _overviewClickCell=!pan?HitOverviewCell(at):null;
+        _start = _last = at; _startPan = _pan;
         Cursor = _panning ? Cursors.ScrollAll : Cursors.Cross;
-        CaptureMouse(); e.Handled = true;
     }
 
     private bool TryResetOnDoubleClick(int clickCount)
@@ -636,17 +668,15 @@ public sealed class CManualInspectionMapControl : Control
         var at = e.GetPosition(this);
         if (_gesture)
         {
-            _last = at; _moved |= (at - _start).Length > 4;
-            if (_moved) InvalidateClickSelection();
-            if (_panning) _pan = _startPan + at - _start;
-            InvalidateVisual(); e.Handled = true; return;
+            UpdatePointerGesture(at);e.Handled = true; return;
         }
-        if (HitCell(at).HasValue || HitAllCells(at))
+        var overviewCell=HitOverviewCell(at);
+        if (overviewCell.HasValue || HitCell(at).HasValue || HitAllCells(at))
         {
-            _hoverKey = null; Cursor = Cursors.Hand;
-            var cell = HitCell(at);
+            _hoverKey = null; Cursor = IsPanTool || Keyboard.Modifiers.HasFlag(ModifierKeys.Alt)?Cursors.ScrollAll:Cursors.Hand;
+            var cell = overviewCell ?? HitCell(at);
             var disabled = _snapshot.CellLayouts.FirstOrDefault(layout => layout.CellNo == cell)?.Enabled == false;
-            _tip.Content = HitAllCells(at) ? "전체 Cell의 Recipe 배치 보기" : $"Cell {cell}" + (disabled ? " · 미사용 Cell · 활성 측정점 없음" : " 열기 · Ctrl+클릭: Cell 전체 측정점 선택 추가/해제");
+            _tip.Content = HitAllCells(at) ? "전체 Cell의 Recipe 배치 보기" : $"Cell {cell}" + (disabled ? " · 미사용 Cell · 활성 측정점 없음" : _showCellOverview?" 열기 · 드래그: 측정점 선택 · Ctrl+드래그: 추가 선택":" 열기 · Ctrl+클릭: Cell 전체 측정점 선택 추가/해제");
             _tip.IsOpen = true; InvalidateVisual(); return;
         }
         Cursor = IsPanTool ? Cursors.ScrollAll : Cursors.Cross;
@@ -664,9 +694,25 @@ public sealed class CManualInspectionMapControl : Control
     protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
     {
         base.OnMouseLeftButtonUp(e);
-        if (!_gesture) return;
+        if(CompletePointerGesture(e.GetPosition(this))) e.Handled=true;
+    }
+
+    private void UpdatePointerGesture(Point at)
+    {
+        if(!_gesture || !double.IsFinite(at.X) || !double.IsFinite(at.Y)) return;
+        _last=at;_moved|=(at-_start).Length>4;
+        if(_moved) InvalidateClickSelection();
+        if(_panning) _pan=_startPan+at-_start;
+        InvalidateVisual();
+    }
+
+    private bool CompletePointerGesture(Point end)
+    {
+        if (!_gesture) return false;
+        if(!double.IsFinite(end.X) || !double.IsFinite(end.Y)) { CancelGesture(true);return true; }
+        UpdatePointerGesture(end); // A fast drag may release before WPF delivers the next move event.
         var panning = _panning; var moved = _moved; var additive = _additive;
-        var end = e.GetPosition(this); _gesture = false;
+        var overviewCell=_overviewClickCell;_overviewClickCell=null;_gesture = false;
         ReleaseMouseCapture(); Cursor = IsPanTool ? Cursors.ScrollAll : Cursors.Cross;
         CompleteClickSelectionTracking(panning, moved);
         if (!panning)
@@ -675,7 +721,11 @@ public sealed class CManualInspectionMapControl : Control
             {
                 SelectRectangle(new Rect(_start, end), additive);
             }
-            else
+            else if(overviewCell is int cell)
+            {
+                if(HitOverviewCell(end)==cell) CellRequested?.Invoke(this,cell);
+            }
+            else if(!_showCellOverview)
             {
                 var point = Hit(end);
                 if (point?.IsMasked == true) MessageRequested?.Invoke("Masking 위치는 측정 대상으로 선택하지 않습니다.");
@@ -683,7 +733,7 @@ public sealed class CManualInspectionMapControl : Control
                 else if (!additive) SelectionRequested?.Invoke(this, new([], null));
             }
         }
-        InvalidateVisual(); e.Handled = true;
+        InvalidateVisual();return true;
     }
 
     public void SelectRectangle(Rect rectangle, bool additive)
@@ -715,6 +765,7 @@ public sealed class CManualInspectionMapControl : Control
     protected override void OnMouseRightButtonDown(MouseButtonEventArgs e)
     {
         base.OnMouseRightButtonDown(e);
+        CancelGesture(false);
         var point = Hit(e.GetPosition(this));
         if (point is null) return;
         Focus();
@@ -730,6 +781,7 @@ public sealed class CManualInspectionMapControl : Control
 
     public void ShowOperationMenu()
     {
+        if (ContextMenu?.IsOpen == true) return;
         CancelGesture(false); _tip.IsOpen = false;
         if (_selected.Count == 0 && _focusKey is not null)
             SelectionRequested?.Invoke(this, new([_focusKey], _focusKey));
@@ -779,16 +831,94 @@ public sealed class CManualInspectionMapControl : Control
     protected override void OnPreviewKeyDown(KeyEventArgs e)
     {
         var key = e.Key == Key.System ? e.SystemKey : e.Key;
-        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Alt) && key is Key.Left or Key.Right or Key.Up or Key.Down)
-        {
-            var step = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) ? 100 : 40;
-            PanBy(key switch { Key.Left => new Vector(-step, 0), Key.Right => new Vector(step, 0), Key.Up => new Vector(0, -step), _ => new Vector(0, step) });
-            e.Handled = true; return;
-        }
-        if (key == Key.Apps || key == Key.F10 && Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
-        { ShowOperationMenu(); e.Handled = true; return; }
-        if (key == Key.Escape && _gesture) { CancelGesture(true); e.Handled = true; return; }
+        if (HandleMapKey(key, Keyboard.Modifiers, e.IsRepeat))
+        { e.Handled = true; return; }
         base.OnPreviewKeyDown(e);
+    }
+
+    private bool HandleMapKey(Key key, ModifierKeys modifiers, bool isRepeat)
+    {
+        // A ContextMenu has its own keyboard focus/navigation. Never replace it or consume its
+        // arrow keys while open; Escape closes only this popup, retaining the point selection.
+        if (ContextMenu?.IsOpen == true)
+            return key == Key.Escape && TryCloseOperationMenu();
+        if (modifiers.HasFlag(ModifierKeys.Alt) && key is Key.Left or Key.Right or Key.Up or Key.Down)
+        {
+            var step = modifiers.HasFlag(ModifierKeys.Shift) ? 100 : 40;
+            PanBy(key switch { Key.Left => new Vector(-step, 0), Key.Right => new Vector(step, 0), Key.Up => new Vector(0, -step), _ => new Vector(0, step) });
+            return true;
+        }
+        if (key is Key.Left or Key.Right or Key.Up or Key.Down)
+        { SelectDirectionalPoint(key, modifiers.HasFlag(ModifierKeys.Control)); return true; }
+        if (key == Key.Space || key == Key.Apps || key == Key.F10 && modifiers.HasFlag(ModifierKeys.Shift))
+        { if (!isRepeat) ShowOperationMenu(); return true; }
+        if (key == Key.Escape && _gesture) { CancelGesture(true); return true; }
+        return false;
+    }
+
+    private bool TryCloseOperationMenu()
+    {
+        if (ContextMenu?.IsOpen != true) return false;
+        ContextMenu.IsOpen = false;
+        Focus();
+        return true;
+    }
+
+    private void SelectDirectionalPoint(Key direction, bool additive)
+    {
+        if (_gesture) CancelGesture(false);
+        InvalidateClickSelection(); _tip.IsOpen = false;
+        BuildLayout();
+        var disabledCells = _snapshot.CellLayouts.Where(cell => !cell.Enabled).Select(cell => cell.CellNo).ToHashSet();
+        // Slot geometry is deliberately cached across status refreshes. Consult the latest
+        // point object for Masking/eligibility rather than the object retained by that slot.
+        var eligible = _slots.Where(slot => _visibleKeys.Contains(slot.Point.Key)
+            && _pointByKey.TryGetValue(slot.Point.Key, out var point)
+            && !point.IsMasked && !disabledCells.Contains(point.CellNo)).ToArray();
+        if (eligible.Length == 0) return;
+        static Point Centre(Slot slot) => new(slot.Bounds.Left + slot.Bounds.Width / 2, slot.Bounds.Top + slot.Bounds.Height / 2);
+        var current = eligible.FirstOrDefault(slot => slot.Point.Key == _focusKey);
+        Slot? next;
+        if (current is null)
+            next = eligible.OrderBy(slot => Centre(slot).Y).ThenBy(slot => Centre(slot).X)
+                .ThenBy(slot => slot.Point.Key, StringComparer.Ordinal).First();
+        else
+        {
+            var origin = Centre(current);
+            var candidates = eligible.Where(slot => slot.Point.Key != current.Point.Key).Select(slot =>
+            {
+                var delta = Centre(slot) - origin;
+                var forward = direction switch { Key.Left => -delta.X, Key.Right => delta.X, Key.Up => -delta.Y, _ => delta.Y };
+                var cross = Math.Abs(direction is Key.Left or Key.Right ? delta.Y : delta.X);
+                return (Slot: slot, Forward: forward, Cross: cross);
+            }).Where(candidate => candidate.Forward > 1e-7).ToArray();
+            // Favor neighbours within the requested 90-degree cone, then distance/alignment.
+            // This follows displayed geometry across Cell/Head borders without wrapping rows or
+            // relying on Cell numbers, which need not match the physical Recipe arrangement.
+            next = candidates.OrderBy(candidate => candidate.Cross <= candidate.Forward ? 0 : 1)
+                .ThenBy(candidate => Math.Sqrt(candidate.Forward * candidate.Forward + candidate.Cross * candidate.Cross)
+                    * (1 + 2 * candidate.Cross / candidate.Forward))
+                .ThenBy(candidate => candidate.Slot.Point.Key, StringComparer.Ordinal).Select(candidate => candidate.Slot).FirstOrDefault();
+        }
+        if (next is null) return;
+        SelectionRequested?.Invoke(this, new([next.Point.Key], next.Point.Key, additive));
+        RevealPoint(next.Point.Key);
+    }
+
+    private void RevealPoint(string key)
+    {
+        BuildLayout();
+        var slot = _slots.FirstOrDefault(item => item.Point.Key == key);
+        if (slot is null || ActualWidth <= 0 || ActualHeight <= 0) return;
+        var rect = Screen(slot.Bounds);
+        const double margin = 12;
+        var dx = rect.Width > ActualWidth - margin * 2 ? ActualWidth / 2 - (rect.Left + rect.Width / 2)
+            : rect.Left < margin ? margin - rect.Left : rect.Right > ActualWidth - margin ? ActualWidth - margin - rect.Right : 0;
+        var dy = rect.Height > ActualHeight - margin * 2 ? ActualHeight / 2 - (rect.Top + rect.Height / 2)
+            : rect.Top < margin ? margin - rect.Top : rect.Bottom > ActualHeight - margin ? ActualHeight - margin - rect.Bottom : 0;
+        if (dx == 0 && dy == 0) return;
+        PanBy(new(dx, dy));
+        ViewChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private void CancelGesture(bool restorePan)
@@ -796,7 +926,7 @@ public sealed class CManualInspectionMapControl : Control
         InvalidateClickSelection();
         if (restorePan && _gesture && _panning) _pan = _startPan;
         _gesture = false;
-        _panning = false; _moved = false;
+        _panning = false; _moved = false;_overviewClickCell=null;
         if (IsMouseCaptured) ReleaseMouseCapture();
         Cursor = IsPanTool ? Cursors.ScrollAll : Cursors.Cross;
         InvalidateVisual();

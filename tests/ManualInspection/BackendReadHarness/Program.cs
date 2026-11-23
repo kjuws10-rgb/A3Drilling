@@ -243,9 +243,40 @@ internal static partial class Program
             var f = new Fixture(); await f.Backend.LoadAsync(null, default);
             await Reject(() => Task.Run(f.Backend.GuardOperation));
         });
+        await Check("fresh_native_model_without_offset_csv_preserves_geometry_and_allows_measurement_preview",async()=>
+        {
+            var f=new Fixture();var source=await f.Backend.LoadAsync(null,default);
+            var target=source.Points.First(p=>!p.Masked);var engine=Engine(source);
+            True(!source.ReadOnly&&source.Context.LineageValid&&source.AppliedOffsetKeys.Count==0
+                &&source.Points.All(p=>p.IsMeasurementOffsetInitialized&&p.Judge=="UNMEASURED"&&p.ErrorXUm is null&&p.ErrorYUm is null)
+                &&source.Values.Values.All(value=>value==ST_MANUAL_OFFSET.Zero));
+            var preview=engine.PreviewOperation(EN_MANUAL_OPERATION_KIND.MoveMeasure,[target.Key]);
+            True(preview.Keys.SequenceEqual([target.Key])&&preview.ExcludedMaskedKeys.Count==0);
+            // Reaching a valid geometry preview never bypasses the actual adapter's device guard.
+            await Reject(()=>f.Backend.ExecutePointAsync(source,target.Key,EN_MANUAL_OPERATION_KIND.MoveMeasure,_=>{},default));
+            True((await f.Offsets.LoadLatest("QA")).Rows.Count==0);
+        });
+        await Check("saved_native_init_does_not_mask_targets_or_disable_new_measurement_preview",async()=>
+        {
+            var f=new Fixture();var before=await f.Backend.LoadAsync(null,default);
+            var plan=f.Review.CreateAllPlan(f.Recipe,11);
+            await f.Offsets.SaveNew("QA",plan.Points.Where(p=>p.HeadNo>0).Select(p=>
+                new ST_REVIEW_OFFSET_ROW(p.CellNo,CReviewShotNameFormatter.ToMatrixName(p.ShotNo,p.PixelCountX),0,0)
+                { IsDesignCoordinate=true,IsMeasurementOffsetInitialized=true }).ToArray());
+            var source=await f.Backend.LoadAsync(null,default);var engine=Engine(source);
+            var geometry=before.Points.ToDictionary(p=>p.Key,p=>(p.CellNo,p.HeadNo,p.ShotNo,p.BeamNo,p.XMm,p.YMm,p.Masked));
+            True(!source.ReadOnly&&source.Context.LineageValid&&source.Points.All(p=>p.IsMeasurementOffsetInitialized
+                &&geometry[p.Key]==(p.CellNo,p.HeadNo,p.ShotNo,p.BeamNo,p.XMm,p.YMm,p.Masked)));
+            var targets=source.Points.Where(p=>!p.Masked).Select(p=>p.Key).ToArray();
+            True(targets.Length>0&&engine.PreviewOperation(EN_MANUAL_OPERATION_KIND.MoveMeasure,targets).Keys.SequenceEqual(targets));
+            await Reject(()=>f.Backend.ExecutePointAsync(source,targets[0],EN_MANUAL_OPERATION_KIND.MoveMeasure,_=>{},default));
+            True((await f.Offsets.LoadLatest("QA")).Rows.All(row=>row.IsMeasurementOffsetInitialized));
+        });
         await RunPortableOffsetChecks();
         await RunMeasurementStateChecks();
         await RunBulkHistoryChecks();
+        await RunMonitorDisplayChecks();
+        await RunRecipeDisplayChecks();
         await Check("vendor_assemblies_never_loaded", () =>
         {
             True(!AppDomain.CurrentDomain.GetAssemblies().Any(a => new[] { "Aerotech", "Automation1", "ACS.SPii", "Newport.XPS", "CmdLib", "DeviceIOLib" }.Any(n => (a.GetName().Name ?? "").Contains(n, StringComparison.OrdinalIgnoreCase)))); return Task.CompletedTask;
