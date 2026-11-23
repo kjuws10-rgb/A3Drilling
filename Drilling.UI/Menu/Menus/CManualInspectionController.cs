@@ -159,6 +159,8 @@ public sealed class CManualInspectionController : IManualInspectionController
         if (dispatcher is not null && !dispatcher.CheckAccess())
         { await dispatcher.InvokeAsync(() => ExecuteAsync(action, request, cancellationToken)).Task.Unwrap(); return; }
         if (action == EN_MANUAL_INSPECTION_UI_ACTION.Stop) { RequestStop(); return; }
+        if (action == EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasureCorrect)
+            throw new InvalidOperationException("이동 후 측정 및 보정은 제공하지 않습니다. 이동 후 측정한 뒤 일괄 보정을 사용하세요.");
         if (request.ExpectedVersion != Snapshot.Version) throw new InvalidOperationException("선택/확인 뒤 작업 기준이 바뀌었습니다. 현재 화면에서 다시 요청하세요.");
         if (!await _command.WaitAsync(0, cancellationToken)) throw new InvalidOperationException("다른 작업이 진행 중입니다.");
         _busy = true; _idle = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -168,7 +170,8 @@ public sealed class CManualInspectionController : IManualInspectionController
         _waitForControlStop = action is EN_MANUAL_INSPECTION_UI_ACTION.Move
             or EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure or EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasureCorrect
             or EN_MANUAL_INSPECTION_UI_ACTION.Measure or EN_MANUAL_INSPECTION_UI_ACTION.RetryRemaining
-            or EN_MANUAL_INSPECTION_UI_ACTION.Apply or EN_MANUAL_INSPECTION_UI_ACTION.Rollback;
+            or EN_MANUAL_INSPECTION_UI_ACTION.Apply or EN_MANUAL_INSPECTION_UI_ACTION.Rollback
+            or EN_MANUAL_INSPECTION_UI_ACTION.BulkApply or EN_MANUAL_INSPECTION_UI_ACTION.UndoOffsets or EN_MANUAL_INSPECTION_UI_ACTION.RedoOffsets;
         _cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var token = _cancellation.Token;
         _loadFailureRecovered=false;
@@ -241,7 +244,10 @@ public sealed class CManualInspectionController : IManualInspectionController
                     _status = check.Ok ? "현재 후보 검증 통과 · 아직 활성 보정에 저장하지 않았습니다." : string.Join("\n", check.Errors); break;
                 case EN_MANUAL_INSPECTION_UI_ACTION.Apply:
                     _allowManual = request.AllowManual; await Apply(token); break;
-                case EN_MANUAL_INSPECTION_UI_ACTION.Rollback: await Restore(token); break;
+                case EN_MANUAL_INSPECTION_UI_ACTION.BulkApply: await BulkApply(token); break;
+                case EN_MANUAL_INSPECTION_UI_ACTION.Rollback:
+                case EN_MANUAL_INSPECTION_UI_ACTION.UndoOffsets: await Restore(token,false); break;
+                case EN_MANUAL_INSPECTION_UI_ACTION.RedoOffsets: await Restore(token,true); break;
                 case EN_MANUAL_INSPECTION_UI_ACTION.CopyReference:
                     await Current(token);
                     var preview = _engine.PreviewReferenceCopy(request.ReferenceKey ?? "", request.Keys);
@@ -264,7 +270,6 @@ public sealed class CManualInspectionController : IManualInspectionController
                 case EN_MANUAL_INSPECTION_UI_ACTION.ShowPoint: ShowPoint(request.FocusKey ?? request.Keys.FirstOrDefault()); break;
                 case EN_MANUAL_INSPECTION_UI_ACTION.Move:
                 case EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure:
-                case EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasureCorrect:
                 case EN_MANUAL_INSPECTION_UI_ACTION.Measure:
                 case EN_MANUAL_INSPECTION_UI_ACTION.RetryRemaining:
                     await Run(action, request, token); break;
@@ -314,7 +319,7 @@ public sealed class CManualInspectionController : IManualInspectionController
         { _source = next; ReconcileDisplayedImports(next); return; }
         var sameFrame = previous is not null && SameFrame(previous.Context, next.Context);
         if(!automatic || !sameFrame) ClearMeasurementReceipt();
-        _engine.Load(next.Context, next.Points, next.Values, next.Limits, next.FieldEvaluator);
+        _engine.Load(next.Context, next.Points, next.Values, next.Limits, next.FieldEvaluator,next.StoredInitializedOffsetKeys);
         _source = next; _allowManual = false; _explicitResultView = path is not null;
         _stageX = _stageY = double.NaN;
         var saved = SessionPath();
@@ -323,12 +328,12 @@ public sealed class CManualInspectionController : IManualInspectionController
             try
             {
                 if (sameFrame)
-                    _engine.RestoreSession(ExpandSession(previous!, next), next.Context, next.Points, next.Values, next.FieldEvaluator);
+                    _engine.RestoreSession(ExpandSession(previous!, next), next.Context, next.Points, next.Values, next.FieldEvaluator,next.StoredInitializedOffsetKeys);
                 else
                 {
                     var bundle = JsonSerializer.Deserialize<SessionBundle>(await System.IO.File.ReadAllTextAsync(saved, token))
                         ?? throw new InvalidDataException("빈 보관 자료");
-                    _engine.RestoreSession(ExpandSession(bundle.Session, next), next.Context, next.Points, next.Values, next.FieldEvaluator);
+                    _engine.RestoreSession(ExpandSession(bundle.Session, next), next.Context, next.Points, next.Values, next.FieldEvaluator,next.StoredInitializedOffsetKeys);
                     RestoreOptions(bundle);
                 }
                 _engine.MergeImportedObservations(next.Points, next.ImportedResults.ToDictionary(p => p.Key, p => p.Value.SavedAt));
@@ -382,8 +387,23 @@ public sealed class CManualInspectionController : IManualInspectionController
                 return;
             }
             var separate = new CManualInspectionWorkspace();
-            separate.Load(next.Context,next.Points,next.Values,next.Limits,next.FieldEvaluator);
+            separate.Load(next.Context,next.Points,next.Values,next.Limits,next.FieldEvaluator,next.StoredInitializedOffsetKeys);
             separate.SeedConsumedMeasurements(_production.ConsumedMeasurements);
+            if(before is not null && before.Engine.Context is { LineageValid:true } existingContext
+                && SameFrame(existingContext,next.Context))
+            {
+                // Opening measurements changes their display/source, not the saved correction
+                // timeline. Carry the verified model history while dropping draft approvals.
+                try
+                {
+                    var history=ExpandSession(before.Engine.CaptureSession(),next) with { Points=next.Points,
+                        Limits=next.Limits,Candidate=null,Operation=null,OffsetEditPreviousCandidate=null };
+                    separate.RestoreSession(history,next.Context,next.Points,next.Values,next.FieldEvaluator,next.StoredInitializedOffsetKeys);
+                    separate.SeedConsumedMeasurements(_production.ConsumedMeasurements);
+                }
+                catch(InvalidOperationException error)
+                { _persistence="파일의 현재 좌표 기준으로 시작 · 이전 적용 이력은 원래 작업에 보존 · "+error.Message; }
+            }
             // Publish only after the entire file/geometry/context has passed. Repeated files keep
             // the first native bookmark; they never replace its engine or checkpoint with CSV state.
             if (!_explicitResultView && before is not null) _previousWorkspace ??= before;
@@ -466,11 +486,29 @@ public sealed class CManualInspectionController : IManualInspectionController
                 display=next.Points.Select(p=>old.TryGetValue(p.Key,out var value)
                     && value.CellNo==p.CellNo && value.HeadNo==p.HeadNo && value.ShotNo==p.ShotNo && value.BeamNo==p.BeamNo
                     && value.XMm==p.XMm && value.YMm==p.YMm && value.Masked==p.Masked
-                    ? value with { Source="IMPORTED",ProxySource=null,AdoptedFileMeasurement=null } : p).ToArray();
+                    ? value with { Source="IMPORTED",ProxySource=null,AdoptedFileMeasurement=null,
+                        IsMeasurementOffsetInitialized=p.IsMeasurementOffsetInitialized,
+                        Judge=p.IsMeasurementOffsetInitialized?"UNMEASURED":value.Judge,
+                        ErrorXUm=p.IsMeasurementOffsetInitialized?null:value.ErrorXUm,
+                        ErrorYUm=p.IsMeasurementOffsetInitialized?null:value.ErrorYUm } : p).ToArray();
             }
             // Changed B invalidates the old candidate AND old measurement eligibility. Historical
             // values remain visible, but cannot be silently added to the newly corrected baseline.
-            restored.Load(next.Context,display,next.Values,sameCoordinates?bookmark.Options.Session.Limits:next.Limits,next.FieldEvaluator);
+            restored.Load(next.Context,display,next.Values,sameCoordinates?bookmark.Options.Session.Limits:next.Limits,next.FieldEvaluator,next.StoredInitializedOffsetKeys);
+            if(sameCoordinates && _engine.Context is { } fileContext && SameFrame(fileContext,next.Context))
+            {
+                // Returning the presentation bookmark must not discard corrections just saved
+                // in the file workspace. Transfer only a verified same-frame history/ledger;
+                // old visible raw stays historical and carries no correction eligibility.
+                try
+                {
+                    var history=ExpandSession(_engine.CaptureSession(),next) with { Points=display,
+                        Limits=bookmark.Options.Session.Limits,Candidate=null,Operation=null,OffsetEditPreviousCandidate=null };
+                    restored.RestoreSession(history,next.Context,next.Points,next.Values,next.FieldEvaluator,next.StoredInitializedOffsetKeys);
+                }
+                catch(InvalidOperationException error)
+                { _persistence="현재 모델 기준으로 복귀 · 이전 적용 이력은 원래 작업 파일에 보존 · "+error.Message; }
+            }
         }
         restored.SeedConsumedMeasurements(bookmark.Backend.ConsumedMeasurements);
         _backend=bookmark.Backend;_source=next;_engine=restored;_explicitResultView=false;
@@ -571,7 +609,7 @@ public sealed class CManualInspectionController : IManualInspectionController
         var connected=_engine;
         if (same)
         {
-            _engine.ConfirmEditableMeasurementContext(context);
+            _engine.ConfirmEditableMeasurementContext(context,next.StoredInitializedOffsetKeys);
         }
         else
         {
@@ -581,7 +619,7 @@ public sealed class CManualInspectionController : IManualInspectionController
             var trusted=next.Context.LineageValid && !next.ReadOnly;
             var points=trusted?next.Points:next.Points.Select(p=>p with { Source="IMPORTED",ProxySource=null,AdoptedFileMeasurement=null }).ToArray();
             var replacement=new CManualInspectionWorkspace();
-            replacement.Load(context,points,next.Values,next.Limits,next.FieldEvaluator);
+            replacement.Load(context,points,next.Values,next.Limits,next.FieldEvaluator,next.StoredInitializedOffsetKeys);
             if (System.IO.File.Exists(nextCheckpoint))
             {
                 try
@@ -589,8 +627,8 @@ public sealed class CManualInspectionController : IManualInspectionController
                     var saved=JsonSerializer.Deserialize<SessionBundle>(await System.IO.File.ReadAllTextAsync(nextCheckpoint,token));
                     if (saved is null || saved.SchemaVersion!=1 || saved.Simulation!=(_backend is CManualInspectionReplayBackend))
                         throw new InvalidDataException("이전 작업 형식 또는 실행 모드가 다릅니다.");
-                    replacement.RestoreSession(ExpandSession(saved.Session,next),context,points,next.Values,next.FieldEvaluator);
-                    replacement.ConfirmEditableMeasurementContext(context);
+                    replacement.RestoreSession(ExpandSession(saved.Session,next),context,points,next.Values,next.FieldEvaluator,next.StoredInitializedOffsetKeys);
+                    replacement.ConfirmEditableMeasurementContext(context,next.StoredInitializedOffsetKeys);
                     RestoreOptions(saved);
                 }
                 catch (OperationCanceledException) { throw; }
@@ -629,7 +667,6 @@ public sealed class CManualInspectionController : IManualInspectionController
         {
             EN_MANUAL_INSPECTION_UI_ACTION.Move => EN_MANUAL_OPERATION_KIND.Move,
             EN_MANUAL_INSPECTION_UI_ACTION.Measure => EN_MANUAL_OPERATION_KIND.Measure,
-            EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasureCorrect => EN_MANUAL_OPERATION_KIND.MeasureAndCorrect,
             _ => flying ? EN_MANUAL_OPERATION_KIND.Flying : EN_MANUAL_OPERATION_KIND.MoveMeasure
         };
         var operation = _engine.BeginOperation(_engine.PreviewOperation(kind, keys, retry));
@@ -667,15 +704,8 @@ public sealed class CManualInspectionController : IManualInspectionController
                 else Received(value);
             }
             var completed = _engine.CompleteOperation(operation.Id);
-            if (completed.AutoCorrectionAllowed)
-            {
-                _allowManual = false;
-                _engine.BuildDirectCandidate(operation.Keys);
-                var validation = _engine.ValidateCandidate(false);
-                if (!validation.Ok) { _status = "측정은 완료했지만 자동 보정 검증에 실패했습니다.\n" + string.Join("\n", validation.Errors); return; }
-                await Apply(token);
-            }
-            else _status = "측정/이동 완료 · 활성 보정 변경 없음" + (completed.Errors.Count > 0 ? "\n" + string.Join("\n", completed.Errors) : "");
+            _status = "측정/이동 완료 · 보정 저장 없음 · 필요할 때 일괄 보정을 사용하세요."
+                + (completed.Errors.Count > 0 ? "\n" + string.Join("\n", completed.Errors) : "");
         }
         catch (Exception e)
         {
@@ -698,6 +728,18 @@ public sealed class CManualInspectionController : IManualInspectionController
         var keys=points.Select(p=>p.Key).ToArray();
         if(keys.Length==0) throw new InvalidOperationException("해당 범위에 초기화할 좌표가 없습니다.");
         _engine.InitializeMeasurementOffsets(keys,cells);
+    }
+
+    private async Task BulkApply(CancellationToken token)
+    {
+        await Current(token);
+        var preview=_engine.PreviewBulkCorrection();
+        if(preview.Keys.Count==0) throw new InvalidOperationException("일괄 보정할 새 측정 결과가 없습니다. NG·미측정·이미 적용한 결과는 제외합니다.");
+        _engine.BuildBulkCandidate(); _allowManual=preview.ManualCount>0;
+        var validation=_engine.ValidateCandidate(_allowManual);
+        if(!validation.Ok) throw new InvalidOperationException("일괄 보정을 저장하지 않았습니다.\n"+string.Join("\n",validation.Errors));
+        await Apply(token);
+        _status=$"일괄 보정 {preview.Keys.Count:N0}점 저장 · NG {preview.ExcludedNg:N0} / 미측정 {preview.ExcludedUnmeasured:N0} / 적용됨 {preview.ExcludedConsumed:N0}점 제외";
     }
 
     private async Task Apply(CancellationToken token)
@@ -732,7 +774,7 @@ public sealed class CManualInspectionController : IManualInspectionController
             _source = _source! with
             {
                 Context = _engine.Context!, Values = _engine.ActiveOffsets,
-                Points=_engine.Points.ToArray(),
+                Points=_engine.Points.ToArray(),StoredInitializedOffsetKeys=_engine.ActiveInitializedOffsetKeys.ToHashSet(StringComparer.Ordinal),
                 AppliedOffsetKeys = snapshot.IsOffsetReplacement && !snapshot.IsMeasurementOffsetInitialization || snapshot.InitializeAllReviewRows ? _source.Points.Select(p=>p.Key).ToHashSet(StringComparer.Ordinal)
                     : _source.AppliedOffsetKeys.Concat(_source.Points.Where(p => written.Contains(p.OffsetKey)).Select(p => p.Key)).ToHashSet(StringComparer.Ordinal)
             };
@@ -741,19 +783,21 @@ public sealed class CManualInspectionController : IManualInspectionController
         catch { _engine.AbortApply(snapshot); throw; }
     }
 
-    private async Task Restore(CancellationToken token)
+    private async Task Restore(CancellationToken token,bool redo)
     {
-        await Current(token); var snapshot = _engine.CreateRestorePreviousSnapshot();
+        await Current(token); var snapshot = redo?_engine.CreateRestoreNextSnapshot():_engine.CreateRestorePreviousSnapshot();
         try
         {
             SaveLocalSession(); Publish(reusePoints: true);
             var revision = await _backend.SaveAsync(_source!, snapshot.ValuesByPointKey,
-                JsonSerializer.Serialize(new { Kind = "RESTORE", snapshot.RecipeId, snapshot.RunId, snapshot.BaseRevisionId, snapshot.RestoreTargetRevisionId,
-                    snapshot.InitializedOffsetKeys,InitializationOffsetKeys=snapshot.InitializedOffsetKeys }), [], token);
-            _engine.CommitRestored(snapshot, revision, "사용자 요청 · 직전 활성 보정값 새 버전 복원",
+                JsonSerializer.Serialize(new { Kind = redo?"REDO":"UNDO", snapshot.RecipeId, snapshot.RunId, snapshot.BaseRevisionId, snapshot.RestoreTargetRevisionId,
+                    snapshot.InitializedOffsetKeys,snapshot.InitializationOffsetKeys }), [], token,snapshot.ConsumedMeasurements);
+            _engine.CommitRestored(snapshot, revision, redo?"사용자 요청 · 보정 다시 적용":"사용자 요청 · 보정 되돌리기",
                 _backend.LastSavedValues.Count > 0 ? _backend.LastSavedValues : null);
-            _source = _source! with { Context = _engine.Context!, Values = _engine.ActiveOffsets,Points=_engine.Points.ToArray() };
-            _status = "직전 보정값을 새 Revision으로 원복했습니다. 측정·이력·잔여점은 보존했습니다.";
+            _source = _source! with { Context = _engine.Context!, Values = _engine.ActiveOffsets,Points=_engine.Points.ToArray(),
+                StoredInitializedOffsetKeys=_engine.ActiveInitializedOffsetKeys.ToHashSet(StringComparer.Ordinal) };
+            ClearMeasurementReceipt();
+            _status=(redo?"보정을 다시 적용했습니다.":"이전 보정으로 되돌렸습니다.")+$" 되돌리기 {_engine.UndoCount}/10 · 다시 적용 {_engine.RedoCount}회 · 원측정 이력 보존";
         }
         catch { _engine.AbortRestore(snapshot); throw; }
     }
@@ -827,7 +871,7 @@ public sealed class CManualInspectionController : IManualInspectionController
         }
         else _backend = _production;
         var next = await _backend.LoadAsync(null, token, bundle.Session.Points.Select(p => p.Key).ToArray());
-        _engine.RestoreSession(bundle.Session, next.Context, next.Points, next.Values, next.FieldEvaluator);
+        _engine.RestoreSession(bundle.Session, next.Context, next.Points, next.Values, next.FieldEvaluator,next.StoredInitializedOffsetKeys);
         _engine.SeedConsumedMeasurements(_backend.ConsumedMeasurements);
         _source = next; ClearMeasurementReceipt(); RestoreOptions(bundle); _status = "실제 Recipe/Run/보정과 대조해 세션을 불러왔습니다. 자동 동작은 재개하지 않습니다.";
         _explicitResultView = false;
@@ -951,6 +995,9 @@ public sealed class CManualInspectionController : IManualInspectionController
     {
         var c = _engine.Context; var candidate = _engine.Candidate; var bases = _engine.ActiveOffsets;
         var offsetEdit=_engine.HasPendingOffsetEdit;
+        ST_MANUAL_BULK_PREVIEW? bulk=null;
+        if(_source is not null && !offsetEdit && !IsBusy)
+            try { bulk=_engine.PreviewBulkCorrection(); } catch(InvalidOperationException) { }
         var candidates = candidate?.Rows.ToDictionary(r => r.Key, StringComparer.Ordinal) ?? [];
         var initializedKeys=candidate?.InitializedOffsetKeys.ToHashSet(StringComparer.Ordinal) ?? [];
         var resetKeys=candidate?.InitializationOffsetKeys.ToHashSet(StringComparer.Ordinal) ?? [];
@@ -1016,7 +1063,15 @@ public sealed class CManualInspectionController : IManualInspectionController
             Revisions=_engine.Revisions.Select(r=>new CManualInspectionUiRevision { Id=r.Id,CreatedAt=r.CreatedAt.ToLocalTime().ToString("MM-dd HH:mm:ss"),Reason=r.Reason }).ToArray(),
             CandidateStatus=candidate?.State.ToString().ToUpperInvariant() ?? "후보 없음",ValidationPassed=validation?.Ok==true,
             CanApply=candidate?.State==EN_MANUAL_CANDIDATE_STATE.Validated && validation?.Ok==true && !_engine.HasIncompleteMeasurements && c?.LineageValid==true && _source?.ReadOnly!=true,
-            CanRollback=!offsetEdit && _engine.Revisions.Count>1 && !IsBusy && _source?.ReadOnly!=true,CanUndoCopy=_engine.CanUndoReferenceCopy,AllowManual=_allowManual,
+            CanRollback=!offsetEdit && _engine.CanUndoOffsets && !IsBusy && _source?.ReadOnly!=true,
+            CanUndoOffsets=!offsetEdit && _engine.CanUndoOffsets && !IsBusy && _source?.ReadOnly!=true,
+            CanRedoOffsets=!offsetEdit && _engine.CanRedoOffsets && !IsBusy && _source?.ReadOnly!=true,
+            UndoOffsetCount=_engine.UndoCount,RedoOffsetCount=_engine.RedoCount,
+            CanBulkApply=!offsetEdit && !IsBusy && !_engine.HasIncompleteMeasurements && c?.LineageValid==true && _source?.ReadOnly!=true && bulk?.Keys.Count>0,
+            BulkEligibleCount=bulk?.Keys.Count ?? 0,
+            BulkSummaryText=bulk is null?"측정된 보정 대상 없음":$"모델 전체 {bulk.Keys.Count:N0}점 · NG {bulk.ExcludedNg:N0} / 미측정 {bulk.ExcludedUnmeasured:N0} / 적용됨 {bulk.ExcludedConsumed:N0} 제외",
+            OffsetHistoryText=$"되돌리기 {_engine.UndoCount}/10 · 다시 적용 {_engine.RedoCount}회",
+            CanUndoCopy=_engine.CanUndoReferenceCopy,AllowManual=_allowManual,
             ValidationErrors=validation?.Errors ?? [],ValidationWarnings=validation?.Warnings ?? [],MaxCandidateDeltaUm=validation?.MaxDeltaUm ?? 0,
             MaxCandidateTotalUm=validation?.MaxTotalUm ?? 0,ToleranceXUm=_source?.ToleranceXUm ?? 5,ToleranceYUm=_source?.ToleranceYUm ?? 5,
             DeltaLimitUm=_engine.Limits?.MaxDeltaUm ?? 30,TotalLimitUm=_engine.Limits?.MaxTotalUm ?? 200,ScannerFieldMm=_engine.Limits?.FieldWidthMm ?? 5,

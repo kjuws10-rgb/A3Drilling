@@ -145,7 +145,19 @@ public sealed record ST_MANUAL_RESTORE_SNAPSHOT(
 {
     /// <summary>Zero values alone cannot distinguish initialized rows from a real zero measurement.</summary>
     public IReadOnlyList<string> InitializedOffsetKeys { get; init; } = [];
+    public int TargetHistoryIndex { get; init; } = -1;
+    public bool IsRedo { get; init; }
+    /// <summary>Only restored empty states whose basis changed need a renewed CSV reset boundary.</summary>
+    public IReadOnlyList<string> InitializationOffsetKeys { get; init; } = [];
+    /// <summary>Old-basis observations invalidated by this restore, persisted before the in-memory commit.</summary>
+    public IReadOnlyDictionary<string, string> ConsumedMeasurements { get; init; }
+        = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(StringComparer.Ordinal));
 }
+
+/// <summary>Whole-model eligibility summary. It is independent of map filters and does not mutate state.</summary>
+public sealed record ST_MANUAL_BULK_PREVIEW(
+    IReadOnlyList<string> Keys, int Total, int ExcludedMasked, int ExcludedNg,
+    int ExcludedUnmeasured, int ExcludedConsumed, int ExcludedUnchanged, int ExcludedInvalid, int ManualCount);
 
 public sealed record ST_MANUAL_REVISION(
     string Id, string ParentId, string Kind, string Reason, DateTimeOffset CreatedAt,
@@ -207,4 +219,8 @@ public sealed record ST_MANUAL_SESSION(
     public IReadOnlyList<ST_MANUAL_HISTORY> History { get; init; } = Array.Empty<ST_MANUAL_HISTORY>();
     public IReadOnlyList<ST_MANUAL_CANDIDATE> CandidateBackups { get; init; } = Array.Empty<ST_MANUAL_CANDIDATE>();
     public IReadOnlyList<ST_MANUAL_CONSUMED_MEASUREMENT> ConsumedMeasurementHistory { get; init; } = Array.Empty<ST_MANUAL_CONSUMED_MEASUREMENT>();
+    /// <summary>Up to eleven correction states: the current state and at most ten previous applies.</summary>
+    public IReadOnlyList<string> OffsetTimelineRevisionIds { get; init; } = [];
+    /// <summary>-1 with an empty timeline denotes an older session, restored as a current-only baseline.</summary>
+    public int OffsetHistoryCursor { get; init; } = -1;
 }

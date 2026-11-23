@@ -19,7 +19,8 @@ public enum EN_MANUAL_INSPECTION_UI_ACTION
     LoadCurrentRecipe, LoadResultFile, Refresh, NewSimulation, ImportSession, ExportSession,
     ExportCsv, Move, MoveMeasure, MoveMeasureCorrect, Measure, RetryRemaining, Stop,
     Calculate, Validate, Apply, Rollback, CopyReference, UndoCopy, UpdateLimits, SetAllowManual, UpdateLevels, ShowPoint,
-    ReturnToPreviousWorkspace, InitializeOffsets, CancelOffsetEdit, ExportOffsetBundle, ImportOffsetBundle
+    ReturnToPreviousWorkspace, InitializeOffsets, CancelOffsetEdit, ExportOffsetBundle, ImportOffsetBundle,
+    BulkApply, UndoOffsets, RedoOffsets
 }
 
 /// <summary>Recipe preview's global DESIGN-mm polygon, before scanner/stage transforms.</summary>
@@ -200,6 +201,14 @@ public sealed record CManualInspectionUiSnapshot
     public bool ValidationPassed { get; init; }
     public bool CanApply { get; init; }
     public bool CanRollback { get; init; }
+    public bool CanBulkApply { get; init; }
+    public bool CanUndoOffsets { get; init; }
+    public bool CanRedoOffsets { get; init; }
+    public int UndoOffsetCount { get; init; }
+    public int RedoOffsetCount { get; init; }
+    public int BulkEligibleCount { get; init; }
+    public string BulkSummaryText { get; init; } = "측정된 보정 대상 없음";
+    public string OffsetHistoryText { get; init; } = "되돌릴 적용 이력 없음";
     public bool CanUndoCopy { get; init; }
     public bool AllowManual { get; init; }
     public IReadOnlyList<string> ValidationErrors { get; init; } = [];

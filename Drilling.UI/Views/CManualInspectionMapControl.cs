@@ -745,8 +745,7 @@ public sealed class CManualInspectionMapControl : Control
         foreach (var (title, action) in new[]
         {
             ("이동만", EN_MANUAL_INSPECTION_UI_ACTION.Move),
-            ("이동 후 측정", EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure),
-            ("이동 후 측정 & 보정", EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasureCorrect)
+            ("이동 후 측정", EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure)
         })
         {
             var item = new MenuItem { Header = title, IsEnabled = !_snapshot.IsBusy && !_snapshot.IsOffsetEditPending,

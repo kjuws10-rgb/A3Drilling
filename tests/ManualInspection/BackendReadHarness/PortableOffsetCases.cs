@@ -32,7 +32,7 @@ internal static partial class Program
         });
         await Check("portable_offset_includes_protected_reference_only_and_exact_planner_coordinates",async()=>
         {
-            var(f,s,_,b)=await Export();True(b.SchemaVersion==CManualInspectionOffsetBundle.Schema&&b.ProgramVersion=="11.21.2"&&b.ReviewCoordinateSpace=="DESIGN"&&b.ReviewUnit=="mm"&&b.FinalCoordinateSpace=="SCANNER"&&b.FinalCoordinateUnit=="mm");
+            var(f,s,_,b)=await Export();True(b.SchemaVersion==CManualInspectionOffsetBundle.Schema&&b.ProgramVersion=="11.23.0"&&b.ReviewCoordinateSpace=="DESIGN"&&b.ReviewUnit=="mm"&&b.FinalCoordinateSpace=="SCANNER"&&b.FinalCoordinateUnit=="mm");
             True(b.ProtectedSnapshotPolicy==CManualInspectionOffsetBundle.ReferenceOnly&&b.ProtectedParameters["H01_DEFAULT_OFFSET_X"]=="0.025"&&b.ProtectedParameters["H01_FIRST_BEAM_OFFSET_X"]=="0.012"&&b.ProtectedParameters["CELL1_A1_ALIGN_OFFSET_X"]=="0.0015"&&b.ProtectedParameters["HeadGapX"]=="110"&&!b.ProtectedParameters.ContainsKey("TEST_PASSWORD"));
             var p=Params(f);foreach(var setting in f.SettingRows)p[setting.Key]=setting.Value;CReviewOffsetData.ApplyToParameters(p,await f.Offsets.LoadLatest("QA"));var plan=CShotCoordinatePlanBuilder.Build(p);
             True(b.FinalCoordinates.Count==plan.Shots.Count&&b.Points.Count==s.Points.Count);
@@ -59,7 +59,7 @@ internal static partial class Program
         await Check("portable_import_returns_absolute_values_without_saving_or_overwriting_protected_reference",async()=>
         {
             var(f,s,path,b)=await Export();var active=await f.Offsets.LoadLatest("QA");var bytes=Bytes(active.FilePath);var settings=JsonSerializer.Serialize(f.SettingRows);var recipe=JsonSerializer.Serialize(f.Recipe);
-            var changed=b with{ReviewRows=b.ReviewRows.Select(r=>r with{XMm=.012,YMm=-.007}).ToArray(),ProtectedParameters=new Dictionary<string,string>{{"H01_DEFAULT_OFFSET_X","999"}}};await System.IO.File.WriteAllTextAsync(path,CManualInspectionOffsetBundle.Serialize(changed));
+            var changed=b with{ReviewRows=b.ReviewRows.Select(r=>r with{XMm=.012,YMm=-.007,IsMeasurementOffsetInitialized=false,MeasurementInitializedAt=null}).ToArray(),ProtectedParameters=new Dictionary<string,string>{{"H01_DEFAULT_OFFSET_X","999"}}};await System.IO.File.WriteAllTextAsync(path,CManualInspectionOffsetBundle.Serialize(changed));
             var imported=await f.Backend.ImportOffsetBundleAsync(s,path,default);True(imported.Count==s.Points.Count&&imported.Values.All(v=>v==new ST_MANUAL_OFFSET(12,-7)));
             True(JsonSerializer.Serialize(f.SettingRows)==settings&&JsonSerializer.Serialize(f.Recipe)==recipe&&Bytes(active.FilePath).SequenceEqual(bytes)&&(await f.Offsets.LoadLatest("QA")).FilePath==active.FilePath);
         });

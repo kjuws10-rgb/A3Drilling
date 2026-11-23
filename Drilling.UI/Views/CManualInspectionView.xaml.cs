@@ -502,7 +502,13 @@ public partial class CManualInspectionView : UserControl
             : Busy ? "현재 동작 정리 후 사용할 수 있습니다."
             : _snapshot.HasIncomplete ? "남은 측정을 완료한 뒤 계산·검증하세요."
             : "후보 계산과 검증을 통과해야 활성 보정으로 저장할 수 있습니다.";
-        RollbackButton.IsEnabled = operate && _snapshot.CanRollback;
+        BulkApplyButton.IsEnabled=operate && !_snapshot.HasIncomplete && _snapshot.CanBulkApply;
+        BulkSummaryText.Text=_snapshot.BulkSummaryText;
+        RollbackButton.IsEnabled = operate && _snapshot.CanUndoOffsets;
+        RollbackButton.Content=$"되돌리기 ({_snapshot.UndoOffsetCount})";
+        RedoOffsetsButton.IsEnabled=operate && _snapshot.CanRedoOffsets;
+        RedoOffsetsButton.Content=$"다시 적용 ({_snapshot.RedoOffsetCount})";
+        OffsetHistoryText.Text=_snapshot.OffsetHistoryText;
         SetReferenceButton.IsEnabled = operate && FocusPoint?.CanBeReference == true;
         ClearReferenceButton.IsEnabled = idle && _representativeKey is not null;
         CopyReferenceButton.IsEnabled = operate && !_snapshot.HasIncomplete && _representativeKey is not null
@@ -902,7 +908,7 @@ public partial class CManualInspectionView : UserControl
     private async void Action_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button button || !Enum.TryParse<EN_MANUAL_INSPECTION_UI_ACTION>(button.Tag as string,out var action)) return;
-        if (action is EN_MANUAL_INSPECTION_UI_ACTION.Move or EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure or EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasureCorrect or EN_MANUAL_INSPECTION_UI_ACTION.Measure)
+        if (action is EN_MANUAL_INSPECTION_UI_ACTION.Move or EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure or EN_MANUAL_INSPECTION_UI_ACTION.Measure)
         {
             var selected=action!=EN_MANUAL_INSPECTION_UI_ACTION.Measure && _selected.Count>0;
             var keys=selected?_selected.ToArray():FocusPoint is null?[]:new[]{FocusPoint.Key};
@@ -945,6 +951,8 @@ public partial class CManualInspectionView : UserControl
 
     private async Task ConfirmOperation(EN_MANUAL_INSPECTION_UI_ACTION action, IEnumerable<string> keys, long expectedVersion, string mode)
     {
+        if(action==EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasureCorrect)
+        { ShowMessage("이동 후 측정한 뒤 일괄 보정을 사용하세요.");return; }
         if (Busy) { ShowMessage("동작 중입니다. 완료 또는 중지 후 조작하세요."); return; }
         if (expectedVersion != _snapshot.Version) { ShowMessage("작업 메뉴를 연 뒤 기준이 바뀌었습니다. 다시 선택하세요."); return; }
         var requested = keys.Distinct(StringComparer.Ordinal).Where(k => _points.TryGetValue(k, out var p) && !p.IsMasked).ToArray();
@@ -956,14 +964,12 @@ public partial class CManualInspectionView : UserControl
         }
         var request = Request(actual, expectedVersion) with { MeasurementMode = mode };
         if (action==EN_MANUAL_INSPECTION_UI_ACTION.Measure) { await Execute(action,request); return; }
-        var title = action switch { EN_MANUAL_INSPECTION_UI_ACTION.Move => "이동만", EN_MANUAL_INSPECTION_UI_ACTION.Measure => "현재 위치 측정", EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasureCorrect => "이동 후 측정 & 보정", _ => "이동 후 측정" };
+        var title = action switch { EN_MANUAL_INSPECTION_UI_ACTION.Move => "이동만", EN_MANUAL_INSPECTION_UI_ACTION.Measure => "현재 위치 측정", _ => "이동 후 측정" };
         var panel = new StackPanel();
         panel.Children.Add(Label($"{(_snapshot.IsSimulation ? "SIM · 설비 명령 없음" : "실제 설비 작업")}\nRecipe {_snapshot.RecipeId} · Run {_snapshot.RunId}\n선택 {requested.Length:N0}점 → 실행 {actual.Length:N0}점 · {mode}"));
         panel.Children.Add(Label(string.Join("\n", actual.Take(12)) + (actual.Length > 12 ? $"\n… 전체 {actual.Length:N0}점" : "")));
-        panel.Children.Add(Label(action == EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasureCorrect
-            ? "선택점 전체가 새 직접 측정 OK로 완료된 후 보정 계산·검증·저장을 진행합니다. 중지·실패·잔여점이 있으면 자동 보정하지 않습니다."
-            : action == EN_MANUAL_INSPECTION_UI_ACTION.Move ? "선택 위치로 순서대로 이동합니다. 측정과 보정은 하지 않습니다."
-            : "새 측정 결과만 취득합니다. 보정은 이 화면의 계산·검증·적용에서 별도로 수행합니다."));
+        panel.Children.Add(Label(action == EN_MANUAL_INSPECTION_UI_ACTION.Move ? "선택 위치로 순서대로 이동합니다. 측정과 보정은 하지 않습니다."
+            : "새 측정 결과만 취득합니다. 측정 완료 후 일괄 보정을 별도로 실행하세요."));
         if (!Confirm(title, panel, title + " 실행")) return;
         if (_snapshot.Version != expectedVersion) { ShowMessage("대상 확인 중 작업 기준이 바뀌었습니다. 다시 선택하세요."); return; }
         await Execute(action, request);
@@ -988,7 +994,7 @@ public partial class CManualInspectionView : UserControl
         => await Execute(EN_MANUAL_INSPECTION_UI_ACTION.Apply,Request());
 
     private async void Rollback_Click(object sender,RoutedEventArgs e)
-        => await Execute(EN_MANUAL_INSPECTION_UI_ACTION.Rollback,Request());
+        => await Execute(EN_MANUAL_INSPECTION_UI_ACTION.UndoOffsets,Request());
 
     private async void AllowManual_Changed(object sender,RoutedEventArgs e)
     {

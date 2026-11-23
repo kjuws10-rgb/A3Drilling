@@ -20,7 +20,8 @@ internal static partial class Program
         {
             var(f,c)=await Loaded(); var file=Archive(f,"executable",7); f.FileSources[file.SourcePath]=file;
             await OpenFile(c,file.SourcePath); await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Move,["P1"]);
-            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasureCorrect,["P2"]);
+            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P2"]);
+            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Calculate,["P2"]);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Validate);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Apply);
             True(f.Executed.SequenceEqual(["P1","P2"]) && f.Saves==1 && !c.Snapshot.IsReadOnly);
         });
         await Check("file_workspace_reconnects_legacy_source_and_requires_fresh_measurement_before_correction", async () =>

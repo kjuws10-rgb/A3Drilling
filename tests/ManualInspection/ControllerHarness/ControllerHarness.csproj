@@ -15,6 +15,7 @@
     <Compile Include="CellOverviewCases.cs" />
     <Compile Include="OffsetInitCases.cs" />
     <Compile Include="MeasurementWorkflowCases.cs" />
+    <Compile Include="BulkHistoryCases.cs" />
   </ItemGroup>
   <ItemGroup Condition="'$(UseActualAssemblies)' != 'true'">
     <Compile Include="Contracts.cs" />

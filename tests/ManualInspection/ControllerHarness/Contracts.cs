@@ -53,6 +53,7 @@ namespace Drilling.UI.Menu.Menus
         public IReadOnlyList<int> InitializationCellNos { get; init; } = [];
         public IReadOnlySet<string> InitializationOffsetKeys { get; init; } = new HashSet<string>(StringComparer.Ordinal);
         public bool HasExplicitMeasurementState { get; init; }
+        public IReadOnlySet<string>? StoredInitializedOffsetKeys { get; init; }
     }
     public sealed record CManualInspectionImportedResult(string Path, DateTimeOffset SavedAt, string Origin);
     public sealed record CManualInspectionMeasurement(string Key, ST_MANUAL_MEASUREMENT Measurement, double ReviewXmm, double StageYmm);

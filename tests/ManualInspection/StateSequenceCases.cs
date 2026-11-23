@@ -16,6 +16,10 @@ internal static partial class Program
                 for (var cycle = 0; cycle < 6; cycle++)
                 {
                     var prefix = $"S{seed}/C{cycle}";
+                    // Undo invalidates the old residual on the restored coordinate basis. A later
+                    // cycle must obtain a genuinely new representative before exercising copy.
+                    if(!w.GetPoint(Key(2)).IsDirectMeasurement)
+                        w.RecordMeasurement(Key(2),Measurement(NextError(random),-NextError(random),raw:prefix+"/COPY-REFERENCE"));
                     var previousTarget = w.GetPoint(Key(3));
                     var beforeCopy = OffsetState(w);
                     var copy = w.PreviewReferenceCopy(Key(2), [Key(3)]);
@@ -73,7 +77,7 @@ internal static partial class Program
                     True(OffsetState(w) == expectedRestored);
                     w = RoundTripState(w);
                     foreach (var token in consumed) True(w.WasConsumed(token.Key, token.Value));
-                    w.BuildDirectCandidate([Key(2)]); True(!w.ValidateCandidate(false).Ok);
+                    Throws(()=>w.BuildDirectCandidate([Key(2)]));True(!w.GetPoint(Key(2)).HasFiniteError);
 
                     // An external result can replace the displayed observation after the real
                     // revision is reconciled. Its presence must not change B or authorize raw reuse.
@@ -116,7 +120,7 @@ internal static partial class Program
             w = RoundTripState(w);
             var restore = w.CreateRestorePreviousSnapshot(); w.CommitRestored(restore, "NG_COPY_ROLLBACK", "synthetic proxy rollback");
             Offset(w.ActiveOffsets[Key(2)], 0, 0);
-            True(w.GetPoint(Key(2)).Judge == "OK" && w.GetPoint(Key(2)).ProxySource is not null);
+            True(w.GetPoint(Key(2)).Judge == "UNMEASURED" && w.GetPoint(Key(2)).ProxySource is null && w.GetPoint(Key(2)).OriginalMeasurement is not null);
         });
     }
 

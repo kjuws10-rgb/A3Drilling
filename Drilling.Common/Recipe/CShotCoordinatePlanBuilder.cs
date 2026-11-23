@@ -1151,7 +1151,8 @@
             if (markerAt <= separator + 1)
                 return false;
             var field = key.AsSpan(markerAt + marker.Length);
-            return field.Equals("X", StringComparison.OrdinalIgnoreCase) || field.Equals("Y", StringComparison.OrdinalIgnoreCase) || field.Equals("SPACE", StringComparison.OrdinalIgnoreCase);
+            return field.Equals("X", StringComparison.OrdinalIgnoreCase) || field.Equals("Y", StringComparison.OrdinalIgnoreCase) || field.Equals("SPACE", StringComparison.OrdinalIgnoreCase)
+                || field.Equals("STATE", StringComparison.OrdinalIgnoreCase);
         }
 
         public static void RemoveFromParameters(IDictionary<string, string> parameters)
@@ -1176,6 +1177,8 @@
                     throw new CReviewOffsetValidationException(source, line, "Cell 번호는 1 이상이고 Shot 이름은 비어 있지 않아야 합니다.");
                 if (!double.IsFinite(row.ReviewOffsetX) || !double.IsFinite(row.ReviewOffsetY))
                     throw new CReviewOffsetValidationException(source, line, $"Cell{row.CellId} / {shot}: Offset X/Y에 NaN 또는 무한대를 사용할 수 없습니다.");
+                if (row.IsMeasurementOffsetInitialized && (row.ReviewOffsetX != 0 || row.ReviewOffsetY != 0))
+                    throw new CReviewOffsetValidationException(source, line, $"Cell{row.CellId} / {shot}: 초기화 상태에 0이 아닌 보정값을 사용할 수 없습니다.");
                 if (!seen.TryAdd((row.CellId, shot), line))
                     throw new CReviewOffsetValidationException(source, line, $"Cell{row.CellId} / {shot}이 중복되어 있습니다. 최초 행: {seen[(row.CellId, shot)]}.");
                 normalized[index] = row.ShotId == shot ? row : row with
@@ -1199,7 +1202,27 @@
                 parameters[$"{prefix}X"] = row.ReviewOffsetX.ToString("R", CultureInfo.InvariantCulture);
                 parameters[$"{prefix}Y"] = row.ReviewOffsetY.ToString("R", CultureInfo.InvariantCulture);
                 parameters[$"{prefix}SPACE"] = row.IsDesignCoordinate ? "DESIGN" : "SCANNER";
+                // The numeric zero is the neutral coordinate correction, not proof of a measured
+                // zero error. Keep display provenance separate from the arithmetic inputs.
+                parameters[$"{prefix}STATE"] = row.IsMeasurementOffsetInitialized ? "INITIALIZED" : "MEASURED";
             }
+        }
+
+        /// <summary>Whether a saved per-Shot value represents measurement-derived history.
+        /// Missing rows and explicit Init are empty; an actual saved zero remains a value.</summary>
+        public static bool HasMeasurementValue(IReadOnlyDictionary<string, string> parameters, string prefix)
+        {
+            var hasPair = parameters.ContainsKey($"{prefix}X") && parameters.ContainsKey($"{prefix}Y");
+            if (parameters.TryGetValue($"{prefix}STATE", out var state))
+                return state.Trim().ToUpperInvariant() switch
+                {
+                    "INITIALIZED" => false,
+                    "MEASURED" => hasPair,
+                    _ => throw new InvalidOperationException($"Invalid Review Offset state: {state}")
+                };
+            // Legacy files did not carry STATE, but still have explicit per-Shot X/Y keys.
+            // Do not turn the fallback global/default numeric zero into a measured result.
+            return hasPair;
         }
 
         public static bool IsDesignCoordinate(IReadOnlyDictionary<string, string> parameters, string prefix)

@@ -71,6 +71,8 @@ public sealed record CManualInspectionSource(
     public IReadOnlySet<string> InitializationOffsetKeys { get; init; } = new HashSet<string>(StringComparer.Ordinal);
     /// <summary>Distinguishes a deliberate final state map from old full-Init API callers.</summary>
     public bool HasExplicitMeasurementState { get; init; }
+    /// <summary>Authoritative empty/initialized saved Shot state, independent of newer unsaved raw.</summary>
+    public IReadOnlySet<string>? StoredInitializedOffsetKeys { get; init; }
 }
 
 public sealed record CManualInspectionImportedResult(string Path, DateTimeOffset SavedAt, string Origin);
@@ -237,6 +239,7 @@ public sealed class CManualInspectionBackend(
         var points = new List<ST_MANUAL_POINT>();
         var bases = new Dictionary<string, ST_MANUAL_OFFSET>(StringComparer.Ordinal);
         var appliedKeys = new HashSet<string>(StringComparer.Ordinal);
+        var emptyOffsetKeys = new HashSet<string>(StringComparer.Ordinal);
         var imported = new Dictionary<string, CManualInspectionImportedResult>(StringComparer.Ordinal);
         _targets.Clear(); _baseline.Clear();
         var matched = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -265,6 +268,7 @@ public sealed class CManualInspectionBackend(
                 var basis = baselineByRow.TryGetValue($"{target.CellNo}:{Normalize(matrix)}", out var offset)
                     ? CManualInspectionCoordinateBridge.FromFile(offset, _parameters, Math.Max(1, target.HeadNo)) : ST_MANUAL_OFFSET.Zero;
                 if (offset is not null) appliedKeys.Add(key);
+                if (offset is null || offset.IsMeasurementOffsetInitialized) emptyOffsetKeys.Add(p.OffsetKey);
                 if (observations.TryGetValue(rowKey, out var observation))
                     imported[key] = new(observation.FilePath, observation.Row.SavedAt, observation.Origin);
                 if (row is not null && row.Judge is "OK" or "NG")
@@ -293,6 +297,8 @@ public sealed class CManualInspectionBackend(
                     && (row is null || row.SavedAt <= (offset.MeasurementInitializedAt ?? _latest.SavedAt)))
                     p = p with { IsMeasurementOffsetInitialized = true, Judge = "UNMEASURED", Source = "OFFSET_INIT",
                         ErrorXUm = null, ErrorYUm = null, AdoptedFileMeasurement = null };
+                else if(offset is null && p.Judge is not ("OK" or "NG"))
+                    p=p with { IsMeasurementOffsetInitialized=true };
                 points.Add(p); bases[key] = basis; _targets[key] = target;
                 _baseline[p.OffsetKey] = basis;
             }
@@ -326,7 +332,7 @@ public sealed class CManualInspectionBackend(
                 + (rejectedFiles == 0 && rejectedRows == 0 ? "" : $" · 불일치/읽기 실패 {rejectedFiles:N0}파일/{rejectedRows:N0}행 자동 제외")
                 + (legacyReason.Length > 0 ? " · 이전 작업 이력은 보존합니다. 현재 Recipe 기준으로 새 측정·보정을 진행할 수 있습니다." : "")
                 + (file is null && resolvedCompletion.Ambiguous ? " · 현재 Product의 가공 Shift 출처가 달라 현재 Recipe의 Shift 0 기준을 사용합니다. 현재 위치를 확인하고 새로 측정하세요." : ""))
-        { ReadOnly = false, AppliedOffsetKeys = appliedKeys, ImportedResults = imported,
+        { ReadOnly = false, AppliedOffsetKeys = appliedKeys, ImportedResults = imported,StoredInitializedOffsetKeys=emptyOffsetKeys,
           CellLayouts = BuildCellLayouts(_parameters), GlassWidthMm = Number(_parameters,"GLASS_SIZE_X",0), GlassHeightMm = Number(_parameters,"GLASS_SIZE_Y",0),
           RecentResults = catalog, ObservationFingerprint = ObservationFingerprint(external, file, _latest, context.CoordinateSignature) };
         // Loading is read-only, but the published coordinate context must be internally current.
@@ -707,10 +713,14 @@ public sealed class CManualInspectionBackend(
             var shotId = CReviewShotNameFormatter.ToMatrixName(point.ShotNo,target.PixelCountX);
             var rowKey = $"{point.CellNo}:{Normalize(shotId)}";
             var existing = previousRows.GetValueOrDefault(rowKey);
+            // An absent row is neutral arithmetic, not a new reset event. Materializing it with
+            // today's reset timestamp would hide an unrelated, freshly measured OK/NG on reload.
+            if(existing is null && initialized && !initializeAllReviewRows && !cells.Contains(point.CellNo)
+                && !source.InitializationOffsetKeys.Contains(point.OffsetKey)) continue;
             var renewInitialization = initialized && (initializeAllReviewRows || cells.Contains(point.CellNo)
                 || source.InitializationOffsetKeys.Contains(point.OffsetKey) || existing?.IsMeasurementOffsetInitialized != true);
             // Preserve unselected/legacy/unassigned rows exactly; they are not newly approved candidates.
-            if (!initializeAllReviewRows && !cells.Contains(point.CellNo) && !renewInitialization
+            if (existing is not null && !initializeAllReviewRows && !cells.Contains(point.CellNo) && !renewInitialization
                 && _baseline.TryGetValue(point.OffsetKey, out var previous) && previous == final
                 && (existing?.IsMeasurementOffsetInitialized ?? false) == initialized) continue;
             var row = CManualInspectionCoordinateBridge.ToFile(point, target.PixelCountX, final) with
@@ -781,7 +791,8 @@ public sealed class CManualInspectionBackend(
             {
                 Points=source.Points.Select(p=>p with
                 {
-                    IsMeasurementOffsetInitialized=activeRows.GetValueOrDefault($"{p.CellNo}:{Normalize(CReviewShotNameFormatter.ToMatrixName(p.ShotNo,_targets[p.Key].PixelCountX))}")?.IsMeasurementOffsetInitialized==true
+                    IsMeasurementOffsetInitialized=source.StoredInitializedOffsetKeys?.Contains(p.OffsetKey)==true
+                        || activeRows.GetValueOrDefault($"{p.CellNo}:{Normalize(CReviewShotNameFormatter.ToMatrixName(p.ShotNo,_targets[p.Key].PixelCountX))}")?.IsMeasurementOffsetInitialized==true
                 }).ToArray(),
                 InitializationCellNos=[],InitializationOffsetKeys=new HashSet<string>(StringComparer.Ordinal),HasExplicitMeasurementState=true
             };
@@ -796,7 +807,7 @@ public sealed class CManualInspectionBackend(
             var p=g.First(); var row=WrittenRow(CManualInspectionCoordinateBridge.ToFile(p,_targets[p.Key].PixelCountX,values[p.Key]));
             var stored=workingLookup.GetValueOrDefault($"{row.CellId}:{Normalize(row.ShotId)}");
             return new ST_MANUAL_OFFSET_BUNDLE_ROW(row.CellId,row.ShotId,row.ReviewOffsetX,row.ReviewOffsetY)
-            { IsMeasurementOffsetInitialized=stored?.IsMeasurementOffsetInitialized==true,
+            { IsMeasurementOffsetInitialized=stored?.IsMeasurementOffsetInitialized ?? p.IsMeasurementOffsetInitialized,
               MeasurementInitializedAt=stored?.MeasurementInitializedAt };
         }).OrderBy(r=>r.CellNo).ThenBy(r=>r.ShotId,StringComparer.Ordinal).ToArray();
         var knownKeys=known.Select(r=>$"{r.CellNo}:{Normalize(r.ShotId)}").ToHashSet(StringComparer.OrdinalIgnoreCase);

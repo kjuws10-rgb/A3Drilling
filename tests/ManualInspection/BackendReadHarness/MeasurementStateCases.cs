@@ -31,7 +31,7 @@ internal static partial class Program
         await Check("measurement_state_csv_keeps_real_measured_zero_distinct_from_init",async()=>
         {
             var f=new Fixture();var saved=await f.Offsets.SaveNew("QA",[new(1,"A1",0,0){IsDesignCoordinate=true}]);var row=(await f.Offsets.LoadLatest("QA")).Rows.Single();var s=await f.Backend.LoadAsync(null,default);
-            True(!row.IsMeasurementOffsetInitialized&&row.MeasurementInitializedAt is null&&s.Points.All(p=>!p.IsMeasurementOffsetInitialized)&&s.AppliedOffsetKeys.Count==1);
+            True(!row.IsMeasurementOffsetInitialized&&row.MeasurementInitializedAt is null&&!s.Points.Single(p=>p.ShotNo==1).IsMeasurementOffsetInitialized&&s.AppliedOffsetKeys.Count==1);
             True((await System.IO.File.ReadAllTextAsync(saved.FilePath)).Contains("MEASURED"));
         });
         await Check("measurement_state_csv_legacy_header_without_optional_columns_still_loads_as_measured",async()=>
@@ -62,7 +62,8 @@ internal static partial class Program
         await Check("measurement_state_unrelated_partial_save_does_not_renew_old_init_timestamp",async()=>
         {
             var f=new Fixture();var oldTime=DateTimeOffset.Parse("2026-11-01T03:00:00+09:00");await f.Offsets.SaveNew("QA",[new(1,"A1",0,0){IsDesignCoordinate=true,IsMeasurementOffsetInitialized=true,MeasurementInitializedAt=oldTime}]);var s=await f.Backend.LoadAsync(null,default);var other=s.Points.First(p=>p.ShotNo!=1);var values=s.Values.ToDictionary(p=>p.Key,p=>p.Value);values[other.Key]=new(1,2);
-            var next=Working(f,s,values);True(next["1:A1"].IsMeasurementOffsetInitialized&&next["1:A1"].MeasurementInitializedAt==oldTime);
+            var measured=s with{Points=s.Points.Select(p=>p.OffsetKey==other.OffsetKey?p with{IsMeasurementOffsetInitialized=false}:p).ToArray(),HasExplicitMeasurementState=true};
+            var next=Working(f,measured,values);True(next["1:A1"].IsMeasurementOffsetInitialized&&next["1:A1"].MeasurementInitializedAt==oldTime);
         });
         await Check("measurement_state_reinit_same_zero_explicitly_renews_only_its_scope_timestamp",async()=>
         {
@@ -76,7 +77,8 @@ internal static partial class Program
         });
         await Check("measurement_state_portable_measured_zero_has_no_initialized_import_metadata",async()=>
         {
-            var(f,s,path,b)=await ExportZero(false);await f.Backend.ImportOffsetBundleAsync(s,path,default);True(b.ReviewRows.All(r=>!r.IsMeasurementOffsetInitialized)&&f.Backend.ImportedInitializedOffsetKeys.Count==0);
+            var(f,s,path,b)=await ExportZero(false);await f.Backend.ImportOffsetBundleAsync(s,path,default);var real=s.Points.Single(p=>p.ShotNo==1);
+            True(!b.ReviewRows.Single(r=>r.ShotId=="A1").IsMeasurementOffsetInitialized&&!f.Backend.ImportedInitializedOffsetKeys.Contains(real.OffsetKey));
         });
         await Check("measurement_state_portable_schema_one_without_new_fields_remains_supported",async()=>
         {

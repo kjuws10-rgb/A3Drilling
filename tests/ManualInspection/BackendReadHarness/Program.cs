@@ -23,7 +23,7 @@ internal static partial class Program
     private static void True(bool condition) { if (!condition) throw new InvalidOperationException("Assertion failed"); }
     private static async Task Reject(Func<Task> action)
     {
-        try { await action(); } catch (InvalidOperationException) { return; } catch (InvalidDataException) { return; }
+        try { await action(); } catch (InvalidOperationException) { return; } catch (InvalidDataException) { return; } catch (CReviewOffsetValidationException) { return; }
         throw new Exception("Expected rejection");
     }
     private static async Task<int> Main(string[] args)
@@ -245,6 +245,7 @@ internal static partial class Program
         });
         await RunPortableOffsetChecks();
         await RunMeasurementStateChecks();
+        await RunBulkHistoryChecks();
         await Check("vendor_assemblies_never_loaded", () =>
         {
             True(!AppDomain.CurrentDomain.GetAssemblies().Any(a => new[] { "Aerotech", "Automation1", "ACS.SPii", "Newport.XPS", "CmdLib", "DeviceIOLib" }.Any(n => (a.GetName().Name ?? "").Contains(n, StringComparison.OrdinalIgnoreCase)))); return Task.CompletedTask;
@@ -259,7 +260,7 @@ internal static partial class Program
         return Failures == 0 ? 0 : 1;
     }
     private static CManualInspectionWorkspace Engine(CManualInspectionSource source)
-    {var engine=new CManualInspectionWorkspace();engine.Load(source.Context,source.Points,source.Values,source.Limits,source.FieldEvaluator);return engine;}
+    {var engine=new CManualInspectionWorkspace();engine.Load(source.Context,source.Points,source.Values,source.Limits,source.FieldEvaluator,source.StoredInitializedOffsetKeys);return engine;}
     private static async Task<(Fixture Fixture,string Path)> ExplicitFile(string kind,bool simulation=false)
     {
         var f=new Fixture();var plan=f.Review.CreateAllPlan(f.Recipe,11);var point=plan.Points.First(p=>p.Use);

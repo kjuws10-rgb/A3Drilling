@@ -155,7 +155,7 @@ internal static partial class Program
             var w = Workspace(); w.BuildDirectCandidate([Key(1)]); w.ValidateCandidate(false); Apply(w, "REV1");
             var s = w.CreateRestorePreviousSnapshot(); True(s.RestoreTargetRevisionId == Initial.RevisionId); w.CommitRestored(s, "REV_RESTORE", "QA rollback");
             True(w.Context!.RevisionId == "REV_RESTORE" && w.Revisions.Count == 3 && w.Revisions[^1].ParentId == "REV1"); Offset(w.ActiveOffsets[Key(1)], 0, 0);
-            w.BuildDirectCandidate([Key(1)]); True(!w.ValidateCandidate(false).Ok);
+            Throws(()=>w.BuildDirectCandidate([Key(1)])); True(!w.GetPoint(Key(1)).HasFiniteError&&w.GetPoint(Key(1)).OriginalMeasurement is not null);
         });
         Check("rollback_write_failure_preserves_current", () => { var w = Workspace(); w.BuildDirectCandidate([Key(1)]); w.ValidateCandidate(false); Apply(w, "REV1"); var s = w.CreateRestorePreviousSnapshot(); w.AbortRestore(s); True(w.Context!.RevisionId == "REV1" && !w.IsBusy && w.Revisions.Count == 2); Offset(w.ActiveOffsets[Key(1)], 3, -2); });
         Check("new_measurement_invalidates_old_candidate", () => { var w = Workspace(); w.BuildDirectCandidate([Key(1)]); w.ValidateCandidate(false); w.RecordMeasurement(Key(1), Measurement(1, 1, raw: "NEW")); True(!w.ValidateCandidate(false).Ok); });
@@ -267,10 +267,10 @@ internal static partial class Program
             var masked = fresh.Points.Select(p => p.Key == Key(1) ? p with { Masked = true } : p).ToArray();
             Throws(() => fresh.RestoreSession(session, Initial, masked, fresh.ActiveOffsets, InsideField));
         });
-        Check("session_restore_missing_proxy_original_is_read_only", () =>
+        Check("session_restore_missing_proxy_reference_provenance_invalidates_lineage", () =>
         {
             var w = Workspace(); var p = w.PreviewReferenceCopy(Key(1), [Key(2)]); w.ConfirmReferenceCopy(p, [Key(2)], "QA"); var s = w.CaptureSession();
-            s = s with { Points = s.Points.Select(p => p.Key == Key(2) ? p with { OriginalMeasurement = null } : p).ToArray() };
+            s = s with { Points = s.Points.Select(p => p.Key == Key(2) ? p with { OriginalMeasurement = null,ProxySource=p.ProxySource! with{ReferenceMeasurementToken=""} } : p).ToArray() };
             var fresh = Workspace(); fresh.RestoreSession(s, Initial, fresh.Points, fresh.ActiveOffsets, InsideField);
             True(!fresh.Context!.LineageValid); Throws(() => fresh.BuildDirectCandidate([Key(2)]));
         });
@@ -463,12 +463,13 @@ internal static partial class Program
             True(w.ValidateCandidate(true).Ok); var second = w.CreateApplySnapshot(true); w.CommitApplied(second, "REV_GROUP_B", "QA group B");
             Offset(w.ActiveOffsets[Key(1)], 10, 0); Offset(w.ActiveOffsets[Key(2)], 13, 0); Offset(w.ActiveOffsets[Key(3)], 13, 0);
         });
-        Check("consumed_reference_after_rollback_uses_restored_active_final", () =>
+        Check("consumed_reference_after_rollback_requires_fresh_measurement_on_restored_basis", () =>
         {
             var w = Workspace([Point(1, 3, 0), Point(2)], new() { [Key(1)] = new(10, 0) });
             w.BuildDirectCandidate([Key(1)]); True(w.ValidateCandidate(false).Ok); Apply(w, "REV_REF");
             var restore = w.CreateRestorePreviousSnapshot(); w.CommitRestored(restore, "REV_RESTORE", "QA rollback");
-            Offset(w.PreviewReferenceCopy(Key(1), [Key(2)]).Final, 10, 0);
+            Throws(()=>w.PreviewReferenceCopy(Key(1), [Key(2)])); Offset(w.ActiveOffsets[Key(1)],10,0);
+            True(w.GetPoint(Key(1)).OriginalMeasurement is not null&&!w.GetPoint(Key(1)).HasFiniteError);
         });
         Check("session_restore_preserves_consumed_reference_final", () =>
         {
@@ -569,6 +570,7 @@ internal static partial class Program
         RunStateSequenceChecks();
         RunOffsetInitChecks();
         RunMeasurementWorkflowChecks();
+        RunBulkHistoryChecks();
         var output = args.Length == 2 && args[0] == "--report" ? args[1] : Path.Combine(AppContext.BaseDirectory, "manual-inspection-results.json");
         var report = new { schemaVersion = "a3-manual-inspection-core-tests/1", passed = Failed == 0, count = Results.Count, failed = Failed, tests = Results, sourceFiles = SourceInputs(),
             scope = "Linked production ManualInspection common files only; synthetic values/fake field evaluator. No equipment, WPF, SDK or device scripts executed." };

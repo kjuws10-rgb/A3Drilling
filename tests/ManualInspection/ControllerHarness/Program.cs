@@ -37,10 +37,10 @@ internal static partial class Program
         await Check("new_reference_measurement_changes_durable_manual_source_identity",async()=>{var(f,c)=await Loaded();async Task CopyApply(){await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,["P2"],r=>r with{ReferenceKey="P1",Reason="Same reason"});await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Validate,null,r=>r with{AllowManual=true});await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Apply,null,r=>r with{AllowManual=true});}await CopyApply();f.NewX=1.5;await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1"]);await CopyApply();True(f.SourceIds.Count==2&&f.SourceIds[0]!=f.SourceIds[1]);});
         await Check("move_only_changes_position_not_measurement",async()=>{var(f,c)=await Loaded();var old=c.Snapshot.Points[0].WorkingXUm;await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Move,["P1"]);True(f.Executed.SequenceEqual(["P1"])&&c.Snapshot.Points[0].WorkingXUm==old&&f.Saves==0);});
         await Check("current_position_measure_rejects_multiple_targets",async()=>{var(f,c)=await Loaded();await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Measure,["P1","P2"]));True(f.Executed.Count==0);});
-        await Check("fresh_all_ok_measure_correct_saves_once",async()=>{var(f,c)=await Loaded();await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasureCorrect,["P1","P2"]);True(f.Saves==1&&c.Snapshot.CompletedCount==2&&!c.Snapshot.HasIncomplete);});
-        await Check("fresh_ng_measure_correct_never_saves",async()=>{var(f,c)=await Loaded();f.NewJudge="NG";await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasureCorrect,["P1"]);True(f.Saves==0&&!c.Snapshot.HasIncomplete&&!c.Snapshot.CanApply&&c.Snapshot.Points[0].WorkingJudge=="NG");});
-        await Check("partial_error_preserves_remaining_and_blocks_old_candidate",async()=>{var(f,c)=await Loaded();await Prepared(c);f.FailKey="P2";await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasureCorrect,["P1","P2"]));True(c.Snapshot.CompletedCount==1&&c.Snapshot.RemainingCount==1&&c.Snapshot.HasIncomplete&&!c.IsBusy&&f.Saves==0);await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Apply));});
-        await Check("retry_remaining_recovers_without_implicit_auto_correction",async()=>{var(f,c)=await Loaded();f.FailKey="P2";await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasureCorrect,["P1","P2"]));f.FailKey=null;await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.RetryRemaining);True(!c.Snapshot.HasIncomplete&&f.Saves==0&&f.Executed.Count(x=>x=="P1")==1&&f.Executed.Count(x=>x=="P2")==2);});
+        await Check("removed_move_measure_correct_rejects_before_any_motion_or_save",async()=>{var(f,c)=await Loaded();await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasureCorrect,["P1","P2"]));True(f.Saves==0&&f.Executed.Count==0&&!c.Snapshot.HasIncomplete);});
+        await Check("fresh_ng_move_measure_never_saves",async()=>{var(f,c)=await Loaded();f.NewJudge="NG";await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1"]);True(f.Saves==0&&!c.Snapshot.HasIncomplete&&!c.Snapshot.CanApply&&c.Snapshot.Points[0].WorkingJudge=="NG");});
+        await Check("partial_error_preserves_remaining_and_blocks_old_candidate",async()=>{var(f,c)=await Loaded();await Prepared(c);f.FailKey="P2";await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1","P2"]));True(c.Snapshot.CompletedCount==1&&c.Snapshot.RemainingCount==1&&c.Snapshot.HasIncomplete&&!c.IsBusy&&f.Saves==0);await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Apply));});
+        await Check("retry_remaining_recovers_without_implicit_auto_correction",async()=>{var(f,c)=await Loaded();f.FailKey="P2";await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1","P2"]));f.FailKey=null;await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.RetryRemaining);True(!c.Snapshot.HasIncomplete&&f.Saves==0&&f.Executed.Count(x=>x=="P1")==1&&f.Executed.Count(x=>x=="P2")==2);});
         await Check("concurrent_command_rejected_and_stop_waits_for_cleanup",async()=>{var(f,c)=await Loaded();f.Hold=true;var running=Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1","P2"]);await f.Entered.Task.WaitAsync(TimeSpan.FromSeconds(3));await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Calculate,["P1"]));c.RequestStop();await f.CancelObserved.Task.WaitAsync(TimeSpan.FromSeconds(3));True(c.IsBusy&&f.StopCalls==1);f.Release.TrySetResult();await running;True(!c.IsBusy&&c.Snapshot.HasIncomplete&&f.Saves==0);});
         await Check("flying_expands_only_same_cell_head_row_and_beam",async()=>{var(f,c)=Fixture();var other=f.Source.Points[0] with{Key="OTHER_BEAM",BeamNo=1};var values=f.Source.Values.ToDictionary(p=>p.Key,p=>p.Value);values[other.Key]=ST_MANUAL_OFFSET.Zero;f.Source=f.Source with{Points=f.Source.Points.Append(other).ToArray(),Values=values};await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1"],r=>r with{MeasurementMode="FLYING"});True(f.FlyingKeys.ToHashSet().SetEquals(["P1","P2"])&&f.Saves==0);});
         await Check("simulation_example_is_rejected_in_real_backend",async()=>{var(f,c)=await Loaded();await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.NewSimulation,null,r=>r with{Scenario="good"}));True(f.Executed.Count==0&&f.Saves==0&&c.Snapshot.RecipeId=="QA");});
@@ -82,6 +82,7 @@ internal static partial class Program
         await RunCellOverviewChecks();
         await RunOffsetInitChecks();
         await RunMeasurementWorkflowChecks();
+        await RunBulkHistoryChecks();
         await Check("generic_sta_application_and_no_loaded_vendor_assemblies",async()=>{True(Application.Current.GetType()==typeof(Application));True(!VendorAssemblies().Any());await Task.CompletedTask;});
         var path=args.Length==2&&args[0]=="--report"?args[1]:Path.Combine(AppContext.BaseDirectory,"controller-results.json");Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         var assembly=typeof(CManualInspectionController).Assembly;
@@ -129,7 +130,23 @@ internal static partial class Program
             token.ThrowIfCancellationRequested();if(key==FailKey)throw new TimeoutException("Synthetic missing response");var p=s.Points.First(p=>p.Key==key);var m=new ST_MANUAL_MEASUREMENT(NewJudge,NewX,-.25,"NEW-RAW-"+NewX,s.Context.RecipeId,s.Context.RunId,s.Context.CoordinateSignature){RawData="Synthetic new raw"};return new(key,m,p.XMm,p.YMm);
         }
         public async Task ExecuteFlyingAsync(CManualInspectionSource s,IReadOnlyList<string>keys,Action<CManualInspectionMeasurement>measured,Action<string>progress,CancellationToken token){FlyingKeys.AddRange(keys);foreach(var k in keys)measured(await ExecutePointAsync(s,k,EN_MANUAL_OPERATION_KIND.Flying,progress,token));}
-        public async Task<string> SaveAsync(CManualInspectionSource s,IReadOnlyDictionary<string,ST_MANUAL_OFFSET>values,string identity,IReadOnlyList<ST_MANUAL_CANDIDATE_ROW>rows,CancellationToken token,IReadOnlyDictionary<string,string>?consumedMeasurements=null){if(SaveHook is not null)await SaveHook(token);token.ThrowIfCancellationRequested();if(FailSave)throw new IOException("Synthetic writer error");SourceIds.Add(identity);if(consumedMeasurements is not null)SavedConsumption.AddRange(consumedMeasurements);Saves++;var id="REV-"+Saves;Source=Source with{Context=Source.Context with{RevisionId=id},Values=new Dictionary<string,ST_MANUAL_OFFSET>(values)};return id;}
+        public async Task<string> SaveAsync(CManualInspectionSource s,IReadOnlyDictionary<string,ST_MANUAL_OFFSET>values,string identity,IReadOnlyList<ST_MANUAL_CANDIDATE_ROW>rows,CancellationToken token,IReadOnlyDictionary<string,string>?consumedMeasurements=null)
+        {
+            if(SaveHook is not null)await SaveHook(token);token.ThrowIfCancellationRequested();if(FailSave)throw new IOException("Synthetic writer error");
+            SourceIds.Add(identity);if(consumedMeasurements is not null)SavedConsumption.AddRange(consumedMeasurements);Saves++;
+            var previousNumber=Source.Context.RevisionId.StartsWith("REV-",StringComparison.Ordinal)&&int.TryParse(Source.Context.RevisionId.AsSpan(4),out var parsed)?parsed:0;
+            var id="REV-"+Math.Max(Saves,previousNumber+1); // Real timestamped writer never reuses an imported revision name.
+            Source=Source with{Context=Source.Context with{RevisionId=id},Values=new Dictionary<string,ST_MANUAL_OFFSET>(values)};
+            using var json=JsonDocument.Parse(identity);
+            if(json.RootElement.TryGetProperty("InitializedOffsetKeys",out var state))
+            {
+                var initialized=state.EnumerateArray().Select(x=>x.GetString()!).ToHashSet(StringComparer.Ordinal);
+                Source=Source with{StoredInitializedOffsetKeys=initialized,Points=Source.Points.Select(p=>initialized.Contains(p.OffsetKey)
+                    ?p with{IsMeasurementOffsetInitialized=true,Judge="UNMEASURED",Source="KEPT",ErrorXUm=null,ErrorYUm=null,ProxySource=null,AdoptedFileMeasurement=null}
+                    :p with{IsMeasurementOffsetInitialized=false}).ToArray()};
+            }
+            return id;
+        }
         public async Task<string> SaveCumulativeAsync(CManualInspectionSource s,IReadOnlyDictionary<string,ST_MANUAL_OFFSET>values,string identity,IReadOnlyList<ST_MANUAL_CANDIDATE_ROW>rows,bool initializeAllReviewRows,CancellationToken token,IReadOnlyDictionary<string,string>?consumedMeasurements=null)
         {
             CumulativeInitializations.Add(initializeAllReviewRows);var revision=await SaveAsync(s,values,identity,rows,token,consumedMeasurements);

@@ -34,10 +34,10 @@ internal static partial class Program
     [STAThread]
     private static int Main(string[] args)
     {
-        if (args.Length is < 2 or > 3 || args.Length == 3 && args[2] is not ("--integration-impact" or "--sync-levels" or "--coverage-compact" or "--hardening" or "--visual-usability" or "--map-first" or "--cell-overview" or "--offset-init" or "--measurement-workflow")) { Console.Error.WriteLine("Usage: UiHarness <repository/Drilling.UI> <private-output> [--integration-impact|--sync-levels|--coverage-compact|--hardening|--visual-usability|--map-first|--cell-overview|--offset-init|--measurement-workflow]"); return 2; }
+        if (args.Length is < 2 or > 3 || args.Length == 3 && args[2] is not ("--integration-impact" or "--sync-levels" or "--coverage-compact" or "--hardening" or "--visual-usability" or "--map-first" or "--cell-overview" or "--offset-init" or "--measurement-workflow" or "--bulk-history")) { Console.Error.WriteLine("Usage: UiHarness <repository/Drilling.UI> <private-output> [--integration-impact|--sync-levels|--coverage-compact|--hardening|--visual-usability|--map-first|--cell-overview|--offset-init|--measurement-workflow|--bulk-history]"); return 2; }
         _uiSource = Path.GetFullPath(args[0]); _output = Path.GetFullPath(args[1]); Directory.CreateDirectory(_output);
         _application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-        if (args.Length == 3) return args[2] switch { "--sync-levels" => SyncLevels(), "--coverage-compact" => CoverageCompact(), "--hardening" => Hardening(), "--visual-usability" => VisualUsability(), "--map-first" => MapFirst(), "--cell-overview" => CellOverview(), "--offset-init" => OffsetInit(), "--measurement-workflow" => MeasurementWorkflow(), _ => IntegrationImpact() };
+        if (args.Length == 3) return args[2] switch { "--sync-levels" => SyncLevels(), "--coverage-compact" => CoverageCompact(), "--hardening" => Hardening(), "--visual-usability" => VisualUsability(), "--map-first" => MapFirst(), "--cell-overview" => CellOverview(), "--offset-init" => OffsetInit(), "--measurement-workflow" => MeasurementWorkflow(), "--bulk-history" => BulkHistory(), _ => IntegrationImpact() };
         try
         {
             LoadResources("Light");
@@ -90,7 +90,7 @@ internal static partial class Program
             Test("empty_rectangle_clears_selection", Field<HashSet<string>>(view, "_selected").Count == 0);
             var selected = Field<HashSet<string>>(view, "_selected"); selected.Add(key1); Invoke(view, "Refresh");
             map.ShowOperationMenu(); Pump();
-            Test("context_retains_three_motion_operations", map.ContextMenu!.Items.OfType<MenuItem>().Count(x => x.IsEnabled && x.Header.ToString()!.StartsWith("이동", StringComparison.Ordinal)) == 3);
+            Test("context_retains_two_motion_operations_without_auto_correction", map.ContextMenu!.Items.OfType<MenuItem>().Count(x => x.IsEnabled && x.Header.ToString()!.StartsWith("이동", StringComparison.Ordinal)) == 2);
             map.ContextMenu.IsOpen = false;
             fake.Replace(fake.Snapshot with { Version = 8, IsBusy = true }); Pump(); map.ShowOperationMenu();
             Test("context_busy_disabled", map.ContextMenu!.Items.OfType<MenuItem>().All(x => !x.IsEnabled)); map.ContextMenu.IsOpen = false;
@@ -118,7 +118,7 @@ internal static partial class Program
             Test("request_has_current_version", fake.Calls[^1].Request.ExpectedVersion == fake.Snapshot.Version);
             Test("real_mode_has_no_injection_ui", view.FindName("SimulationOptions") is null);
             var callsBeforeStale = fake.Calls.Count;
-            ((Task)Invoke(view, "ConfirmOperation", EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasureCorrect, new[] { key1 }, fake.Snapshot.Version - 1, "P2P")!).GetAwaiter().GetResult();
+            ((Task)Invoke(view, "ConfirmOperation", EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure, new[] { key1 }, fake.Snapshot.Version - 1, "P2P")!).GetAwaiter().GetResult();
             Test("stale_context_rejected_before_dialog", fake.Calls.Count == callsBeforeStale && ((TextBlock)view.FindName("MessageText")).Text.Contains("바뀌"));
             var masked = fake.Snapshot.Points.Select((p, index) => index == 0 ? p with { IsMasked = true } : p).ToArray();
             fake.Replace(fake.Snapshot with { Version = 11, Points = masked }); Pump();
@@ -284,7 +284,7 @@ internal static partial class Program
             Test("refresh_immediate_keeps_expected_version",fake.Calls.Count==before+2&&fake.Calls.Last().Action==EN_MANUAL_INSPECTION_UI_ACTION.Refresh&&fake.Calls.Last().Request.ExpectedVersion==102);
             accept=false;var key=snapshot.Points[1].Key;Invoke(view,"ChangeSelection",new CManualInspectionSelectionEventArgs([key],key));
             ((Task)Invoke(view,"ConfirmOperation",EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasureCorrect,new[]{key},102L,"P2P")!).GetAwaiter().GetResult();
-            Test("measurement_correction_description_requires_fresh_all_OK",confirmations.Last().Description.Contains("새 직접 측정 OK")&&confirmations.Last().Description.Contains("자동 보정하지"));
+            Test("removed_measurement_correction_explains_separate_bulk_without_dialog",confirmations.Count==0&&((TextBlock)view.FindName("MessageText")).Text.Contains("일괄"));
             Test("operation_cancel_sends_no_device_request",fake.Calls.Count==before+2);
             accept=true;map.ShowOperationMenu();Pump();map.ContextMenu!.Items.OfType<MenuItem>().Single(i=>i.Header.ToString()=="이동 후 측정").RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));Pump();
             Test("context_measurement_uses_selected_keys",fake.Calls.Last().Action==EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure&&fake.Calls.Last().Request.Keys.SequenceEqual([key]));

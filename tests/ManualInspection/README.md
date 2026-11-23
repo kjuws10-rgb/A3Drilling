@@ -1,6 +1,6 @@
 # Manual Inspection 독립 검증
 
-현재 `11.21.2`의 측정 중심 화면·Cell/Head Init·초기화 상태 저장 검사는 [MEASUREMENT_WORKFLOW_QA.md](MEASUREMENT_WORKFLOW_QA.md)를 따른다. `11.21.1` 통합 Offset/휴대 JSON 기록은 [OFFSET_INIT_QA.md](OFFSET_INIT_QA.md)에 보존한다.
+현재 `11.23.0`의 일괄 보정·10단계 Undo/Redo·모든 Review Init 없음 표시는 [BULK_HISTORY_QA.md](BULK_HISTORY_QA.md)를 따른다. 이전 [11.21.2](MEASUREMENT_WORKFLOW_QA.md)와 [11.21.1](OFFSET_INIT_QA.md) 검증 기록은 당시 범위로 보존한다.
 
 이 폴더의 Common 회귀는 새 프로그램의 실제 `Drilling.Common/Review/ManualInspection/*.cs`를 직접 Include한 .NET 8 콘솔입니다. 별도의 SDK나 장비 연결이 필요하지 않으며 실제 장비 프로그램을 시작하지 않습니다.
 

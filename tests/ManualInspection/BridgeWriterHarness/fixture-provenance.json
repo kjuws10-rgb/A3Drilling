@@ -3,7 +3,7 @@
   "linked": [
     {
       "path": "Drilling.Common/Recipe/CShotCoordinatePlanBuilder.cs",
-      "sha256": "18c6b5e5afc1fdb76dafc1fd6bc33a810af4a84492b53c686eef336adb989831"
+      "sha256": "142fd432b5de1af2fc70c6e1ecccd3b4d42b85253ecda3e3c0342ae6fec6fa5a"
     },
     {
       "path": "Drilling.Common/Recipe/CCellPatternCalculator.cs",
@@ -31,8 +31,8 @@
     },
     {
       "path": "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs",
-      "sha256": "d5e3422648349afc8a7a748322deb836199943fcc1dfaec13d9ebdbcc0399105"
+      "sha256": "24de89c0bc30b659ba2c4b3c6555cd4d79b467f76a865bbac058d5a6d7a2ceb9"
     }
   ],
-  "hashScope": "Tested Windows source bytes; the extracted Vision converter is unchanged. Compiler input files are linked from the current repository."
+  "hashScope": "Tested Windows source bytes for 11.23.0; fixture DTOs remain source-derived, pure planner/metadata and writer are linked from current repository; equipment manager and vendor SDK are not started."
 }
