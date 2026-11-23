@@ -1,0 +1,185 @@
+{
+  "round": 2,
+  "status": "independent_diff_and_focused_regression_review_complete",
+  "passed": true,
+  "baseCommit": "3a2526dacf988cf303a102dc432a6eaa9394e9d4",
+  "reviewedAt": "2026-11-23T23:36:07.484639+00:00",
+  "reports": {
+    "retry/core-round2.json": {
+      "sha256": "1ddcc9295aee283e17427d70a4806d47d34a676fa98e5a9e33b4857c04d89f3f",
+      "passed": true,
+      "count": 206
+    },
+    "retry/controller-round2.json": {
+      "sha256": "69a862cfa6b984aef30ba3836bd3a820a8c8c75729476df23f57a8c943ffb0f4",
+      "passed": true,
+      "count": 195
+    },
+    "map/ui/ui-cell-overview-results.json": {
+      "sha256": "c902d6a18a71bfc0e2398aebbddc64428675eeaaabb5b01337c3d664f70e4ee2",
+      "passed": true,
+      "count": 181
+    },
+    "qa-round2-backend-104.json": {
+      "sha256": "ca8364cd2e6a7b70c7a27aee58dc901f799d6bae7ab810deee1d24cae809db2a",
+      "passed": true,
+      "count": 104,
+      "originalPathAtReview": "backend-read.json"
+    }
+  },
+  "checks": [
+    {
+      "name": "report:retry/core-round2.json",
+      "passed": true
+    },
+    {
+      "name": "Core206",
+      "passed": true
+    },
+    {
+      "name": "core_source:Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs",
+      "passed": true
+    },
+    {
+      "name": "core_source:Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs",
+      "passed": true
+    },
+    {
+      "name": "core_source:Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
+      "passed": true
+    },
+    {
+      "name": "report:retry/controller-round2.json",
+      "passed": true
+    },
+    {
+      "name": "linked_Controller195",
+      "passed": true
+    },
+    {
+      "name": "no_vendor_loaded",
+      "passed": true
+    },
+    {
+      "name": "report:map/ui/ui-cell-overview-results.json",
+      "passed": true
+    },
+    {
+      "name": "Map181",
+      "passed": true
+    },
+    {
+      "name": "Map_UI_source:Views/CManualInspectionUiContract.cs",
+      "passed": true
+    },
+    {
+      "name": "Map_UI_source:Views/CManualInspectionMapControl.cs",
+      "passed": true
+    },
+    {
+      "name": "Map_UI_source:Views/CManualInspectionScatterControl.cs",
+      "passed": true
+    },
+    {
+      "name": "Map_UI_source:Views/CManualInspectionView.xaml",
+      "passed": true
+    },
+    {
+      "name": "Map_UI_source:Views/CManualInspectionView.xaml.cs",
+      "passed": true
+    },
+    {
+      "name": "report:backend-read.json",
+      "passed": true
+    },
+    {
+      "name": "preflight_actual_backend104",
+      "passed": true
+    },
+    {
+      "name": "diff_check",
+      "passed": true
+    }
+  ],
+  "sourceSha256AtReview": {
+    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs": "5331aeefbb1adcff63ad5ba982316b634a7fa67afdc4a39f9357815f017a064f",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs": "817f4e22b0d4751ff87a7bdca6ef1bae2a917846b346987f8d4454c3085d5768",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "a30840215dc7dce675347a49674f2bdde76ec1ea67a9ff2ccc4f1ffb82a71b8e",
+    "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs": "0dbab53437f3a43cf3b955b5b98cc77e6329ab6613b070b2127901ad47326821",
+    "Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs": "8e7a239bcbaf630383e9330fcb53ddb0cdf538111d8a1f754867524c1808164c",
+    "Drilling.UI/Views/CManualInspectionMapControl.cs": "5b6cc72cedd966186fae81dd825986e498018a06dd4b373192f762cbe274fbb3",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "6c80b499bd2bb9e376cac1eb94777dbefe0660efbee1b6b1def44a8e2d1a80ab",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "6f1810a3abfdc35891f7aeaf562b0db8b84e530f4e735dc7b373b9db5c25a303",
+    "Drilling.UI/Menu/Menus/CMenuMonitor.cs": "70c03d8bd10bc72b04c9f322adb986dd7c331a397b0241708dd3b83e368c7f2a",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.cs": "7da813fe044b60eaf27304f35d6d457d313c764a0a50d799f53ec9135f2ee250",
+    "Drilling.Common/Recipe/CShotCoordinatePlanBuilder.cs": "142fd432b5de1af2fc70c6e1ecccd3b4d42b85253ecda3e3c0342ae6fec6fa5a",
+    "Drilling.UI/Menu/Menus/CReviewOffsetDisplaySnapshot.cs": "789b5e3d4b8e2d8bf6db455cb4bc7a459ddf920ba59a21431de129c07ab5e4e3",
+    "Drilling.UI/CRootView.cs": "cc23a576c580c60ff245609853fa75fe32d896b7bf01b08277700eaed68f68ac",
+    "Drilling.UI/Views/CMonitorView.xaml": "d7595c09cb605ad998ce8c1805ff06d14319f655f3356d90d39b0374811fa42d"
+  },
+  "sourceReview": [
+    "Fresh manual Preview is pure; BeginOperation verifies current fingerprint, audits previous full terminal operation, clears only old unreceived working residual/proxy/adoption while preserving OriginalMeasurement, completed responses, activeB, ledger/history.",
+    "Explicit retry exact remaining P2P contract and automatic correction prohibition remain. Running/stale/missing/Mask-only/new pending edit/current source guards remain; original operation ID cannot mutate replacement.",
+    "Only current-position measurement UI HasIncomplete restriction removed; correction/Init/copy/Undo gates remain. New movement confirmation describes queue replacement; no-motion current measure remains no-popup and backend verifies actual target.",
+    "P2P publishes active target before await, finally clears it; typed Flying overload publishes current line keys only, clears each line, guards operation ID and unknown keys; UI snapshot flags are transient and have no session/raw/offset math role.",
+    "Map timer500ms phase is separate overlay; same-target progress does not restart phase; key/frame/hidden/unload/completion cleanup; current point mask/disabled/visible set used. Tiny tile stroke/cross extent scaled; NG fill/raw values retained.",
+    "Cell label bounds/font/padding follow physical size and zoom; no fixed opaque badge. Viewport-polygon intersection recenters partially visible captions within same Cell; HitCell uses matching polygon and label rect. Selection/geometry/keyboard source unchanged outside rendering.",
+    "Monitor latest saved file is validated against recipe before applying a temporary parameter map. Real ShotDetail uses saved state to distinguish no-value/Init from actual saved0, formats Review contributionF6mm, describes storedB/space/scale. DESIGN summary converts scanner fields back once; Review Camera target stays unchanged.",
+    "Monitor binding Build->Apply->Notify->DataGrid remains live. Percent scales contribution without changing savedB. Root adopted successful same-revision error-episode reset and additional regression; final actual report rerun pending."
+  ],
+  "resolvedReviewFindings": [
+    {
+      "id": "R2-FLYING",
+      "finding": "Initial intermediate Controller lit all queued Flying targets, including future lines.",
+      "resolution": "Typed activeTargets backend overload, actual per-line keys and finally clear; Controller current operation guard. Source-linked regression passed."
+    },
+    {
+      "id": "R2-PARTIAL-CAPTION",
+      "finding": "Caption anchored above cropped viewport could disappear while its cell remained visible.",
+      "resolution": "Viewport-intersection centroid/fitting plus polygon-consistent hit test; focused regression passed."
+    },
+    {
+      "id": "R2-THEME-FIXTURE",
+      "finding": "Initial standalone blink-dark filename actually rendered white due absent inherited resources.",
+      "resolution": "Focused fixture now installs real current Dark resources; directly viewed final PNG and confirmed dark background/overlay; production theme never changed."
+    },
+    {
+      "id": "R2-MONITOR-FIXTURE",
+      "finding": "Raw stale offsets reordered planner Shots.First and selected a different uncorrected Shot in overlay test.",
+      "resolution": "Fixture selects stable design Shot; production latest overlay intact. Rerun actual Backend104 passed."
+    },
+    {
+      "id": "R2-MONITOR-ERROR-EPISODE",
+      "finding": "Same-version successful read did not reset past error dedup episode.",
+      "resolution": "Parent adopted minimal error reset and new test; final actual DLL/105-case rerun required in Round3."
+    }
+  ],
+  "visualReview": {
+    "images": [
+      {
+        "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_0_RetryVisibility\\map\\ui\\measurement-blink-on-dark.png",
+        "sha256": "b44720276e2a46cafdbd8e4c8d4bc2529004a1f649ccc534496680dc480c853e"
+      },
+      {
+        "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_0_RetryVisibility\\map\\ui\\measurement-blink-off-dark.png",
+        "sha256": "ccc673a3fa282eed853e9d2c93dc4b96d71e4cd7a90752f0433f10ee2c5e63c7"
+      },
+      {
+        "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_0_RetryVisibility\\map\\ui\\cell-labels-48-small-light.png",
+        "sha256": "a17274ded11a4dfdf889e1352abea87631efb226e27814d16e8cf9ee9233acf0"
+      }
+    ],
+    "observed": "Final dark blink image directly viewed; on/off changes only current marker. Original NG tile fill remains. Physical48cell layout retained without opaque badges.",
+    "limitation": "At very small Cell/zoom, proportionally scaled captions can be too small to read; existence of labels is not a claim of full readability at arbitrary zoom. User zoom reveals them."
+  },
+  "duplicateCountsNotAdded": "Core206, source-linked Controller195 and focusedMap181 are preflight evidence. Do not add them to final actual Controller/Backend/UI counts. Backend104 predates the final new error-episode regression and will be replaced with105-case report.",
+  "notExecuted": [
+    "Device operation",
+    "Equipment App/Root instantiation",
+    "Vendor SDK loading/execution/decompilation",
+    "AeroScript",
+    "Source edits",
+    "Git commit/push"
+  ],
+  "next": "Round3 checks final rebuilt actual Controller/Backend DLL SHA, wholeUI source metadata, tests/scope/build and docs links after parent freezes final reports."
+}

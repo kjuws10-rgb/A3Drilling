@@ -31,6 +31,13 @@ public interface IManualInspectionBackend
         EN_MANUAL_OPERATION_KIND kind, Action<string> progress, CancellationToken token);
     Task ExecuteFlyingAsync(CManualInspectionSource source, IReadOnlyList<string> keys,
         Action<CManualInspectionMeasurement> measured, Action<string> progress, CancellationToken token);
+    async Task ExecuteFlyingAsync(CManualInspectionSource source, IReadOnlyList<string> keys,
+        Action<CManualInspectionMeasurement> measured, Action<string> progress,
+        Action<IReadOnlyList<string>> activeTargets, CancellationToken token)
+    {
+        try { activeTargets(keys); await ExecuteFlyingAsync(source,keys,measured,progress,token); }
+        finally { activeTargets([]); }
+    }
     Task<string> SaveAsync(CManualInspectionSource source, IReadOnlyDictionary<string, ST_MANUAL_OFFSET> values,
         string sourceIdentity, IReadOnlyList<ST_MANUAL_CANDIDATE_ROW> measuredRows, CancellationToken token,
         IReadOnlyDictionary<string, string>? consumedMeasurements = null);
@@ -559,8 +566,13 @@ public sealed class CManualInspectionBackend(
         finally { positionLease?.Dispose(); }
     }
 
-    public async Task ExecuteFlyingAsync(CManualInspectionSource source, IReadOnlyList<string> keys,
+    public Task ExecuteFlyingAsync(CManualInspectionSource source, IReadOnlyList<string> keys,
         Action<CManualInspectionMeasurement> measured, Action<string> progress, CancellationToken token)
+        => ExecuteFlyingAsync(source,keys,measured,progress,_=>{},token);
+
+    public async Task ExecuteFlyingAsync(CManualInspectionSource source, IReadOnlyList<string> keys,
+        Action<CManualInspectionMeasurement> measured, Action<string> progress,
+        Action<IReadOnlyList<string>> activeTargets, CancellationToken token)
     {
         GuardOperation(); await EnsureCurrentAsync(source, token);
         foreach (var beamGroup in keys.Select(k => (Key: k, Target: _targets[k])).GroupBy(x => x.Target.BeamNo))
@@ -578,6 +590,9 @@ public sealed class CManualInspectionBackend(
                 var request = CreateSingleFlyingRequest(plan, line,
                     new(_recipe!.Name, manager?.Product().Current?.GlassId ?? "", "MANUAL_INSPECTION", 1,
                         new Dictionary<string, string>(_parameters, StringComparer.OrdinalIgnoreCase)));
+                try
+                {
+                activeTargets(line.Points.Select(p=>lookup[Normalize(p.ShotKey)]).ToArray());
                 // A line is a saved-result transaction. Keep progress visible, but do not mark points
                 // completed in the new engine until the owning manager saved the official result.
                 var finished = await review.StartFineCorrection(request,
@@ -593,6 +608,8 @@ public sealed class CManualInspectionBackend(
                 }
                 if (finished.State != EN_REVIEW_SEQUENCE_STATE.Completed || line.Points.Any(p => !received.Contains(lookup[Normalize(p.ShotKey)])))
                     throw new InvalidOperationException("Flying 행이 전수 완료되지 않았습니다. 저장된 정상 응답은 보존하고 잔여 위치를 다시 측정하세요.");
+                }
+                finally { activeTargets([]); }
             }
             if (received.Count != beamGroup.Count())
                 throw new InvalidOperationException("Flying 결과가 전수 완료되지 않았습니다. 미측정 위치를 다시 측정하세요.");

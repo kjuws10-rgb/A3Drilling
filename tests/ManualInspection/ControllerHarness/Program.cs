@@ -88,6 +88,7 @@ internal static partial class Program
         await RunAutomaticOffsetDraftRecoveryChecks();
         await RunSelectedCorrectionChecks();
         await RunRepresentativeChecks();
+        await RunRetryVisibilityChecks();
         await Check("generic_sta_application_and_no_loaded_vendor_assemblies",async()=>{True(Application.Current.GetType()==typeof(Application));True(!VendorAssemblies().Any());await Task.CompletedTask;});
         var path=args.Length==2&&args[0]=="--report"?args[1]:Path.Combine(AppContext.BaseDirectory,"controller-results.json");Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         var assembly=typeof(CManualInspectionController).Assembly;
@@ -343,6 +344,7 @@ internal static partial class Program
         public Func<CancellationToken,Task>? SaveHook;
         public Action? StopHook;
         public Action<string>? PointHook;
+        public Action<Action<IReadOnlyList<string>>>? FlyingActiveHook;
         public bool CancellationCallbackThrows,RejectGuard;
         public IReadOnlyList<string> WatchRoots { get; set; } = [];
         public IReadOnlyList<KeyValuePair<string,string>> ConsumedMeasurements=>ReceiptSeeds.Concat(SavedConsumption).Distinct().ToArray();
@@ -362,6 +364,13 @@ internal static partial class Program
             token.ThrowIfCancellationRequested();if(key==FailKey)throw new TimeoutException("Synthetic missing response");var p=s.Points.First(p=>p.Key==key);var m=new ST_MANUAL_MEASUREMENT(NewJudge,NewX,NewY,"NEW-RAW-"+NewX,s.Context.RecipeId,s.Context.RunId,s.Context.CoordinateSignature){RawData="Synthetic new raw"};return new(key,m,p.XMm,p.YMm);
         }
         public async Task ExecuteFlyingAsync(CManualInspectionSource s,IReadOnlyList<string>keys,Action<CManualInspectionMeasurement>measured,Action<string>progress,CancellationToken token){FlyingKeys.AddRange(keys);foreach(var k in keys)measured(await ExecutePointAsync(s,k,EN_MANUAL_OPERATION_KIND.Flying,progress,token));}
+        public async Task ExecuteFlyingAsync(CManualInspectionSource s,IReadOnlyList<string>keys,Action<CManualInspectionMeasurement>measured,Action<string>progress,Action<IReadOnlyList<string>>activeTargets,CancellationToken token)
+        {
+            FlyingActiveHook?.Invoke(activeTargets);var points=s.Points.ToDictionary(p=>p.Key,StringComparer.Ordinal);
+            foreach(var line in keys.GroupBy(key=>(points[key].CellNo,points[key].HeadNo,points[key].Row,points[key].BeamNo)))
+                try { var current=line.ToArray();activeTargets(current);await ExecuteFlyingAsync(s,current,measured,progress,token); }
+                finally { activeTargets([]); }
+        }
         public async Task<string> SaveAsync(CManualInspectionSource s,IReadOnlyDictionary<string,ST_MANUAL_OFFSET>values,string identity,IReadOnlyList<ST_MANUAL_CANDIDATE_ROW>rows,CancellationToken token,IReadOnlyDictionary<string,string>?consumedMeasurements=null)
         {
             if(SaveHook is not null)await SaveHook(token);token.ThrowIfCancellationRequested();if(FailSave)throw new IOException("Synthetic writer error");

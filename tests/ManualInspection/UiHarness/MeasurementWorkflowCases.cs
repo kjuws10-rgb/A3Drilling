@@ -68,6 +68,20 @@ internal static partial class Program
             Test("workflow_selected_correction_requires_confirmation_and_cancel_is_inert",cb==1&&fake.Calls.Count==beforeValidation);
             view.ConfirmationForTesting=(_,_,_)=>{cb++;return true;};Click("CalculateButton");
             Test("workflow_selected_correction_accept_dispatches_integrated_action",cb==2&&fake.Calls.Count==beforeValidation+1&&fake.Calls[^1].Action==EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets);
+            var savedState=fake.Snapshot;
+            fake.Replace(savedState with{Version=savedState.Version+1,HasIncomplete=true,RemainingCount=2,IsOffsetEditPending=false,StageXmm=0,StageYmm=0});Pump();
+            Invoke(view,"ChangeSelection",new CManualInspectionSelectionEventArgs([p.Key],p.Key));Pump();
+            Test("workflow_failed_queue_keeps_retry_optional_and_allows_new_current_measure",Find<Button>("RetryButton").IsEnabled&&Find<Button>("MeasureCurrentButton").IsEnabled);
+            Test("workflow_failed_queue_keeps_correction_and_offset_edits_blocked",!Find<Button>("CalculateButton").IsEnabled&&!Find<Button>("BulkApplyButton").IsEnabled&&!Find<Button>("OffsetInitButton").IsEnabled);
+            var count=fake.Calls.Count;var popups=cb;Click("MeasureCurrentButton");
+            Test("workflow_new_current_measure_supersedes_failed_queue_without_motion_popup",fake.Calls.Count==count+1&&fake.Calls[^1].Action==EN_MANUAL_INSPECTION_UI_ACTION.Measure&&cb==popups);
+            var confirmedText="";view.ConfirmationForTesting=(_,text,_)=>{confirmedText=text;return false;};count=fake.Calls.Count;
+            Invoke(view,"ConfirmOperation",EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,new[]{p.Key},fake.Snapshot.Version,"P2P");Pump();
+            Test("workflow_new_measure_confirmation_describes_replacing_failed_queue",confirmedText.Contains("이전 잔여 목록")&&confirmedText.Contains("완료한 측정")&&fake.Calls.Count==count);
+            view.ConfirmationForTesting=(_,_,_)=>true;
+            Invoke(view,"ConfirmOperation",EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,new[]{p.Key},fake.Snapshot.Version,"P2P");Pump();
+            Test("workflow_new_measure_after_failure_dispatches_only_current_selection",fake.Calls.Count==count+1&&fake.Calls[^1].Request.Keys.SequenceEqual([p.Key]));
+            fake.Replace(savedState with{Version=fake.Snapshot.Version+1});Pump();view.ConfirmationForTesting=(_,_,_)=>{cb++;return true;};
             var beforeSettingsConfirmation=cb;Find<Expander>("SettingsSection").IsExpanded=true;Pump();Click("LevelsButton");
             Test("workflow_level_settings_open_inline_without_popup",cb==beforeSettingsConfirmation&&Find<StackPanel>("LevelSettingsPanel").Visibility==Visibility.Visible);
             foreach(var size in new[]{(1490,900),(1120,560)})

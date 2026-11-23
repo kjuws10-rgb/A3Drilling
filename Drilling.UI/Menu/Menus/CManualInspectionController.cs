@@ -37,6 +37,9 @@ public sealed class CManualInspectionController : IManualInspectionController
     private long _measurementSequence;
     private string? _lastMeasuredPointKey;
     private string _lastMeasurementText="";
+    private bool _isMeasurementInProgress;
+    private string? _activeMeasurementPointKey;
+    private IReadOnlyList<string> _activeMeasurementPointKeys = [];
     private string _status = "현재 Recipe 또는 측정 결과를 불러오세요.", _message = "", _persistence = "아직 저장된 작업 없음";
     private double _stageX = double.NaN, _stageY = double.NaN;
     private string _levelMetric = "MAX_AXIS";
@@ -717,6 +720,9 @@ public sealed class CManualInspectionController : IManualInspectionController
         };
         var operation = _engine.BeginOperation(_engine.PreviewOperation(kind, keys, retry));
         _hasProgressTimestamp = false; _pendingPointPublication = false;
+        _isMeasurementInProgress = kind != EN_MANUAL_OPERATION_KIND.Move;
+        _activeMeasurementPointKey = null;
+        _activeMeasurementPointKeys = [];
         try
         {
             if (_backend is CManualInspectionReplayBackend replay) replay.Configure(request with { Keys = keys, Fault = retry ? "NONE" : request.Fault });
@@ -738,10 +744,28 @@ public sealed class CManualInspectionController : IManualInspectionController
                 if (DateTimeOffset.UtcNow - _lastCheckpoint > TimeSpan.FromSeconds(2)) SaveLocalSession();
             });
             void Progress(string text) => OnUi(() => { _status = text; PublishProgress(pointsChanged: false); });
-            if (flying) await _backend.ExecuteFlyingAsync(_source!, keys, Received, Progress, token);
+            void ActiveTargets(IReadOnlyList<string> active) => OnUi(() =>
+            {
+                if (_engine.Operation?.Id != operation.Id || !_isMeasurementInProgress) return;
+                var current = active.Distinct(StringComparer.Ordinal).ToArray();
+                if (current.Except(operation.Keys,StringComparer.Ordinal).Any())
+                    throw new InvalidDataException("현재 Flying 작업에 없는 측정 대상 표시를 받았습니다.");
+                _activeMeasurementPointKey = null;
+                _activeMeasurementPointKeys = current;
+                Publish(reusePoints: true);
+            });
+            if (flying) await _backend.ExecuteFlyingAsync(_source!, keys, Received, Progress, ActiveTargets, token);
             else foreach (var key in operation.Keys)
             {
                 token.ThrowIfCancellationRequested();
+                if (_isMeasurementInProgress)
+                {
+                    _activeMeasurementPointKey = key;
+                    _activeMeasurementPointKeys = [key];
+                    // Publish the target before awaiting movement/measurement. LastMeasured
+                    // is a completed response and must never stand in for a live target.
+                    Publish(reusePoints: true);
+                }
                 var value = await _backend.ExecutePointAsync(_source!, key, kind, Progress, token);
                 if (kind == EN_MANUAL_OPERATION_KIND.Move)
                 { _engine.MarkOperationPointCompleted(operation.Id, key); _stageX = value.ReviewXmm; _stageY = value.StageYmm;
@@ -758,6 +782,13 @@ public sealed class CManualInspectionController : IManualInspectionController
             if (_engine.Operation?.State == EN_MANUAL_OPERATION_STATE.Running)
                 _engine.CompleteOperation(operation.Id, e is OperationCanceledException ? EN_MANUAL_OPERATION_STATE.Stopped : EN_MANUAL_OPERATION_STATE.Error, e.Message);
             throw;
+        }
+        finally
+        {
+            _isMeasurementInProgress = false;
+            _activeMeasurementPointKey = null;
+            _activeMeasurementPointKeys = [];
+            Publish(reusePoints: true);
         }
     }
 
@@ -1134,6 +1165,8 @@ public sealed class CManualInspectionController : IManualInspectionController
             CanReturnToPreviousWorkspace=_previousWorkspace is not null,
             IsOffsetEditPending=offsetEdit,OffsetInitPending=offsetEdit&&candidate!.IsMeasurementOffsetInitialization,
             MeasurementSequence=_measurementSequence,LastMeasuredPointKey=_lastMeasuredPointKey,LastMeasurementText=_lastMeasurementText,
+            IsMeasurementInProgress=_isMeasurementInProgress,ActiveMeasurementPointKey=_activeMeasurementPointKey,
+            ActiveMeasurementPointKeys=_activeMeasurementPointKeys,
             OffsetSummaryText=offsetEdit?"작업 통합 Offset · 미저장 · 모델 Offset 저장 시 반영 · HW/Default/First/Distortion 유지"
                 :"모델별 최신 누적 Review Offset 하나 · Simple/Rough/Fine/One/All/Line 통합 · 보호 Offset 별도 유지",
             CellLayouts=_source?.CellLayouts ?? [],GlassWidthMm=_source?.GlassWidthMm ?? 0,GlassHeightMm=_source?.GlassHeightMm ?? 0,

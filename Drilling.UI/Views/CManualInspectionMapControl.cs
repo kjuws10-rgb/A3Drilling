@@ -7,6 +7,7 @@ using System.Windows.Automation;
 using System.Windows.Automation.Peers;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 public sealed class CManualInspectionSelectionEventArgs(
     IReadOnlyList<string> keys, string? focusKey, bool additive = false, bool toggle = false, bool clearFocus = false) : EventArgs
@@ -41,7 +42,7 @@ public sealed class CManualInspectionMapControl : Control
     private readonly List<(CManualInspectionUiPoint Point, Rect Bounds)> _hits = [];
     private readonly List<(Rect Bounds, Rect Grid, string Title, string Extents)> _frames = [];
     private readonly List<(int CellNo, Rect Header, Rect AllCells)> _cellHeaders = [];
-    private sealed record CellLabel(int CellNo, Rect Bounds, Point Anchor, string Text, bool Enabled);
+    private sealed record CellLabel(int CellNo, Rect Bounds, string Text, bool Enabled, double FontSize, Point[]? CellPolygon);
     private readonly List<CellLabel> _cellLabels = [];
     private string _cellLabelLayoutKey = "";
     private readonly Dictionary<string, Point[]> _overviewPolygons = new(StringComparer.Ordinal);
@@ -78,6 +79,9 @@ public sealed class CManualInspectionMapControl : Control
     private double _zoom = 1;
     private string? _hoverKey;
     private readonly ToolTip _tip = new() { Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint };
+    private readonly DispatcherTimer _measurementBlinkTimer;
+    private HashSet<string> _measurementBlinkKeys = new(StringComparer.Ordinal);
+    private bool _measurementBlinkVisible;
 
     public event EventHandler<CManualInspectionSelectionEventArgs>? SelectionRequested;
     public event EventHandler<CManualInspectionOperationEventArgs>? OperationRequested;
@@ -91,6 +95,9 @@ public sealed class CManualInspectionMapControl : Control
 
     public CManualInspectionMapControl()
     {
+        _measurementBlinkTimer = new DispatcherTimer(DispatcherPriority.Render, Dispatcher)
+        { Interval = TimeSpan.FromMilliseconds(500) };
+        _measurementBlinkTimer.Tick += (_, _) => AdvanceMeasurementBlink();
         Focusable = true;
         ClipToBounds = true;
         SnapsToDevicePixels = true;
@@ -107,7 +114,13 @@ public sealed class CManualInspectionMapControl : Control
         AutomationProperties.SetName(this, "리뷰 측정 위치 논리 행렬");
         AutomationProperties.SetHelpText(this, "전체 Cell 보기에서는 셀 내부를 클릭하면 해당 Cell을 엽니다. 드래그로 측정점을 선택하고 Ctrl 드래그로 추가합니다. 단일 Cell에서는 Ctrl 클릭으로 복수 선택합니다. 방향키는 한 점, Ctrl 방향키는 행·열 끝, Shift 방향키는 사각 범위, Ctrl Shift 방향키는 끝까지 범위를 선택합니다. Space는 동작 메뉴, Esc는 메뉴 닫기, Ctrl 휠은 확대, Alt 방향키는 화면 이동, 더블클릭은 맞춤입니다.");
         SizeChanged += (_, _) => { _layoutDirty = true; InvalidateVisual(); };
-        Unloaded += (_, _) => { CancelGesture(true); _tip.IsOpen = false; if (ContextMenu is not null) ContextMenu.IsOpen = false; };
+        Loaded += (_, _) => UpdateMeasurementBlink();
+        IsVisibleChanged += (_, _) => UpdateMeasurementBlink();
+        Unloaded += (_, _) =>
+        {
+            CancelGesture(true); _tip.IsOpen = false; if (ContextMenu is not null) ContextMenu.IsOpen = false;
+            _measurementBlinkTimer.Stop(); _measurementBlinkVisible = false;
+        };
     }
 
     protected override AutomationPeer OnCreateAutomationPeer() => new CManualInspectionSurfacePeer(this);
@@ -118,6 +131,9 @@ public sealed class CManualInspectionMapControl : Control
         string? focusKey, string? representativeKey, string colorMode, string scopeSignature, bool showCellOverview = false)
     {
         if (ContextMenu?.IsOpen == true) ContextMenu.IsOpen = false;
+        if (_snapshot.RecipeId != snapshot.RecipeId || _snapshot.RunId != snapshot.RunId
+            || _snapshot.CoordinateSignature != snapshot.CoordinateSignature)
+        { _measurementBlinkTimer.Stop(); _measurementBlinkKeys.Clear(); }
         var samePoints = ReferenceEquals(_all, allScopedPoints) || _all.Count == allScopedPoints.Count
             && _all.Zip(allScopedPoints).All(pair => ReferenceEquals(pair.First, pair.Second));
         var sameGeometry = samePoints || _all.Count == allScopedPoints.Count && _all.Zip(allScopedPoints).All(pair =>
@@ -149,6 +165,7 @@ public sealed class CManualInspectionMapControl : Control
         _visibleKeys = nextVisibleKeys;
         _selected = nextSelected;
         _focusKey = focusKey;
+        UpdateMeasurementBlink();
         _representative = representativeKey;
         _colorMode = colorMode;
         var nextSignature = scopeIdentity;
@@ -478,17 +495,18 @@ public sealed class CManualInspectionMapControl : Control
             BuildCellLabels(viewport);
             foreach (var label in _cellLabels)
             {
-                if (!label.Bounds.Contains(label.Anchor))
-                    context.DrawLine(new Pen(line, .7), label.Anchor,
-                        new(Math.Clamp(label.Anchor.X, label.Bounds.Left, label.Bounds.Right), Math.Clamp(label.Anchor.Y, label.Bounds.Top, label.Bounds.Bottom)));
-            }
-            foreach (var label in _cellLabels)
-            {
-                context.DrawRoundedRectangle(CManualInspectionDrawing.Resource(this, "PanelBackgroundBrush", Background ?? Brushes.Transparent),
-                    new Pen(label.Enabled ? accent : line, .8), label.Bounds, 3, 3);
-                CManualInspectionDrawing.Text(context, this, label.Text, new(label.Bounds.Left + 5, label.Bounds.Top + 2), 11,
+                // Captions belong to their Cell and scale with it. Transparent text avoids
+                // fixed opaque boxes hiding neighbouring measurement positions at small zoom.
+                if (label.CellPolygon is { } polygon) context.PushClip(PolygonGeometry(polygon));
+                var pad = label.FontSize * .16;
+                var origin = new Point(label.Bounds.Left + pad, label.Bounds.Top);
+                CManualInspectionDrawing.Text(context, this, label.Text, origin + new Vector(label.FontSize * .04, label.FontSize * .04),
+                    label.FontSize, CManualInspectionDrawing.Resource(this, "PanelBackgroundBrush", Background ?? Brushes.Transparent),
+                    true, label.Bounds.Width - pad * 2, singleLine: true);
+                CManualInspectionDrawing.Text(context, this, label.Text, origin, label.FontSize,
                     label.Enabled ? Foreground : CManualInspectionDrawing.Resource(this, "TextSecondaryBrush", Foreground ?? Brushes.Gray),
-                    true, label.Bounds.Width - 10, singleLine: true);
+                    true, label.Bounds.Width - pad * 2, singleLine: true);
+                if (label.CellPolygon is not null) context.Pop();
             }
         }
         if (!_allCellsButton.IsEmpty)
@@ -498,6 +516,7 @@ public sealed class CManualInspectionMapControl : Control
         }
         if (_slots.Count == 0)
             CManualInspectionDrawing.Text(context, this, "표시할 위치가 없습니다. 현재 Recipe를 불러오거나 필터를 바꾸세요.", new Point(18, 30), 13, Foreground);
+        DrawMeasurementBlink(context, viewport);
         if (_gesture && !_panning && _moved)
         {
             var selection = new Rect(_start, _last);
@@ -517,7 +536,6 @@ public sealed class CManualInspectionMapControl : Control
         _cellLabelLayoutKey = key;
         _cellLabels.Clear();
         if (ActualWidth < 45 || ActualHeight < 48) return;
-        var occupied = new List<Rect>();
         foreach (var group in _cellHeaders.Select((header, index) => (Header: header, Frame: _frames[index])).GroupBy(item => item.Header.CellNo))
         {
             var displayed = group.Select(item => Screen(item.Frame.Bounds)).Where(rect => rect.IntersectsWith(viewport)).ToArray();
@@ -525,28 +543,113 @@ public sealed class CManualInspectionMapControl : Control
             var frame = displayed.Aggregate(Rect.Union);
             var enabled = _snapshot.CellLayouts.FirstOrDefault(cell => cell.CellNo == group.Key)?.Enabled != false;
             var text = $"Cell {group.Key}" + (enabled ? "" : " · 미사용");
-            var width = Math.Min(Math.Max(65, text.Length * 7 + 12), Math.Max(1, ActualWidth - 8));
-            const double height = 21;
-            var desired = new Rect(Math.Clamp(frame.Left, 4, Math.Max(4, ActualWidth - width - 4)),
-                Math.Clamp(frame.Top, 24, Math.Max(24, ActualHeight - height - 4)), width, height);
-            bool Free(Rect rect) => occupied.All(other => !rect.IntersectsWith(other));
-            var bounds = desired;
-            if (!Free(bounds))
+            var index = _cellHeaders.FindIndex(header => header.CellNo == group.Key);
+            var polygon = _hasRecipeLayout ? _overviewFrames[index].Select(Screen).ToArray() : null;
+            var edgeWidth = polygon is null ? frame.Width : (polygon[1] - polygon[0]).Length;
+            var edgeHeight = polygon is null ? frame.Height : (polygon[3] - polygon[0]).Length;
+            var center = polygon is null ? new Point(frame.Left + frame.Width / 2, frame.Top + frame.Height * .16)
+                : polygon[0] + (polygon[1] - polygon[0]) * .5 + (polygon[3] - polygon[0]) * .16;
+            // No minimum badge dimensions: a small Cell must also have a small caption. Only
+            // the upper font cap prevents very large zoom from producing a huge caption.
+            var font = Math.Max(.05, Math.Min(22, Math.Min(14 * _zoom,
+                Math.Min(edgeWidth * .82 / Math.Max(1, text.Length * .7), edgeHeight * .18))));
+            Rect At(double size) => new(center.X - size * (text.Length * .7 + .32) / 2,
+                center.Y - size * .72, size * (text.Length * .7 + .32), size * 1.44);
+            var bounds = At(font);
+            if (!viewport.Contains(bounds))
             {
-                var bestDistance = double.PositiveInfinity;
-                // Find a nearby free screen-space label lane; only labels move. Cell polygons,
-                // point slots, Recipe coordinates and hit testing retain their physical layout.
-                for (var y = 24d; y + height <= ActualHeight - 4; y += height + 3)
-                    for (var x = 4d; x + width <= ActualWidth - 4; x += width + 4)
-                    {
-                        var candidate = new Rect(x, y, width, height);
-                        if (!Free(candidate)) continue;
-                        var distance = (candidate.TopLeft - desired.TopLeft).LengthSquared;
-                        if (distance < bestDistance) { bestDistance = distance; bounds = candidate; }
-                    }
+                var visibleShape = ClipToViewport(polygon ?? [frame.TopLeft, frame.TopRight, frame.BottomRight, frame.BottomLeft], viewport);
+                if (visibleShape.Count < 3) continue;
+                center = new(visibleShape.Average(at => at.X), visibleShape.Average(at => at.Y));
+                bounds = At(font);
             }
-            var reserved = bounds; reserved.Inflate(2, 1); occupied.Add(reserved);
-            _cellLabels.Add(new(group.Key, bounds, new(Math.Clamp(frame.Left + 5, 0, ActualWidth), Math.Clamp(frame.Top + 5, 0, ActualHeight)), text, enabled));
+            bool InsideCell(Rect rect) => viewport.Contains(rect) && (polygon is null ? frame.Contains(rect)
+                : new[] { rect.TopLeft, rect.TopRight, rect.BottomRight, rect.BottomLeft }.All(at => ContainsPolygon(polygon, at)));
+            for (var attempt = 0; attempt < 24 && !InsideCell(bounds); attempt++)
+            {
+                font *= .8; bounds = At(font);
+            }
+            _cellLabels.Add(new(group.Key, bounds, text, enabled, font, polygon));
+        }
+    }
+
+    private static IReadOnlyList<Point> ClipToViewport(IReadOnlyList<Point> polygon, Rect viewport)
+    {
+        static List<Point> Clip(IReadOnlyList<Point> input, Func<Point, bool> inside, Func<Point, Point, Point> crossing)
+        {
+            var output = new List<Point>();
+            if (input.Count == 0) return output;
+            var previous = input[^1];
+            foreach (var current in input)
+            {
+                if (inside(current))
+                { if (!inside(previous)) output.Add(crossing(previous, current)); output.Add(current); }
+                else if (inside(previous)) output.Add(crossing(previous, current));
+                previous = current;
+            }
+            return output;
+        }
+        Point AtX(Point a, Point b, double x) => new(x, a.Y + (b.Y - a.Y) * (x - a.X) / (b.X - a.X));
+        Point AtY(Point a, Point b, double y) => new(a.X + (b.X - a.X) * (y - a.Y) / (b.Y - a.Y), y);
+        var clipped = Clip(polygon, p => p.X >= viewport.Left, (a, b) => AtX(a, b, viewport.Left));
+        clipped = Clip(clipped, p => p.X <= viewport.Right, (a, b) => AtX(a, b, viewport.Right));
+        clipped = Clip(clipped, p => p.Y >= viewport.Top, (a, b) => AtY(a, b, viewport.Top));
+        return Clip(clipped, p => p.Y <= viewport.Bottom, (a, b) => AtY(a, b, viewport.Bottom));
+    }
+
+    private void UpdateMeasurementBlink()
+    {
+        IReadOnlyList<string> keys = _snapshot.ActiveMeasurementPointKeys.Count > 0 ? _snapshot.ActiveMeasurementPointKeys
+            : _snapshot.ActiveMeasurementPointKey is { } active ? [active] : [];
+        var disabledCells = _snapshot.CellLayouts.Where(cell => !cell.Enabled).Select(cell => cell.CellNo).ToHashSet();
+        var next = _snapshot.IsBusy && _snapshot.IsMeasurementInProgress
+            ? keys.Where(key => _visibleKeys.Contains(key) && _pointByKey.TryGetValue(key, out var point)
+                    && !point.IsMasked && !disabledCells.Contains(point.CellNo))
+                .ToHashSet(StringComparer.Ordinal) : new HashSet<string>(StringComparer.Ordinal);
+        var changed = !_measurementBlinkKeys.SetEquals(next);
+        _measurementBlinkKeys = next;
+        if (!IsLoaded || !IsVisible || next.Count == 0)
+        {
+            _measurementBlinkTimer.Stop();
+            _measurementBlinkVisible = false;
+        }
+        else
+        {
+            if (changed || !_measurementBlinkTimer.IsEnabled) _measurementBlinkVisible = true;
+            _measurementBlinkTimer.Start();
+        }
+    }
+
+    private void AdvanceMeasurementBlink()
+    {
+        if (!IsLoaded || !IsVisible || !_snapshot.IsBusy || !_snapshot.IsMeasurementInProgress || _measurementBlinkKeys.Count == 0)
+        { UpdateMeasurementBlink(); return; }
+        _measurementBlinkVisible = !_measurementBlinkVisible;
+        InvalidateVisual();
+    }
+
+    private void DrawMeasurementBlink(DrawingContext context, Rect viewport)
+    {
+        if (!_measurementBlinkVisible) return;
+        foreach (var slot in _slots)
+        {
+            if (!_measurementBlinkKeys.Contains(slot.Point.Key)) continue;
+            var bounds = Screen(slot.Bounds);
+            if (!bounds.IntersectsWith(viewport)) continue;
+            var polygon = _overviewPolygons.TryGetValue(slot.Point.Key, out var shape) ? shape.Select(Screen).ToArray() : null;
+            // This marker is display-only: retain the original NG/Level/Init fill and selection.
+            var extent = polygon is null ? Math.Min(bounds.Width, bounds.Height)
+                : Math.Min((polygon[1] - polygon[0]).Length, (polygon[3] - polygon[0]).Length);
+            var dark = new Pen(Brushes.Black, Math.Min(4, extent * .12));
+            var bright = new Pen(CManualInspectionDrawing.Color("#FFFFD54F"), Math.Min(2, extent * .06));
+            if (polygon is not null)
+            { DrawPolygon(context, polygon, null, dark); DrawPolygon(context, polygon, null, bright); }
+            else
+            { context.DrawRectangle(null, dark, bounds); context.DrawRectangle(null, bright, bounds); }
+            var centre = new Point(bounds.Left + bounds.Width / 2, bounds.Top + bounds.Height / 2);
+            var length = Math.Min(12, extent * .15);
+            context.DrawLine(bright, centre - new Vector(length, 0), centre + new Vector(length, 0));
+            context.DrawLine(bright, centre - new Vector(0, length), centre + new Vector(0, length));
         }
     }
 
@@ -628,7 +731,8 @@ public sealed class CManualInspectionMapControl : Control
     {
         if (_showCellOverview)
             for (var i = _cellLabels.Count - 1; i >= 0; i--)
-                if (_cellLabels[i].Bounds.Contains(at)) return _cellLabels[i].CellNo;
+                if (_cellLabels[i].Bounds.Contains(at)
+                    && (_cellLabels[i].CellPolygon is not { } polygon || ContainsPolygon(polygon, at))) return _cellLabels[i].CellNo;
         for (var i = _cellHeaders.Count - 1; i >= 0; i--) if (Screen(_cellHeaders[i].Header).Contains(at)) return _cellHeaders[i].CellNo;
         return null;
     }

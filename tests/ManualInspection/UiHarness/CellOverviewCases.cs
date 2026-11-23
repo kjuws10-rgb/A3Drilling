@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Drilling.UI.Views;
 
 internal static partial class Program
@@ -23,6 +24,7 @@ internal static partial class Program
             RunEmptyReviewMenuChecks();
             RunMapKeyboardChecks();
             RunPersistentCellLabelChecks(observations);
+            RunMeasurementBlinkChecks(observations);
         }
         catch(Exception e){Test("celloverview_unexpected_exception",false,e.ToString());}
         var files=new[]{"Views/CManualInspectionUiContract.cs","Views/CManualInspectionMapControl.cs","Views/CManualInspectionScatterControl.cs","Views/CManualInspectionView.xaml","Views/CManualInspectionView.xaml.cs"};
@@ -525,32 +527,101 @@ internal static partial class Program
         map.CellRequested+=(_,cell)=>navigation.Add(cell);map.SelectionRequested+=(_,_)=>selection++;map.OperationRequested+=(_,_)=>work++;
         var host=new Window{Width=1000,Height=700,Content=map,Left=-20000,Top=-20000,ShowInTaskbar=false,ShowActivated=false,WindowStyle=WindowStyle.None};host.Show();
         map.Configure(snapshot,points,points,[],null,null,"level","cell-labels",true);Pump();
-        (int Cell,Rect Rect,string Text,bool Enabled)[] Labels()=>Field<IList>(map,"_cellLabels").Cast<object>().Select(label=>
+        (int Cell,Rect Rect,string Text,bool Enabled,double Font)[] Labels()=>Field<IList>(map,"_cellLabels").Cast<object>().Select(label=>
             ((int)label.GetType().GetProperty("CellNo")!.GetValue(label)!,
                 (Rect)label.GetType().GetProperty("Bounds")!.GetValue(label)!,
                 (string)label.GetType().GetProperty("Text")!.GetValue(label)!,
-                (bool)label.GetType().GetProperty("Enabled")!.GetValue(label)!)).ToArray();
+                (bool)label.GetType().GetProperty("Enabled")!.GetValue(label)!,
+                (double)label.GetType().GetProperty("FontSize")!.GetValue(label)!)).ToArray();
         string GeometryJson()=>JsonSerializer.Serialize(new{snapshot.Points,snapshot.CellLayouts,snapshot.GlassWidthMm,snapshot.GlassHeightMm,snapshot.CellLayoutYDown});
         var fitted=Labels();var geometry=Slots(map);var original=GeometryJson();
         Test("overview_every_cell_has_persistent_number_without_hover",fitted.Length==48&&fitted.All(label=>label.Text.Contains("Cell "+label.Cell))&&Field<string?>(map,"_hoverKey") is null);
         Test("overview_cell_labels_distinguish_disabled_cells",fitted.Single(label=>label.Cell==7) is{Enabled:false,Text:var text}&&text.Contains("미사용"));
         map.RestoreView(.4,default);Pump();var small=Labels();
-        Test("overview_small_cells_keep_screen_space_readable_label_dimensions",small.Length==48&&small.All(label=>label.Rect.Height>=20&&label.Rect.Width>=65)&&small.All(label=>label.Rect.Size==fitted.Single(old=>old.Cell==label.Cell).Rect.Size));
+        Test("overview_small_cells_scale_label_dimensions_and_font_with_zoom",small.Length==48&&small.All(label=>Math.Abs(label.Rect.Width/fitted.Single(old=>old.Cell==label.Cell).Rect.Width-.4)<1e-8
+            &&Math.Abs(label.Rect.Height/fitted.Single(old=>old.Cell==label.Cell).Rect.Height-.4)<1e-8&&Math.Abs(label.Font/fitted.Single(old=>old.Cell==label.Cell).Font-.4)<1e-8));
+        Test("overview_tiny_cell_labels_have_no_fixed_badge_minimum",small.All(label=>label.Rect.Width<65&&label.Rect.Height<21&&label.Font>0));
         Test("overview_dense_cell_labels_do_not_overlap",small.SelectMany((label,i)=>small.Skip(i+1).Select(other=>!label.Rect.IntersectsWith(other.Rect))).All(value=>value));
-        Test("overview_dense_cell_labels_stay_inside_viewport",small.All(label=>label.Rect.Left>=0&&label.Rect.Top>=20&&label.Rect.Right<=map.ActualWidth&&label.Rect.Bottom<=map.ActualHeight));
+        Test("overview_dense_cell_labels_stay_in_their_own_cell_bounds",small.All(label=>Slots(map)["LABEL-C"+label.Cell].Contains(new Rect(new Point(label.Rect.Left/.4,label.Rect.Top/.4),new Size(label.Rect.Width/.4,label.Rect.Height/.4)))));
         Test("overview_label_collision_avoidance_never_moves_real_cell_or_point_geometry",geometry.All(pair=>Slots(map)[pair.Key]==pair.Value)&&GeometryJson()==original);
         var clickedLabel=small.Single(item=>item.Cell==37);var at=new Point(clickedLabel.Rect.Left+clickedLabel.Rect.Width/2,clickedLabel.Rect.Top+clickedLabel.Rect.Height/2);
         Invoke(map,"BeginPointerGesture",at,ModifierKeys.None,1);Invoke(map,"CompletePointerGesture",at);Pump();
-        Test("overview_displaced_screen_label_still_enters_its_named_cell",navigation.SequenceEqual([37])&&selection==0&&work==0);
+        Test("overview_scaled_label_still_enters_its_named_cell",navigation.SequenceEqual([37])&&selection==0&&work==0);
         foreach(var theme in new[]{"Dark","Light"}){LoadResources(theme);Pump();Render(map,"cell-labels-48-small-"+theme.ToLowerInvariant()+".png");}
         map.RestoreView(3,new Vector(-450,-400));Pump();var zoomed=Labels();
-        Test("overview_zoomed_visible_cell_labels_keep_fixed_size_and_click_identity",zoomed.Length>0&&zoomed.All(item=>item.Rect.Size==fitted.Single(old=>old.Cell==item.Cell).Rect.Size)&&zoomed.All(item=>(int?)Invoke(map,"HitOverviewCell",new Point(item.Rect.Left+item.Rect.Width/2,item.Rect.Top+item.Rect.Height/2))==item.Cell));
+        var onscreen=zoomed.Where(item=>new Rect(0,0,map.ActualWidth,map.ActualHeight).Contains(new Point(item.Rect.Left+item.Rect.Width/2,item.Rect.Top+item.Rect.Height/2))).ToArray();
+        var fullyShown=onscreen.Where(item=>{var r=geometry["LABEL-C"+item.Cell];return new Rect(0,0,map.ActualWidth,map.ActualHeight).Contains(new Rect(new Point(r.Left*3-450,r.Top*3-400),new Size(r.Width*3,r.Height*3)));}).ToArray();
+        Test("overview_zoomed_cell_labels_expand_and_keep_click_identity",fullyShown.Length>0&&fullyShown.All(item=>item.Font>fitted.Single(old=>old.Cell==item.Cell).Font)
+            &&onscreen.All(item=>item.Font>0&&item.Font<=22)
+            &&onscreen.All(item=>(int?)Invoke(map,"HitOverviewCell",new Point(item.Rect.Left+item.Rect.Width/2,item.Rect.Top+item.Rect.Height/2))==item.Cell));
+        Test("overview_partially_visible_cell_labels_fit_inside_viewport_without_floating_outside_cell",onscreen.Length>fullyShown.Length&&onscreen.All(item=>new Rect(0,0,map.ActualWidth,map.ActualHeight).Contains(item.Rect)));
+        var rotatedLabel=onscreen.FirstOrDefault(item=>item.Cell%7==0);
+        Test("overview_rotated_cell_label_hit_stays_in_its_actual_polygon",rotatedLabel.Cell>0&&(int?)Invoke(map,"HitOverviewCell",new Point(rotatedLabel.Rect.Left+rotatedLabel.Rect.Width/2,rotatedLabel.Rect.Top+rotatedLabel.Rect.Height/2))==rotatedLabel.Cell);
         map.Configure(snapshot,points,points,[],null,null,"level","cell-labels-fallback",true);Pump();
         map.Configure(snapshot with{CellLayouts=[]},points,points,[],null,null,"level","cell-labels-fallback",true);Pump();
         Test("overview_logical_fallback_also_keeps_all_cell_numbers",Labels().Length==48);
-        observations.Add(new{kind="fixed-cell-labels",cellCount=48,zoom=.4,fontSizeDip=11,minimumLabelSizeDip=new{Width=65,Height=21},physicalGeometryUnchanged=true});
+        observations.Add(new{kind="cell-relative-labels",cellCount=48,zoom=.4,fontRangeDip=new{Minimum=small.Min(label=>label.Font),Maximum=small.Max(label=>label.Font)},fixedBadgeMinimum=false,physicalGeometryUnchanged=true});
         host.Close();
     }
+    private static void RunMeasurementBlinkChecks(List<object> observations)
+    {
+        LoadResources("Dark");Pump();
+        var originalState=OverviewSnapshot();var points=originalState.Points.Where(p=>p.CellNo==3).Take(4).ToArray();
+        var original=JsonSerializer.Serialize(points);var state=originalState with{Points=points,CellLayouts=originalState.CellLayouts.Where(cell=>cell.CellNo==3).ToArray()};
+        var map=new CManualInspectionMapControl();var selections=0;var work=0;var navigation=0;
+        map.SelectionRequested+=(_,_)=>selections++;map.OperationRequested+=(_,_)=>work++;map.CellRequested+=(_,_)=>navigation++;
+        var host=new Window{Width=800,Height=550,Content=map,Left=-20000,Top=-20000,ShowInTaskbar=false,ShowActivated=false,WindowStyle=WindowStyle.None};host.Show();
+        void Configure(CManualInspectionUiSnapshot value,IReadOnlyList<CManualInspectionUiPoint>? visible=null)
+        {state=value;map.Configure(value,value.Points,visible??value.Points,[points[2].Key],points[2].Key,null,"level","blink",true);Pump();}
+        var timer=Field<DispatcherTimer>(map,"_measurementBlinkTimer");
+        bool Phase()=>Field<bool>(map,"_measurementBlinkVisible");
+        HashSet<string> Keys()=>Field<HashSet<string>>(map,"_measurementBlinkKeys");
+        Configure(state);
+        Test("measurement_blink_idle_last_measured_point_is_not_an_active_target",!timer.IsEnabled&&!Phase()&&Keys().Count==0);
+        var active=state with{IsBusy=true,IsMeasurementInProgress=true,ActiveMeasurementPointKey=points[0].Key};Configure(active);
+        Test("measurement_blink_inflight_point_starts_immediately_on_half_second_timer",timer.IsEnabled&&Phase()&&timer.Interval==TimeSpan.FromMilliseconds(500)&&Keys().SetEquals([points[0].Key]));
+        var ticks=0;timer.Tick+=(_,_)=>ticks++;var watch=System.Diagnostics.Stopwatch.StartNew();
+        while(ticks==0&&watch.Elapsed<TimeSpan.FromSeconds(2)){Thread.Sleep(10);Pump();}
+        Test("measurement_blink_actual_dispatcher_timer_advances_without_equipment_poll",ticks>0);
+        Configure(active with{ActiveMeasurementPointKey=points[1].Key});
+        Test("measurement_blink_new_target_resets_phase_to_on",Phase()&&Keys().SetEquals([points[1].Key]));
+        Invoke(map,"AdvanceMeasurementBlink");Pump();
+        Test("measurement_blink_tick_changes_only_overlay_phase",!Phase()&&timer.IsEnabled&&JsonSerializer.Serialize(points)==original&&work==0&&selections==0&&navigation==0);
+        Configure(state with{Version=state.Version+1});
+        Test("measurement_blink_same_target_progress_refresh_does_not_restart_phase",!Phase());
+        Invoke(map,"AdvanceMeasurementBlink");Pump();Render(map,"measurement-blink-on-dark.png");
+        Invoke(map,"AdvanceMeasurementBlink");Pump();Render(map,"measurement-blink-off-dark.png");
+        Test("measurement_blink_on_off_render_differs_while_ng_and_raw_values_remain",!File.ReadAllBytes(Path.Combine(_output,"measurement-blink-on-dark.png")).SequenceEqual(File.ReadAllBytes(Path.Combine(_output,"measurement-blink-off-dark.png")))
+            &&points[0].WorkingJudge=="NG"&&JsonSerializer.Serialize(points)==original);
+        Configure(state with{ActiveMeasurementPointKey=points[3].Key,ActiveMeasurementPointKeys=[points[0].Key,points[1].Key]});
+        Test("measurement_blink_confirmed_batch_keys_take_precedence_over_single_key",Phase()&&Keys().SetEquals([points[0].Key,points[1].Key]));
+        Invoke(map,"AdvanceMeasurementBlink");Configure(state with{ActiveMeasurementPointKeys=[points[1].Key,points[0].Key],Version=state.Version+1});
+        Test("measurement_blink_batch_order_changes_preserve_phase",!Phase()&&Keys().SetEquals([points[0].Key,points[1].Key]));
+        Configure(state with{IsMeasurementInProgress=false});
+        Test("measurement_blink_move_or_save_busy_without_measurement_stops_timer",!timer.IsEnabled&&!Phase()&&Keys().Count==0);
+        Configure(active with{IsBusy=false});
+        Test("measurement_blink_finished_operation_never_keeps_old_target_lit",!timer.IsEnabled&&!Phase());
+        Configure(active with{ActiveMeasurementPointKey="DOES-NOT-EXIST"});
+        Test("measurement_blink_unknown_key_does_not_start_timer",!timer.IsEnabled&&Keys().Count==0);
+        Configure(active,points.Where(p=>p.Key!=points[0].Key).ToArray());
+        Test("measurement_blink_filtered_out_target_does_not_mark_another_point",!timer.IsEnabled&&Keys().Count==0);
+        var masked=points.Select(p=>p.Key==points[0].Key?p with{IsMasked=true}:p).ToArray();Configure(active with{Points=masked});
+        Test("measurement_blink_latest_masking_status_blocks_cached_slot_target",!timer.IsEnabled&&Keys().Count==0);
+        Configure(active with{CellLayouts=active.CellLayouts.Select(cell=>cell with{Enabled=false}).ToArray()});
+        Test("measurement_blink_disabled_cell_does_not_get_active_target_overlay",!timer.IsEnabled&&Keys().Count==0);
+        Configure(active);map.Visibility=Visibility.Hidden;Pump();
+        Test("measurement_blink_hidden_surface_stops_timer",!timer.IsEnabled&&!Phase());
+        map.Visibility=Visibility.Visible;Pump();Test("measurement_blink_visible_surface_restarts_only_current_confirmed_target",timer.IsEnabled&&Phase());
+        Invoke(map,"AdvanceMeasurementBlink");Configure(active with{RunId="OTHER-RUN"});
+        Test("measurement_blink_new_frame_does_not_reuse_previous_phase",Phase());
+        host.Content=null;Pump();Test("measurement_blink_unload_stops_dispatcher_timer",!timer.IsEnabled&&!Phase());
+        host.Content=map;Pump();Test("measurement_blink_reload_restores_live_target_without_changing_selection",timer.IsEnabled&&Phase()&&work==0&&selections==0&&navigation==0);
+        Configure(originalState with{Points=points,CellLayouts=state.CellLayouts,IsBusy=false,IsMeasurementInProgress=false});
+        Test("measurement_blink_stop_or_completion_clears_active_keys_and_preserves_data",!timer.IsEnabled&&!Phase()&&Keys().Count==0&&JsonSerializer.Serialize(points)==original);
+        observations.Add(new{kind="measurement-blink",timerMilliseconds=500,actualTickObserved=ticks>0,confirmedTargetsOnly=true,selectionOrEquipmentRequests=work+selections+navigation,rawUnchanged=true});
+        host.Close();
+    }
+
     private static void RunExpandedScatterMapChecks(List<object> observations)
     {
         var state=OverviewSnapshot();var fake=new FakeController(state);

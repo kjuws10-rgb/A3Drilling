@@ -17,6 +17,7 @@
     <Compile Include="MeasurementWorkflowCases.cs" />
     <Compile Include="BulkHistoryCases.cs" />
     <Compile Include="RepresentativeCases.cs" />
+    <Compile Include="RetryVisibilityCases.cs" />
   </ItemGroup>
   <ItemGroup Condition="'$(UseActualAssemblies)' != 'true'">
     <Compile Include="Contracts.cs" />

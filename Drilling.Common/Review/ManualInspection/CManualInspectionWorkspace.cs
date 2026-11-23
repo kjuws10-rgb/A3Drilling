@@ -788,8 +788,10 @@ public sealed class CManualInspectionWorkspace
         if (valid.Length == 0) throw new InvalidOperationException("실행할 위치가 없습니다. Masking은 제외됩니다.");
         if (HasIncompleteMeasurements)
         {
-            if (!isRetry || kind != EN_MANUAL_OPERATION_KIND.MoveMeasure || !valid.SequenceEqual(Operation!.RemainingKeys))
+            if (isRetry && (kind != EN_MANUAL_OPERATION_KIND.MoveMeasure || !valid.SequenceEqual(Operation!.RemainingKeys)))
                 throw new InvalidOperationException("미완료 측정의 남은 점만 측정 재실행할 수 있습니다. 자동 보정은 재개하지 않습니다.");
+            if (!isRetry && kind == EN_MANUAL_OPERATION_KIND.MeasureAndCorrect)
+                throw new InvalidOperationException("미완료 검사 후 자동 보정은 재개하지 않습니다. 새 수동 측정을 실행하세요.");
         }
         else if (isRetry) throw new InvalidOperationException("재실행할 남은 측정이 없습니다.");
         return new(kind, ReadOnly(valid), ReadOnly(excluded), isRetry, OperationFingerprint(kind, valid, isRetry));
@@ -801,6 +803,23 @@ public sealed class CManualInspectionWorkspace
         var verified = PreviewOperation(preview.Kind, preview.Keys.Concat(preview.ExcludedMaskedKeys), preview.IsRetry);
         if (verified.Fingerprint != preview.Fingerprint || !verified.Keys.SequenceEqual(preview.Keys))
             throw new InvalidOperationException("실행 미리보기 뒤 대상·설정·보정 기준이 바뀌었습니다.");
+        if (HasIncompleteMeasurements && !preview.IsRetry)
+        {
+            var previous = Operation!;
+            // Preview/cancel never changes the retry queue. Only a verified, explicit new
+            // operation replaces it; preserve the complete old queue in the existing audit.
+            Log("OP_SUPERSEDED", JsonSerializer.Serialize(previous));
+            foreach (var key in previous.RemainingKeys)
+            {
+                var point = GetPoint(key);
+                if (point.MeasurementVersion > previous.MeasurementVersionsBefore[key]) continue;
+                var pending = point with { Judge="UNMEASURED",Source="KEPT",ErrorXUm=null,ErrorYUm=null,
+                    ProxySource=null,AdoptedFileMeasurement=null,ExternalObservedAt=null };
+                if (pending == point) continue;
+                _points[key]=pending;
+                AddHistory(point,pending,"OP_SUPERSEDED","새 수동 작업으로 전환 · 이전 미완료 위치의 옛 잔차는 재보정에 사용하지 않음 · 원측정 보존");
+            }
+        }
         var versions = preview.Keys.ToDictionary(key => key, key => GetPoint(key).MeasurementVersion, StringComparer.Ordinal);
         Operation = new(NewId("OP"), preview.Kind, EN_MANUAL_OPERATION_STATE.Running, ReadOnly(preview.Keys.ToArray()),
             ReadOnly(Array.Empty<string>()), ReadOnly(preview.Keys.ToArray()), Context!.RecipeId, Context.RunId,
@@ -1047,6 +1066,8 @@ public sealed class CManualInspectionWorkspace
             var doneSet = new HashSet<string>(operation.CompletedKeys, StringComparer.Ordinal);
             if (operation.RecipeId != expectedContext.RecipeId || operation.RunId != expectedContext.RunId
                 || !ids.Contains(operation.BaseRevisionId)
+                || operation.MeasurementVersionsBefore.Count != keySet.Count
+                || operation.Keys.Any(key=>!operation.MeasurementVersionsBefore.TryGetValue(key,out var version)||version<0)
                 || operation.State == EN_MANUAL_OPERATION_STATE.Running && operation.BaseRevisionId != expectedContext.RevisionId
                 || operation.RemainingKeys.Count > 0 && operation.CoordinateSignature != expectedContext.CoordinateSignature
                 || operation.Keys.Any(key => !geometry.ContainsKey(key) || geometry[key].Masked) || keySet.Count != operation.Keys.Count

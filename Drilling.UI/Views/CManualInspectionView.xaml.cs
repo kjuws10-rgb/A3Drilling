@@ -417,7 +417,7 @@ public partial class CManualInspectionView : UserControl
         CandidateGrid.Visibility = _snapshot.CandidateRows.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         CandidateRowCountText.Text = _snapshot.CandidateRows.Count > 8 ? $"처음 8점 표시 / 전체 {_snapshot.CandidateRows.Count:N0}점 적용" : "";
         AllowManualCheck.IsChecked = _snapshot.AllowManual;
-        IncompleteText.Text = _snapshot.HasIncomplete ? $"미완료 측정 {_snapshot.RemainingCount:N0}점이 있습니다. 잔여 재실행 후 보정을 검증·적용하세요." : "";
+        IncompleteText.Text = _snapshot.HasIncomplete ? $"미완료 {_snapshot.RemainingCount:N0}점 · 남은 위치 재측정 또는 새 위치를 선택해 측정하세요." : "";
         ValidationText.Text = (_snapshot.ValidationPassed ? "검증 통과" : _snapshot.ValidationErrors.Count > 0 ? "검증 차단" : "")
             + (_snapshot.ValidationErrors.Count > 0 ? "\n" + string.Join("\n", _snapshot.ValidationErrors.Take(8)) : "")
             + (_snapshot.ValidationWarnings.Count > 0 ? "\n" + string.Join("\n", _snapshot.ValidationWarnings.Take(4)) : "")
@@ -485,7 +485,7 @@ public partial class CManualInspectionView : UserControl
     {
         var idle = !Busy; var writable = idle && _snapshot.Points.Count > 0;
         var operate = writable && !_snapshot.IsOffsetEditPending;
-        MeasureCurrentButton.IsEnabled=operate && !_snapshot.HasIncomplete && FocusPoint is {IsMasked:false} && _selected.Count<=1
+        MeasureCurrentButton.IsEnabled=operate && FocusPoint is {IsMasked:false} && _selected.Count<=1
             && double.IsFinite(_snapshot.StageXmm) && double.IsFinite(_snapshot.StageYmm);
         var hasSelection = _selected.Any(k => _points.TryGetValue(k, out var p) && !p.IsMasked);
         LoadRecipeButton.IsEnabled = idle && !_snapshot.IsOffsetEditPending;
@@ -1028,6 +1028,8 @@ public partial class CManualInspectionView : UserControl
         panel.Children.Add(Label(string.Join("\n", actual.Take(12)) + (actual.Length > 12 ? $"\n… 전체 {actual.Length:N0}점" : "")));
         panel.Children.Add(Label(action == EN_MANUAL_INSPECTION_UI_ACTION.Move ? "선택 위치로 순서대로 이동합니다. 측정과 보정은 하지 않습니다."
             : "새 측정 결과만 취득합니다. 측정 완료 후 일괄 보정을 별도로 실행하세요."));
+        if (_snapshot.HasIncomplete)
+            panel.Children.Add(Label("새 작업을 시작하면 이전 잔여 목록 대신 지금 선택한 위치를 실행합니다. 완료한 측정과 실패 이력은 보존합니다."));
         if (!Confirm(title, panel, title + " 실행")) return;
         if (_snapshot.Version != expectedVersion) { ShowMessage("대상 확인 중 작업 기준이 바뀌었습니다. 다시 선택하세요."); return; }
         await Execute(action, request);

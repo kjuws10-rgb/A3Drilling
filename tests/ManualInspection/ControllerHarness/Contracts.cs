@@ -23,6 +23,12 @@ namespace Drilling.UI.Menu.Menus
             EN_MANUAL_OPERATION_KIND kind, Action<string> progress, CancellationToken token);
         Task ExecuteFlyingAsync(CManualInspectionSource source, IReadOnlyList<string> keys,
             Action<CManualInspectionMeasurement> measured, Action<string> progress, CancellationToken token);
+        async Task ExecuteFlyingAsync(CManualInspectionSource source,IReadOnlyList<string> keys,
+            Action<CManualInspectionMeasurement> measured,Action<string> progress,Action<IReadOnlyList<string>> activeTargets,CancellationToken token)
+        {
+            try { activeTargets(keys);await ExecuteFlyingAsync(source,keys,measured,progress,token); }
+            finally { activeTargets([]); }
+        }
         Task<string> SaveAsync(CManualInspectionSource source, IReadOnlyDictionary<string, ST_MANUAL_OFFSET> values,
             string sourceIdentity, IReadOnlyList<ST_MANUAL_CANDIDATE_ROW> measuredRows, CancellationToken token,
             IReadOnlyDictionary<string, string>? consumedMeasurements = null);

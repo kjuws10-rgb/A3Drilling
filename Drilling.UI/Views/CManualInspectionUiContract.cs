@@ -182,6 +182,10 @@ public sealed record CManualInspectionUiSnapshot
     public bool OffsetInitPending { get; init; }
     public string OffsetSummaryText { get; init; } = "모델별 최신 누적 Review Offset 하나를 사용합니다.";
     public string? LastMeasuredPointKey { get; init; }
+    /// <summary>Transient measurement targets; not a motor-arrival assertion or saved result.</summary>
+    public bool IsMeasurementInProgress { get; init; }
+    public string? ActiveMeasurementPointKey { get; init; }
+    public IReadOnlyList<string> ActiveMeasurementPointKeys { get; init; } = [];
     public long MeasurementSequence { get; init; }
     public string LastMeasurementText { get; init; } = "";
     public IReadOnlyList<CManualInspectionUiCellLayout> CellLayouts { get; init; } = [];

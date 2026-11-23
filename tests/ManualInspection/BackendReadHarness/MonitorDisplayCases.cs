@@ -69,6 +69,16 @@ internal static partial class Program
             bool cancelled=false;try { await monitor.RefreshLiveData(cancel.Token); } catch(OperationCanceledException) { cancelled=true; } True(cancelled && builds == 0);
             store.OnRead = null; await monitor.RefreshLiveData(); True(builds == 1);
         });
+        await Check("monitor_unchanged_success_clears_error_episode_so_repeated_failure_is_reported", async () =>
+        {
+            var f=new Fixture();var store=new DisplayOffsets();var messages=new List<string>();var builds=0;
+            var monitor=DisplayMonitor(f,store,()=>{builds++;return Task.CompletedTask;});
+            SetDisplay(monitor,"_setStatusMessage",(Action<string>)messages.Add);
+            SetDisplay(monitor,"_coordinateReviewOffsetVersion",DisplayVersion("QA",store.Saved));
+            store.OnRead=()=>throw new IOException("temporary read");await monitor.RefreshLiveData();True(messages.Count==1);
+            store.OnRead=null;await monitor.RefreshLiveData();True(builds==0&&(string)GetDisplay(monitor,"_coordinateReviewOffsetError")=="");
+            store.OnRead=()=>throw new IOException("temporary read");await monitor.RefreshLiveData();True(messages.Count==2&&builds==0);
+        });
     }
 
     private static CMenuMonitor DisplayMonitor(Fixture f, DisplayOffsets store, Func<Task> rebuild)

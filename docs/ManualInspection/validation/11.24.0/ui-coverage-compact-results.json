@@ -1,0 +1,466 @@
+{
+  "schemaVersion": "a3-manual-coverage-compact-ui/1",
+  "passed": true,
+  "tests": 71,
+  "failures": 0,
+  "scope": "Real WPF View/Map/Scatter and app themes with synthetic immutable points/fake controller. Existing correction history is a display projection, not native raw. No equipment App/Root/SDK or motion.",
+  "checks": [
+    {
+      "name": "active_row_is_measurement_history_without_native_raw",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "correction_based_status_and_basis_are_explicit",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "stored_zero_is_measured_history_level_one",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "missing_zero_row_remains_unmeasured",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "native_measurement_takes_precedence_over_accumulated_B",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_correction_is_not_hidden_by_latest_error",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "masked_history_never_becomes_measurement_target",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "unsaved_candidate_does_not_create_measured_coverage",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "invalid_stored_numeric_does_not_create_a_level",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "correction_based_and_error_points_can_be_marked_without_native_relabel",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "copied_working_measurement_preserves_original_distinction",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "measurement_level_covers_same_B_across_cells_heads",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "measurement_and_applied_level_agree_without_direct_raw",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_includes_correction_based_history",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_counts_missing_masked_and_invalid_separately",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "projection_does_not_mutate_measurement_or_offset_records",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "selected_summary_shows_effective_deviation",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "selected_summary_calls_it_measurement_history",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "measured_filter_includes_existing_correction",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "unmeasured_filter_excludes_existing_correction",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "correction_based_source_filter_uses_display_provenance",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "working_scatter_uses_history_projection",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "original_scatter_does_not_invent_correction_raw",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "results_and_scatter_initially_collapsed",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "right_action_buttons_are_removed",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "default_no_workspace_scroll_Light_1480_900",
+      "passed": true,
+      "details": {
+        "ScrollableHeight": 0,
+        "ViewportHeight": 803.84,
+        "ExtentHeight": 803.84
+      }
+    },
+    {
+      "name": "default_no_inspector_scroll_Light_1480_900",
+      "passed": true,
+      "details": {
+        "ScrollableHeight": 0,
+        "ViewportHeight": 0,
+        "ExtentHeight": 0
+      }
+    },
+    {
+      "name": "default_map_is_visible_Light_1480_900",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "default_map_not_clipped_by_parent_Light_1480_900",
+      "passed": true,
+      "details": {
+        "frameHeight": 736.84,
+        "mapHeight": 736.84,
+        "ActualHeight": 736.84
+      }
+    },
+    {
+      "name": "default_all_slots_fit_map_Light_1480_900",
+      "passed": true,
+      "details": {
+        "slots": 240,
+        "expected": 240,
+        "ActualWidth": 1429.24,
+        "ActualHeight": 736.84
+      }
+    },
+    {
+      "name": "default_map_legend_not_clipped_Light_1480_900",
+      "passed": true,
+      "details": "Legend retained in folded work information."
+    },
+    {
+      "name": "default_no_workspace_scroll_Light_1120_720",
+      "passed": true,
+      "details": {
+        "ScrollableHeight": 0,
+        "ViewportHeight": 642.24,
+        "ExtentHeight": 642.24
+      }
+    },
+    {
+      "name": "default_no_inspector_scroll_Light_1120_720",
+      "passed": true,
+      "details": {
+        "ScrollableHeight": 0,
+        "ViewportHeight": 0,
+        "ExtentHeight": 0
+      }
+    },
+    {
+      "name": "default_map_is_visible_Light_1120_720",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "default_map_not_clipped_by_parent_Light_1120_720",
+      "passed": true,
+      "details": {
+        "frameHeight": 575.24,
+        "mapHeight": 575.24,
+        "ActualHeight": 575.24
+      }
+    },
+    {
+      "name": "default_all_slots_fit_map_Light_1120_720",
+      "passed": true,
+      "details": {
+        "slots": 240,
+        "expected": 240,
+        "ActualWidth": 1069.24,
+        "ActualHeight": 575.24
+      }
+    },
+    {
+      "name": "default_map_legend_not_clipped_Light_1120_720",
+      "passed": true,
+      "details": "Legend retained in folded work information."
+    },
+    {
+      "name": "default_no_workspace_scroll_Light_1120_560",
+      "passed": true,
+      "details": {
+        "ScrollableHeight": 0,
+        "ViewportHeight": 482.24,
+        "ExtentHeight": 482.24
+      }
+    },
+    {
+      "name": "default_no_inspector_scroll_Light_1120_560",
+      "passed": true,
+      "details": {
+        "ScrollableHeight": 0,
+        "ViewportHeight": 0,
+        "ExtentHeight": 0
+      }
+    },
+    {
+      "name": "default_map_is_visible_Light_1120_560",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "default_map_not_clipped_by_parent_Light_1120_560",
+      "passed": true,
+      "details": {
+        "frameHeight": 415.24,
+        "mapHeight": 415.24,
+        "ActualHeight": 415.24
+      }
+    },
+    {
+      "name": "default_all_slots_fit_map_Light_1120_560",
+      "passed": true,
+      "details": {
+        "slots": 240,
+        "expected": 240,
+        "ActualWidth": 1069.24,
+        "ActualHeight": 415.24
+      }
+    },
+    {
+      "name": "default_map_legend_not_clipped_Light_1120_560",
+      "passed": true,
+      "details": "Legend retained in folded work information."
+    },
+    {
+      "name": "default_no_workspace_scroll_Dark_1480_900",
+      "passed": true,
+      "details": {
+        "ScrollableHeight": 0,
+        "ViewportHeight": 803.84,
+        "ExtentHeight": 803.84
+      }
+    },
+    {
+      "name": "default_no_inspector_scroll_Dark_1480_900",
+      "passed": true,
+      "details": {
+        "ScrollableHeight": 0,
+        "ViewportHeight": 0,
+        "ExtentHeight": 0
+      }
+    },
+    {
+      "name": "default_map_is_visible_Dark_1480_900",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "default_map_not_clipped_by_parent_Dark_1480_900",
+      "passed": true,
+      "details": {
+        "frameHeight": 736.84,
+        "mapHeight": 736.84,
+        "ActualHeight": 736.84
+      }
+    },
+    {
+      "name": "default_all_slots_fit_map_Dark_1480_900",
+      "passed": true,
+      "details": {
+        "slots": 240,
+        "expected": 240,
+        "ActualWidth": 1429.24,
+        "ActualHeight": 736.84
+      }
+    },
+    {
+      "name": "default_map_legend_not_clipped_Dark_1480_900",
+      "passed": true,
+      "details": "Legend retained in folded work information."
+    },
+    {
+      "name": "default_no_workspace_scroll_Dark_1120_720",
+      "passed": true,
+      "details": {
+        "ScrollableHeight": 0,
+        "ViewportHeight": 642.24,
+        "ExtentHeight": 642.24
+      }
+    },
+    {
+      "name": "default_no_inspector_scroll_Dark_1120_720",
+      "passed": true,
+      "details": {
+        "ScrollableHeight": 0,
+        "ViewportHeight": 0,
+        "ExtentHeight": 0
+      }
+    },
+    {
+      "name": "default_map_is_visible_Dark_1120_720",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "default_map_not_clipped_by_parent_Dark_1120_720",
+      "passed": true,
+      "details": {
+        "frameHeight": 575.24,
+        "mapHeight": 575.24,
+        "ActualHeight": 575.24
+      }
+    },
+    {
+      "name": "default_all_slots_fit_map_Dark_1120_720",
+      "passed": true,
+      "details": {
+        "slots": 240,
+        "expected": 240,
+        "ActualWidth": 1069.24,
+        "ActualHeight": 575.24
+      }
+    },
+    {
+      "name": "default_map_legend_not_clipped_Dark_1120_720",
+      "passed": true,
+      "details": "Legend retained in folded work information."
+    },
+    {
+      "name": "default_no_workspace_scroll_Dark_1120_560",
+      "passed": true,
+      "details": {
+        "ScrollableHeight": 0,
+        "ViewportHeight": 482.24,
+        "ExtentHeight": 482.24
+      }
+    },
+    {
+      "name": "default_no_inspector_scroll_Dark_1120_560",
+      "passed": true,
+      "details": {
+        "ScrollableHeight": 0,
+        "ViewportHeight": 0,
+        "ExtentHeight": 0
+      }
+    },
+    {
+      "name": "default_map_is_visible_Dark_1120_560",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "default_map_not_clipped_by_parent_Dark_1120_560",
+      "passed": true,
+      "details": {
+        "frameHeight": 415.24,
+        "mapHeight": 415.24,
+        "ActualHeight": 415.24
+      }
+    },
+    {
+      "name": "default_all_slots_fit_map_Dark_1120_560",
+      "passed": true,
+      "details": {
+        "slots": 240,
+        "expected": 240,
+        "ActualWidth": 1069.24,
+        "ActualHeight": 415.24
+      }
+    },
+    {
+      "name": "default_map_legend_not_clipped_Dark_1120_560",
+      "passed": true,
+      "details": "Legend retained in folded work information."
+    },
+    {
+      "name": "result_table_expands_on_demand",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "table_uses_effective_measurement_fields",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "collapsing_table_restores_no_scroll",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "point_context_has_four_actions",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "point_context_keeps_two_move_actions_without_auto_correction",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "context_measure_is_immediate_without_popup",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "context_current_measure_uses_only_focused_point",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "context_history_uses_focused_point",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "legacy_readonly_flag_keeps_motion_and_history_available",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "stop_remains_immediate_with_no_confirmation",
+      "passed": true,
+      "details": null
+    }
+  ]
+}

@@ -99,9 +99,26 @@ public sealed class CManualInspectionReplayBackend : IManualInspectionBackend
         if (kind != EN_MANUAL_OPERATION_KIND.Measure) _positionKey = key;
         return new(key, Measure(source.Context, key, error), point.XMm, point.YMm);
     }
-    public async Task ExecuteFlyingAsync(CManualInspectionSource source, IReadOnlyList<string> keys,
+    public Task ExecuteFlyingAsync(CManualInspectionSource source, IReadOnlyList<string> keys,
         Action<CManualInspectionMeasurement> measured, Action<string> progress, CancellationToken token)
-    { foreach (var key in keys) measured(await ExecutePointAsync(source, key, EN_MANUAL_OPERATION_KIND.Flying, progress, token)); }
+        => ExecuteFlyingAsync(source,keys,measured,progress,_=>{},token);
+    public async Task ExecuteFlyingAsync(CManualInspectionSource source, IReadOnlyList<string> keys,
+        Action<CManualInspectionMeasurement> measured, Action<string> progress,
+        Action<IReadOnlyList<string>> activeTargets, CancellationToken token)
+    {
+        try
+        {
+            foreach (var key in keys)
+            {
+                token.ThrowIfCancellationRequested();
+                // Replay executes one synthetic point at a time. Do not mark later cells/rows
+                // as active merely because they belong to the requested Flying batch.
+                activeTargets([key]);
+                measured(await ExecutePointAsync(source,key,EN_MANUAL_OPERATION_KIND.Flying,progress,token));
+            }
+        }
+        finally { activeTargets([]); }
+    }
     public Task<string> SaveAsync(CManualInspectionSource source, IReadOnlyDictionary<string, ST_MANUAL_OFFSET> values,
         string sourceIdentity, IReadOnlyList<ST_MANUAL_CANDIDATE_ROW> measuredRows, CancellationToken token,
         IReadOnlyDictionary<string, string>? consumedMeasurements = null)

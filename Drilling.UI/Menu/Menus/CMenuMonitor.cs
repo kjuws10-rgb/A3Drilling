@@ -1050,7 +1050,12 @@ namespace Drilling.UI.Menu.Menus
                 if (NormalizeMonitorScreenTab(_selectedTabAccessor()) != "COORDINATE VIEWER"
                     || !selectedRecipe.Equals((_selectedRecipeIdProvider() ?? "").Trim(), StringComparison.OrdinalIgnoreCase)) return;
                 var version = CoordinateReviewOffsetVersion(recipe.Id, saved);
-                if (version == _coordinateReviewOffsetVersion) return;
+                if (version == _coordinateReviewOffsetVersion)
+                {
+                    // A successful unchanged read ends an earlier error episode as well.
+                    _coordinateReviewOffsetError = "";
+                    return;
+                }
                 await _refreshCurrentScreen();
                 _coordinateReviewOffsetError = "";
             }
@@ -3146,7 +3151,9 @@ namespace Drilling.UI.Menu.Menus
 
             var parameterMap = BuildCoordinateParameterMap(recipe, settings);
             var reviewOffsetFile = await _reviewOffsetFile.LoadLatest(recipe.Id, cancellationToken);
-            CMenuCorrection.ApplyReviewOffsetsToOutputViewerParameters(parameterMap, reviewOffsetFile);
+            // The latest model file is authoritative. Validate its model and rows before drawing;
+            // never let Recipe/Setting preview values become a second Review Offset store.
+            parameterMap = CReviewOffsetDisplaySnapshot.Create(recipe.Id, reviewOffsetFile).ApplyToCopy(parameterMap);
             var recipeCellCount = Math.Max(CCellPatternCalculator.MinCellCount, ReadCoordinateInt(parameterMap, CCellPatternCalculator.MinCellCount, "MAX_CELL_NUMBER"));
             if (_coordinateIsCellDetailVisible)
             {
@@ -3480,7 +3487,7 @@ namespace Drilling.UI.Menu.Menus
                 return[new("CALC", "SELECTED SHOT", "Review X", FormatCoordinateValue(reviewPosition.CameraX), "mm", "CALC_REVIEW_CAMERA_X"), new("CALC", "SELECTED SHOT", "Stage Y", FormatCoordinateValue(reviewPosition.StageY), "mm", "CALC_REVIEW_STAGE_Y")];
             }
 
-            return[new("CALC", "SELECTED SHOT", "Design X", FormatCoordinateValue(GetOffsetAppliedDesignPosition(point).X), "mm", "CALC_DESIGN_X"), new("CALC", "SELECTED SHOT", "Design Y", FormatCoordinateValue(GetOffsetAppliedDesignPosition(point).Y), "mm", "CALC_DESIGN_Y")];
+            return[new("CALC", "SELECTED SHOT", "Design X", FormatCoordinateValue(GetOffsetAppliedDesignPosition(point, parameters).X), "mm", "CALC_DESIGN_X"), new("CALC", "SELECTED SHOT", "Design Y", FormatCoordinateValue(GetOffsetAppliedDesignPosition(point, parameters).Y), "mm", "CALC_DESIGN_Y")];
         }
 
         private ST_MONITOR_COORDINATE_CALCULATION_RESULT BuildCoordinateCalculationRows(
@@ -3510,7 +3517,7 @@ namespace Drilling.UI.Menu.Menus
                 ("RECIPE", "RECIPE OFFSET", recipeDesignOffset.X, recipeDesignOffset.Y, point.RecipeOffsetX, point.RecipeOffsetY, "Per-shot recipe offset"),
                 ("HEAD_DEFAULT", "HEAD DEFAULT OFFSET", point.HeadDefaultOffsetX, point.HeadDefaultOffsetY, headDefaultScannerOffset.X, headDefaultScannerOffset.Y, "Head installation correction"),
                 ("FIRST_BEAM", "FIRST BEAM OFFSET", point.FirstBeamOffsetX, point.FirstBeamOffsetY, firstBeamScannerOffset.X, firstBeamScannerOffset.Y, "DOE first-beam correction"),
-                ("REVIEW", "REVIEW OFFSET", reviewDesignOffset.X, reviewDesignOffset.Y, point.ReviewOffsetX, point.ReviewOffsetY, "Saved review correction"),
+                ("REVIEW", "REVIEW OFFSET", reviewDesignOffset.X, reviewDesignOffset.Y, point.ReviewOffsetX, point.ReviewOffsetY, BuildCoordinateReviewOffsetDescription(point, parameters)),
                 ("ALIGN", "ALIGN OFFSET", point.AlignOffsetX, point.AlignOffsetY, point.AlignScannerOffsetX, point.AlignScannerOffsetY, "Align / distortion correction"),
                 ("SHIFT", "SHIFT OFFSET", point.ShiftOffsetX, point.ShiftOffsetY, point.ShiftScannerOffsetX, point.ShiftScannerOffsetY, "Current manual process shift")
             };
@@ -3593,11 +3600,12 @@ namespace Drilling.UI.Menu.Menus
                     deltaY += converted.Y;
                 }
 
+                var emptyReview = component.Key == "REVIEW" && !CReviewOffsetData.HasMeasurementValue(parameters, CoordinateReviewOffsetPrefix(point));
                 rows.Add(new ST_MONITOR_COORDINATE_CALCULATION_ROW(
                     component.Key,
                     component.Name,
-                    FormatCoordinateValue(converted.X),
-                    FormatCoordinateValue(converted.Y),
+                    emptyReview ? "—" : component.Key == "REVIEW" ? converted.X.ToString("F6", CultureInfo.InvariantCulture) : FormatCoordinateValue(converted.X),
+                    emptyReview ? "—" : component.Key == "REVIEW" ? converted.Y.ToString("F6", CultureInfo.InvariantCulture) : FormatCoordinateValue(converted.Y),
                     "mm",
                     isReviewCamera && component.Key != "SHIFT"
                         ? $"{component.Description}; machining point only, Review Camera position unchanged"
@@ -3772,7 +3780,7 @@ namespace Drilling.UI.Menu.Menus
                 return $"{headName}\nReview X {FormatCoordinateValue(reviewPosition.CameraX)}\nStage Y {FormatCoordinateValue(reviewPosition.StageY)}";
             }
 
-            var basisPosition = GetCoordinateBasisPosition(_coordinateBasis, point);
+            var basisPosition = GetCoordinateBasisPosition(_coordinateBasis, point, parameters);
             return $"{headName}\nX {FormatCoordinateValue(basisPosition.X)}\nY {FormatCoordinateValue(basisPosition.Y)}";
         }
 
@@ -4211,14 +4219,14 @@ namespace Drilling.UI.Menu.Menus
             };
         }
 
-        private static (double X, double Y) GetCoordinateBasisPosition(string basis, ST_HEAD_SHOT_POINT point)
+        private static (double X, double Y) GetCoordinateBasisPosition(string basis, ST_HEAD_SHOT_POINT point, IReadOnlyDictionary<string, string> parameters)
         {
             return NormalizeCoordinateBasis(basis) switch
             {
                 "STAGE" => (point.StageX, point.StageY),
                 "SCANNER" => GetViewerScannerPosition(point),
                 "REVIEW_CAMERA" => (point.DesignX, point.DesignY),
-                _ => GetOffsetAppliedDesignPosition(point)};
+                _ => GetOffsetAppliedDesignPosition(point, parameters)};
         }
 
         private static (double Gx, double Gy) GetViewerScannerPosition(ST_HEAD_SHOT_POINT point)
@@ -4234,9 +4242,28 @@ namespace Drilling.UI.Menu.Menus
             return (reviewCameraAlignKeyPosX + GetDesignXFromAlignKey(point, parameters), reviewCameraAlignKeyPosY + (stageScanDirectionY * GetDesignYFromAlignKey(point, parameters)));
         }
 
-        private static (double X, double Y) GetOffsetAppliedDesignPosition(ST_HEAD_SHOT_POINT point)
+        private static (double X, double Y) GetOffsetAppliedDesignPosition(ST_HEAD_SHOT_POINT point, IReadOnlyDictionary<string, string> parameters)
         {
-            return (point.DesignX + point.RecipeOffsetX + point.ReviewOffsetX, point.DesignY + point.RecipeOffsetY + point.ReviewOffsetY);
+            // Planner fields are current Head GX/GY contributions (including Review scale),
+            // so they must be converted back before adding them to a DESIGN position.
+            var recipe = CScannerAxisTransform.ScannerOffsetToDesign(parameters, point.HeadNo, point.RecipeOffsetX, point.RecipeOffsetY);
+            var review = CScannerAxisTransform.ScannerOffsetToDesign(parameters, point.HeadNo, point.ReviewOffsetX, point.ReviewOffsetY);
+            return (point.DesignX + recipe.X + review.X, point.DesignY + recipe.Y + review.Y);
+        }
+
+        private static string CoordinateReviewOffsetPrefix(ST_HEAD_SHOT_POINT point)
+            => $"CELL{point.CellNo}_{CReviewShotNameFormatter.ToMatrixName(point.CellShotNo, point.GroupCountX)}_REVIEW_OFFSET_";
+
+        private static string BuildCoordinateReviewOffsetDescription(ST_HEAD_SHOT_POINT point, IReadOnlyDictionary<string, string> parameters)
+        {
+            var prefix = CoordinateReviewOffsetPrefix(point);
+            if (!CReviewOffsetData.HasMeasurementValue(parameters, prefix))
+                return "저장된 측정 보정 없음 / Offset Init · 좌표 계산에는 중립값 0 사용";
+            var space = CReviewOffsetData.IsDesignCoordinate(parameters, prefix) ? "DESIGN" : "SCANNER";
+            var x = ReadCoordinateDouble(parameters, 0, prefix + "X");
+            var y = ReadCoordinateDouble(parameters, 0, prefix + "Y");
+            var scale = ReadCoordinateDouble(parameters, 100, "REVIEW_OFFSET_SCALE");
+            return $"최신 모델 저장값 ({space}, mm): X {x.ToString("F6", CultureInfo.InvariantCulture)} / Y {y.ToString("F6", CultureInfo.InvariantCulture)} · 적용 비율 {scale.ToString("0.###", CultureInfo.InvariantCulture)}% · 표는 현재 좌표계로 변환한 적용 기여분";
         }
 
         private static double GetAbsoluteStageY(ST_HEAD_SHOT_POINT point, IReadOnlyDictionary<string, string> parameters)

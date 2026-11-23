@@ -1,0 +1,1085 @@
+{
+  "round": 3,
+  "status": "independent_final_review_complete",
+  "passed": true,
+  "baseCommit": "3a2526dacf988cf303a102dc432a6eaa9394e9d4",
+  "reviewedAt": "2026-11-23T23:43:54.379072+00:00",
+  "counts": {
+    "core": 206,
+    "actualController": 200,
+    "actualBackend": 105,
+    "sourceLinkedUi": 742,
+    "uiModes": 12,
+    "scope": 33
+  },
+  "reports": {
+    "core-results.json": {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_0_RetryVisibility\\core-results.json",
+      "sha256": "1ddcc9295aee283e17427d70a4806d47d34a676fa98e5a9e33b4857c04d89f3f",
+      "count": 206,
+      "passed": true
+    },
+    "controller-production.json": {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_0_RetryVisibility\\controller-production.json",
+      "sha256": "85adcced925c42667bf55f9bdaed76114d48f56d0003f2ec43843a51e395928d",
+      "count": 200,
+      "passed": true
+    },
+    "backend-read.json": {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_0_RetryVisibility\\backend-read.json",
+      "sha256": "bdd457855f0fd89a44fe04f919dec15f50872cb86163f45c550dacb7bcc32238",
+      "count": 105,
+      "passed": true
+    },
+    "scope-results.json": {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_0_RetryVisibility\\scope-results.json",
+      "sha256": "1153fce3d1f19e16f0f8c37fb50dd6e10a0bccbc3d8ca9f2b0969cd455a73257",
+      "count": 33,
+      "passed": true,
+      "changedPathCount": 53
+    }
+  },
+  "uiReports": [
+    {
+      "mode": "bulk-history",
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_0_RetryVisibility\\ui\\bulk-history\\ui-bulk-history-results.json",
+      "count": 46,
+      "sha256": "9996b680783510ee39c8d0ad82ffe8ebbd05f6560d141425aeb68b112e09f6bb",
+      "passed": true
+    },
+    {
+      "mode": "cell-overview",
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_0_RetryVisibility\\ui\\cell-overview\\ui-cell-overview-results.json",
+      "count": 181,
+      "sha256": "c902d6a18a71bfc0e2398aebbddc64428675eeaaabb5b01337c3d664f70e4ee2",
+      "passed": true
+    },
+    {
+      "mode": "coverage-compact",
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_0_RetryVisibility\\ui\\coverage-compact\\ui-coverage-compact-results.json",
+      "count": 71,
+      "sha256": "30cfe590c9acb8a3b140bf82445d45ecec38471e413bfa50a2973736dfbbb27c",
+      "passed": true
+    },
+    {
+      "mode": "hardening",
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_0_RetryVisibility\\ui\\hardening\\ui-hardening-results.json",
+      "count": 30,
+      "sha256": "86a90388a3b98a45807f732e481ff43faf3d6e23dd4c52ab53e2c3032b06e9ad",
+      "passed": true
+    },
+    {
+      "mode": "integration-impact",
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_0_RetryVisibility\\ui\\integration-impact\\ui-integration-impact-results.json",
+      "count": 23,
+      "sha256": "e371fced562983b3ec0800d69aa8765abfbae0f4cd4e67c80fe3ebedd730e4f2",
+      "passed": true
+    },
+    {
+      "mode": "map-first",
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_0_RetryVisibility\\ui\\map-first\\ui-map-first-results.json",
+      "count": 73,
+      "sha256": "07368789aea5833811b3d3134e591c4720fca0084252ef0d02d25e6d0689da39",
+      "passed": true
+    },
+    {
+      "mode": "measurement-workflow",
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_0_RetryVisibility\\ui\\measurement-workflow\\ui-measurement-workflow-results.json",
+      "count": 44,
+      "sha256": "3302ac88f033f4c5a12aa0e62caa132938aa0e931115a7b45504e493c3b64ec6",
+      "passed": true
+    },
+    {
+      "mode": "native",
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_0_RetryVisibility\\ui\\native\\ui-results.json",
+      "count": 49,
+      "sha256": "0b8e0c8f8f8725f0359bf9be3517039ec0e3bc9f46126d7f68a20c4135ec9455",
+      "passed": true
+    },
+    {
+      "mode": "offset-init",
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_0_RetryVisibility\\ui\\offset-init\\ui-offset-init-results.json",
+      "count": 37,
+      "sha256": "1c12d496b51fefa19243735683946d2fdd4ea7d984d6dac169a60137eab197ee",
+      "passed": true
+    },
+    {
+      "mode": "representative",
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_0_RetryVisibility\\ui\\representative\\ui-representative-results.json",
+      "count": 49,
+      "sha256": "9cf77df8f388a774fe49adf9faccac3c2c620be13e1d230a7a80f7e082135295",
+      "passed": true
+    },
+    {
+      "mode": "sync-levels",
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_0_RetryVisibility\\ui\\sync-levels\\ui-sync-levels-results.json",
+      "count": 34,
+      "sha256": "302f5b36b833b78b52a43f33799054e353f0f37dfaf9392e6766e3b3c817d79e",
+      "passed": true
+    },
+    {
+      "mode": "visual-usability",
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_0_RetryVisibility\\ui\\visual-usability\\ui-visual-usability-results.json",
+      "count": 105,
+      "sha256": "62dfe8e2a81f086ba7427cee7c198983137b87fd501125d44482de7d8d1d8ae8",
+      "passed": true
+    }
+  ],
+  "checks": [
+    {
+      "name": "report_passed:core-results.json",
+      "passed": true
+    },
+    {
+      "name": "count:core-results.json",
+      "passed": true
+    },
+    {
+      "name": "report_passed:controller-production.json",
+      "passed": true
+    },
+    {
+      "name": "count:controller-production.json",
+      "passed": true
+    },
+    {
+      "name": "report_passed:backend-read.json",
+      "passed": true
+    },
+    {
+      "name": "count:backend-read.json",
+      "passed": true
+    },
+    {
+      "name": "report_passed:scope-results.json",
+      "passed": true
+    },
+    {
+      "name": "count:scope-results.json",
+      "passed": true
+    },
+    {
+      "name": "UI:bulk-history",
+      "passed": true
+    },
+    {
+      "name": "UI_five_sources:bulk-history",
+      "passed": true
+    },
+    {
+      "name": "UI_source:bulk-history:Views/CManualInspectionUiContract.cs",
+      "passed": true
+    },
+    {
+      "name": "UI_source:bulk-history:Views/CManualInspectionMapControl.cs",
+      "passed": true
+    },
+    {
+      "name": "UI_source:bulk-history:Views/CManualInspectionScatterControl.cs",
+      "passed": true
+    },
+    {
+      "name": "UI_source:bulk-history:Views/CManualInspectionView.xaml",
+      "passed": true
+    },
+    {
+      "name": "UI_source:bulk-history:Views/CManualInspectionView.xaml.cs",
+      "passed": true
+    },
+    {
+      "name": "UI:cell-overview",
+      "passed": true
+    },
+    {
+      "name": "UI_five_sources:cell-overview",
+      "passed": true
+    },
+    {
+      "name": "UI_source:cell-overview:Views/CManualInspectionUiContract.cs",
+      "passed": true
+    },
+    {
+      "name": "UI_source:cell-overview:Views/CManualInspectionMapControl.cs",
+      "passed": true
+    },
+    {
+      "name": "UI_source:cell-overview:Views/CManualInspectionScatterControl.cs",
+      "passed": true
+    },
+    {
+      "name": "UI_source:cell-overview:Views/CManualInspectionView.xaml",
+      "passed": true
+    },
+    {
+      "name": "UI_source:cell-overview:Views/CManualInspectionView.xaml.cs",
+      "passed": true
+    },
+    {
+      "name": "UI:coverage-compact",
+      "passed": true
+    },
+    {
+      "name": "UI:hardening",
+      "passed": true
+    },
+    {
+      "name": "UI:integration-impact",
+      "passed": true
+    },
+    {
+      "name": "UI:map-first",
+      "passed": true
+    },
+    {
+      "name": "UI:measurement-workflow",
+      "passed": true
+    },
+    {
+      "name": "UI_five_sources:measurement-workflow",
+      "passed": true
+    },
+    {
+      "name": "UI_source:measurement-workflow:Views/CManualInspectionUiContract.cs",
+      "passed": true
+    },
+    {
+      "name": "UI_source:measurement-workflow:Views/CManualInspectionMapControl.cs",
+      "passed": true
+    },
+    {
+      "name": "UI_source:measurement-workflow:Views/CManualInspectionScatterControl.cs",
+      "passed": true
+    },
+    {
+      "name": "UI_source:measurement-workflow:Views/CManualInspectionView.xaml",
+      "passed": true
+    },
+    {
+      "name": "UI_source:measurement-workflow:Views/CManualInspectionView.xaml.cs",
+      "passed": true
+    },
+    {
+      "name": "UI:native",
+      "passed": true
+    },
+    {
+      "name": "UI:offset-init",
+      "passed": true
+    },
+    {
+      "name": "UI_five_sources:offset-init",
+      "passed": true
+    },
+    {
+      "name": "UI_source:offset-init:Views/CManualInspectionUiContract.cs",
+      "passed": true
+    },
+    {
+      "name": "UI_source:offset-init:Views/CManualInspectionMapControl.cs",
+      "passed": true
+    },
+    {
+      "name": "UI_source:offset-init:Views/CManualInspectionScatterControl.cs",
+      "passed": true
+    },
+    {
+      "name": "UI_source:offset-init:Views/CManualInspectionView.xaml",
+      "passed": true
+    },
+    {
+      "name": "UI_source:offset-init:Views/CManualInspectionView.xaml.cs",
+      "passed": true
+    },
+    {
+      "name": "UI:representative",
+      "passed": true
+    },
+    {
+      "name": "UI_five_sources:representative",
+      "passed": true
+    },
+    {
+      "name": "UI_source:representative:Views/CManualInspectionUiContract.cs",
+      "passed": true
+    },
+    {
+      "name": "UI_source:representative:Views/CManualInspectionMapControl.cs",
+      "passed": true
+    },
+    {
+      "name": "UI_source:representative:Views/CManualInspectionScatterControl.cs",
+      "passed": true
+    },
+    {
+      "name": "UI_source:representative:Views/CManualInspectionView.xaml",
+      "passed": true
+    },
+    {
+      "name": "UI_source:representative:Views/CManualInspectionView.xaml.cs",
+      "passed": true
+    },
+    {
+      "name": "UI:sync-levels",
+      "passed": true
+    },
+    {
+      "name": "UI:visual-usability",
+      "passed": true
+    },
+    {
+      "name": "UI12",
+      "passed": true
+    },
+    {
+      "name": "UI742",
+      "passed": true
+    },
+    {
+      "name": "actual_controller_UI_assembly",
+      "passed": true
+    },
+    {
+      "name": "controller_vendor_inventory_empty",
+      "passed": true
+    },
+    {
+      "name": "backend_DLL:Drilling.UI",
+      "passed": true
+    },
+    {
+      "name": "DLL:controller:Drilling.UI",
+      "passed": true
+    },
+    {
+      "name": "DLL:solution:Drilling.UI",
+      "passed": true
+    },
+    {
+      "name": "backend_DLL:Drilling.Common",
+      "passed": true
+    },
+    {
+      "name": "DLL:controller:Drilling.Common",
+      "passed": true
+    },
+    {
+      "name": "DLL:solution:Drilling.Common",
+      "passed": true
+    },
+    {
+      "name": "actual_controller_same_UI_as_backend",
+      "passed": true
+    },
+    {
+      "name": "Core_source:Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs",
+      "passed": true
+    },
+    {
+      "name": "Core_source:Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs",
+      "passed": true
+    },
+    {
+      "name": "Core_source:Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
+      "passed": true
+    },
+    {
+      "name": "final_source_inventory:Drilling.Common/Review/CManualInspectionCoordinateBridge.cs",
+      "passed": true
+    },
+    {
+      "name": "final_source_inventory:Drilling.Common/Review/CManualInspectionResultProjection.cs",
+      "passed": true
+    },
+    {
+      "name": "final_source_inventory:Drilling.Common/Review/CReviewManager.cs",
+      "passed": true
+    },
+    {
+      "name": "final_source_inventory:Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs",
+      "passed": true
+    },
+    {
+      "name": "final_source_inventory:Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs",
+      "passed": true
+    },
+    {
+      "name": "final_source_inventory:Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
+      "passed": true
+    },
+    {
+      "name": "final_source_inventory:Drilling.Common/Station/CStageReviewSequences.cs",
+      "passed": true
+    },
+    {
+      "name": "final_source_inventory:Drilling.File/ReviewOffset/CReviewOffsetFile.cs",
+      "passed": true
+    },
+    {
+      "name": "final_source_inventory:Drilling.File/ReviewResult/CReviewResultFile.cs",
+      "passed": true
+    },
+    {
+      "name": "final_source_inventory:Drilling.UI/CRootView.cs",
+      "passed": true
+    },
+    {
+      "name": "final_source_inventory:Drilling.UI/Drilling.UI.csproj",
+      "passed": true
+    },
+    {
+      "name": "final_source_inventory:Drilling.UI/Menu/Menus/CManualInspectionBackend.cs",
+      "passed": true
+    },
+    {
+      "name": "final_source_inventory:Drilling.UI/Menu/Menus/CManualInspectionController.cs",
+      "passed": true
+    },
+    {
+      "name": "final_source_inventory:Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs",
+      "passed": true
+    },
+    {
+      "name": "final_source_inventory:Drilling.UI/Menu/Menus/CManualInspectionUpdateMonitor.cs",
+      "passed": true
+    },
+    {
+      "name": "final_source_inventory:Drilling.UI/Menu/Menus/CMenuCorrection.ManualInspection.cs",
+      "passed": true
+    },
+    {
+      "name": "final_source_inventory:Drilling.UI/Menu/Menus/CMenuMonitor.cs",
+      "passed": true
+    },
+    {
+      "name": "final_source_inventory:Drilling.UI/Menu/Menus/CMenuRecipe.cs",
+      "passed": true
+    },
+    {
+      "name": "final_source_inventory:Drilling.UI/Menu/Menus/CReviewOffsetDisplaySnapshot.cs",
+      "passed": true
+    },
+    {
+      "name": "final_source_inventory:Drilling.UI/Views/CCorrectionView.xaml",
+      "passed": true
+    },
+    {
+      "name": "final_source_inventory:Drilling.UI/Views/CCorrectionView.xaml.cs",
+      "passed": true
+    },
+    {
+      "name": "final_source_inventory:Drilling.UI/Views/CManualInspectionMapControl.cs",
+      "passed": true
+    },
+    {
+      "name": "final_source_inventory:Drilling.UI/Views/CManualInspectionScatterControl.cs",
+      "passed": true
+    },
+    {
+      "name": "final_source_inventory:Drilling.UI/Views/CManualInspectionUiContract.cs",
+      "passed": true
+    },
+    {
+      "name": "final_source_inventory:Drilling.UI/Views/CManualInspectionView.xaml",
+      "passed": true
+    },
+    {
+      "name": "final_source_inventory:Drilling.UI/Views/CManualInspectionView.xaml.cs",
+      "passed": true
+    },
+    {
+      "name": "build0/0:solution-build.log",
+      "passed": true
+    },
+    {
+      "name": "build0/0:ui-build.log",
+      "passed": true
+    },
+    {
+      "name": "git_diff_check",
+      "passed": true
+    },
+    {
+      "name": "base_before_commit",
+      "passed": true
+    },
+    {
+      "name": "branch",
+      "passed": true
+    },
+    {
+      "name": "version11.24.0",
+      "passed": true
+    },
+    {
+      "name": "prior_round1_passed",
+      "passed": true
+    },
+    {
+      "name": "prior_round2_passed",
+      "passed": true
+    },
+    {
+      "name": "Recipe13",
+      "passed": true
+    },
+    {
+      "name": "Monitor15",
+      "passed": true
+    },
+    {
+      "name": "actual_Replay_regressions",
+      "passed": true
+    },
+    {
+      "name": "doc_UTF8:docs/ManualInspection/README.md",
+      "passed": true
+    },
+    {
+      "name": "doc_fences:docs/ManualInspection/README.md",
+      "passed": true
+    },
+    {
+      "name": "internal_link:docs/ManualInspection/README.md:RETRY_VISIBILITY_11.24.0.md",
+      "passed": true
+    },
+    {
+      "name": "internal_link:docs/ManualInspection/README.md:../../tests/ManualInspection/RETRY_VISIBILITY_QA.md",
+      "passed": true
+    },
+    {
+      "name": "internal_link:docs/ManualInspection/README.md:validation.json",
+      "passed": true
+    },
+    {
+      "name": "internal_link:docs/ManualInspection/README.md:STANDARD_SELECTION_REFERENCE_11.23.2.md",
+      "passed": true
+    },
+    {
+      "name": "internal_link:docs/ManualInspection/README.md:../../tests/ManualInspection/STANDARD_SELECTION_REFERENCE_QA.md",
+      "passed": true
+    },
+    {
+      "name": "internal_link:docs/ManualInspection/README.md:CELL_CLICK_OFFSET_SYNC_11.23.1.md",
+      "passed": true
+    },
+    {
+      "name": "internal_link:docs/ManualInspection/README.md:../../tests/ManualInspection/CELL_CLICK_OFFSET_SYNC_QA.md",
+      "passed": true
+    },
+    {
+      "name": "internal_link:docs/ManualInspection/README.md:BULK_HISTORY_11.23.0.md",
+      "passed": true
+    },
+    {
+      "name": "internal_link:docs/ManualInspection/README.md:validation.json",
+      "passed": true
+    },
+    {
+      "name": "internal_link:docs/ManualInspection/README.md:../../tests/ManualInspection/BULK_HISTORY_QA.md",
+      "passed": true
+    },
+    {
+      "name": "internal_link:docs/ManualInspection/README.md:images/manual-11.24.0-48cells-light.png",
+      "passed": true
+    },
+    {
+      "name": "internal_link:docs/ManualInspection/README.md:images/manual-11.24.0-blink-on-dark.png",
+      "passed": true
+    },
+    {
+      "name": "internal_link:docs/ManualInspection/README.md:images/manual-11.24.0-blink-off-dark.png",
+      "passed": true
+    },
+    {
+      "name": "internal_link:docs/ManualInspection/README.md:validation.json",
+      "passed": true
+    },
+    {
+      "name": "internal_link:docs/ManualInspection/README.md:MEASUREMENT_WORKFLOW_11.21.2.md",
+      "passed": true
+    },
+    {
+      "name": "internal_link:docs/ManualInspection/README.md:history/validation-61578db.json",
+      "passed": true
+    },
+    {
+      "name": "internal_link:docs/ManualInspection/README.md:../../tests/ManualInspection/README.md",
+      "passed": true
+    },
+    {
+      "name": "internal_link:docs/ManualInspection/README.md:Reference/A3_Review_Workspace.html",
+      "passed": true
+    },
+    {
+      "name": "internal_link:docs/ManualInspection/README.md:BULK_HISTORY_11.23.0.md",
+      "passed": true
+    },
+    {
+      "name": "internal_link:docs/ManualInspection/README.md:history/validation-367a727.json",
+      "passed": true
+    },
+    {
+      "name": "internal_link:docs/ManualInspection/README.md:CELL_CLICK_OFFSET_SYNC_11.23.1.md",
+      "passed": true
+    },
+    {
+      "name": "internal_link:docs/ManualInspection/README.md:history/validation-89e92a0.json",
+      "passed": true
+    },
+    {
+      "name": "doc_UTF8:docs/ManualInspection/RETRY_VISIBILITY_11.24.0.md",
+      "passed": true
+    },
+    {
+      "name": "doc_fences:docs/ManualInspection/RETRY_VISIBILITY_11.24.0.md",
+      "passed": true
+    },
+    {
+      "name": "internal_link:docs/ManualInspection/RETRY_VISIBILITY_11.24.0.md:images/manual-11.24.0-48cells-light.png",
+      "passed": true
+    },
+    {
+      "name": "internal_link:docs/ManualInspection/RETRY_VISIBILITY_11.24.0.md:images/manual-11.24.0-blink-on-dark.png",
+      "passed": true
+    },
+    {
+      "name": "internal_link:docs/ManualInspection/RETRY_VISIBILITY_11.24.0.md:images/manual-11.24.0-blink-off-dark.png",
+      "passed": true
+    },
+    {
+      "name": "internal_link:docs/ManualInspection/RETRY_VISIBILITY_11.24.0.md:../../tests/ManualInspection/RETRY_VISIBILITY_QA.md",
+      "passed": true
+    },
+    {
+      "name": "internal_link:docs/ManualInspection/RETRY_VISIBILITY_11.24.0.md:validation.json",
+      "passed": true
+    },
+    {
+      "name": "internal_link:docs/ManualInspection/RETRY_VISIBILITY_11.24.0.md:STANDARD_SELECTION_REFERENCE_11.23.2.md",
+      "passed": true
+    },
+    {
+      "name": "doc_UTF8:tests/ManualInspection/RETRY_VISIBILITY_QA.md",
+      "passed": true
+    },
+    {
+      "name": "doc_fences:tests/ManualInspection/RETRY_VISIBILITY_QA.md",
+      "passed": true
+    },
+    {
+      "name": "internal_link:tests/ManualInspection/RETRY_VISIBILITY_QA.md:../../docs/ManualInspection/validation.json",
+      "passed": true
+    },
+    {
+      "name": "README_current_branch_base",
+      "passed": true
+    },
+    {
+      "name": "docs_actual_Controller200",
+      "passed": true
+    },
+    {
+      "name": "docs_Backend105",
+      "passed": true
+    },
+    {
+      "name": "docs_UI742",
+      "passed": true
+    },
+    {
+      "name": "docs_current_Flying_not_entire_queue",
+      "passed": true
+    },
+    {
+      "name": "docs_small_zoom_readability_honest",
+      "passed": true
+    },
+    {
+      "name": "docs_queue_raw_preservation",
+      "passed": true
+    },
+    {
+      "name": "docs_units_scale_empty_real_zero",
+      "passed": true
+    },
+    {
+      "name": "docs_hardware_scope_honest",
+      "passed": true
+    },
+    {
+      "name": "PNG_signature:manual-11.24.0-48cells-light.png",
+      "passed": true
+    },
+    {
+      "name": "PNG_dimensions:manual-11.24.0-48cells-light.png",
+      "passed": true
+    },
+    {
+      "name": "PNG_signature:manual-11.24.0-blink-off-dark.png",
+      "passed": true
+    },
+    {
+      "name": "PNG_dimensions:manual-11.24.0-blink-off-dark.png",
+      "passed": true
+    },
+    {
+      "name": "PNG_signature:manual-11.24.0-blink-on-dark.png",
+      "passed": true
+    },
+    {
+      "name": "PNG_dimensions:manual-11.24.0-blink-on-dark.png",
+      "passed": true
+    },
+    {
+      "name": "PNG3",
+      "passed": true
+    },
+    {
+      "name": "final_staged_git_diff_check",
+      "passed": true
+    }
+  ],
+  "actualAssemblies": {
+    "Drilling.UI": {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BackendReadHarness\\bin\\Release\\net8.0-windows\\Drilling.UI.dll",
+      "sha256": "99de66953a9ce429b8c891ad3cc4915ae465cb72689c89dfeee68fe3012445e7"
+    },
+    "Drilling.Common": {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BackendReadHarness\\bin\\Release\\net8.0-windows\\Drilling.Common.dll",
+      "sha256": "98cf7f601b3aa5c1e20c97c40234c347b96aebc5ceb19af54620c8dd7e48de49"
+    }
+  },
+  "uiEmbeddedSourceHashReports": [
+    {
+      "mode": "bulk-history",
+      "sources": {
+        "Views/CManualInspectionUiContract.cs": "6c80b499bd2bb9e376cac1eb94777dbefe0660efbee1b6b1def44a8e2d1a80ab",
+        "Views/CManualInspectionMapControl.cs": "5b6cc72cedd966186fae81dd825986e498018a06dd4b373192f762cbe274fbb3",
+        "Views/CManualInspectionScatterControl.cs": "df7e0a29296a9197cede3accb3da2eb2c2ececec28081f7786abe76ccfbfa451",
+        "Views/CManualInspectionView.xaml": "33727e38d5ecd4d52fc737355ae68230c2b563ee44441f12712cb5e3218b65c4",
+        "Views/CManualInspectionView.xaml.cs": "6f1810a3abfdc35891f7aeaf562b0db8b84e530f4e735dc7b373b9db5c25a303"
+      }
+    },
+    {
+      "mode": "cell-overview",
+      "sources": {
+        "Views/CManualInspectionUiContract.cs": "6c80b499bd2bb9e376cac1eb94777dbefe0660efbee1b6b1def44a8e2d1a80ab",
+        "Views/CManualInspectionMapControl.cs": "5b6cc72cedd966186fae81dd825986e498018a06dd4b373192f762cbe274fbb3",
+        "Views/CManualInspectionScatterControl.cs": "df7e0a29296a9197cede3accb3da2eb2c2ececec28081f7786abe76ccfbfa451",
+        "Views/CManualInspectionView.xaml": "33727e38d5ecd4d52fc737355ae68230c2b563ee44441f12712cb5e3218b65c4",
+        "Views/CManualInspectionView.xaml.cs": "6f1810a3abfdc35891f7aeaf562b0db8b84e530f4e735dc7b373b9db5c25a303"
+      }
+    },
+    {
+      "mode": "measurement-workflow",
+      "sources": {
+        "Views/CManualInspectionUiContract.cs": "6c80b499bd2bb9e376cac1eb94777dbefe0660efbee1b6b1def44a8e2d1a80ab",
+        "Views/CManualInspectionMapControl.cs": "5b6cc72cedd966186fae81dd825986e498018a06dd4b373192f762cbe274fbb3",
+        "Views/CManualInspectionScatterControl.cs": "df7e0a29296a9197cede3accb3da2eb2c2ececec28081f7786abe76ccfbfa451",
+        "Views/CManualInspectionView.xaml": "33727e38d5ecd4d52fc737355ae68230c2b563ee44441f12712cb5e3218b65c4",
+        "Views/CManualInspectionView.xaml.cs": "6f1810a3abfdc35891f7aeaf562b0db8b84e530f4e735dc7b373b9db5c25a303"
+      }
+    },
+    {
+      "mode": "offset-init",
+      "sources": {
+        "Views/CManualInspectionUiContract.cs": "6c80b499bd2bb9e376cac1eb94777dbefe0660efbee1b6b1def44a8e2d1a80ab",
+        "Views/CManualInspectionMapControl.cs": "5b6cc72cedd966186fae81dd825986e498018a06dd4b373192f762cbe274fbb3",
+        "Views/CManualInspectionScatterControl.cs": "df7e0a29296a9197cede3accb3da2eb2c2ececec28081f7786abe76ccfbfa451",
+        "Views/CManualInspectionView.xaml": "33727e38d5ecd4d52fc737355ae68230c2b563ee44441f12712cb5e3218b65c4",
+        "Views/CManualInspectionView.xaml.cs": "6f1810a3abfdc35891f7aeaf562b0db8b84e530f4e735dc7b373b9db5c25a303"
+      }
+    },
+    {
+      "mode": "representative",
+      "sources": {
+        "Views/CManualInspectionUiContract.cs": "6c80b499bd2bb9e376cac1eb94777dbefe0660efbee1b6b1def44a8e2d1a80ab",
+        "Views/CManualInspectionMapControl.cs": "5b6cc72cedd966186fae81dd825986e498018a06dd4b373192f762cbe274fbb3",
+        "Views/CManualInspectionScatterControl.cs": "df7e0a29296a9197cede3accb3da2eb2c2ececec28081f7786abe76ccfbfa451",
+        "Views/CManualInspectionView.xaml": "33727e38d5ecd4d52fc737355ae68230c2b563ee44441f12712cb5e3218b65c4",
+        "Views/CManualInspectionView.xaml.cs": "6f1810a3abfdc35891f7aeaf562b0db8b84e530f4e735dc7b373b9db5c25a303"
+      }
+    }
+  ],
+  "uiProvenanceNote": "Five final UI mode reports embed hashes of the five linked production UI files and all match current source. The other seven legacy reports do not embed per-report source hashes; all twelve were executed by parent with the final source-linked UiHarness. Monitor/Replay-only final DLL rebuild did not alter these five UI inputs. This audit independently checked the actual report files and source/DLL hashes, not a second execution of every suite.",
+  "sourceSha256": {
+    "Drilling.Common/Review/CManualInspectionCoordinateBridge.cs": "faf320044ebb800f2f5216cf0900c2e23b6d12d8a2cb86e089825bc8d97d9344",
+    "Drilling.Common/Review/CManualInspectionResultProjection.cs": "03223a4c6310d266c0e462fdaf246a6c2da99d58c60419c5c04341f9a5893bcb",
+    "Drilling.Common/Review/CReviewManager.cs": "d78c3950a0297d14e913287f11e94e211c3887c51330ab5dc4abeb6982a67d60",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs": "817f4e22b0d4751ff87a7bdca6ef1bae2a917846b346987f8d4454c3085d5768",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs": "e953b75280c37ebec4a0d0c58db7a05a4099cdc00cc841e7ad20bf8dc1a577a4",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs": "5331aeefbb1adcff63ad5ba982316b634a7fa67afdc4a39f9357815f017a064f",
+    "Drilling.Common/Station/CStageReviewSequences.cs": "49e1a43341978bc8ae28013cebce4827cb99e933b04df32aab4ad74d5a9402a7",
+    "Drilling.File/ReviewOffset/CReviewOffsetFile.cs": "170e69c69387fc04c3d9e275c515ee51252127c3499dda687a2c6a93e5bc819d",
+    "Drilling.File/ReviewResult/CReviewResultFile.cs": "48d76ca790635663fc3f247f5e88483dbb9c318d6f1a1bd8ecec4761005ee3cc",
+    "Drilling.UI/CRootView.cs": "cc23a576c580c60ff245609853fa75fe32d896b7bf01b08277700eaed68f68ac",
+    "Drilling.UI/Drilling.UI.csproj": "2771451fbf87e77bd604071c0793f727deac1e895c9fd03c39bf15e3483056e4",
+    "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs": "0dbab53437f3a43cf3b955b5b98cc77e6329ab6613b070b2127901ad47326821",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "a30840215dc7dce675347a49674f2bdde76ec1ea67a9ff2ccc4f1ffb82a71b8e",
+    "Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs": "a7e6849d10bf5baebbe56d56084f74bdfb852289b30c571d9908f0a244855228",
+    "Drilling.UI/Menu/Menus/CManualInspectionUpdateMonitor.cs": "a5d8854aea32ae9eb9cf4cfa05c99cf6ab0548dddcebd7fa32a94335ab94a1e0",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.ManualInspection.cs": "12af934e028a18f1b714d7be9a3e777434f6b21e66b16184e294b5acccbe17df",
+    "Drilling.UI/Menu/Menus/CMenuMonitor.cs": "70c03d8bd10bc72b04c9f322adb986dd7c331a397b0241708dd3b83e368c7f2a",
+    "Drilling.UI/Menu/Menus/CMenuRecipe.cs": "5c3d300be071074a77763e5ae1d8a74f92c0879723ecbf4fcc46a3003a96a8a3",
+    "Drilling.UI/Menu/Menus/CReviewOffsetDisplaySnapshot.cs": "789b5e3d4b8e2d8bf6db455cb4bc7a459ddf920ba59a21431de129c07ab5e4e3",
+    "Drilling.UI/Views/CCorrectionView.xaml": "850404c76dda72d2d741b74f07a8161966f6cd55d173697bebaf619ee79e296c",
+    "Drilling.UI/Views/CCorrectionView.xaml.cs": "aad7dd20f74ecfb6876c917e11ae1ef2e6494aad5d5c9ada9fb4ac9596c4e980",
+    "Drilling.UI/Views/CManualInspectionMapControl.cs": "5b6cc72cedd966186fae81dd825986e498018a06dd4b373192f762cbe274fbb3",
+    "Drilling.UI/Views/CManualInspectionScatterControl.cs": "df7e0a29296a9197cede3accb3da2eb2c2ececec28081f7786abe76ccfbfa451",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "6c80b499bd2bb9e376cac1eb94777dbefe0660efbee1b6b1def44a8e2d1a80ab",
+    "Drilling.UI/Views/CManualInspectionView.xaml": "33727e38d5ecd4d52fc737355ae68230c2b563ee44441f12712cb5e3218b65c4",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "6f1810a3abfdc35891f7aeaf562b0db8b84e530f4e735dc7b373b9db5c25a303"
+  },
+  "otherMenuRegressionNames": {
+    "Recipe13": [
+      "recipe_saved_review_overlay_uses_real_planner_and_never_changes_editor_or_save_input",
+      "recipe_live_overlay_tracks_save_undo_redo_and_init_without_recipe_reload",
+      "recipe_unchanged_revision_keeps_rows_but_state_only_and_same_path_sha_change_refresh",
+      "recipe_viewed_model_overlay_is_separate_from_selected_process_model",
+      "recipe_snapshot_is_immutable_model_scoped_and_preserves_protected_offsets",
+      "recipe_same_path_without_sha_uses_row_digest_instead_of_missing_update",
+      "recipe_invalid_or_foreign_saved_file_is_reported_once_without_replacing_valid_preview",
+      "recipe_slow_saved_offset_poll_is_single_flight_and_publishes_once",
+      "recipe_old_poll_cannot_overwrite_new_view_build",
+      "recipe_mid_build_model_switch_discards_old_publish_and_next_build_recovers",
+      "recipe_cancelled_poll_releases_guard_and_read_failure_keeps_last_valid_preview",
+      "recipe_editor_debounce_cannot_rebuild_after_view_switch",
+      "recipe_latest_offset_poll_reads_off_calling_thread_and_rebuilds_actual_visible_shot"
+    ],
+    "Monitor15": [
+      "monitor_saved_review_change_refreshes_once_then_keeps_same_version",
+      "monitor_empty_selection_fallback_model_refreshes_and_recipe_versions_are_distinct",
+      "monitor_inflight_model_switch_and_tab_switch_do_not_publish_stale_offsets",
+      "monitor_concurrent_refresh_is_coalesced_without_device_calls",
+      "monitor_read_failure_retains_display_reports_once_and_recovers",
+      "monitor_cancelled_read_never_rebuilds_and_releases_refresh_guard",
+      "monitor_unchanged_success_clears_error_episode_so_repeated_failure_is_reported",
+      "monitor_actual_shot_detail_saved_design_offsets_match_each_basis_and_head_transform",
+      "monitor_actual_saved_offset_refresh_rebuilds_selected_shot_without_reselection",
+      "monitor_review_scale_zero_hundred_twohundred_preserves_saved_value_and_shows_contribution",
+      "monitor_review_init_and_absence_are_empty_but_measured_zero_is_valid",
+      "monitor_review_subtenth_micron_value_remains_visible_in_shot_detail",
+      "monitor_latest_file_overrides_stale_recipe_setting_values_without_mutating_them",
+      "monitor_restored_review_rows_roundtrip_through_writer_and_actual_detail",
+      "monitor_legacy_scanner_saved_row_is_converted_once_not_as_design_twice"
+    ]
+  },
+  "finalReplayRegressions": [
+    "active_replay_backend_flying_remains_compatible_without_device_calls",
+    "actual_replay_flying_across_rows_publishes_only_the_current_synthetic_point",
+    "actual_replay_flying_failure_and_cancellation_always_clear_the_current_target"
+  ],
+  "resolvedAdditionalFinding": {
+    "id": "R3-REPLAY-CURRENT-TARGET",
+    "finding": "App Replay Backend used legacy typed default and lit all queued Flying points, while actual backend had per-line callback.",
+    "resolution": "Replay now implements typed overload and reports only the currently executing synthetic point before its await, with token check/finally clear; old signature delegates. Final actual Controller200 includes real Replay multi-row/cancellation cases, source diff confirms truth/position/file/Run math unchanged.",
+    "status": "resolved"
+  },
+  "preservedContracts": [
+    "NG/unmeasured/error/Masking values never acquire selected/bulk correction eligibility from a blink or new queue; correction validation and consumed-raw ledger remain.",
+    "No source physical coordinate/axis conversion/planner/formal writer formulas changed; Monitor DESIGN display converts already-scanner contributions once.",
+    "No Device/App/Root/equipment manager/vendor code execution; synthetic Replay and actual pure CSV/Recipe/Review/Setting methods only.",
+    "UI themes, other Correction menus, Recipe editor save input and hardware/default/firstbeam/distortion offsets preserved.",
+    "UI current point is a requested in-flight point; actual Flying shows current line, SIM Replay executes and marks current synthetic point. It is not motor arrival feedback.",
+    "Labels proportionally shrink and may not be readable at extreme zoom-out; no fixed badge is restored."
+  ],
+  "duplicateCountsNotAdded": "Focused Core206, source-linked Controller195 (and later197), focused Map181 are not added to final actual Controller200/Backend105/UI742 counts. Prior Backend104 is a preserved preflight artifact, not final105. Previous writer35/projection53 counts were not rerun and are not included.",
+  "documentation": {
+    "status": "passed",
+    "documents": [
+      {
+        "path": "docs/ManualInspection/README.md",
+        "sha256": "908da42bad6c6f743a41d51c5cb78ef8e2a37cba43f94650d2705f86f89eef08"
+      },
+      {
+        "path": "docs/ManualInspection/RETRY_VISIBILITY_11.24.0.md",
+        "sha256": "1bebfbeee3503fb2cb2b22b8accf5376985149b4bed79d7d57289524bf7fc505"
+      },
+      {
+        "path": "tests/ManualInspection/RETRY_VISIBILITY_QA.md",
+        "sha256": "142e86566b2f9d59d46c3d8423a8d234d7b7f036cc5320d8bed1883ef4dd1cff"
+      }
+    ],
+    "internalLinks": [
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "RETRY_VISIBILITY_11.24.0.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\RETRY_VISIBILITY_11.24.0.md"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "../../tests/ManualInspection/RETRY_VISIBILITY_QA.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\RETRY_VISIBILITY_QA.md"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "validation.json",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\validation.json"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "STANDARD_SELECTION_REFERENCE_11.23.2.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\STANDARD_SELECTION_REFERENCE_11.23.2.md"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "../../tests/ManualInspection/STANDARD_SELECTION_REFERENCE_QA.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\STANDARD_SELECTION_REFERENCE_QA.md"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "CELL_CLICK_OFFSET_SYNC_11.23.1.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\CELL_CLICK_OFFSET_SYNC_11.23.1.md"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "../../tests/ManualInspection/CELL_CLICK_OFFSET_SYNC_QA.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\CELL_CLICK_OFFSET_SYNC_QA.md"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "BULK_HISTORY_11.23.0.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\BULK_HISTORY_11.23.0.md"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "validation.json",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\validation.json"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "../../tests/ManualInspection/BULK_HISTORY_QA.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BULK_HISTORY_QA.md"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "images/manual-11.24.0-48cells-light.png",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\images\\manual-11.24.0-48cells-light.png"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "images/manual-11.24.0-blink-on-dark.png",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\images\\manual-11.24.0-blink-on-dark.png"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "images/manual-11.24.0-blink-off-dark.png",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\images\\manual-11.24.0-blink-off-dark.png"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "validation.json",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\validation.json"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "MEASUREMENT_WORKFLOW_11.21.2.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\MEASUREMENT_WORKFLOW_11.21.2.md"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "history/validation-61578db.json",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\history\\validation-61578db.json"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "../../tests/ManualInspection/README.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\README.md"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "Reference/A3_Review_Workspace.html",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\Reference\\A3_Review_Workspace.html"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "BULK_HISTORY_11.23.0.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\BULK_HISTORY_11.23.0.md"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "history/validation-367a727.json",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\history\\validation-367a727.json"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "CELL_CLICK_OFFSET_SYNC_11.23.1.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\CELL_CLICK_OFFSET_SYNC_11.23.1.md"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "history/validation-89e92a0.json",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\history\\validation-89e92a0.json"
+      },
+      {
+        "document": "docs/ManualInspection/RETRY_VISIBILITY_11.24.0.md",
+        "target": "images/manual-11.24.0-48cells-light.png",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\images\\manual-11.24.0-48cells-light.png"
+      },
+      {
+        "document": "docs/ManualInspection/RETRY_VISIBILITY_11.24.0.md",
+        "target": "images/manual-11.24.0-blink-on-dark.png",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\images\\manual-11.24.0-blink-on-dark.png"
+      },
+      {
+        "document": "docs/ManualInspection/RETRY_VISIBILITY_11.24.0.md",
+        "target": "images/manual-11.24.0-blink-off-dark.png",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\images\\manual-11.24.0-blink-off-dark.png"
+      },
+      {
+        "document": "docs/ManualInspection/RETRY_VISIBILITY_11.24.0.md",
+        "target": "../../tests/ManualInspection/RETRY_VISIBILITY_QA.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\RETRY_VISIBILITY_QA.md"
+      },
+      {
+        "document": "docs/ManualInspection/RETRY_VISIBILITY_11.24.0.md",
+        "target": "validation.json",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\validation.json"
+      },
+      {
+        "document": "docs/ManualInspection/RETRY_VISIBILITY_11.24.0.md",
+        "target": "STANDARD_SELECTION_REFERENCE_11.23.2.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\STANDARD_SELECTION_REFERENCE_11.23.2.md"
+      },
+      {
+        "document": "tests/ManualInspection/RETRY_VISIBILITY_QA.md",
+        "target": "../../docs/ManualInspection/validation.json",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\validation.json"
+      }
+    ],
+    "internalLinkCount": 29,
+    "images": [
+      {
+        "path": "docs\\ManualInspection\\images\\manual-11.24.0-48cells-light.png",
+        "width": 988,
+        "height": 688,
+        "sha256": "a17274ded11a4dfdf889e1352abea87631efb226e27814d16e8cf9ee9233acf0"
+      },
+      {
+        "path": "docs\\ManualInspection\\images\\manual-11.24.0-blink-off-dark.png",
+        "width": 788,
+        "height": 538,
+        "sha256": "ccc673a3fa282eed853e9d2c93dc4b96d71e4cd7a90752f0433f10ee2c5e63c7"
+      },
+      {
+        "path": "docs\\ManualInspection\\images\\manual-11.24.0-blink-on-dark.png",
+        "width": 788,
+        "height": 538,
+        "sha256": "b44720276e2a46cafdbd8e4c8d4bc2529004a1f649ccc534496680dc480c853e"
+      }
+    ],
+    "technicalMeaningReviewed": true,
+    "manifestNote": "Parent will regenerate validation.json after this audit. Its link exists; this audit does not claim the pre-regeneration manifest is already the final11.24.0 manifest.",
+    "finalWhitespaceNote": "Two intentional Markdown hard-break trailing spaces in current guide were replaced by blank lines after staging. Re-read document headers and refreshed actual document hash; source/test hashes remain unchanged. Both staged and unstaged git diff --check pass."
+  },
+  "notExecuted": [
+    "Equipment application/App/Root",
+    "Vendor SDK loading/decompilation/execution",
+    "Physical motor/PLC/Vision/AeroScript/laser operation",
+    "Formal equipment precision/arrival validation",
+    "Production/test edits by QA agent",
+    "Git commit/push by QA agent"
+  ],
+  "finalConclusion": "Three independent review stages complete. All final reports and current provenance agree; no confirmed unresolved implementation finding remains. Parent owns final manifest generation, knowledge MD updates and branch commit/push, with no master merge.",
+  "scopePackagingNote": "Finalizer copied verified report/docs artifacts into the feature branch, so scope changedPathCount became53 while the same33 assertions and all26 production hashes stayed identical. Refreshed the scope-report byte hash after final publication packaging; no new production/test change."
+}

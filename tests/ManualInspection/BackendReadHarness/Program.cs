@@ -277,6 +277,7 @@ internal static partial class Program
         await RunBulkHistoryChecks();
         await RunRepresentativeChecks();
         await RunMonitorDisplayChecks();
+        await RunMonitorShotDetailChecks();
         await RunRecipeDisplayChecks();
         await Check("vendor_assemblies_never_loaded", () =>
         {
