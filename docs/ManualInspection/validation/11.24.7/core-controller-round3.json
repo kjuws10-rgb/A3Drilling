@@ -1,0 +1,106 @@
+{
+  "version": "2026.11.24.7",
+  "status": "round3-complete",
+  "ownerSourceUnchanged": true,
+  "comparisons": [
+    {
+      "path": "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
+      "expected": "e90fd6983e29485d634750560c2b0aa7dd0447689fdb9e9ca2619dd1fedfebe4",
+      "actual": "e90fd6983e29485d634750560c2b0aa7dd0447689fdb9e9ca2619dd1fedfebe4",
+      "equal": true
+    },
+    {
+      "path": "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs",
+      "expected": "b95a5cba1b0c86490a3b19e0f4d6232f91752d679cc6b636b677ec2fd6445048",
+      "actual": "b95a5cba1b0c86490a3b19e0f4d6232f91752d679cc6b636b677ec2fd6445048",
+      "equal": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CManualInspectionController.cs",
+      "expected": "a3e4a8628aa6b491521462889e835267bbf9fdcaae0ea2f4df8cfbd8a0bde999",
+      "actual": "a3e4a8628aa6b491521462889e835267bbf9fdcaae0ea2f4df8cfbd8a0bde999",
+      "equal": true
+    },
+    {
+      "path": "tests/ManualInspection/CellCsvWorkflowCases.cs",
+      "expected": "a2201c869a072c6aa6ac4d02766cb3140e0566b5455dbe932f0f32e692ed481d",
+      "actual": "a2201c869a072c6aa6ac4d02766cb3140e0566b5455dbe932f0f32e692ed481d",
+      "equal": true
+    },
+    {
+      "path": "tests/ManualInspection/ControllerHarness/CellCsvWorkflowCases.cs",
+      "expected": "7b65562052df40df5861abfe57a3ef096ecc86a18ef79e030b0dcfcad73a4a85",
+      "actual": "7b65562052df40df5861abfe57a3ef096ecc86a18ef79e030b0dcfcad73a4a85",
+      "equal": true
+    },
+    {
+      "path": "tests/ManualInspection/BackendReadHarness/CellCsvWorkflowCases.cs",
+      "expected": "7c3ef15caa3a071ed74b545f658e6aa12374a56b5484e1e652690b350d5b2815",
+      "actual": "7c3ef15caa3a071ed74b545f658e6aa12374a56b5484e1e652690b350d5b2815",
+      "equal": true
+    }
+  ],
+  "coreSource": {
+    "report": "D:\\CodexWork\\A3_Manual_Inspection_20261124_7_CellCsvWorkflow\\core-results.json",
+    "count": 254,
+    "passed": true
+  },
+  "controllerProduction": {
+    "report": "D:\\CodexWork\\A3_Manual_Inspection_20261124_7_CellCsvWorkflow\\controller-production.json",
+    "count": 277,
+    "passed": true
+  },
+  "backendRead": {
+    "report": "D:\\CodexWork\\A3_Manual_Inspection_20261124_7_CellCsvWorkflow\\backend-read.json",
+    "count": 174,
+    "passed": true,
+    "reportSha256": "ee12146e041ab553cefef1d3441700490565c2c0c26703ba36a28c52c9a71f83"
+  },
+  "actualCsvCases": [
+    {
+      "name": "csv_absolute_reference_measured_replaces_nonzero_target_and_matches_displayed_review_f",
+      "passed": true
+    },
+    {
+      "name": "csv_absolute_reference_applied_offset_replaces_nonzero_target_and_matches_displayed_review_f",
+      "passed": true
+    },
+    {
+      "name": "csv_absolute_reference_operator_replaces_nonzero_target_and_matches_displayed_review_f",
+      "passed": true
+    },
+    {
+      "name": "csv_current_cell_bulk_updates_its_whole_population_but_preserves_other_cell_base_raw_and_new_measurement_eligibility",
+      "passed": true
+    }
+  ],
+  "assemblyComparisons": [
+    {
+      "name": "Drilling.UI",
+      "reportSha256": "755a4bbf4cc4a7717399eb1731adebe3e1c6346a851224c772441f2ed63c6d99",
+      "productionPath": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\Drilling.UI\\bin\\Release\\net8.0-windows\\Drilling.UI.dll",
+      "productionSha256": "755a4bbf4cc4a7717399eb1731adebe3e1c6346a851224c772441f2ed63c6d99",
+      "equal": true
+    },
+    {
+      "name": "Drilling.Common",
+      "reportSha256": "e245fe3643e9ba1e712763b0a133e3554e5a351e2a575a0813df38680a7846d8",
+      "productionPath": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\Drilling.Common\\bin\\Release\\net8.0\\Drilling.Common.dll",
+      "productionSha256": "e245fe3643e9ba1e712763b0a133e3554e5a351e2a575a0813df38680a7846d8",
+      "equal": true
+    }
+  ],
+  "controllerAssemblyEqualsBackend": true,
+  "scope": "Actual production Controller/Common/native CSV reader+conversion+CAS writer and reload. Equipment SaveCore/Guard and responses use synthetic seam; no equipment or vendor objects executed.",
+  "additionalFindings": [
+    "UI currentCell modal stale guard/strict overview nofallback source-verified",
+    "command gate prevents source replacement while native file dialog is open; external selected model changes are rejected by backend fresh context validation",
+    "cell summary shares one Init lookup and scans every point once; no per-cell full Init copies",
+    "all actual CSV replacement/scoped-cell cases passed"
+  ],
+  "testCountPolicy": "Controller source274 and actual277 overlap; count actual277 only in combined totals.",
+  "cellCsvTrace": {
+    "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_7_CellCsvWorkflow\\cell-csv-trace.json",
+    "sha256": "33fbb6c8b91d6964d5a2458a8ee33c3d71f14f46ad3d4d8071b4c102b075394b"
+  }
+}

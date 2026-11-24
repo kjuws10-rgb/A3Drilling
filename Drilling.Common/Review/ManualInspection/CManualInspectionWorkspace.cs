@@ -317,10 +317,23 @@ public sealed class CManualInspectionWorkspace
     public ST_MANUAL_BULK_PREVIEW PreviewBulkCorrection(IEnumerable<string>? selectedKeys=null)
     {
         RequireLoaded();
+        var population=selectedKeys is null?_points.Values.ToArray():Select(selectedKeys,false).Select(GetPoint).ToArray();
+        return PreviewBulkCorrectionCore(population,ActiveInitializedOffsetKeys.ToHashSet(StringComparer.Ordinal));
+    }
+
+    /// <summary>All cell summaries in one population pass, sharing the immutable initialization lookup.</summary>
+    public IReadOnlyDictionary<int,ST_MANUAL_BULK_PREVIEW> PreviewBulkCorrectionByCell()
+    {
+        RequireLoaded();
+        var initialized=ActiveInitializedOffsetKeys.ToHashSet(StringComparer.Ordinal);
+        return _points.Values.GroupBy(p=>p.CellNo).ToDictionary(group=>group.Key,
+            group=>PreviewBulkCorrectionCore(group.ToArray(),initialized));
+    }
+
+    private ST_MANUAL_BULK_PREVIEW PreviewBulkCorrectionCore(IReadOnlyList<ST_MANUAL_POINT> population,IReadOnlySet<string> initialized)
+    {
         var keys=new List<string>();
         var masked=0;var ng=0;var missing=0;var consumed=0;var unchanged=0;var invalid=0;var manual=0;var numeric=0;
-        var initialized=ActiveInitializedOffsetKeys.ToHashSet(StringComparer.Ordinal);
-        var population=selectedKeys is null?_points.Values.ToArray():Select(selectedKeys,false).Select(GetPoint).ToArray();
         foreach(var point in population)
         {
             if(point.Masked) { masked++;continue; }
@@ -348,13 +361,19 @@ public sealed class CManualInspectionWorkspace
                 || Magnitude(Subtract(stored,_active[point.Key]))>Limits.MaxDeltaUm || Magnitude(stored)>Limits.MaxTotalUm) {numeric++;continue;}
             keys.Add(point.Key);if(isManual)manual++;
         }
-        return new(ReadOnly(keys.ToArray()),population.Length,masked,ng,missing,consumed,unchanged,invalid,manual){ExcludedNumeric=numeric};
+        return new(ReadOnly(keys.ToArray()),population.Count,masked,ng,missing,consumed,unchanged,invalid,manual){ExcludedNumeric=numeric};
     }
 
-    public ST_MANUAL_CANDIDATE BuildBulkCandidate()
+    public ST_MANUAL_CANDIDATE BuildBulkCandidate() => BuildBulkCandidateCore(null);
+
+    /// <summary>Builds only the explicitly supplied population; other cells and hidden selections are unchanged.</summary>
+    public ST_MANUAL_CANDIDATE BuildBulkCandidate(IEnumerable<string> keys)
+        => BuildBulkCandidateCore(keys ?? throw new ArgumentNullException(nameof(keys)));
+
+    private ST_MANUAL_CANDIDATE BuildBulkCandidateCore(IEnumerable<string>? keys)
     {
         GuardCorrection();GuardNoOffsetEdit();
-        var preview=PreviewBulkCorrection();
+        var preview=PreviewBulkCorrection(keys);
         if(preview.Keys.Count==0) throw new InvalidOperationException("일괄 보정할 새 OK 측정/대표 결과가 없습니다. NG·미측정·초기화·이미 적용된 결과는 제외합니다.");
         return BuildDirectCandidate(preview.Keys);
     }

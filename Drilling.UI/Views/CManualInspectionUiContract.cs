@@ -20,7 +20,7 @@ public enum EN_MANUAL_INSPECTION_UI_ACTION
     ExportCsv, Move, MoveMeasure, MoveMeasureCorrect, Measure, RetryRemaining, Stop,
     Calculate, Validate, Apply, Rollback, CopyReference, UndoCopy, UpdateLimits, SetAllowManual, UpdateLevels, ShowPoint,
     ReturnToPreviousWorkspace, InitializeOffsets, CancelOffsetEdit, ExportOffsetBundle, ImportOffsetBundle,
-    BulkApply, UndoOffsets, RedoOffsets, ApplySelectedOffsets, ExportFinalOffsets, ForceMeasurement
+    BulkApply, UndoOffsets, RedoOffsets, ApplySelectedOffsets, ExportFinalOffsets, ForceMeasurement, ExportCurrentOffsetCsv
 }
 
 /// <summary>Display-only DESIGN-µm value read from the authoritative saved model file.</summary>
@@ -248,6 +248,8 @@ public sealed record CManualInspectionUiSnapshot
     public int UndoOffsetCount { get; init; }
     public int RedoOffsetCount { get; init; }
     public int BulkEligibleCount { get; init; }
+    public IReadOnlyDictionary<int,int> CellBulkEligibleCounts { get; init; } = new Dictionary<int,int>();
+    public IReadOnlyDictionary<int,string> CellBulkSummaryTexts { get; init; } = new Dictionary<int,string>();
     public string BulkSummaryText { get; init; } = "측정된 보정 대상 없음";
     public string OffsetHistoryText { get; init; } = "되돌릴 적용 이력 없음";
     public bool CanUndoCopy { get; init; }
@@ -270,6 +272,8 @@ public sealed record CManualInspectionUiRequest
 {
     public long ExpectedVersion { get; init; }
     public IReadOnlyList<string> Keys { get; init; } = [];
+    /// <summary>Bulk correction requires a displayed, explicitly chosen single Cell. Null never means all Cells.</summary>
+    public int? CurrentCellNo { get; init; }
     public string? FocusKey { get; init; }
     public string? ReferenceKey { get; init; }
     public string? ResultPath { get; init; }

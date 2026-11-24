@@ -1,0 +1,43 @@
+{
+  "reviewer": "bulk_history_engine_1123",
+  "scope": "Read-only source review across UI request/confirmation, Controller scopes/gates, Core previews, native CSV backend/parser wrapper; actual UI execution is separately reported in ui/validation.json.",
+  "sourceHashes": [
+    {
+      "path": "Drilling.UI\\Views\\CManualInspectionView.xaml.cs",
+      "sha256": "20d5a05eff63af7a08e001947b8aaf53614f16fdce75bf0ccb9154793d84a5eb"
+    },
+    {
+      "path": "Drilling.UI\\Views\\CManualInspectionUiContract.cs",
+      "sha256": "9cc1cecf1eaf9bd4bbb0223039f966527128a4f95111eebaf6e0cbb71b7f7416"
+    },
+    {
+      "path": "Drilling.UI\\Menu\\Menus\\CManualInspectionController.cs",
+      "sha256": "a3e4a8628aa6b491521462889e835267bbf9fdcaae0ea2f4df8cfbd8a0bde999"
+    },
+    {
+      "path": "Drilling.UI\\Menu\\Menus\\CManualInspectionBackend.cs",
+      "sha256": "94152605882eacf13b3a8c04d7ae93e77bf20c83413df60918be1b335e03b9c2"
+    },
+    {
+      "path": "Drilling.Common\\Review\\ManualInspection\\CManualInspectionWorkspace.cs",
+      "sha256": "e90fd6983e29485d634750560c2b0aa7dd0447689fdb9e9ca2619dd1fedfebe4"
+    },
+    {
+      "path": "Drilling.File\\ReviewOffset\\CReviewOffsetFile.cs",
+      "sha256": "56ebca90c0cd29ded87d6a41f9e6bacf7077baabbfd9371fbcad1f112aa7c1db"
+    }
+  ],
+  "unresolvedConfirmedDefects": [],
+  "observations": [
+    "Explicit CurrentCellNo must be positive and match displayed _cell; overview/focus cannot infer scope. Controller independently selects only cell keys.",
+    "Reference source ResolveF semantics are retained; target snapshot uses absolute F, not target B + copied F.",
+    "Per-cell preview initially repeated whole Init-set creation; reviewed the revised PreviewBulkCorrectionByCell sharing one lookup and one population pass.",
+    "Export streams and SHA-checks authoritative bytes under a read lease, protects active/config/foreign-model/reparse destinations, stages temp output and checks current frame again before move.",
+    "Import reuses native parser, validates known/hidden Cell-Shot rows, measurement state and unknown-head SCANNER conversion, and creates a draft rather than immediately saving.",
+    "Modal export owns the Controller command gate; sync queues _source replacement. Native selected-model changes are checked by backend EnsureCurrent. Same-model newer saved revision is intentionally latest-snapshot export.",
+    "Raw CSV does not embed Recipe identity; external CSV origin cannot be cryptographically proven. UI/import description and explicit current-model draft-save confirmation must remain."
+  ],
+  "equipmentExecuted": false,
+  "productionEdited": false,
+  "publicGitMutated": false
+}

@@ -13,7 +13,7 @@ internal static partial class Program
     {
         static Task Dispatch(CManualInspectionController c,EN_MANUAL_INSPECTION_UI_ACTION action,IReadOnlyList<string> keys,
             Func<CManualInspectionUiRequest,CManualInspectionUiRequest>? change=null)
-        {var r=new CManualInspectionUiRequest{ExpectedVersion=c.Snapshot.Version,Keys=keys};return c.ExecuteAsync(action,change?.Invoke(r)??r);}
+        {var r=new CManualInspectionUiRequest{ExpectedVersion=c.Snapshot.Version,Keys=keys,CurrentCellNo=1};return c.ExecuteAsync(action,change?.Invoke(r)??r);}
         static string Matrix(Fixture f,ST_MANUAL_POINT point)
         {var p=f.Review.CreateAllPlan(f.Recipe,point.BeamNo).Points.Single(p=>p.CellNo==point.CellNo&&p.ShotNo==point.ShotNo);return CReviewShotNameFormatter.ToMatrixName(point.ShotNo,p.PixelCountX);}
         static Fixture Scaled()=>new(settingOverrides:new(){["REVIEW_OFFSET_SCALE"]="100"});

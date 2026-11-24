@@ -1,0 +1,47 @@
+{
+  "version": "2026.11.24.7",
+  "status": "source-frozen-awaiting-actual-dll-csv-tests",
+  "sourceHashes": [
+    {
+      "path": "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
+      "sha256": "e90fd6983e29485d634750560c2b0aa7dd0447689fdb9e9ca2619dd1fedfebe4"
+    },
+    {
+      "path": "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs",
+      "sha256": "b95a5cba1b0c86490a3b19e0f4d6232f91752d679cc6b636b677ec2fd6445048"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CManualInspectionController.cs",
+      "sha256": "a3e4a8628aa6b491521462889e835267bbf9fdcaae0ea2f4df8cfbd8a0bde999"
+    },
+    {
+      "path": "tests/ManualInspection/CellCsvWorkflowCases.cs",
+      "sha256": "a2201c869a072c6aa6ac4d02766cb3140e0566b5455dbe932f0f32e692ed481d"
+    },
+    {
+      "path": "tests/ManualInspection/ControllerHarness/CellCsvWorkflowCases.cs",
+      "sha256": "7b65562052df40df5861abfe57a3ef096ecc86a18ef79e030b0dcfcad73a4a85"
+    },
+    {
+      "path": "tests/ManualInspection/BackendReadHarness/CellCsvWorkflowCases.cs",
+      "sha256": "7c3ef15caa3a071ed74b545f658e6aa12374a56b5484e1e652690b350d5b2815"
+    }
+  ],
+  "core": {
+    "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_7_CellCsvWorkflow\\core-results.json",
+    "passed": true,
+    "count": 254
+  },
+  "controllerLinked": {
+    "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_7_CellCsvWorkflow\\controller-source.json",
+    "passed": true,
+    "count": 274
+  },
+  "equipmentExecution": false,
+  "productionSaveCoreExecuted": false,
+  "actualCsvCasesPrepared": 4,
+  "notes": [
+    "최종 실제 DLL 재빌드/Backend CSV 회귀는 부모가 실행",
+    "source-linked Controller와actual Controller는 중복 합산하지 않음"
+  ]
+}

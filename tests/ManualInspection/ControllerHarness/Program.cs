@@ -95,6 +95,7 @@ internal static partial class Program
         await RunStartupFinalOffsetsCases();
         await RunRepresentativeApplyChecks();
         await RunBulkFinalVerificationChecks();
+        await RunCellCsvWorkflowChecks();
         await Check("generic_sta_application_and_no_loaded_vendor_assemblies",async()=>{True(Application.Current.GetType()==typeof(Application));True(!VendorAssemblies().Any());await Task.CompletedTask;});
         var path=args.Length==2&&args[0]=="--report"?args[1]:Path.Combine(AppContext.BaseDirectory,"controller-results.json");Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         var assembly=typeof(CManualInspectionController).Assembly;
@@ -281,7 +282,7 @@ internal static partial class Program
             var(f,c)=await Loaded();var entered=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             f.SaveHook=async token=>{entered.TrySetResult();await Task.Delay(Timeout.Infinite,token);};
             using var cancellation=new CancellationTokenSource();
-            var first=c.ExecuteAsync(EN_MANUAL_INSPECTION_UI_ACTION.BulkApply,new(){ExpectedVersion=c.Snapshot.Version},cancellation.Token);
+            var first=c.ExecuteAsync(EN_MANUAL_INSPECTION_UI_ACTION.BulkApply,new(){ExpectedVersion=c.Snapshot.Version,CurrentCellNo=1},cancellation.Token);
             await entered.Task.WaitAsync(TimeSpan.FromSeconds(3));cancellation.Cancel();await first;
             True(f.Saves==0&&f.SavedConsumption.Count==0&&f.Executed.Count==0&&!c.IsBusy&&c.Snapshot.Points.All(p=>p.BaseXUm==0)&&c.Snapshot.UndoOffsetCount==0);
             f.SaveHook=null;await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply);
@@ -331,7 +332,7 @@ internal static partial class Program
             True(f.Executed.Count==0&&f.Saves==0&&!c.IsBusy&&!c.Snapshot.HasIncomplete&&c.Snapshot.Points.All(p=>p.IsMeasurementOffsetInitialized));
         });
     }
-    private static Task Do(CManualInspectionController c,EN_MANUAL_INSPECTION_UI_ACTION action,IReadOnlyList<string>?keys=null,Func<CManualInspectionUiRequest,CManualInspectionUiRequest>?edit=null){var r=new CManualInspectionUiRequest{ExpectedVersion=c.Snapshot.Version,Keys=keys??[]};return c.ExecuteAsync(action,edit?.Invoke(r)??r);}
+    private static Task Do(CManualInspectionController c,EN_MANUAL_INSPECTION_UI_ACTION action,IReadOnlyList<string>?keys=null,Func<CManualInspectionUiRequest,CManualInspectionUiRequest>?edit=null){var r=new CManualInspectionUiRequest{ExpectedVersion=c.Snapshot.Version,Keys=keys??[],CurrentCellNo=1};return c.ExecuteAsync(action,edit?.Invoke(r)??r);}
     private static async Task Prepared(CManualInspectionController c){await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Calculate,["P1"]);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Validate);}
     private static (FakeBackend,CManualInspectionController) Fixture(bool readOnly=false,bool ngReference=false){var f=new FakeBackend(Path.Combine(Root,Guid.NewGuid().ToString("N")),readOnly,ngReference);return(f,new(f));}
     private static async Task<(FakeBackend,CManualInspectionController)> Loaded(bool ngReference=false){var(f,c)=Fixture(ngReference:ngReference);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);return(f,c);}

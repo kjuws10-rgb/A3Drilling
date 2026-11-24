@@ -1,0 +1,91 @@
+[
+  {
+    "sourceKind": "MEASURED",
+    "sourceBaseUm": [
+      10,
+      -2
+    ],
+    "sourceUnappliedDeltaUm": [
+      3,
+      1
+    ],
+    "displayedReferenceReviewFUm": [
+      13,
+      -1
+    ],
+    "targetBeforeUm": [
+      20,
+      5
+    ],
+    "targetCsvMm": [
+      0.013,
+      -0.001
+    ],
+    "saves": 1,
+    "repeatSaves": 0,
+    "oldCsvBytesUnchanged": true,
+    "verification": "VERIFIED"
+  },
+  {
+    "sourceKind": "APPLIED_OFFSET",
+    "sourceBaseUm": [
+      10,
+      -2
+    ],
+    "sourceUnappliedDeltaUm": null,
+    "displayedReferenceReviewFUm": [
+      10,
+      -2
+    ],
+    "targetBeforeUm": [
+      20,
+      5
+    ],
+    "targetCsvMm": [
+      0.01,
+      -0.002
+    ],
+    "saves": 1,
+    "repeatSaves": 0,
+    "oldCsvBytesUnchanged": true,
+    "verification": "VERIFIED"
+  },
+  {
+    "sourceKind": "OPERATOR",
+    "sourceBaseUm": [
+      10,
+      -2
+    ],
+    "sourceUnappliedDeltaUm": [
+      3,
+      1
+    ],
+    "displayedReferenceReviewFUm": [
+      13,
+      -1
+    ],
+    "targetBeforeUm": [
+      20,
+      5
+    ],
+    "targetCsvMm": [
+      0.013,
+      -0.001
+    ],
+    "saves": 1,
+    "repeatSaves": 0,
+    "oldCsvBytesUnchanged": true,
+    "verification": "VERIFIED"
+  },
+  {
+    "sourceKind": "CURRENT_CELL_BULK",
+    "cell1Eligible": 2,
+    "cell2Eligible": 1,
+    "firstScope": 1,
+    "unrelatedCell2SavedBeforeAndAfterUm": 20,
+    "cell2EligibleAfterFirst": 1,
+    "secondScope": 2,
+    "saves": 2,
+    "unscopedRequestSaved": 0
+  }
+]

@@ -1,0 +1,106 @@
+{
+  "schemaVersion": "a3-cell-csv-workflow-independent-round/1",
+  "round": 2,
+  "status": "passed",
+  "passed": true,
+  "checkedAt": "2026-11-24T19:22:24.389861+09:00",
+  "scope": "CSV Backend/File reader 구현과 최종 실제 생산 DLL·합성 회귀·UI source 출처 대조. 최종 public 문서·manifest 검증과 구분한다.",
+  "sourceSha256": {
+    "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs": "94152605882eacf13b3a8c04d7ae93e77bf20c83413df60918be1b335e03b9c2",
+    "Drilling.File/ReviewOffset/CReviewOffsetFile.cs": "56ebca90c0cd29ded87d6a41f9e6bacf7077baabbfd9371fbcad1f112aa7c1db",
+    "tests/ManualInspection/BackendReadHarness/OffsetCsvTransferCases.cs": "b60d9cd03609bf2d3ca0fadc6d69737d2969ca8bcfe8eea92da7bb65ed1bd1a4"
+  },
+  "productionAssemblies": {
+    "Drilling.UI": {
+      "actualBackendPath": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BackendReadHarness\\bin\\Release\\net8.0-windows\\Drilling.UI.dll",
+      "productionPath": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\Drilling.UI\\bin\\Release\\net8.0-windows\\Drilling.UI.dll",
+      "sha256": "755a4bbf4cc4a7717399eb1731adebe3e1c6346a851224c772441f2ed63c6d99",
+      "currentMatch": true
+    },
+    "Drilling.Common": {
+      "actualBackendPath": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BackendReadHarness\\bin\\Release\\net8.0-windows\\Drilling.Common.dll",
+      "productionPath": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\Drilling.Common\\bin\\Release\\net8.0\\Drilling.Common.dll",
+      "sha256": "e245fe3643e9ba1e712763b0a133e3554e5a351e2a575a0813df38680a7846d8",
+      "currentMatch": true
+    },
+    "Drilling.File": {
+      "harnessCopyPath": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BackendReadHarness\\bin\\Release\\net8.0-windows\\Drilling.File.dll",
+      "productionPath": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\Drilling.File\\bin\\Release\\net8.0\\Drilling.File.dll",
+      "sha256": "8c3598e32069e13ecf482e69301e96ef9f9497a7d01e586516fdbbbf40a50dee",
+      "currentMatch": true
+    }
+  },
+  "counts": {
+    "actualBackend": 174,
+    "newCsvTransfer": 18,
+    "actualController": 277,
+    "core": 254,
+    "writer": 35,
+    "scope": 33,
+    "uiModes": 18,
+    "uiChecks": 1052,
+    "uiInputs": 28
+  },
+  "csvTransferTests": [
+    "offset_csv_export_preserves_original_bytes_sha_headers_space_state_and_hidden_rows",
+    "offset_csv_safe_export_name_in_current_folder_never_activates_and_future_writer_still_succeeds",
+    "offset_csv_same_active_path_is_verified_no_write_and_other_live_candidate_names_are_refused",
+    "offset_csv_export_refuses_other_timestamp_history_even_with_overwrite_confirmation",
+    "offset_csv_export_external_timestamp_name_is_allowed_without_modifying_live_latest",
+    "offset_csv_custom_overwrite_requires_explicit_confirmation_and_replaces_only_copy",
+    "offset_csv_locked_custom_overwrite_fails_atomically_and_cleans_temporary_copy",
+    "offset_csv_export_protects_config_data_state_and_other_project_destinations",
+    "offset_csv_export_parent_junction_cannot_bypass_operating_folder_guards",
+    "offset_csv_export_cancel_or_model_switch_leaves_no_new_or_half_written_file",
+    "offset_csv_mid_copy_model_switch_or_cancel_preserves_existing_copy_and_removes_temporary",
+    "offset_csv_export_without_saved_file_does_not_invent_measured_zero_csv",
+    "offset_csv_roundtrip_import_is_absolute_sparse_and_preserves_measured_zero_vs_init",
+    "offset_csv_legacy_scanner_rows_convert_once_without_reapplying_scale_or_current_B",
+    "offset_csv_import_rejects_named_foreign_model_and_unknown_or_changed_hidden_rows",
+    "offset_csv_import_rejects_invalid_header_duplicates_nan_space_and_init_nonzero",
+    "offset_csv_reader_wrapper_matches_actual_latest_reader_without_publishing_or_reformatting",
+    "offset_csv_json_bundle_import_remains_compatible_and_validates_original_identity"
+  ],
+  "reports": {
+    "backend-read.json": {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_7_CellCsvWorkflow\\backend-read.json",
+      "sha256": "ee12146e041ab553cefef1d3441700490565c2c0c26703ba36a28c52c9a71f83"
+    },
+    "controller-production.json": {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_7_CellCsvWorkflow\\controller-production.json",
+      "sha256": "058371f6415cb650d1f775e9b94a28c741518bc4588713255f5c8b03f1c462ab"
+    },
+    "core-results.json": {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_7_CellCsvWorkflow\\core-results.json",
+      "sha256": "d457c18d6571604d781238ee22ae7664dec16f9cb851c8225fef396ae22fe276"
+    },
+    "bridge-writer.json": {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_7_CellCsvWorkflow\\bridge-writer.json",
+      "sha256": "f8c343ec6c890b66c14d779a32dff80ee9719abf5e959e584375e585a1302e1e"
+    },
+    "scope-results.json": {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_7_CellCsvWorkflow\\scope-results.json",
+      "sha256": "1143c2b1c12767b67a49274587046f16241f5302e5c27f7f0eadcbd006ff7954"
+    },
+    "ui/validation.json": {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_7_CellCsvWorkflow\\ui\\validation.json",
+      "sha256": "4f15f8c5a735cb504fe32d609716a7480a3f59905de6135d7dd7acf81f37c5f2"
+    },
+    "release-build.log": {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_7_CellCsvWorkflow\\release-build.log",
+      "sha256": "02bc0b2ca5443cb64814f86386d002fe07b40206d8cfdcd2197a5251d646d79d"
+    },
+    "cell-csv-trace.json": {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_7_CellCsvWorkflow\\cell-csv-trace.json",
+      "sha256": "33fbb6c8b91d6964d5a2458a8ee33c3d71f14f46ad3d4d8071b4c102b075394b"
+    }
+  },
+  "operatingCsvModified": false,
+  "operatingCsvRawCopied": false,
+  "equipmentManagerOrVendorExecution": false,
+  "loadedVendorAssemblies": [],
+  "scopeLimit": "Backend CSV 연결은 실제 reader/writer/좌표 변환/최신 기준 검증을 사용한다. 장비 소유 SaveCore 가드·모션·Vision·레이저 및 실제 다른 PC 운영 데이터는 검증하지 않는다.",
+  "identityLimit": "CSV에는 RecipeId/좌표 signature가 없다. 명시된 다른 모델 폴더는 거절하지만 외부 익명 CSV가 같은 Cell/Shot인 다른 모델인지 암호학적으로 증명할 수 없다. 현재 모델 초안으로 표시하고 최종 Apply에서 현재 모델과 교체 범위를 확인해야 한다.",
+  "fixtureCorrection": "잠긴 파일은 AccessDenied를 던지는 Windows 동작을 인정했다. 기존 파일·temp·활성 SHA 불변 주장은 약화하지 않았다.",
+  "productionAdditionalChangesAfterFreeze": false
+}

@@ -234,7 +234,7 @@
 
             <Button Grid.Column="3" Width="82" Margin="6,0,0,0"  x:Name="ZoomResetButton" Content="100% · 맞춤" Padding="5,2" FontSize="11" Style="{StaticResource ManualButton}" Click="ZoomReset_Click" ToolTip="전체 범위를 화면에 맞춥니다. 실제 장비 위치는 바뀌지 않습니다." />
             <Button Grid.Column="4" Width="66" Content="선택 ▾" Style="{StaticResource ManualButton}" Click="SelectionTools_Click" Padding="5,2" Margin="6,0,0,0" ToolTip="보이는 점 전체 / NG만 / 선택 해제" />
-            <Button Grid.Column="5" Width="72" Margin="6,0,0,0"  x:Name="FilesButton" Content="파일 ▾" Padding="5,2" Style="{StaticResource ManualButton}" Click="Files_Click" ToolTip="통합 Offset 파일 가져오기·내보내기 · 측정 결과 CSV · 파일 열기 전 작업으로 돌아가기" />
+            <Button Grid.Column="5" Width="72" Margin="6,0,0,0"  x:Name="FilesButton" Content="파일 ▾" Padding="5,2" Style="{StaticResource ManualButton}" Click="Files_Click" ToolTip="통합 Offset 파일 가져오기 · 현재 Offset 데이터 CSV 내보내기" />
             <Button Grid.Column="6" Width="32" Margin="6,0,0,0"  x:Name="LoadRecipeButton" Content="↻" Padding="0" FontSize="17" AutomationProperties.Name="결과 새로고침" Tag="Refresh" Style="{StaticResource ManualButton}" Click="Action_Click" ToolTip="현재 표시한 자료를 다시 읽습니다. 파일 작업과 복귀 지점은 유지합니다." />
             <Button Grid.Column="7" Width="68" Margin="6,0,0,0"  x:Name="StopButton" Content="■ 중지" Padding="5,2" Tag="Stop" Style="{StaticResource ManualButton}" Click="Action_Click" Background="{DynamicResource ButtonDangerBrush}" Foreground="{DynamicResource ButtonTextOnColorBrush}" ToolTip="Esc · 현재 동작에 중지를 요청합니다. 정리 완료 전까지 새 동작을 시작하지 않습니다." AutomationProperties.Name="현재 동작 중지" />
           </Grid>
@@ -584,7 +584,7 @@
                           <TabItem x:Name="CorrectionActionsTab" Header="실행" Style="{StaticResource ManualSideTab}">
                             <StackPanel Margin="3,4,3,2">
                               <TextBlock x:Name="CandidateStatusText" Foreground="{DynamicResource AccentTextBrush}" FontSize="12"/>
-                              <Button x:Name="BulkApplyButton" Content="일괄 보정" Tag="BulkApply" Style="{StaticResource ManualPrimaryButton}" Click="Action_Click" ToolTip="현재 모델 전체의 새 유효 측정 결과를 계산·검증하여 한 번에 저장합니다. NG·미측정·이미 적용한 결과는 제외합니다." MinHeight="28" Padding="5,4"/>
+                              <Button x:Name="BulkApplyButton" Content="현재 Cell 일괄 보정" Tag="BulkApply" Style="{StaticResource ManualPrimaryButton}" Click="Action_Click" ToolTip="현재 Cell의 새 유효 측정 결과만 계산·검증하여 저장합니다. 다른 Cell의 보정값은 유지합니다." MinHeight="28" Padding="5,4"/>
                               <TextBlock x:Name="BulkSummaryText" Style="{StaticResource ManualLabel}" TextWrapping="Wrap" FontSize="11" MaxHeight="42" TextTrimming="CharacterEllipsis"/>
                               <Button x:Name="CalculateButton" Content="선택점 보정" Tag="ApplySelectedOffsets" Style="{StaticResource ManualButton}" Click="Action_Click" ToolTip="선택한 위치만 계산·검증한 뒤 모델 Offset에 저장합니다." MinHeight="28" Padding="5,4"/>
                               <Grid>

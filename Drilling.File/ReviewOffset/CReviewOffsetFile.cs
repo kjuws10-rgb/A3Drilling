@@ -894,7 +894,18 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
         return Path.Combine(rollbackDirectory, $"{name}_{DateTimeOffset.Now:yyyyMMdd_HHmmss_fff}_{Guid.NewGuid():N}{extension}");
     }
 
-    private ST_REVIEW_OFFSET_FILE_DATA Load(string recipeId, string path, CancellationToken token)
+    /// <summary>Read an existing Review CSV without selecting or publishing an active version.
+    /// The CSV has no Recipe identity; recipeId is the caller's explicitly confirmed model context.</summary>
+    public static ST_REVIEW_OFFSET_FILE_DATA ReadSnapshotFile(string recipeId, string path, CancellationToken token = default)
+    {
+        if (string.IsNullOrWhiteSpace(recipeId)) throw new InvalidDataException("Review CSV의 현재 모델을 확인하세요.");
+        var full = Path.GetFullPath(path);
+        if (!Path.GetExtension(full).Equals(".csv", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException("Review Offset CSV 파일을 선택하세요.");
+        return Load(recipeId, full, token);
+    }
+
+    private static ST_REVIEW_OFFSET_FILE_DATA Load(string recipeId, string path, CancellationToken token)
     {
         try
         {

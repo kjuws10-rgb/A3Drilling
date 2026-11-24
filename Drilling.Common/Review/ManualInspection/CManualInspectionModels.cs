@@ -211,7 +211,7 @@ public sealed record ST_MANUAL_RESTORE_SNAPSHOT(
         = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(StringComparer.Ordinal));
 }
 
-/// <summary>Whole-model eligibility summary. It is independent of map filters and does not mutate state.</summary>
+/// <summary>Eligibility summary for an explicit population, independent of map filters and without mutation.</summary>
 public sealed record ST_MANUAL_BULK_PREVIEW(
     IReadOnlyList<string> Keys, int Total, int ExcludedMasked, int ExcludedNg,
     int ExcludedUnmeasured, int ExcludedConsumed, int ExcludedUnchanged, int ExcludedInvalid, int ManualCount)

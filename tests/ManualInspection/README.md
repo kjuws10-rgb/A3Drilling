@@ -1,6 +1,8 @@
 # Manual Inspection 독립 검증
 
-현재 `11.24.6`의 일괄보정 → 최종 CSV → Manual 지도/Monitor 일치 검증은 [원인·범위·결과](../../docs/ManualInspection/BULK_FINAL_CONSISTENCY_11.24.6.md)와 [manifest](../../docs/ManualInspection/validation.json)를 따른다. 새 Backend CSV/Monitor 18개, 실제 Controller 후속 8개, WPF 후속 49개를 포함한다. 생산 저장 경로의 장비 Manager 가드는 실행하지 않는다.
+현재 `11.24.7`의 현재 Cell 일괄보정·대표 Review 절대 교체·CSV 파일 전송 검증은 [동작·범위](../../docs/ManualInspection/CELL_CSV_WORKFLOW_11.24.7.md)와 [manifest](../../docs/ManualInspection/validation.json)를 따른다. `UiHarness --cell-csv-workflow`와 `verify_cell_csv_workflow.py`를 추가했다. 생산 저장 경로의 장비 Manager 가드는 실행하지 않는다.
+
+이전 `11.24.6`의 일괄보정 → 최종 CSV → Manual 지도/Monitor 일치 검증은 [원인·범위·결과](../../docs/ManualInspection/BULK_FINAL_CONSISTENCY_11.24.6.md)에 보존한다.
 
 이전 `11.23.0`의 일괄 보정·10단계 Undo/Redo·모든 Review Init 없음 표시는 [BULK_HISTORY_QA.md](BULK_HISTORY_QA.md)를 따른다. 이전 [11.21.2](MEASUREMENT_WORKFLOW_QA.md)와 [11.21.1](OFFSET_INIT_QA.md) 검증 기록은 당시 범위로 보존한다.
 

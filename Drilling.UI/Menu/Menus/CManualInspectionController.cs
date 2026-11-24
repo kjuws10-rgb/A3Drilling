@@ -322,7 +322,7 @@ public sealed class CManualInspectionController : IManualInspectionController
                 or EN_MANUAL_INSPECTION_UI_ACTION.UpdateLevels or EN_MANUAL_INSPECTION_UI_ACTION.SetAllowManual
                 or EN_MANUAL_INSPECTION_UI_ACTION.ExportCsv or EN_MANUAL_INSPECTION_UI_ACTION.ExportOffsetBundle
                 or EN_MANUAL_INSPECTION_UI_ACTION.ExportSession or EN_MANUAL_INSPECTION_UI_ACTION.ShowPoint
-                or EN_MANUAL_INSPECTION_UI_ACTION.ExportFinalOffsets))
+                or EN_MANUAL_INSPECTION_UI_ACTION.ExportFinalOffsets or EN_MANUAL_INSPECTION_UI_ACTION.ExportCurrentOffsetCsv))
             {
                 _loadFailureRecovered=true; // No source load was attempted; retain a writable draft.
                 throw new InvalidOperationException("통합 Offset은 아직 저장 전입니다. 모델 Offset 저장 또는 편집 취소 후 이동·측정·파일 전환하세요.");
@@ -371,9 +371,11 @@ public sealed class CManualInspectionController : IManualInspectionController
                     await ExportOffsetBundle(request.ResultPath,token);break;
                 case EN_MANUAL_INSPECTION_UI_ACTION.ExportFinalOffsets:
                     await ExportFinalOffsets(request.ResultPath,token);break;
+                case EN_MANUAL_INSPECTION_UI_ACTION.ExportCurrentOffsetCsv:
+                    await ExportCurrentOffsetCsv(request.ResultPath,token);break;
                 case EN_MANUAL_INSPECTION_UI_ACTION.ImportOffsetBundle:
                     await Current(token);
-                    var importPath=request.ResultPath??ChooseFile(false,"json");
+                    var importPath=request.ResultPath??ChooseFile(false,"offset");
                     if (importPath is not null)
                     {
                         var absolute=await _backend.ImportOffsetBundleAsync(_source!,importPath,token);
@@ -382,6 +384,7 @@ public sealed class CManualInspectionController : IManualInspectionController
                         var importedCheck=_engine.ValidateCandidate(false);
                         _status=importedCheck.Ok ? "통합 Offset 파일을 저장 전 작업값으로 열었습니다. 기존값에 다시 더하지 않습니다. 모델 Offset 저장으로 반영하세요."
                             : "통합 Offset 파일 작업값 · 저장 검증 확인 필요: "+string.Join("\n",importedCheck.Errors);
+                        if(!string.IsNullOrWhiteSpace(_backend.ImportedOffsetDescription)) _status+=" · "+_backend.ImportedOffsetDescription;
                     }
                     break;
                 case EN_MANUAL_INSPECTION_UI_ACTION.Calculate:
@@ -403,7 +406,7 @@ public sealed class CManualInspectionController : IManualInspectionController
                     break;
                 case EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets:
                     await ApplySelectedOffsets(request.Keys, token); break;
-                case EN_MANUAL_INSPECTION_UI_ACTION.BulkApply: await BulkApply(token); break;
+                case EN_MANUAL_INSPECTION_UI_ACTION.BulkApply: await BulkApply(request.CurrentCellNo,token); break;
                 case EN_MANUAL_INSPECTION_UI_ACTION.Rollback:
                 case EN_MANUAL_INSPECTION_UI_ACTION.UndoOffsets: await Restore(token,false); break;
                 case EN_MANUAL_INSPECTION_UI_ACTION.RedoOffsets: await Restore(token,true); break;
@@ -1036,16 +1039,22 @@ public sealed class CManualInspectionController : IManualInspectionController
         _status=$"{request.Keys.Distinct(StringComparer.Ordinal).Count():N0}점 수동 OK 완료 · 원측정 보존 · 실제 보정은 선택점/일괄 보정에서 검증 후 저장";
     }
 
-    private async Task BulkApply(CancellationToken token)
+    private async Task BulkApply(int? currentCellNo,CancellationToken token)
     {
+        // Scope is an explicit UI choice, never inferred from selection, focus or a head filter.
+        // In the all-cell view no cell is current; rejecting a missing scope prevents an
+        // accidental model-wide write from an obsolete caller or a filtered selection.
+        if(currentCellNo is not >0) throw new InvalidOperationException("일괄 보정할 Cell 화면을 먼저 선택하세요. 전체 Cell 보기에서는 일괄 보정하지 않습니다.");
         await Current(token);
-        var preview=_engine.PreviewBulkCorrection();
-        if(preview.Keys.Count==0) throw new InvalidOperationException($"일괄 보정할 결과가 없습니다. NG {preview.ExcludedNg:N0} / 미측정 {preview.ExcludedUnmeasured:N0} / 수치한계 {preview.ExcludedNumeric:N0} / 이미 적용 {preview.ExcludedConsumed+preview.ExcludedUnchanged:N0}점 제외");
-        _engine.BuildBulkCandidate(); _allowManual=preview.ManualCount>0;
+        var cellKeys=_engine.Points.Where(p=>p.CellNo==currentCellNo.Value).Select(p=>p.Key).ToArray();
+        if(cellKeys.Length==0) throw new InvalidOperationException($"Cell #{currentCellNo.Value}의 측정 좌표가 없습니다. 현재 Cell을 다시 선택하세요.");
+        var preview=_engine.PreviewBulkCorrection(cellKeys);
+        if(preview.Keys.Count==0) throw new InvalidOperationException($"Cell #{currentCellNo.Value}에 일괄 보정할 결과가 없습니다. NG {preview.ExcludedNg:N0} / 미측정 {preview.ExcludedUnmeasured:N0} / 수치한계 {preview.ExcludedNumeric:N0} / 이미 적용 {preview.ExcludedConsumed+preview.ExcludedUnchanged:N0}점 제외");
+        _engine.BuildBulkCandidate(cellKeys); _allowManual=preview.ManualCount>0;
         var validation=_engine.ValidateCandidate(_allowManual);
         if(!validation.Ok) throw new InvalidOperationException("일괄 보정을 저장하지 않았습니다.\n"+string.Join("\n",validation.Errors));
         await Apply(token, sourceVerified: true);
-        _status=$"일괄 보정 {preview.Keys.Count:N0}점 저장 · NG {preview.ExcludedNg:N0} / 미측정 {preview.ExcludedUnmeasured:N0} / 수치한계 {preview.ExcludedNumeric:N0} / 적용됨 {preview.ExcludedConsumed+preview.ExcludedUnchanged:N0}점 제외"+SaveConfirmationSuffix;
+        _status=$"Cell #{currentCellNo.Value} 일괄 보정 {preview.Keys.Count:N0}점 저장 · NG {preview.ExcludedNg:N0} / 미측정 {preview.ExcludedUnmeasured:N0} / 수치한계 {preview.ExcludedNumeric:N0} / 적용됨 {preview.ExcludedConsumed+preview.ExcludedUnchanged:N0}점 제외"+SaveConfirmationSuffix;
     }
 
     private async Task ApplySelectedOffsets(IReadOnlyList<string> keys, CancellationToken token)
@@ -1303,6 +1312,45 @@ public sealed class CManualInspectionController : IManualInspectionController
         finally { _finalOffsetReadGate.Release();ScheduleFinalOffsetFollowup(); }
     }
 
+    private async Task ExportCurrentOffsetCsv(string? requestedPath,CancellationToken token)
+    {
+        if(_source is null) throw new InvalidOperationException("먼저 현재 모델을 불러오세요.");
+        var path=requestedPath;
+        var overwriteConfirmed=false;
+        if(path is null)
+        {
+            if(ChooseFile==DefaultChooseFile)
+            {
+                await RefreshFinalOffsets(token,true);
+                if(_finalOffsets is null || string.IsNullOrWhiteSpace(_finalOffsets.FilePath))
+                    throw new InvalidOperationException("현재 모델에 내보낼 최종 Review Offset CSV가 없습니다.");
+                var dialog=CreateCurrentOffsetCsvSaveDialog(_finalOffsets);
+                path=dialog.ShowDialog()==true?dialog.FileName:null;
+                overwriteConfirmed=path is not null; // Native dialog owns the explicit overwrite confirmation.
+            }
+            else path=ChooseFile(true,"csv");
+        }
+        if(path is null) return;
+        await _finalOffsetReadGate.WaitAsync(token);
+        try
+        {
+            // The backend copies the latest complete saved CSV bytes, not a working candidate
+            // or a current-cell subset. It also checks model/frame and protects active CSVs.
+            var saved=await _backend.ExportCurrentOffsetCsvAsync(_source,path,token,overwriteConfirmed);
+            if(saved is null) throw new InvalidOperationException("현재 Offset CSV 내보내기 결과를 확인할 수 없습니다.");
+            AcceptFinalOffsets(saved);
+            var same=StringComparer.OrdinalIgnoreCase.Equals(Path.GetFullPath(path),Path.GetFullPath(saved.FilePath));
+            _status=same?"기존 최종 Offset CSV를 확인했습니다. 원본 파일·작업값은 유지합니다."
+                :"현재 모델의 최종 Offset CSV 전체를 내보냈습니다. 미저장 작업값·원측정은 포함하지 않습니다.";
+        }
+        finally { _finalOffsetReadGate.Release();ScheduleFinalOffsetFollowup(); }
+    }
+
+    private static SaveFileDialog CreateCurrentOffsetCsvSaveDialog(CManualInspectionSavedOffsetSnapshot saved)
+        => new() { Filter="현재 Offset CSV (*.csv)|*.csv",DefaultExt=".csv",AddExtension=true,
+            InitialDirectory=Path.GetDirectoryName(saved.FilePath),
+            FileName=Path.GetFileNameWithoutExtension(saved.FileName)+"_export.csv",OverwritePrompt=true };
+
     private void ClearMeasurementReceipt() { _lastMeasuredPointKey=null;_lastMeasurementText=""; }
 
     private SessionBundle Bundle() => new(1, _backend is CManualInspectionReplayBackend, _simulationScenario,
@@ -1377,8 +1425,25 @@ public sealed class CManualInspectionController : IManualInspectionController
         var c = _engine.Context; var candidate = _engine.Candidate; var bases = _engine.ActiveOffsets;
         var offsetEdit=_engine.HasPendingOffsetEdit;
         ST_MANUAL_BULK_PREVIEW? bulk=null;
+        var cellBulkCounts=new Dictionary<int,int>();
+        var cellBulkTexts=new Dictionary<int,string>();
         if(_source is not null && !offsetEdit && !IsBusy)
-            try { bulk=_engine.PreviewBulkCorrection(); } catch(InvalidOperationException) { }
+            try
+            {
+                var cells=_engine.PreviewBulkCorrectionByCell();
+                foreach(var (cellNo,cell) in cells)
+                {
+                    cellBulkCounts[cellNo]=cell.Keys.Count;
+                    cellBulkTexts[cellNo]=$"Cell #{cellNo} {cell.Keys.Count:N0}점 · NG {cell.ExcludedNg:N0} / 미측정 {cell.ExcludedUnmeasured:N0} / 수치한계 {cell.ExcludedNumeric:N0} / 적용됨 {cell.ExcludedConsumed+cell.ExcludedUnchanged:N0} 제외";
+                }
+                // Preserve legacy model-summary fields from the same per-cell pass, not
+                // by recomputing every value/proof or rebuilding a full Init set per cell.
+                var all=cells.Values.ToArray();
+                bulk=new(all.SelectMany(p=>p.Keys).ToArray(),all.Sum(p=>p.Total),all.Sum(p=>p.ExcludedMasked),all.Sum(p=>p.ExcludedNg),
+                    all.Sum(p=>p.ExcludedUnmeasured),all.Sum(p=>p.ExcludedConsumed),all.Sum(p=>p.ExcludedUnchanged),all.Sum(p=>p.ExcludedInvalid),all.Sum(p=>p.ManualCount))
+                    {ExcludedNumeric=all.Sum(p=>p.ExcludedNumeric)};
+            }
+            catch(InvalidOperationException) { }
         var candidates = candidate?.Rows.ToDictionary(r => r.Key, StringComparer.Ordinal) ?? [];
         var initializedKeys=candidate?.InitializedOffsetKeys.ToHashSet(StringComparer.Ordinal) ?? [];
         var resetKeys=candidate?.InitializationOffsetKeys.ToHashSet(StringComparer.Ordinal) ?? [];
@@ -1476,6 +1541,7 @@ public sealed class CManualInspectionController : IManualInspectionController
             UndoOffsetCount=_engine.UndoCount,RedoOffsetCount=_engine.RedoCount,
             CanBulkApply=!offsetEdit && !IsBusy && !_engine.HasIncompleteMeasurements && c?.LineageValid==true && _source?.ReadOnly!=true && bulk?.Keys.Count>0,
             BulkEligibleCount=bulk?.Keys.Count ?? 0,
+            CellBulkEligibleCounts=cellBulkCounts,CellBulkSummaryTexts=cellBulkTexts,
             BulkSummaryText=bulk is null?"측정된 보정 대상 없음":$"모델 전체 {bulk.Keys.Count:N0}점 · NG {bulk.ExcludedNg:N0} / 미측정 {bulk.ExcludedUnmeasured:N0} / 수치한계 {bulk.ExcludedNumeric:N0} / 적용됨 {bulk.ExcludedConsumed+bulk.ExcludedUnchanged:N0} 제외",
             OffsetHistoryText=$"되돌리기 {_engine.UndoCount}/10 · 다시 적용 {_engine.RedoCount}회",
             CanUndoCopy=_engine.CanUndoReferenceCopy,AllowManual=_allowManual,
@@ -1503,7 +1569,8 @@ public sealed class CManualInspectionController : IManualInspectionController
     }
     private static string? DefaultChooseFile(bool save, string? extension)
     {
-        var filter = extension=="csv" ? "CSV (*.csv)|*.csv" : "Native workspace JSON (*.json)|*.json";
+        var filter = extension=="offset" ? "통합 Offset (*.csv;*.json)|*.csv;*.json|CSV (*.csv)|*.csv|Offset JSON (*.json)|*.json"
+            : extension=="csv" ? "CSV (*.csv)|*.csv" : "Native workspace JSON (*.json)|*.json";
         if (save) { var d=new SaveFileDialog { Filter=filter,DefaultExt="."+extension,FileName="A3_Manual_Inspection_"+DateTime.Now.ToString("yyyyMMdd_HHmmss") }; return d.ShowDialog()==true?d.FileName:null; }
         var open=new OpenFileDialog { Filter=filter,CheckFileExists=true }; return open.ShowDialog()==true?open.FileName:null;
     }

@@ -577,6 +577,7 @@ internal static partial class Program
         RunFirstLoadStateChecks();
         RunInitRecoveryChecks();
         RunRepresentativeApplyChecks();
+        RunCellCsvWorkflowChecks();
         var output = args.Length == 2 && args[0] == "--report" ? args[1] : Path.Combine(AppContext.BaseDirectory, "manual-inspection-results.json");
         var report = new { schemaVersion = "a3-manual-inspection-core-tests/1", passed = Failed == 0, count = Results.Count, failed = Failed, tests = Results, sourceFiles = SourceInputs(),
             scope = "Linked production ManualInspection common files only; synthetic values/fake field evaluator. No equipment, WPF, SDK or device scripts executed." };

@@ -1,0 +1,267 @@
+{
+  "schemaVersion": "a3-cell-csv-workflow-ui/1",
+  "baseCommit": "d05aec5f4d966232a25580c25ff453aedbfccb20",
+  "branch": "feature/manual-inspection-cell-csv-workflow-20261124.7",
+  "passed": true,
+  "modeCount": 18,
+  "checks": 1052.0,
+  "failed": 0.0,
+  "changedInputs": [],
+  "inputCount": 28,
+  "harnessSha256": "c1c69540f094e5b682bed4341f2aa0ff6a44a8f12106238ed3d3c283fc025398",
+  "modes": [
+    {
+      "mode": "default",
+      "passed": true,
+      "count": 49,
+      "path": "validation/11.24.7/ui-results.json",
+      "sha256": "428ae0c53cef8b1ee7c3ea4ae888fd4b422e49b0ad26b903ba7b8cf8c9cd9507"
+    },
+    {
+      "mode": "integration-impact",
+      "passed": true,
+      "count": 23,
+      "path": "validation/11.24.7/ui-integration-impact-results.json",
+      "sha256": "e371fced562983b3ec0800d69aa8765abfbae0f4cd4e67c80fe3ebedd730e4f2"
+    },
+    {
+      "mode": "sync-levels",
+      "passed": true,
+      "count": 34,
+      "path": "validation/11.24.7/ui-sync-levels-results.json",
+      "sha256": "cdb9ee29d3537672816c949709b14fba5fb5a060752a7c1aa8d02374f16bf1a6"
+    },
+    {
+      "mode": "coverage-compact",
+      "passed": true,
+      "count": 71,
+      "path": "validation/11.24.7/ui-coverage-compact-results.json",
+      "sha256": "c3b5bbd7b147375e3758fa22c184a97c525c018b875877e7b00c4505dfba08a5"
+    },
+    {
+      "mode": "hardening",
+      "passed": true,
+      "count": 30,
+      "path": "validation/11.24.7/ui-hardening-results.json",
+      "sha256": "86a90388a3b98a45807f732e481ff43faf3d6e23dd4c52ab53e2c3032b06e9ad"
+    },
+    {
+      "mode": "visual-usability",
+      "passed": true,
+      "count": 105,
+      "path": "validation/11.24.7/ui-visual-usability-results.json",
+      "sha256": "7a2d2a424c228995ffe3869574a490c5951205af9868ba75b1da849cf52835ce"
+    },
+    {
+      "mode": "map-first",
+      "passed": true,
+      "count": 73,
+      "path": "validation/11.24.7/ui-map-first-results.json",
+      "sha256": "498824bbc9d2e121acc5a9e33eca3151cca28799b95d13896b1d5701e97dba7c"
+    },
+    {
+      "mode": "cell-overview",
+      "passed": true,
+      "count": 181,
+      "path": "validation/11.24.7/ui-cell-overview-results.json",
+      "sha256": "8b271ea72cb4e82bd9d27d09b5b68d76510cfedd89f484ef7e81bae83faa8b5e"
+    },
+    {
+      "mode": "offset-init",
+      "passed": true,
+      "count": 37,
+      "path": "validation/11.24.7/ui-offset-init-results.json",
+      "sha256": "b831d534731ce22d584039ce102deb25a2352891a7804156d33f347922f4bee4"
+    },
+    {
+      "mode": "measurement-workflow",
+      "passed": true,
+      "count": 44,
+      "path": "validation/11.24.7/ui-measurement-workflow-results.json",
+      "sha256": "c1b321b25bf47812d74d05e86ed6ad7340d51f314388bee7ceb1411905e1a30d"
+    },
+    {
+      "mode": "bulk-history",
+      "passed": true,
+      "count": 47,
+      "path": "validation/11.24.7/ui-bulk-history-results.json",
+      "sha256": "5c4532138dfeccf4de3bc4c4a9b81910ae9ce5467827d857e2aee0af6ced8fea"
+    },
+    {
+      "mode": "representative",
+      "passed": true,
+      "count": 53,
+      "path": "validation/11.24.7/ui-representative-results.json",
+      "sha256": "b1209c9293cbe995d680f4a3cab3092cc29d50554d496fd68748b46181183cc5"
+    },
+    {
+      "mode": "side-panels",
+      "passed": true,
+      "count": 97,
+      "path": "validation/11.24.7/ui-side-panels-results.json",
+      "sha256": "b6e6c274996ca62b8eac9274fef821c8bc55eb2a2aa4219f1597db64bfd302ac"
+    },
+    {
+      "mode": "final-offsets",
+      "passed": true,
+      "count": 35,
+      "path": "validation/11.24.7/ui-final-offsets-results.json",
+      "sha256": "a83c7d84bf8d3702d5812a04a9f1a545287c2374742cbdb3fe4ed55c36f0f2b2"
+    },
+    {
+      "mode": "existing-final-csv",
+      "passed": true,
+      "count": 39,
+      "path": "validation/11.24.7/ui-existing-final-csv-results.json",
+      "sha256": "60784403edfc2393973b25a2d652d5bc3b31ff04e67145c7f8f35233486dab83"
+    },
+    {
+      "mode": "representative-apply",
+      "passed": true,
+      "count": 58,
+      "path": "validation/11.24.7/ui-representative-apply-results.json",
+      "sha256": "2f6972996b04e22a2658681099b7eff27beb8d556eb9f09e18fa5a4ec9636390"
+    },
+    {
+      "mode": "bulk-final-consistency",
+      "passed": true,
+      "count": 49,
+      "path": "validation/11.24.7/ui-bulk-final-consistency-results.json",
+      "sha256": "9dc0ee3a84d9329a2d3351682640af4c577206665168b20e4ae34b662aa90f60"
+    },
+    {
+      "mode": "cell-csv-workflow",
+      "passed": true,
+      "count": 27,
+      "path": "validation/11.24.7/ui-cell-csv-workflow-results.json",
+      "sha256": "5e90db0e335f89b787d19875c6d92408dbb892c684d427f63784e0ef0fffdbeb"
+    }
+  ],
+  "sourceHashes": [
+    {
+      "path": "tests\\ManualInspection\\UiHarness\\BulkFinalConsistencyCases.cs",
+      "sha256": "87158fec92ba77783ad4266b647dccfb403d2fb7145e4d4188db2f4700448583"
+    },
+    {
+      "path": "tests\\ManualInspection\\UiHarness\\BulkHistoryCases.cs",
+      "sha256": "7f9110791e00cca1217edf63144bd761941014a0648d944f233424cbbe58734a"
+    },
+    {
+      "path": "tests\\ManualInspection\\UiHarness\\CellCsvWorkflowCases.cs",
+      "sha256": "3ecd0f43b05d243ad291ecb2685f6acb2ed1c86fe6785c81f291b72431539ab4"
+    },
+    {
+      "path": "tests\\ManualInspection\\UiHarness\\CellOverviewCases.cs",
+      "sha256": "f3f2c042b71e0bd6b51d44b97970295e730a35db2d0c302f8cfac0615cbff073"
+    },
+    {
+      "path": "tests\\ManualInspection\\UiHarness\\CoverageCompactCases.cs",
+      "sha256": "3efd9552f602dcd17a3b3fb5b9043a72e7f2e10fdb20a5249e770159d33ec82a"
+    },
+    {
+      "path": "tests\\ManualInspection\\UiHarness\\ExistingFinalCsvCases.cs",
+      "sha256": "dacfd446c0e6dbfbfc6fbd2740c7c3c9642f43c2a0d5006ecd64c5b4bba7b56d"
+    },
+    {
+      "path": "tests\\ManualInspection\\UiHarness\\FinalOffsetCases.cs",
+      "sha256": "c9bd0c1fe185349c2a2d7032c6bbc34be911eb2fc5ebe4dc179da29ba73e7978"
+    },
+    {
+      "path": "tests\\ManualInspection\\UiHarness\\HardeningCases.cs",
+      "sha256": "244f172989a7abfe94205cbb71816de3099cce938c35faf491b0c5b47389d9f1"
+    },
+    {
+      "path": "tests\\ManualInspection\\UiHarness\\MapFirstCases.cs",
+      "sha256": "156abc8ece548a35cce5f3b8bc9e9f39ab93bb2f968a6c5d8664acb3be1f8dbc"
+    },
+    {
+      "path": "tests\\ManualInspection\\UiHarness\\MeasurementWorkflowCases.cs",
+      "sha256": "d0fa3bcae391d89100fb9940d3436961ba4634489361af947a05c66ef77a7eba"
+    },
+    {
+      "path": "tests\\ManualInspection\\UiHarness\\OffsetInitCases.cs",
+      "sha256": "3f46002976d23db420331a04724cf466ad142e84e1508c7b0f56c53b2c715ba9"
+    },
+    {
+      "path": "tests\\ManualInspection\\UiHarness\\Program.cs",
+      "sha256": "af18b1ef8aaff2042e380fd37209dae8f71a3119cd7aa36cf7bfe3a06c0346e9"
+    },
+    {
+      "path": "tests\\ManualInspection\\UiHarness\\RepresentativeApplyCases.cs",
+      "sha256": "b17aa22757e456e25d1d1560b1fe67c637c0641198c91dad687398143ebeef7c"
+    },
+    {
+      "path": "tests\\ManualInspection\\UiHarness\\RepresentativeCases.cs",
+      "sha256": "f51b8a0c6b03082474555607f8f47090f788619f4b313bc184c009fe5ce1c99c"
+    },
+    {
+      "path": "tests\\ManualInspection\\UiHarness\\SidePanelsCases.cs",
+      "sha256": "fe4d74daa49ee0d403d5e1159cb217bb279bb4398e1fb322546ae24f8f5c8a63"
+    },
+    {
+      "path": "tests\\ManualInspection\\UiHarness\\VisualUsabilityCases.cs",
+      "sha256": "ee8a72cd3fa64d75923ec7e773ceef3b1506d4d67293ca32842eb2f58de7637e"
+    },
+    {
+      "path": "tests\\ManualInspection\\UiHarness\\ManualInspection.UiHarness.csproj",
+      "sha256": "9fa5ec3b3bef84e6eaaea7572073ffd0d754b182a79ee598eb3194d85d600bfa"
+    },
+    {
+      "path": "Drilling.UI\\Views\\CManualInspectionView.xaml",
+      "sha256": "ef91082cb49b40c3ffc67098ee36a6adda7e7f215d5369807b8d41a5a0308d67"
+    },
+    {
+      "path": "Drilling.UI\\Views\\CManualInspectionView.xaml.cs",
+      "sha256": "20d5a05eff63af7a08e001947b8aaf53614f16fdce75bf0ccb9154793d84a5eb"
+    },
+    {
+      "path": "Drilling.UI\\Views\\CManualInspectionUiContract.cs",
+      "sha256": "9cc1cecf1eaf9bd4bbb0223039f966527128a4f95111eebaf6e0cbb71b7f7416"
+    },
+    {
+      "path": "Drilling.UI\\Views\\CManualInspectionMapControl.cs",
+      "sha256": "72964a4fef45bcd344d403af945a1f5a091d100745549d3caeaaddfb0af2f806"
+    },
+    {
+      "path": "Drilling.UI\\Views\\CManualInspectionScatterControl.cs",
+      "sha256": "1cc3fb7be94547c2e714d8809906f2df6018e5805b6ed44ecc9fd2c398e6a0bb"
+    },
+    {
+      "path": "Drilling.UI\\Popup\\CValueInputDialog.xaml",
+      "sha256": "304abe666aab54bd6d5618650ab78176bb7e67f32cde9cba4b36bb1116df67a5"
+    },
+    {
+      "path": "Drilling.UI\\Popup\\CValueInputDialog.xaml.cs",
+      "sha256": "2b05f6cf626e622daefee01b894f4aba1909dbcd11b77da23e4cda5caf502166"
+    },
+    {
+      "path": "Drilling.Common\\Managers\\CRecipeManager.cs",
+      "sha256": "b8d208d8945081e6a6d500f40d51e3f4fca414124329325c36c7fffedb86c9b9"
+    },
+    {
+      "path": "Drilling.UI\\Themes\\ThemeDark.xaml",
+      "sha256": "08bc81877f8766d2198e515f869e6b06f74f4b4c6eb7a1a9d8093234f11b2e4c"
+    },
+    {
+      "path": "Drilling.UI\\Themes\\ThemeLight.xaml",
+      "sha256": "2a3d9bc68816fd0c25360ae10c3d344354ac494c5ec03fc7f7077adaff99ea87"
+    },
+    {
+      "path": "Drilling.UI\\App.xaml",
+      "sha256": "34b55a666684d02ffc18dcb66313415e72629a7f027e5a5d42ecb0357df82357"
+    }
+  ],
+  "generatedProductionEnum": [
+    {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_7_CellCsvWorkflow\\ui\\artifacts\\obj\\ManualInspection.UiHarness\\release\\ProductionRecipeDataType.g.cs",
+      "sha256": "e5dc5d9d0510b2280f8002b254cfd250918c3810ed29c641d210a0361e311caa"
+    }
+  ],
+  "visualReviewed": [
+    "cell-csv-workflow/cell-csv-popup-active-dark.png",
+    "cell-csv-workflow/cell-csv-popup-active-light.png"
+  ],
+  "scope": "Actual source-linked WPF/theme/keypad with fake Controller/synthetic immutable points. Actual current CSV byte export/import/default dialog/overwrite/foreign-model/undo/reopen are covered separately by Backend/Core/Controller tests. No production App/Manager/vendor/motion/Vision/operating data or save runs in these UI tests.",
+  "supersedesPrefinalReport": "No source changes after this build; smoke27 and full18 used the same DLL. Prior .6 reports remain separate historical coverage.",
+  "addedFinalBoundary": "Two menu actions only; explicit current-cell bulk with no focus/model fallback and modal cell-change rejection. Source-resolved reference F is shown/replaced as absolute; UI does not re-add target B. Internal legacy APIs remain tested directly."
+}

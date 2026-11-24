@@ -31,6 +31,9 @@ public interface IManualInspectionBackend
         => Task.FromResult<CManualInspectionSavedOffsetSnapshot?>(null);
     Task<CManualInspectionSavedOffsetSnapshot?> ExportFinalOffsetBundleAsync(CManualInspectionSource source,string path,CancellationToken token)
         => throw new NotSupportedException("이 연결은 최종 저장 Offset 내보내기를 지원하지 않습니다.");
+    Task<CManualInspectionSavedOffsetSnapshot?> ExportCurrentOffsetCsvAsync(CManualInspectionSource source,string path,CancellationToken token,bool overwriteConfirmed=false)
+        => throw new NotSupportedException("이 연결은 현재 Offset CSV 내보내기를 지원하지 않습니다.");
+    string ImportedOffsetDescription => "";
     Task EnsureCurrentAsync(CManualInspectionSource source, CancellationToken token);
     void GuardOperation();
     Task<CManualInspectionMeasurement> ExecutePointAsync(CManualInspectionSource source, string key,
@@ -136,6 +139,7 @@ public sealed class CManualInspectionBackend(
     public IReadOnlyList<string> WatchRoots => results.SearchRootPaths.Append(offsets.RootPath)
         .Where(path=>!string.IsNullOrWhiteSpace(path)).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
     public IReadOnlySet<string> ImportedInitializedOffsetKeys { get; private set; } = new HashSet<string>(StringComparer.Ordinal);
+    public string ImportedOffsetDescription { get; private set; } = "";
 
     public void GuardOperation()
     {
@@ -168,6 +172,7 @@ public sealed class CManualInspectionBackend(
         _latest = await offsets.LoadLatest(_recipe.Id, token);
         _latest = await RestoreLegacyInitializationMetadata(_latest, token);
         ImportedInitializedOffsetKeys = new HashSet<string>(StringComparer.Ordinal);
+        ImportedOffsetDescription = "";
         CReviewOffsetData.ApplyToParameters(_parameters, _latest);
         var split = Int(_parameters, "SPLITED_BEAM_COUNT");
         if (split <= 0) throw new InvalidOperationException("SPLITED_BEAM_COUNT를 확인하세요.");
@@ -568,6 +573,107 @@ public sealed class CManualInspectionBackend(
         var saved=await ReadSavedState(source,token);
         await saved.Adapter.ExportOffsetBundleAsync(saved.Source,saved.Source.Values,path,false,false,token);
         return saved.Source.SavedOffsets;
+    }
+
+    /// <summary>Copy the authoritative CSV byte-for-byte, never a measurement or unsaved draft.
+    /// Download names in the live folder must not join LoadLatest's *_reviewoffset.csv candidates.</summary>
+    public async Task<CManualInspectionSavedOffsetSnapshot?> ExportCurrentOffsetCsvAsync(
+        CManualInspectionSource source,string path,CancellationToken token,bool overwriteConfirmed=false)
+    {
+        var saved = await ReadSavedState(source,token);
+        var snapshot = saved.Source.SavedOffsets!;
+        if (string.IsNullOrWhiteSpace(snapshot.FilePath))
+            throw new InvalidDataException("저장된 최종 Review Offset CSV가 없습니다. 모델 Offset을 먼저 저장하세요.");
+        var origin = Path.GetFullPath(snapshot.FilePath);
+        var destination = RequireOffsetCsvExportPath(origin,path,overwriteConfirmed);
+        await using var input = new FileStream(origin,FileMode.Open,FileAccess.Read,FileShare.Read);
+        var actualSha = Convert.ToHexString(await SHA256.HashDataAsync(input,token));
+        if (!actualSha.Equals(snapshot.ContentSha256,StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException("내보낼 최종 CSV가 변경됐습니다. 현재 파일을 다시 확인하세요.");
+        input.Position = 0;
+        await saved.Adapter.EnsureCurrentAsync(saved.Source,token);
+        if (destination.Equals(origin,StringComparison.OrdinalIgnoreCase)) return snapshot;
+        var directory = Path.GetDirectoryName(destination)!;
+        Directory.CreateDirectory(directory);
+        var temporary = Path.Combine(directory,"."+Guid.NewGuid().ToString("N")+".tmp");
+        try
+        {
+            await using (var output = new FileStream(temporary,FileMode.CreateNew,FileAccess.Write,FileShare.None))
+            {
+                await input.CopyToAsync(output,token);
+                await output.FlushAsync(token); output.Flush(true);
+            }
+            if (!DigestFile(temporary).Equals(actualSha,StringComparison.OrdinalIgnoreCase))
+                throw new IOException("내보낸 CSV의 원문 SHA를 확인하지 못했습니다. 최종 파일은 만들지 않았습니다.");
+            await saved.Adapter.EnsureCurrentAsync(saved.Source,token);
+            token.ThrowIfCancellationRequested();
+            RequireOffsetCsvExportPath(origin,destination,overwriteConfirmed);
+            System.IO.File.Move(temporary,destination,overwrite:overwriteConfirmed);
+            return snapshot;
+        }
+        finally { if (System.IO.File.Exists(temporary)) System.IO.File.Delete(temporary); }
+    }
+
+    private string RequireOffsetCsvExportPath(string origin,string path,bool overwriteConfirmed)
+    {
+        var destination = Path.GetFullPath(path);
+        if (!Path.GetExtension(destination).Equals(".csv",StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException("현재 Offset은 .csv 파일로 내보내세요.");
+        var name = Path.GetFileName(destination);
+        if (Regex.IsMatch(name,@"^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\.|$)",RegexOptions.IgnoreCase|RegexOptions.CultureInvariant)
+            || name.EndsWith('.') || name.EndsWith(' '))
+            throw new InvalidDataException("일반 CSV 파일 이름을 사용하세요.");
+        AssertNoLinkedCsvPath(destination);
+        if (destination.Equals(origin,StringComparison.OrdinalIgnoreCase)) return destination;
+        var live = Path.GetDirectoryName(origin)!;
+        var directory = Path.GetDirectoryName(destination)!;
+        var inLiveDirectory = directory.Equals(live,StringComparison.OrdinalIgnoreCase);
+        if (inLiveDirectory && name.EndsWith("_reviewoffset.csv",StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException("이 폴더의 *_reviewoffset.csv 이름은 활성 보정 이력용입니다. 예: 비교용_export.csv로 내보내세요. 기존 활성 파일은 바꾸지 않습니다.");
+        foreach (var root in new[]{Directory.GetParent(offsets.RootPath)?.FullName ?? offsets.RootPath,
+            Directory.GetParent(results.RootPath)?.FullName ?? results.RootPath,StateDirectory})
+            if (!inLiveDirectory && IsInsidePath(destination,root))
+                throw new InvalidDataException("다른 모델·설정·측정·자동보관 폴더에는 내보내지 않습니다. 현재 CSV 폴더 또는 일반 사용자 폴더를 선택하세요.");
+        if (!inLiveDirectory && (FindGitAncestor(directory) is not null || IsRecipeConfigurationPath(directory)))
+            throw new InvalidDataException("다른 프로젝트 또는 Recipe 설정 폴더에는 내보내지 않습니다. 일반 사용자 폴더를 선택하세요.");
+        if (Directory.Exists(destination) || System.IO.File.Exists(destination) && !overwriteConfirmed)
+            throw new InvalidDataException("동일한 이름의 파일이 이미 있습니다. 저장창에서 덮어쓰기를 직접 확인하거나 다른 이름을 선택하세요.");
+        return destination;
+    }
+
+    private static bool IsInsidePath(string path,string root)
+    {
+        var prefix = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar,Path.AltDirectorySeparatorChar);
+        return path.Equals(prefix,StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith(prefix+Path.DirectorySeparatorChar,StringComparison.OrdinalIgnoreCase);
+    }
+    private static string? FindGitAncestor(string directory)
+    {
+        for (var current = new DirectoryInfo(directory); current is not null; current=current.Parent)
+            if (Directory.Exists(Path.Combine(current.FullName,".git")) || System.IO.File.Exists(Path.Combine(current.FullName,".git"))) return current.FullName;
+        return null;
+    }
+    private static bool IsRecipeConfigurationPath(string directory)
+    {
+        for (var current = new DirectoryInfo(directory); current is not null; current=current.Parent)
+            if (current.Name.Equals("RECIPE",StringComparison.OrdinalIgnoreCase)
+                && current.Parent?.Name.Equals("Config",StringComparison.OrdinalIgnoreCase)==true) return true;
+        return false;
+    }
+    private static string? FindRecipeOffsetDirectory(string directory)
+    {
+        for (var current = new DirectoryInfo(directory); current is not null; current=current.Parent)
+            if (current.Name.EndsWith("_reviewoffset",StringComparison.OrdinalIgnoreCase)
+                && current.Parent?.Name.Equals("RECIPE",StringComparison.OrdinalIgnoreCase)==true) return current.FullName;
+        return null;
+    }
+    private static void AssertNoLinkedCsvPath(string path)
+    {
+        for (var current = new DirectoryInfo(Path.GetDirectoryName(path)!); current is not null; current=current.Parent)
+            if (current.Exists && (current.Attributes & FileAttributes.ReparsePoint)!=0)
+                throw new InvalidDataException("연결된 경로에는 CSV를 내보내지 않습니다. 실제 폴더를 선택하세요.");
+        if (System.IO.File.Exists(path) && (System.IO.File.GetAttributes(path)&FileAttributes.ReparsePoint)!=0)
+            throw new InvalidDataException("연결된 CSV 파일은 자동으로 바꾸지 않습니다.");
     }
 
     private sealed record SavedRead(CManualInspectionBackend Adapter,CManualInspectionSource Source);
@@ -987,7 +1093,10 @@ public sealed class CManualInspectionBackend(
         CManualInspectionSource source,string path,CancellationToken token)
     {
         ImportedInitializedOffsetKeys=new HashSet<string>(StringComparer.Ordinal);
+        ImportedOffsetDescription="";
         await EnsureCurrentAsync(source,token);
+        if (Path.GetExtension(path).Equals(".csv",StringComparison.OrdinalIgnoreCase))
+            return await ImportOffsetCsvAsync(source,path,token);
         var bundle=CManualInspectionOffsetBundle.Deserialize(await System.IO.File.ReadAllTextAsync(path,token));
         if(!bundle.RecipeId.Equals(source.Context.RecipeId,StringComparison.OrdinalIgnoreCase)
             || bundle.CoordinateSignature!=source.Context.CoordinateSignature)
@@ -1034,6 +1143,57 @@ public sealed class CManualInspectionBackend(
         ImportedInitializedOffsetKeys=source.Points.Where(p=>rows[CManualInspectionOffsetBundle.RowKey(p.CellNo,
                 CReviewShotNameFormatter.ToMatrixName(p.ShotNo,_targets[p.Key].PixelCountX))].IsMeasurementOffsetInitialized)
             .Select(p=>p.OffsetKey).ToHashSet(StringComparer.Ordinal);
+        ImportedOffsetDescription=$"JSON 통합 Offset 초안 · 모델 {source.Context.RecipeId} · 좌표 기준 확인 완료 · 아직 모델 파일에 저장하지 않음";
+        return values;
+    }
+
+    private async Task<IReadOnlyDictionary<string,ST_MANUAL_OFFSET>> ImportOffsetCsvAsync(
+        CManualInspectionSource source,string path,CancellationToken token)
+    {
+        var latest = _latest ?? throw new InvalidOperationException("현재 모델 Offset을 먼저 불러오세요.");
+        var full = Path.GetFullPath(path);
+        var directory = Path.GetDirectoryName(full)!;
+        var ownDirectory = !string.IsNullOrWhiteSpace(latest.FilePath) ? Path.GetDirectoryName(latest.FilePath)!
+            : Path.Combine(offsets.RootPath,source.Context.RecipeId+"_reviewoffset");
+        var claimedModelDirectory = FindRecipeOffsetDirectory(directory);
+        if (IsInsidePath(full,offsets.RootPath) && !IsInsidePath(full,ownDirectory)
+            || claimedModelDirectory is not null && !Path.GetFileName(claimedModelDirectory)
+                .Equals(Path.GetFileName(ownDirectory),StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException("다른 모델의 Recipe 보정 폴더에서 가져오지 않습니다. 현재 모델과 파일 출처를 확인하세요.");
+        var file = await Task.Run(()=>Drilling.File.ReviewOffset.CReviewOffsetFile.ReadSnapshotFile(source.Context.RecipeId,full,token),token);
+        var rows = new Dictionary<string,ST_REVIEW_OFFSET_ROW>(StringComparer.Ordinal);
+        foreach (var row in file.Rows)
+            if (!rows.TryAdd($"{row.CellId}:{Normalize(row.ShotId)}",row))
+                throw new InvalidDataException("통합 CSV에 같은 Cell/Shot 이름을 가리키는 중복 행이 있습니다.");
+        var known = source.Points.Select(p=>$"{p.CellNo}:{Normalize(CReviewShotNameFormatter.ToMatrixName(p.ShotNo,_targets[p.Key].PixelCountX))}").ToHashSet(StringComparer.Ordinal);
+        var retained = latest.Rows.ToDictionary(row=>$"{row.CellId}:{Normalize(row.ShotId)}",StringComparer.Ordinal);
+        var identicalActiveBytes = file.ContentSha256.Equals(latest.ContentSha256,StringComparison.OrdinalIgnoreCase);
+        foreach (var pair in rows.Where(pair=>!known.Contains(pair.Key)))
+            if (!retained.TryGetValue(pair.Key,out var existing)
+                || pair.Value!=existing && !(identicalActiveBytes && !file.HasMeasurementStateMetadata))
+                throw new InvalidDataException($"{pair.Key}: 현재 모델에 없는 새 행 또는 변경된 숨은 행입니다. 현재 모델의 전체 CSV를 확인하세요.");
+        if (rows.Count>0 && !rows.Keys.Any(known.Contains) && !identicalActiveBytes)
+            throw new InvalidDataException("CSV에 현재 모델의 Cell/Shot이 없습니다. 다른 모델 파일인지 확인하세요.");
+        var values = new Dictionary<string,ST_MANUAL_OFFSET>(StringComparer.Ordinal);
+        var initialized = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var point in source.Points)
+        {
+            token.ThrowIfCancellationRequested();
+            var shot = CReviewShotNameFormatter.ToMatrixName(point.ShotNo,_targets[point.Key].PixelCountX);
+            rows.TryGetValue($"{point.CellNo}:{Normalize(shot)}",out var row);
+            if (identicalActiveBytes && !file.HasMeasurementStateMetadata && row is not null)
+                row = retained.GetValueOrDefault($"{point.CellNo}:{Normalize(shot)}") ?? row;
+            if (row is { IsDesignCoordinate:false,IsMeasurementOffsetInitialized:false } && point.HeadNo is <1 or >8)
+                throw new InvalidDataException($"{point.Key}: Head 미배정 상태에서 SCANNER CSV를 DESIGN으로 추정 변환하지 않습니다.");
+            var value = row is null ? ST_MANUAL_OFFSET.Zero : CManualInspectionCoordinateBridge.FromFile(row,_parameters,Math.Max(1,point.HeadNo));
+            if (!value.IsFinite) throw new InvalidDataException("CSV Offset의 µm 단위 변환이 유효 범위를 넘었습니다.");
+            values.Add(point.Key,value);
+            if (row is null || row.IsMeasurementOffsetInitialized) initialized.Add(point.OffsetKey);
+        }
+        ValidateWorkingValues(source,values);
+        await EnsureCurrentAsync(source,token);
+        ImportedInitializedOffsetKeys=initialized;
+        ImportedOffsetDescription=$"CSV 통합 Offset 초안 · CSV에는 모델 정보 없음 · 현재 모델 {source.Context.RecipeId}의 Cell/Shot 확인 · 숨은행 {rows.Keys.Count(key=>!known.Contains(key))}개는 현재값 보존 · 아직 모델 파일에 저장하지 않음";
         return values;
     }
 

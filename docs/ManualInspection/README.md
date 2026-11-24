@@ -1,10 +1,18 @@
-# MANUAL INSPECTION · 11.24.6
+# MANUAL INSPECTION · 11.24.7
 
-브랜치: `feature/manual-inspection-bulk-final-consistency-20261124.6`
+브랜치: `feature/manual-inspection-cell-csv-workflow-20261124.7`
 
-기준 Commit: `0103581022bfba6fe7a7b050cd357ceefbee7143` · 11.24.5
+기준 Commit: `d05aec5f4d966232a25580c25ff453aedbfccb20` · 11.24.6
 
 **master에는 병합하지 않는다.** 기존 테마와 지도 중심 구성을 유지한다.
+
+## 11.24.7 · 현재 Cell 일괄보정·CSV 가져오기/내보내기
+
+파일 메뉴는 **통합 Offset 가져오기(JSON/CSV)**와 **현재 Offset CSV 내보내기** 두 개다. 현재 Cell의 새 유효 결과만 일괄보정하며 다른 Cell은 유지한다. 전체 Cell 보기에서는 먼저 Cell 하나를 열어야 한다. 대표 복사는 표시된 Review F로 대상을 교체하며 대상의 기존값에 다시 더하지 않는다.
+
+내보내기는 현재 모델의 실제 reviewoffset 폴더를 기본 위치로 사용하고 이름을 바꿔 원문 그대로의 CSV 복사본을 저장한다. 보관 파일이 활성 보정으로 잘못 선택되지 않도록 `_export.csv`를 기본 이름으로 사용한다.
+
+[동작·기본 경로·CSV 형식·적용 범위](CELL_CSV_WORKFLOW_11.24.7.md) · [현재 검증 기록](validation.json)
 
 ## 11.24.6 · 일괄보정 CSV 재확인·Monitor 일치
 

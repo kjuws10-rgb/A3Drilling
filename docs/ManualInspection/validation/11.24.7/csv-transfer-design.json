@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "a3-offset-csv-transfer-design/1",
+  "checkedAt": "2026-11-24T19:22:24.389861+09:00",
+  "status": "passed",
+  "baseCommit": "d05aec5f4d966232a25580c25ff453aedbfccb20",
+  "api": "ExportCurrentOffsetCsvAsync(source,path,token,bool overwriteConfirmed=false) -> CManualInspectionSavedOffsetSnapshot?",
+  "defaults": {
+    "folder": "현재 FinalOffsetFilePath의 폴더",
+    "name": "현재 파일 stem + _export.csv",
+    "hardcodedUserPcPath": false
+  },
+  "export": "최종 활성 CSV의 원문 byte 복사. 헤더/정밀도/SPACE/Init/실측0/숨은행을 재작성하지 않는다. 소스 lease·SHA·모델/회차/좌표/최신Revision 재검증 후 temp 원문SHA 대조와 atomic move를 수행한다.",
+  "sameSourcePath": "실제 원본 SHA/최신 기준 확인 후 0쓰기 확인으로 반환",
+  "overwrite": "native SaveFileDialog 확인 경로만 true를 전달한다. 기존 custom CSV는 이 동의가 있어야 교체하며 실패 시 기존 파일을 보존한다. 보호 경계는 동의가 있어도 우회할 수 없다.",
+  "activeOrdering": "LoadLatest는 *_reviewoffset.csv 이름을 내림차순 선택하므로 활성 폴더의 다른 그 이름은 거절한다. 일반 _export.csv 복사본은 활성화되지 않는다. 외부 사용자 폴더에서는 기존 형식 이름을 사용할 수 있다.",
+  "protectedTargets": [
+    "원본 이외 기존 활성/과거 timestamp CSV",
+    "다른 모델/Config/Data/자동상태 폴더",
+    "다른 Git 프로젝트/Recipe 설정 폴더",
+    "reparse/junction/symlink 대상 경로"
+  ],
+  "import": "기존 ImportOffsetBundleAsync 진입점에서 .csv와 JSON을 구분한다. JSON은 기존 Recipe/signature/geometry 검증을 유지한다. CSV는 실제 CReviewOffsetFile parser를 재사용하며 현재 전체 계획의 Cell/Shot·단위/SPACE·finite·중복·Head 변환과 마지막 기준을 검증한다.",
+  "sparseState": "CSV에 없는 현재 Shot은 empty/Init + 계산 중립 0, 명시 실측0 행은 MEASURED로 구분한다. 기존과 동일한 legacy 숨은행만 참조로 허용하고 새/변경 숨은행은 거절한다.",
+  "identityLimit": "CSV에는 RecipeId/좌표 signature가 없다. 명시된 다른 모델 폴더는 거절하지만 외부 익명 CSV가 같은 Cell/Shot인 다른 모델인지 암호학적으로 증명할 수 없다. 현재 모델 초안으로 표시하고 최종 Apply에서 현재 모델과 교체 범위를 확인해야 한다.",
+  "readerChange": "기존 Load의 parser/검증 로직을 바꾸지 않고 static화 및 public ReadSnapshotFile wrapper만 추가한다. LoadLatest 선택/쓰기 정책은 변경하지 않는다.",
+  "sourceSha256": {
+    "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs": "94152605882eacf13b3a8c04d7ae93e77bf20c83413df60918be1b335e03b9c2",
+    "Drilling.File/ReviewOffset/CReviewOffsetFile.cs": "56ebca90c0cd29ded87d6a41f9e6bacf7077baabbfd9371fbcad1f112aa7c1db",
+    "tests/ManualInspection/BackendReadHarness/OffsetCsvTransferCases.cs": "b60d9cd03609bf2d3ca0fadc6d69737d2969ca8bcfe8eea92da7bb65ed1bd1a4"
+  },
+  "plannedRuntimeCases": 18,
+  "runtimeVerified": true,
+  "equipmentExecution": false,
+  "vendorExecution": false,
+  "operationalCsvRawReplicated": false,
+  "operationalCsvModified": false,
+  "sourceOnlyPeerReviews": {
+    "controllerCorePeer": "확정 결함 없음",
+    "uiPeer": "확정 결함 없음"
+  },
+  "passed": true,
+  "actualRuntimeCases": 18,
+  "actualBackendCount": 174,
+  "runtimeResults": {
+    "actualBackend": "174/174 passed, including all 18 new CSV transfer checks",
+    "actualController": "277/277 passed",
+    "core": "254/254 passed",
+    "ui": "18 modes / 1052 checks / 28 inputs unchanged",
+    "scope": "33/33 passed",
+    "midCopyRace": "임시 복사 파일이 생긴 이후 모델 변경/취소 2분기에서 기존 복사본·활성 CSV 보존 및 tmp0을 확인",
+    "lockedOverwrite": "Win32는 IOException 또는 UnauthorizedAccessException으로 거절할 수 있다. 두 기대 예외만 허용하며 원문 보존/정리 검사는 유지했다.",
+    "parserCompatibility": "기존 CSV reader와 public wrapper의 행·SHA·메타데이터가 일치하고 기존 reader/writer·모든 메뉴 회귀가 함께 통과했다."
+  },
+  "productionAssemblies": {
+    "Drilling.UI": {
+      "actualBackendPath": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BackendReadHarness\\bin\\Release\\net8.0-windows\\Drilling.UI.dll",
+      "productionPath": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\Drilling.UI\\bin\\Release\\net8.0-windows\\Drilling.UI.dll",
+      "sha256": "755a4bbf4cc4a7717399eb1731adebe3e1c6346a851224c772441f2ed63c6d99",
+      "currentMatch": true
+    },
+    "Drilling.Common": {
+      "actualBackendPath": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BackendReadHarness\\bin\\Release\\net8.0-windows\\Drilling.Common.dll",
+      "productionPath": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\Drilling.Common\\bin\\Release\\net8.0\\Drilling.Common.dll",
+      "sha256": "e245fe3643e9ba1e712763b0a133e3554e5a351e2a575a0813df38680a7846d8",
+      "currentMatch": true
+    },
+    "Drilling.File": {
+      "harnessCopyPath": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BackendReadHarness\\bin\\Release\\net8.0-windows\\Drilling.File.dll",
+      "productionPath": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\Drilling.File\\bin\\Release\\net8.0\\Drilling.File.dll",
+      "sha256": "8c3598e32069e13ecf482e69301e96ef9f9497a7d01e586516fdbbbf40a50dee",
+      "currentMatch": true
+    }
+  }
+}

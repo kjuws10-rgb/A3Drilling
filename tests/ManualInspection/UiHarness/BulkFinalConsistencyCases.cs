@@ -43,13 +43,14 @@ internal static partial class Program
             FinalOffsetRevisionId = "SAVED-BEFORE", FinalOffsetFileName = "20261124_before_reviewoffset.csv", FinalOffsetFilePath = @"C:\SyntheticOnly\Config\RECIPE\UI_BULK_MODEL_reviewoffset\20261124_before_reviewoffset.csv",
             FinalOffsetContentSha256 = new string('a', 64), FinalOffsetRowCount = 2, FinalOffsetInitializedRowCount = 0, LastSaveVerificationCode = "NONE", LastSaveVerificationText = "", LastSavedRevisionId = "",
             CanBulkApply = true, BulkEligibleCount = 1, BulkSummaryText = "모델 전체 · 보정 대상 1 · NG 1", DeltaLimitUm = 31, TotalLimitUm = 402,
+            CellBulkEligibleCounts = new Dictionary<int,int>{{1,1}}, CellBulkSummaryTexts = new Dictionary<int,string>{{1,"Cell 1 · 보정 대상 1 · NG 1"}},
             IsOffsetEditPending = false, OffsetInitPending = false, IsBusy = false
         };
     }
 
     private static CManualInspectionUiSnapshot BulkFinalVerified(CManualInspectionUiSnapshot before) => before with
     {
-        Version = before.Version + 1, ActiveRevisionId = "B-AFTER", CanBulkApply = false, BulkEligibleCount = 0, CandidateStatus = "APPLIED",
+        Version = before.Version + 1, ActiveRevisionId = "B-AFTER", CanBulkApply = false, BulkEligibleCount = 0, CellBulkEligibleCounts = new Dictionary<int,int>(), CellBulkSummaryTexts = new Dictionary<int,string>(), CandidateStatus = "APPLIED",
         Points = before.Points.Select((point, i) => i == 0 ? point with { BaseXUm = 6, BaseYUm = 3 } : point).ToArray(),
         FinalOffsetPoints = new Dictionary<string, CManualInspectionUiOffset>(before.FinalOffsetPoints) { [before.Points[0].Key] = new(6, 3) },
         FinalOffsetRevisionId = "SAVED-AFTER", LastSavedRevisionId = "SAVED-AFTER", LastSaveVerificationCode = "VERIFIED",
@@ -73,17 +74,17 @@ internal static partial class Program
             view.ConfirmationForTesting = (title, text, button) => { confirms++; seen = title + "\n" + text + "\n" + button; return false; };
             ((Button)view.FindName("BulkApplyButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Pump();
             Test("bulk_final_cancel_preserves_user_mode_and_does_not_dispatch", confirms == 1 && fake.Calls.Count == 0 && Field<string>(view, "_color") == "level" && !Field<bool>(view, "_scatterFinalOffsets"));
-            Test("bulk_final_confirmation_identifies_actual_model_and_whole_model_scope", seen.Contains(state.RecipeId) && seen.Contains("전체") && seen.Contains("필터") && seen.Contains("1"));
+            Test("bulk_final_confirmation_identifies_actual_model_and_current_cell_scope", seen.Contains(state.RecipeId) && seen.Contains("Cell 1") && seen.Contains("필터") && seen.Contains("다른 Cell"));
             Test("bulk_final_confirmation_distinguishes_B_plus_delta_from_absolute_reference_F", seen.Contains("B +") && seen.Contains("Δ") && seen.Contains("최종 F") && seen.Contains("대표"));
             Test("bulk_final_confirmation_lists_numeric_limits_and_storage_readback", seen.Contains("31") && seen.Contains("402") && seen.Contains("µm") && seen.Contains("CSV") && seen.Contains("다시 읽"));
-            Test("bulk_final_confirmation_retains_ng_unmeasured_and_protected_offsets", seen.Contains("NG") && seen.Contains("미측정") && seen.Contains("Default") && seen.Contains("Distortion"));
+            Test("bulk_final_confirmation_retains_ng_unmeasured_and_protected_offsets", seen.Contains("NG") && seen.Contains("미측정") && seen.Contains("보호 Offset"));
             var rawBefore = BulkFinalRaw(state); var verified = BulkFinalVerified(state);
             view.ConfirmationForTesting = (_, _, _) => true;
             fake.OnExecute = (action, _) => { if (action == EN_MANUAL_INSPECTION_UI_ACTION.BulkApply) fake.Replace(verified); };
             ((Button)view.FindName("BulkApplyButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Pump();
-            Test("bulk_final_accepted_request_uses_frozen_version_without_motion", fake.Calls.Count == 1 && fake.Calls[0].Action == EN_MANUAL_INSPECTION_UI_ACTION.BulkApply && fake.Calls[0].Request.ExpectedVersion == 600);
+            Test("bulk_final_accepted_request_uses_frozen_version_and_cell_without_motion", fake.Calls.Count == 1 && fake.Calls[0].Action == EN_MANUAL_INSPECTION_UI_ACTION.BulkApply && fake.Calls[0].Request.ExpectedVersion == 600 && fake.Calls[0].Request.CurrentCellNo == 1);
             Test("bulk_final_verified_new_csv_switches_actual_color_and_scatter_controls", Field<string>(view, "_color") == "applied" && Field<bool>(view, "_scatterFinalOffsets") && !Field<bool>(view, "_scatterOffsets") && !Field<bool>(view, "_scatterOriginal"));
-            Test("bulk_final_model_wide_apply_does_not_drop_user_ng_filter", Field<string>(view, "_judge") == "NG");
+            Test("bulk_final_cell_apply_does_not_drop_user_ng_filter", Field<string>(view, "_judge") == "NG");
             var projected = Field<IReadOnlyList<CManualInspectionUiPoint>>((CManualInspectionMapControl)view.FindName("PositionMap"), "_all");
             Test("bulk_final_verified_map_uses_F_not_previous_B_or_raw_delta", projected.Single(point => point.Key == state.Points[0].Key).BaseXUm == 6 && projected.Single(point => point.Key == state.Points[0].Key).BaseYUm == 3);
             SelectViewChoice(view, "JudgeFilter", "ALL");
@@ -104,7 +105,7 @@ internal static partial class Program
         foreach (var outcome in new[] { "PENDING", "UNSUPPORTED", "READ_FAILED", "SUPERSEDED", "MISMATCH", "NOT_APPLIED", "NOOP_PRIOR_VERIFIED", "SAME_SAVE", "WRONG_REVISION", "NO_FINAL", "THROW", "FORCE" })
         {
             LoadResources("Light"); var state = BulkFinalState();
-            if (outcome == "SAME_SAVE") state = BulkFinalVerified(state) with { Version = 600, CanBulkApply = true, BulkEligibleCount = 1 };
+            if (outcome == "SAME_SAVE") state = BulkFinalVerified(state) with { Version = 600, CanBulkApply = true, BulkEligibleCount = 1, CellBulkEligibleCounts = new Dictionary<int,int>{{1,1}}, CellBulkSummaryTexts = new Dictionary<int,string>{{1,"Cell 1 · 보정 대상 1"}} };
             if (outcome == "NOOP_PRIOR_VERIFIED") state = state with { LastSavedRevisionId = "SAVED-BEFORE", LastSaveVerificationCode = "VERIFIED" };
             var fake = new FakeController(state); var view = new CManualInspectionView { DataContext = fake, ConfirmationForTesting = (_, _, _) => true }; var window = HostRepresentativeView(view);
             try
@@ -126,7 +127,7 @@ internal static partial class Program
                 };
                 fake.OnExecute = (_, _) => { if (outcome == "THROW") throw new InvalidOperationException("synthetic CSV operation rejected before save"); fake.Replace(reply); };
                 var action = outcome == "FORCE" ? EN_MANUAL_INSPECTION_UI_ACTION.ForceMeasurement : EN_MANUAL_INSPECTION_UI_ACTION.BulkApply;
-                ((Task)Invoke(view, "Execute", action, new CManualInspectionUiRequest { ExpectedVersion = state.Version, Keys = [state.Points[0].Key] })!).GetAwaiter().GetResult(); Pump();
+                ((Task)Invoke(view, "Execute", action, new CManualInspectionUiRequest { ExpectedVersion = state.Version, Keys = [state.Points[0].Key], CurrentCellNo = 1 })!).GetAwaiter().GetResult(); Pump();
                 Test("bulk_final_does_not_switch_without_this_verified_save_" + outcome, Field<string>(view, "_color") == "level" && !Field<bool>(view, "_scatterFinalOffsets") && !Field<bool>(view, "_scatterOffsets") && !Field<bool>(view, "_scatterOriginal"));
                 Test("bulk_final_outcome_dispatches_only_requested_non_motion_action_" + outcome, fake.Calls.Count == 1 && fake.Calls[0].Action == action);
                 if (outcome == "READ_FAILED")

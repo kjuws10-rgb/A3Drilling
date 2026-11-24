@@ -285,6 +285,8 @@ internal static partial class Program
         await RunFinalOffsetSnapshotChecks();
         await RunRepresentativeApplyCsvChecks();
         await RunBulkFinalConsistencyCsvChecks();
+        await RunCellCsvWorkflowCsvChecks();
+        await RunOffsetCsvTransferChecks();
         await RunMonitorFinalConsistencyChecks();
         await Check("vendor_assemblies_never_loaded", () =>
         {

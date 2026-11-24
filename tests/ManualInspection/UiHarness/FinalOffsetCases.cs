@@ -97,10 +97,12 @@ internal static partial class Program
         Test("final_only_metadata_revision_refresh_rebuilds_same_raw_point_array",plot.Metrics.MeanX!=oldMean&&Math.Abs(plot.Metrics.MeanX!.Value-9.6)<1e-9&&Final(state.Points[0]).BaseXUm==30);
         var dirty=state with{Version=302,IsOffsetEditPending=true,OffsetInitPending=true,CanReturnToPreviousWorkspace=true,SourcePath="synthetic/old-fine.csv",CandidateStatus="DRAFT"};fake.Replace(dirty);Pump();
         Test("final_old_file_and_dirty_draft_keep_latest_saved_display",Field<string>(view,"_color")=="applied"&&Final(dirty.Points[0]).BaseXUm==30&&Find<TextBlock>("FinalOffsetFileText").Text==dirty.FinalOffsetFileName&&fake.Snapshot.SourcePath=="synthetic/old-fine.csv");
-        Invoke(view,"Files_Click",view,new RoutedEventArgs());var menu=Find<Button>("FilesButton").ContextMenu!;var export=menu.Items.OfType<MenuItem>().Single(x=>x.Header.ToString()!.Contains("최종 보정 파일 내보내기"));
-        Test("final_export_is_available_during_unsaved_file_work",export.IsEnabled&&export.ToolTip!.ToString()!.Contains("미저장 초안은 포함하지"));
-        var before=fake.Calls.Count;export.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));Pump();menu.IsOpen=false;
-        Test("final_export_dispatches_distinct_fresh_read_action",fake.Calls.Count==before+1&&fake.Calls[^1].Action==EN_MANUAL_INSPECTION_UI_ACTION.ExportFinalOffsets&&fake.Calls[^1].Request.ExpectedVersion==302);
+        Invoke(view,"Files_Click",view,new RoutedEventArgs());var menu=Find<Button>("FilesButton").ContextMenu!;var export=menu.Items.OfType<MenuItem>().Single(x=>x.Header.ToString()!.Contains("내보내기")&&x.Header.ToString()!.Contains("CSV"));
+        Test("current_csv_export_requires_pending_file_work_to_be_saved_or_cancelled",!export.IsEnabled&&export.ToolTip!.ToString()!.Contains("저장"));
+        var before=fake.Calls.Count;menu.IsOpen=false;
+        // Keep coverage of the existing internal final-bundle API, now hidden from the .7 menu.
+        ((Task)Invoke(view,"Execute",EN_MANUAL_INSPECTION_UI_ACTION.ExportFinalOffsets,new CManualInspectionUiRequest{ExpectedVersion=302})!).GetAwaiter().GetResult();Pump();
+        Test("legacy_final_export_api_still_dispatches_distinct_fresh_read_action",fake.Calls.Count==before+1&&fake.Calls[^1].Action==EN_MANUAL_INSPECTION_UI_ACTION.ExportFinalOffsets&&fake.Calls[^1].Request.ExpectedVersion==302);
         Test("final_export_keeps_dirty_snapshot_and_original_points",fake.Snapshot.IsOffsetEditPending&&fake.Snapshot.SourcePath=="synthetic/old-fine.csv"&&JsonSerializer.Serialize(fake.Snapshot.Points)==rawBefore);
         var unknown=state with{Version=303,HasFinalOffsetSnapshot=false,FinalOffsetStatusText="최종 저장값 확인 실패 · 재확인 필요"};fake.Replace(unknown);Pump();
         Test("final_unknown_never_falls_back_to_working_B_or_fake_zero",Final(unknown.Points[0]).IsMeasurementOffsetInitialized&&!Final(unknown.Points[0]).HasAppliedOffset&&CManualInspectionDrawing.AppliedLevel(Final(unknown.Points[0]),unknown)==-1&&plot.Metrics.Count==0&&!Find<Button>("ShowFinalOffsetsButton").IsEnabled);

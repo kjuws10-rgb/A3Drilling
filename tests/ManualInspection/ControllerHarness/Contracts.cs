@@ -16,11 +16,14 @@ namespace Drilling.UI.Menu.Menus
         IReadOnlyDictionary<string, ST_MANUAL_OFFSET> LastSavedValues => new Dictionary<string, ST_MANUAL_OFFSET>();
         IReadOnlyList<KeyValuePair<string, string>> ConsumedMeasurements => [];
         IReadOnlySet<string> ImportedInitializedOffsetKeys => new HashSet<string>(StringComparer.Ordinal);
+        string ImportedOffsetDescription => "";
         Task<CManualInspectionSource> LoadAsync(string? resultPath, CancellationToken token, IReadOnlyList<string>? displayKeys = null);
         Task<CManualInspectionSavedOffsetSnapshot?> ReadSavedOffsetSnapshotAsync(CManualInspectionSource source,CancellationToken token)
             => Task.FromResult<CManualInspectionSavedOffsetSnapshot?>(null);
         Task<CManualInspectionSavedOffsetSnapshot?> ExportFinalOffsetBundleAsync(CManualInspectionSource source,string path,CancellationToken token)
             => throw new NotSupportedException("Backend does not support final saved offset export.");
+        Task<CManualInspectionSavedOffsetSnapshot?> ExportCurrentOffsetCsvAsync(CManualInspectionSource source,string path,CancellationToken token,bool overwriteConfirmed=false)
+            => throw new NotSupportedException("Backend does not support current offset CSV export.");
         Task EnsureCurrentAsync(CManualInspectionSource source, CancellationToken token);
         void GuardOperation();
         Task<CManualInspectionMeasurement> ExecutePointAsync(CManualInspectionSource source, string key,

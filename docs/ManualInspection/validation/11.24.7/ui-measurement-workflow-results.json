@@ -1,0 +1,313 @@
+{
+  "passed": true,
+  "tests": 44,
+  "failures": 0,
+  "checks": [
+    {
+      "name": "workflow_visible_color_modes_include_default_final_csv",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_scatter_defaults_to_final_saved_csv_and_all_heads",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_ng_always_red_Light_0",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_ng_always_red_Light_7",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_ng_always_red_Light_15",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_ng_always_red_Light_25",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_ng_red_in_judge_mode_Light",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_initialized_zero_is_gray_level_and_judge_Light",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_actual_zero_measurement_retains_normal_level_Light",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_initialized_old_raw_does_not_reenable_history_Light",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_ng_always_red_Dark_0",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_ng_always_red_Dark_7",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_ng_always_red_Dark_15",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_ng_always_red_Dark_25",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_ng_red_in_judge_mode_Dark",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_initialized_zero_is_gray_level_and_judge_Dark",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_actual_zero_measurement_retains_normal_level_Dark",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_initialized_old_raw_does_not_reenable_history_Dark",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_measurement_table_is_compact",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_scatter_plot_is_compact",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_filter_and_legend_are_in_left_inspector",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_source_markers_have_plain_language_explanation",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_removed_applied_columns_are_not_visible",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_current_position_measure_button_dispatches_one_point_without_popup",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_new_measurement_opens_inspector_and_focuses_measured_point",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_right_side_shows_fresh_measurement_result_without_correction",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_refresh_with_same_measurement_sequence_does_not_reopen_inspector",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_next_ng_measurement_reopens_inspector_and_updates_right_result",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_cell_init_dispatches_explicit_scope_without_popup",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_head_init_dispatches_explicit_scope_without_popup",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_all_init_keeps_all_scope_without_popup",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_motion_still_requires_confirmation_and_cancel_prevents_dispatch",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_selected_correction_requires_confirmation_and_cancel_is_inert",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_selected_correction_accept_dispatches_integrated_action",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_failed_queue_keeps_retry_optional_and_allows_new_current_measure",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_failed_queue_keeps_apply_guard_but_allows_init_and_explanation",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_new_current_measure_supersedes_failed_queue_without_motion_popup",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_new_measure_confirmation_describes_replacing_failed_queue",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_new_measure_after_failure_dispatches_only_current_selection",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_level_settings_open_inline_without_popup",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_map_keeps_scroll_free_priority_1490x900",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_left_scatter_graph_page_shows_plot_1490x900",
+      "passed": true,
+      "details": {
+        "chartBounds": {
+          "IsEmpty": false,
+          "Location": {
+            "X": 3,
+            "Y": 132.26
+          },
+          "Size": {
+            "IsEmpty": false,
+            "Width": 244,
+            "Height": 190
+          },
+          "X": 3,
+          "Y": 132.26,
+          "Width": 244,
+          "Height": 190,
+          "Left": 3,
+          "Top": 132.26,
+          "Right": 247,
+          "Bottom": 322.26,
+          "TopLeft": {
+            "X": 3,
+            "Y": 132.26
+          },
+          "TopRight": {
+            "X": 247,
+            "Y": 132.26
+          },
+          "BottomLeft": {
+            "X": 3,
+            "Y": 322.26
+          },
+          "BottomRight": {
+            "X": 247,
+            "Y": 322.26
+          }
+        },
+        "visibleHeight": 190,
+        "ViewportHeight": 714.6200000000001
+      }
+    },
+    {
+      "name": "workflow_map_keeps_scroll_free_priority_1120x560",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_left_scatter_graph_page_shows_plot_1120x560",
+      "passed": true,
+      "details": {
+        "chartBounds": {
+          "IsEmpty": false,
+          "Location": {
+            "X": 3,
+            "Y": 132.26
+          },
+          "Size": {
+            "IsEmpty": false,
+            "Width": 224,
+            "Height": 190
+          },
+          "X": 3,
+          "Y": 132.26,
+          "Width": 224,
+          "Height": 190,
+          "Left": 3,
+          "Top": 132.26,
+          "Right": 227,
+          "Bottom": 322.26,
+          "TopLeft": {
+            "X": 3,
+            "Y": 132.26
+          },
+          "TopRight": {
+            "X": 227,
+            "Y": 132.26
+          },
+          "BottomLeft": {
+            "X": 3,
+            "Y": 322.26
+          },
+          "BottomRight": {
+            "X": 227,
+            "Y": 322.26
+          }
+        },
+        "visibleHeight": 190,
+        "ViewportHeight": 393.02000000000004
+      }
+    }
+  ],
+  "sourceHashes": {
+    "Views/CManualInspectionUiContract.cs": "9cc1cecf1eaf9bd4bbb0223039f966527128a4f95111eebaf6e0cbb71b7f7416",
+    "Views/CManualInspectionMapControl.cs": "72964a4fef45bcd344d403af945a1f5a091d100745549d3caeaaddfb0af2f806",
+    "Views/CManualInspectionScatterControl.cs": "1cc3fb7be94547c2e714d8809906f2df6018e5805b6ed44ecc9fd2c398e6a0bb",
+    "Views/CManualInspectionView.xaml": "ef91082cb49b40c3ffc67098ee36a6adda7e7f215d5369807b8d41a5a0308d67",
+    "Views/CManualInspectionView.xaml.cs": "20d5a05eff63af7a08e001947b8aaf53614f16fdce75bf0ccb9154793d84a5eb"
+  },
+  "scope": "Source-linked native WPF, synthetic immutable snapshots and fake controller only. No equipment App/Root/Manager/SDK, motion/Vision/PLC or scripts executed."
+}

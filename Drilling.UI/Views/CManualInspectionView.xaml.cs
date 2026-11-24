@@ -505,14 +505,14 @@ public partial class CManualInspectionView : UserControl
                 : reference.IsProxy ? "복사값" : reference.ReferenceValueKind == "APPLIED_OFFSET" ? "기존 보정"
                 : reference.IsMeasurementOffsetInitialized || !reference.CanCopyAsReference ? "미측정·근거 확인 필요" : "측정값";
             ReferenceText.Text = $"★ {reference.Key} · {(string.IsNullOrEmpty(reference.ReferenceValueJudge)?reference.WorkingJudge:reference.ReferenceValueJudge)} · {source}\n" + (reference.CanCopyAsReference
-                ? $"대표 Offset {CManualInspectionUiPoint.Pair(x, y)} µm"
+                ? $"대표 Review Offset {CManualInspectionUiPoint.Pair(x, y)} µm"
                 : reference.CanCopyReferenceState ? "빈 측정 상태 복사 가능 · 기존 모델 보정값은 유지"
                 : "대표점 지정됨 · 복사할 상태를 확인하세요.");
         }
         ReferenceText.SetResourceReference(TextBlock.ForegroundProperty, reference?.WorkingJudge == "NG" ? "ButtonDangerBrush" : "AccentTextBrush");
         var count = _selected.Count(k => k != _representativeKey && _points.TryGetValue(k, out var q) && !q.IsMasked);
         CopyReferenceButton.Content = $"같은 오프셋 · 상태 적용 · {count}점";
-        CopyReferenceButton.ToolTip = reference?.CanCopyAsReference == true ? "대표 Offset과 현재 판정을 복사합니다. 유효한 OK는 확인 후 보정 파일에 저장하고, NG·미측정은 상태만 복사합니다."
+        CopyReferenceButton.ToolTip = reference?.CanCopyAsReference == true ? "대상의 Review Offset을 표시된 대표 Review Offset으로 교체합니다. 대상의 기존값에 더하지 않습니다. 유효한 OK는 확인 후 저장하고, NG·미측정은 상태만 복사합니다."
             : reference?.CanCopyReferenceState == true ? "대표점의 빈 측정 상태를 복사합니다. 기존 모델 보정값과 원측정은 유지하며, 실제 보정 대상으로 만들지 않습니다."
             : reference?.ReferenceValueUnavailableReason ?? "대표점의 복사할 값이 필요합니다.";
     }
@@ -658,9 +658,11 @@ public partial class CManualInspectionView : UserControl
             : _snapshot.HasIncomplete ? "남은 측정을 완료한 뒤 계산·검증하세요."
             : "저장할 초기화 또는 가져온 Offset 작업이 없습니다.";
         BulkApplyButton.IsEnabled=operate;
-        BulkApplyButton.ToolTip=_snapshot.CanBulkApply ? "현재 모델의 새 OK 결과를 확인·검증한 뒤 보정합니다."
+        BulkApplyButton.Content=_cell>0?$"Cell {_cell} 일괄 보정":"현재 Cell 일괄 보정";
+        BulkApplyButton.ToolTip=_cell<=0 ? "전체 Cell 보기에서는 먼저 보정할 Cell 하나를 열어주세요."
+            : _snapshot.CanBulkApply && CellBulkCount(_snapshot,_cell)>0 ? $"Cell {_cell}의 새 OK 결과만 검증한 뒤 보정합니다. 다른 Cell과 보호 Offset은 유지합니다."
             : "현재 보정 가능 여부와 제외 이유를 확인합니다. NG·미측정 결과는 보정하지 않습니다.";
-        BulkSummaryText.Text=_snapshot.BulkSummaryText;
+        BulkSummaryText.Text=_cell>0?CellBulkSummary(_snapshot,_cell):"전체 Cell 보기 · 일괄 보정할 Cell을 먼저 선택하세요.";
         RollbackButton.IsEnabled = operate && _snapshot.CanUndoOffsets;
         RollbackButton.Content=$"되돌리기 ({_snapshot.UndoOffsetCount})";
         RedoOffsetsButton.IsEnabled=operate && _snapshot.CanRedoOffsets;
@@ -945,10 +947,16 @@ public partial class CManualInspectionView : UserControl
 
     private void ClearReference_Click(object sender, RoutedEventArgs e) { _representativeKey = null; Refresh(); }
 
+    private static int CellBulkCount(CManualInspectionUiSnapshot snapshot,int cell)
+        => cell>0?snapshot.CellBulkEligibleCounts.GetValueOrDefault(cell):0;
+    private static string CellBulkSummary(CManualInspectionUiSnapshot snapshot,int cell)
+        => snapshot.CellBulkSummaryTexts.GetValueOrDefault(cell) ?? $"Cell {cell} · 보정할 새 OK 결과 없음";
+
     private CManualInspectionUiRequest Request(IEnumerable<string>? keys = null, long? expectedVersion = null) => new()
     {
         ExpectedVersion = expectedVersion ?? _snapshot.Version,
         Keys = (keys ?? _snapshot.Points.Where(p => _selected.Contains(p.Key)).Select(p => p.Key)).Distinct(StringComparer.Ordinal).ToArray(),
+        CurrentCellNo = _cell>0?_cell:null,
         FocusKey = FocusPoint?.Key, ReferenceKey = _representativeKey,
         MeasurementMode = Value(MeasurementModeCombo, "P2P"),
         Scenario = "same", Fault = "NONE", Speed = 1,
@@ -1034,19 +1042,22 @@ public partial class CManualInspectionView : UserControl
         if (action is EN_MANUAL_INSPECTION_UI_ACTION.BulkApply or EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets or EN_MANUAL_INSPECTION_UI_ACTION.Calculate
             or EN_MANUAL_INSPECTION_UI_ACTION.Validate or EN_MANUAL_INSPECTION_UI_ACTION.Apply or EN_MANUAL_INSPECTION_UI_ACTION.CopyReference)
         {
-            if(action==EN_MANUAL_INSPECTION_UI_ACTION.BulkApply && (!current.CanBulkApply || current.BulkEligibleCount==0))
+            if(action==EN_MANUAL_INSPECTION_UI_ACTION.BulkApply && (frozen.CurrentCellNo is not >0
+                || frozen.CurrentCellNo!=_cell || !current.CanBulkApply || CellBulkCount(current,frozen.CurrentCellNo.Value)==0))
             {
                 InspectorSection.IsExpanded=true;RightPaneTabs.SelectedIndex=2;CorrectionSection.IsExpanded=true;CorrectionPaneTabs.SelectedIndex=0;
-                ShowMessage(current.HasIncomplete ? "미완료 측정이 있습니다. 남은 위치를 측정하거나 새 측정·Offset Init으로 작업을 정리하세요."
-                    : current.BulkEligibleCount>0 ? "현재 모델·좌표 기준을 확인할 수 없어 적용할 수 없습니다. 모델을 확인한 뒤 다시 시도하세요."
-                    : "적용할 새 OK 측정값이 없습니다. NG·미측정·빈 상태·이미 적용한 결과는 제외합니다.\n"+current.BulkSummaryText);
+                ShowMessage(frozen.CurrentCellNo is not >0 || frozen.CurrentCellNo!=_cell ? "일괄 보정할 Cell 하나를 먼저 열어주세요. 전체 Cell 보기에서는 실행하지 않습니다."
+                    : current.HasIncomplete ? "미완료 측정이 있습니다. 남은 위치를 측정하거나 새 측정·Offset Init으로 작업을 정리하세요."
+                    : CellBulkCount(current,frozen.CurrentCellNo.Value)>0 ? "현재 모델·좌표 기준을 확인할 수 없어 적용할 수 없습니다. 모델을 확인한 뒤 다시 시도하세요."
+                    : "현재 Cell에 적용할 새 OK 측정값이 없습니다.\n"+CellBulkSummary(current,frozen.CurrentCellNo.Value));
                 return;
             }
             bool CanConfirm(CManualInspectionUiSnapshot snapshot) => (action == EN_MANUAL_INSPECTION_UI_ACTION.CopyReference || !snapshot.HasIncomplete) && (action switch
             {
                 EN_MANUAL_INSPECTION_UI_ACTION.CopyReference => !snapshot.IsOffsetEditPending && frozen.Keys.Count > 0
                     && snapshot.Points.Any(p => p.Key == frozen.ReferenceKey && (p.CanCopyAsReference || p.CanCopyReferenceState)),
-                EN_MANUAL_INSPECTION_UI_ACTION.BulkApply => !snapshot.IsOffsetEditPending && snapshot.CanBulkApply && snapshot.BulkEligibleCount > 0,
+                EN_MANUAL_INSPECTION_UI_ACTION.BulkApply => !snapshot.IsOffsetEditPending && snapshot.CanBulkApply
+                    && frozen.CurrentCellNo is >0 && frozen.CurrentCellNo==_cell && CellBulkCount(snapshot,frozen.CurrentCellNo.Value)>0,
                 EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets => !snapshot.IsOffsetEditPending && frozen.Keys.Count > 0,
                 EN_MANUAL_INSPECTION_UI_ACTION.Calculate => !snapshot.IsOffsetEditPending && frozen.Keys.Count > 0,
                 EN_MANUAL_INSPECTION_UI_ACTION.Validate => snapshot.CandidateRows.Count > 0 && snapshot.CandidateStatus != "APPLIED",
@@ -1061,15 +1072,15 @@ public partial class CManualInspectionView : UserControl
                 && current.Points.FirstOrDefault(p => p.Key == frozen.ReferenceKey) is { } copySource)
             {
                 var (copyX, copyY) = ReferenceValues(copySource);
-                panel.Children.Add(Label($"대표 상태 {copySource.ReferenceValueJudge} · 최종 Offset X {copyX?.ToString("0.###", CultureInfo.InvariantCulture) ?? "—"} / Y {copyY?.ToString("0.###", CultureInfo.InvariantCulture) ?? "—"} µm"));
+                panel.Children.Add(Label($"대표 상태 {copySource.ReferenceValueJudge} · Review Offset X {copyX?.ToString("0.###", CultureInfo.InvariantCulture) ?? "—"} / Y {copyY?.ToString("0.###", CultureInfo.InvariantCulture) ?? "—"} µm"));
             }
             var (title, confirmText, description) = action switch
             {
                 EN_MANUAL_INSPECTION_UI_ACTION.CopyReference => ("대표값 복사 적용 확인", "복사 적용",
-                    $"대표 {frozen.ReferenceKey}\n선택한 {frozen.Keys.Distinct(StringComparer.Ordinal).Count():N0}점에 대표의 최종 Offset과 상태를 복사합니다.\n"+
+                    $"대표 {frozen.ReferenceKey}\n선택한 {frozen.Keys.Distinct(StringComparer.Ordinal).Count():N0}점의 Review Offset을 위 대표값으로 교체하고 상태를 복사합니다.\n대상의 기존 Review Offset에 복사값을 더하지 않습니다. 다른 종류의 Offset은 유지합니다.\n"+
                     "유효한 OK 결과는 보정 한계와 Field를 확인한 뒤 같은 모델의 새 누적 CSV로 저장하고 지도를 갱신합니다.\nNG·미측정 대표는 상태만 복사하며 실제 보정 파일은 바꾸지 않습니다.\n같은 Shot의 Beam은 보정값을 공유합니다. 원측정은 보존하며 저장 후 되돌릴 수 있습니다."),
                 EN_MANUAL_INSPECTION_UI_ACTION.BulkApply => ("일괄 보정 적용 확인", "일괄 보정 적용",
-                    $"모델 {current.RecipeId} 전체의 유효한 측정 {current.BulkEligibleCount:N0}점에 보정을 적용합니다.\n{current.BulkSummaryText}\n직접 측정은 기존 B + 이번 편차 Δ = 최종 F, 대표값은 복사한 최종 F를 저장합니다.\n증감 한계 {current.DeltaLimitUm:0.###} / 누적 한계 {current.TotalLimitUm:0.###} µm를 넘는 점은 제외합니다.\n선택·화면 필터와 관계없이 새 OK 결과를 같은 모델의 새 최종 CSV로 저장합니다.\nNG·미측정·이미 적용한 결과는 제외합니다.\n저장 후 CSV를 다시 읽어 확인하며 최종 보정 지도로 전환합니다.\n하드웨어·Default·First Beam·Distortion Offset은 유지하며, 저장 후 최대 10회 되돌릴 수 있습니다."),
+                    $"모델 {current.RecipeId} · 현재 Cell {frozen.CurrentCellNo}의 유효한 측정 {CellBulkCount(current,frozen.CurrentCellNo!.Value):N0}점에 보정을 적용합니다.\n{CellBulkSummary(current,frozen.CurrentCellNo.Value)}\n직접 측정은 기존 B + 이번 편차 Δ = 최종 F, 대표값은 복사한 Review Offset으로 교체합니다.\n증감 한계 {current.DeltaLimitUm:0.###} / 누적 한계 {current.TotalLimitUm:0.###} µm를 넘는 점은 제외합니다.\n현재 Cell 안에서는 Head·검색·선택 필터와 관계없이 새 OK 결과를 적용하며, 다른 Cell은 유지합니다.\nNG·미측정·이미 적용한 결과는 제외합니다.\n저장 후 CSV를 다시 읽어 확인하며 최종 보정 지도로 전환합니다.\n보호 Offset은 유지하며, 저장 후 최대 10회 되돌릴 수 있습니다."),
                 EN_MANUAL_INSPECTION_UI_ACTION.Calculate => ("선택점 보정 계산 확인", "보정 후보 계산",
                     $"선택한 {frozen.Keys.Distinct(StringComparer.Ordinal).Count():N0}점의 유효한 측정값으로 보정 후보를 계산합니다.\n현재 보정값에 측정 편차를 더한 후보이며, 기존 후보가 있으면 새 계산으로 바뀝니다.\n이 단계에서는 모델 Offset 파일에 저장하지 않습니다."),
                 EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets => ("선택점 보정 확인", "선택점 보정 적용",
@@ -1078,7 +1089,8 @@ public partial class CManualInspectionView : UserControl
                     $"현재 후보 {current.CandidateRows.Count:N0}점의 출처·중복 적용·보정 한계·Scanner Field를 확인합니다.\n검증 결과는 후보에 표시하며, 통과하더라도 모델 Offset 파일에 저장하지 않습니다."),
                 _ => (current.OffsetInitPending ? "초기화 저장 확인" : "가져온 Offset 저장 확인", current.OffsetInitPending ? "초기화 저장" : "가져온 Offset 저장",
                     $"작업 Offset {current.CandidateRows.Count:N0}점의 최종 보정값을 검증한 뒤 현재 모델에 저장합니다.\n검증에 실패하면 저장하지 않습니다.\n"+
-                    (current.OffsetInitPending ? "선택 범위의 측정 기반 Offset은 ‘값 없음’ 상태로 저장됩니다.\n" : "이후 가공·Review는 저장된 최신 누적 Review Offset을 사용합니다.\n")+
+                    (current.OffsetInitPending ? "선택 범위의 측정 기반 Offset은 ‘값 없음’ 상태로 저장됩니다.\n"
+                        : $"가져온 파일은 현재 모델 {current.RecipeId}의 Review Offset으로 교체합니다. 이 모델용 자료인지 확인하세요.\n이후 가공·Review는 저장된 최신 누적 Review Offset을 사용합니다.\n")+
                     "하드웨어·Default·First Beam·Distortion Offset과 기존 이력 파일은 보존합니다.\n저장된 보정 상태는 최대 10회 되돌릴 수 있습니다.")
             };
             panel.Children.Add(Label(description));
@@ -1336,33 +1348,22 @@ public partial class CManualInspectionView : UserControl
     private void Files_Click(object sender, RoutedEventArgs e)
     {
         var menu = NewMenu(FilesButton);
-        var previous = new MenuItem { Header = "파일 불러오기 전 작업으로 돌아가기", IsEnabled = !Busy && !_snapshot.HasIncomplete && !_snapshot.IsOffsetEditPending && _snapshot.CanReturnToPreviousWorkspace,
-            ToolTip = _snapshot.IsOffsetEditPending ? "통합 Offset을 저장하거나 편집을 취소한 뒤 돌아가세요."
-                : _snapshot.CanReturnToPreviousWorkspace ? "최초 파일을 열기 전 작업·보기로 복귀합니다. 현재 활성 보정과 실제 Stage 위치는 원복하지 않습니다." : "불러온 파일이 열려 있을 때 사용할 수 있습니다." };
-        ToolTipService.SetShowOnDisabled(previous, true);
-        previous.Click += async (_, _) => await ReturnToPreviousWorkspace(); menu.Items.Add(previous);
-        menu.Items.Add(new Separator());
         foreach (var (label, action) in new[] {
             ("통합 Offset 파일 가져오기", EN_MANUAL_INSPECTION_UI_ACTION.ImportOffsetBundle),
-            ("최종 보정 파일 내보내기", EN_MANUAL_INSPECTION_UI_ACTION.ExportFinalOffsets),
-            ("작업 Offset 파일 내보내기", EN_MANUAL_INSPECTION_UI_ACTION.ExportOffsetBundle),
-            ("측정 결과 파일 불러오기", EN_MANUAL_INSPECTION_UI_ACTION.LoadResultFile),
-            ("결과 CSV 내보내기", EN_MANUAL_INSPECTION_UI_ACTION.ExportCsv) })
+            ("현재 Offset 데이터 내보내기 (CSV)", EN_MANUAL_INSPECTION_UI_ACTION.ExportCurrentOffsetCsv) })
         {
-            var imports = action is EN_MANUAL_INSPECTION_UI_ACTION.LoadResultFile or EN_MANUAL_INSPECTION_UI_ACTION.ImportOffsetBundle;
-            var item = new MenuItem { Header = label, IsEnabled = !Busy && (!imports || !_snapshot.HasIncomplete && !_snapshot.IsOffsetEditPending)
-                    && (action != EN_MANUAL_INSPECTION_UI_ACTION.ImportOffsetBundle || _snapshot.Points.Count > 0)
-                    && (action is not (EN_MANUAL_INSPECTION_UI_ACTION.ExportOffsetBundle or EN_MANUAL_INSPECTION_UI_ACTION.ExportFinalOffsets) || _snapshot.Points.Count > 0),
-                ToolTip = imports && _snapshot.IsOffsetEditPending ? "통합 Offset을 저장하거나 편집을 취소한 뒤 다른 파일을 가져오세요."
+            var imports = action == EN_MANUAL_INSPECTION_UI_ACTION.ImportOffsetBundle;
+            var item = new MenuItem { Header = label, IsEnabled = !Busy && !_snapshot.IsOffsetEditPending
+                    && (!imports || !_snapshot.HasIncomplete) && _snapshot.Points.Count > 0,
+                ToolTip = _snapshot.IsOffsetEditPending ? "가져오거나 초기화한 작업 Offset을 먼저 모델에 저장하거나 편집을 취소하세요."
                     : imports && _snapshot.HasIncomplete ? "미완료 측정의 잔여점을 먼저 완료하세요."
-                    : action == EN_MANUAL_INSPECTION_UI_ACTION.ExportFinalOffsets ? "현재 저장된 최종 누적 Review Offset을 새로 확인하여 모델 전체의 파일로 내보냅니다. 미저장 초안은 포함하지 않고 기존 작업은 유지합니다."
-                    : action == EN_MANUAL_INSPECTION_UI_ACTION.ExportOffsetBundle ? "현재 적용 통합 Offset을 보호 설정 참고값·최종 좌표와 JSON 하나로 내보냅니다. Init/파일 편집 중에는 미저장 작업값을 내보내며, 일반 측정의 미적용 후보는 제외합니다. 모델 저장이나 장비 이동은 실행하지 않습니다."
-                    : label };
+                    : imports ? "통합 Offset JSON 또는 Review Offset CSV를 현재 모델의 작업값으로 가져옵니다. 실제 반영은 모델 Offset 저장에서 확인합니다."
+                    : "현재 모델의 저장된 누적 Review Offset 전체를 기존 최종 CSV와 동일한 형식으로 내보냅니다. 기본 위치는 해당 모델의 reviewoffset 폴더이며 파일명을 바꿀 수 있습니다. 미적용 후보는 포함하지 않습니다." };
             ToolTipService.SetShowOnDisabled(item, true);
             item.SetResourceReference(Control.ForegroundProperty, "TextPrimaryBrush");
             item.Click += async (_, _) =>
             {
-                var frozen = Request(action == EN_MANUAL_INSPECTION_UI_ACTION.ExportCsv ? _snapshot.Points.Select(p => p.Key) : null);
+                var frozen = Request();
                 await Execute(action, frozen);
             }; menu.Items.Add(item);
         }
