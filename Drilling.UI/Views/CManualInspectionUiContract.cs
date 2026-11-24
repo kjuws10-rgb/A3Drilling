@@ -20,8 +20,11 @@ public enum EN_MANUAL_INSPECTION_UI_ACTION
     ExportCsv, Move, MoveMeasure, MoveMeasureCorrect, Measure, RetryRemaining, Stop,
     Calculate, Validate, Apply, Rollback, CopyReference, UndoCopy, UpdateLimits, SetAllowManual, UpdateLevels, ShowPoint,
     ReturnToPreviousWorkspace, InitializeOffsets, CancelOffsetEdit, ExportOffsetBundle, ImportOffsetBundle,
-    BulkApply, UndoOffsets, RedoOffsets, ApplySelectedOffsets
+    BulkApply, UndoOffsets, RedoOffsets, ApplySelectedOffsets, ExportFinalOffsets
 }
+
+/// <summary>Display-only DESIGN-µm value read from the authoritative saved model file.</summary>
+public sealed record CManualInspectionUiOffset(double XUm, double YUm);
 
 /// <summary>Recipe preview's global DESIGN-mm polygon, before scanner/stage transforms.</summary>
 public sealed record CManualInspectionUiLayoutVertex(double Xmm, double Ymm);
@@ -175,6 +178,21 @@ public sealed record CManualInspectionUiSnapshot
     public string RunId { get; init; } = "—";
     public string CoordinateSignature { get; init; } = "";
     public string ActiveRevisionId { get; init; } = "—";
+    /// <summary>The saved model view is independent of unsaved measurements, candidates and file workspaces.</summary>
+    public bool HasFinalOffsetSnapshot { get; init; }
+    public IReadOnlyDictionary<string,CManualInspectionUiOffset> FinalOffsetPoints { get; init; }
+        = new Dictionary<string,CManualInspectionUiOffset>(StringComparer.Ordinal);
+    public IReadOnlySet<string> FinalInitializedOffsetKeys { get; init; } = new HashSet<string>(StringComparer.Ordinal);
+    public IReadOnlySet<string> FinalInitializedPointKeys { get; init; } = new HashSet<string>(StringComparer.Ordinal);
+    public IReadOnlySet<string> FinalAppliedPointKeys { get; init; } = new HashSet<string>(StringComparer.Ordinal);
+    public string FinalOffsetFilePath { get; init; } = "";
+    public string FinalOffsetFileName { get; init; } = "";
+    public DateTimeOffset? FinalOffsetSavedAt { get; init; }
+    public string FinalOffsetContentSha256 { get; init; } = "";
+    public string FinalOffsetRevisionId { get; init; } = "";
+    public int FinalOffsetRowCount { get; init; }
+    public int FinalOffsetInitializedRowCount { get; init; }
+    public string FinalOffsetStatusText { get; init; } = "최종 저장 보정 확인 전";
     public string SourcePath { get; init; } = "";
     public bool IsSimulation { get; init; }
     public bool IsBusy { get; init; }

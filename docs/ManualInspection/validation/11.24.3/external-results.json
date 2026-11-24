@@ -1,0 +1,224 @@
+{
+  "schemaVersion": "a3-manual-external-results/1",
+  "passed": true,
+  "count": 53,
+  "failed": 0,
+  "tests": [
+    {
+      "name": "same_current_frame_accepted",
+      "passed": true
+    },
+    {
+      "name": "different_menus_merge_distinct_coordinates",
+      "passed": true
+    },
+    {
+      "name": "latest_actual_observation_wins",
+      "passed": true
+    },
+    {
+      "name": "latest_error_is_visible_not_old_ok",
+      "passed": true
+    },
+    {
+      "name": "unmeasured_does_not_erase_actual_measurement",
+      "passed": true
+    },
+    {
+      "name": "retained_new_save_time_cannot_overwrite_actual",
+      "passed": true
+    },
+    {
+      "name": "retained_has_no_current_run_fallback",
+      "passed": true
+    },
+    {
+      "name": "manual_edit_visible_without_measurement_promotion",
+      "passed": true
+    },
+    {
+      "name": "manual_copy_result_source_preserved",
+      "passed": true
+    },
+    {
+      "name": "unknown_source_is_not_auto_linked",
+      "passed": true
+    },
+    {
+      "name": "different_recipe_excluded",
+      "passed": true
+    },
+    {
+      "name": "different_glass_excluded",
+      "passed": true
+    },
+    {
+      "name": "unlinked_current_glass_disables_auto_merge",
+      "passed": true
+    },
+    {
+      "name": "unknown_run_start_disables_auto_merge",
+      "passed": true
+    },
+    {
+      "name": "previous_machining_run_excluded",
+      "passed": true
+    },
+    {
+      "name": "previous_row_cannot_hide_in_newer_file",
+      "passed": true
+    },
+    {
+      "name": "row_recipe_mismatch_excluded",
+      "passed": true
+    },
+    {
+      "name": "shift_x_mismatch_excluded",
+      "passed": true
+    },
+    {
+      "name": "shift_y_mismatch_excluded",
+      "passed": true
+    },
+    {
+      "name": "nonfinite_shift_excluded",
+      "passed": true
+    },
+    {
+      "name": "simulation_real_mismatch_excluded",
+      "passed": true
+    },
+    {
+      "name": "vision_mode_mismatch_excluded",
+      "passed": true
+    },
+    {
+      "name": "legacy_unknown_mode_is_explicit_view_only",
+      "passed": true
+    },
+    {
+      "name": "matching_explicit_simulation_mode_is_viewable",
+      "passed": true
+    },
+    {
+      "name": "missing_geometry_is_explicit_view_only",
+      "passed": true
+    },
+    {
+      "name": "changed_head_geometry_excluded",
+      "passed": true
+    },
+    {
+      "name": "changed_design_geometry_excluded",
+      "passed": true
+    },
+    {
+      "name": "geometry_tolerance_boundary_allowed",
+      "passed": true
+    },
+    {
+      "name": "nonfinite_measurement_excluded",
+      "passed": true
+    },
+    {
+      "name": "error_has_no_invented_numeric_requirement",
+      "passed": true
+    },
+    {
+      "name": "per_beam_identity_is_distinct",
+      "passed": true
+    },
+    {
+      "name": "missing_row_beam_uses_file_beam",
+      "passed": true
+    },
+    {
+      "name": "duplicate_rows_reject_whole_file",
+      "passed": true
+    },
+    {
+      "name": "tie_break_is_deterministic",
+      "passed": true
+    },
+    {
+      "name": "nonexistent_coordinate_not_invented",
+      "passed": true
+    },
+    {
+      "name": "future_row_cannot_override_file_timestamp",
+      "passed": true
+    },
+    {
+      "name": "hardening_run_cutoff_exact_time_is_inclusive",
+      "passed": true
+    },
+    {
+      "name": "hardening_one_tick_before_cutoff_cannot_enter_through_later_file",
+      "passed": true
+    },
+    {
+      "name": "hardening_row_timestamp_decides_across_newer_file_save",
+      "passed": true
+    },
+    {
+      "name": "hardening_file_order_permutations_produce_identical_current_observation",
+      "passed": true
+    },
+    {
+      "name": "hardening_duplicate_beam_fallback_rejects_file_atomically",
+      "passed": true
+    },
+    {
+      "name": "hardening_previous_product_rows_never_join_current_cell_even_at_newest_time",
+      "passed": true
+    },
+    {
+      "name": "hardening_row_from_other_recipe_cannot_shadow_earlier_valid_row",
+      "passed": true
+    },
+    {
+      "name": "hardening_recipe_and_glass_case_are_identity_insensitive",
+      "passed": true
+    },
+    {
+      "name": "hardening_invalid_current_shift_disables_entire_automatic_projection",
+      "passed": true
+    },
+    {
+      "name": "hardening_unknown_current_product_names_disable_automatic_projection",
+      "passed": true
+    },
+    {
+      "name": "hardening_same_coordinates_do_not_cross_cell_or_beam_identity",
+      "passed": true
+    },
+    {
+      "name": "hardening_geometry_just_outside_tolerance_is_excluded",
+      "passed": true
+    },
+    {
+      "name": "hardening_newest_invalid_numeric_cannot_erase_old_valid_observation",
+      "passed": true
+    },
+    {
+      "name": "hardening_error_remains_error_when_numeric_payload_is_zero",
+      "passed": true
+    },
+    {
+      "name": "hardening_per_row_origin_and_file_provenance_survive_multimenu_merge",
+      "passed": true
+    },
+    {
+      "name": "hardening_ambiguous_current_target_identity_fails_closed",
+      "passed": true
+    },
+    {
+      "name": "vendor_assemblies_not_loaded",
+      "passed": true
+    }
+  ],
+  "commonAssembly": "Drilling.Common",
+  "commonAssemblySha256": "acd3cd5bba9c285add5f7433e9f68879f55dda419fb961683249c0176b59e9a7",
+  "loadedVendorAssemblies": [],
+  "scope": "Actual Common pure projection and DTOs. Synthetic saved results/recipe geometry; no equipment App/Root/Manager, SDK, PLC, Vision or motion execution."
+}

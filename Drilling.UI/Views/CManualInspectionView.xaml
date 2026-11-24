@@ -315,6 +315,10 @@
                     </TabItem>
                     <TabItem x:Name="LeftInfoTab" Header="정보" Style="{StaticResource ManualSideTab}">
                       <StackPanel Margin="3,4,3,2">
+                        <TextBlock Text="저장된 최종 Review Offset" FontWeight="SemiBold" Style="{StaticResource ManualLabel}"/>
+                        <TextBlock x:Name="FinalOffsetFileText" Style="{StaticResource ManualLabel}" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock x:Name="FinalOffsetInfoText" Style="{StaticResource ManualLabel}" TextWrapping="Wrap" MaxHeight="48"/>
+                        <Button x:Name="ShowFinalOffsetsButton" Content="최종 보정 지도 보기" Style="{StaticResource ManualButton}" Click="ShowFinalOffsets_Click" Margin="0,3,0,6"/>
                         <TextBlock x:Name="StagePositionText" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" FontFamily="Consolas" ToolTip="마지막 도착 확인 목표입니다. 실시간 모터 피드백이 아닙니다."/>
                         <TextBlock x:Name="PersistenceText" Foreground="{DynamicResource TextMutedBrush}" FontSize="10" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"/>
                         <TextBlock Text="방향키 한 점 · Ctrl 끝 · Shift 범위" Style="{StaticResource ManualLabel}" Margin="0,2,0,2"/>
@@ -483,7 +487,7 @@
                         <DataGridTextColumn Header="측정 상태" Binding="{Binding Point.MeasurementStatusText}" Width="145"/>
                         <DataGridTextColumn Header="측정 편차 X/Y µm" Binding="{Binding Point.MeasurementErrorText}" Width="155"/>
                         <DataGridTextColumn Header="측정 Level" Binding="{Binding MeasurementLevelText}" Width="90"/>
-                        <DataGridTextColumn Visibility="Collapsed" x:Name="ResultOffsetColumn" Header="적용 보정 X/Y µm" Binding="{Binding Point.BaseOffsetText}" Width="155"/>
+                        <DataGridTextColumn Visibility="Collapsed" x:Name="ResultOffsetColumn" Header="적용 보정 X/Y µm" Binding="{Binding AppliedOffsetText}" Width="155"/>
                         <DataGridTextColumn Visibility="Collapsed" Header="보정 Level" Binding="{Binding AppliedLevelText}" Width="100"/>
                         <DataGridTextColumn Header="측정 출처" Binding="{Binding MeasurementOriginText}" Width="170"/>
                         <DataGridTextColumn Header="작업 상태" Binding="{Binding Point.SourceText}" Width="160"/>

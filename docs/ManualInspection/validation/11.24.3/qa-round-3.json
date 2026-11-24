@@ -1,0 +1,1275 @@
+{
+  "schemaVersion": "a3-final-review-offset-independent-round3/1",
+  "round": 3,
+  "status": "최종 업무 설명·소스·실제 DLL·시험·문서·그림 독립 검토 완료",
+  "passed": true,
+  "checkedAt": "2026-11-24T02:58:04.760259+00:00",
+  "baseCommit": "7de760ccfe57ed75de3b8c9484c0b14114857be0",
+  "counts": {
+    "core": 221,
+    "actualController": 235,
+    "actualBackend": 131,
+    "bridgeWriter": 35,
+    "externalProjection": 53,
+    "wpf": 878,
+    "wpfModes": 14,
+    "newFinalOffsetUi": 35,
+    "scope": 32,
+    "sourceFiles": 15,
+    "changedPaths": 63,
+    "parityMatched": 256,
+    "csvRoundtrips": 8
+  },
+  "reports": {
+    "core-results.json": {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\core-results.json",
+      "sha256": "f8572a4c3365aa9b213420a86f6896478afcea4868e2ad5258ad5f052b7d64d2",
+      "count": 221
+    },
+    "controller-production.json": {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\controller-production.json",
+      "sha256": "863878321d35908cb6734efc08ef321c13d0f8ce004b7d7a1da8735de4026f5a",
+      "count": 235
+    },
+    "backend-read.json": {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\backend-read.json",
+      "sha256": "9290d5053f1c86ccc8060a09f1aa3f48fa29a839f4d57c8af0794533cbeb92df",
+      "count": 131
+    },
+    "bridge-writer.json": {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\bridge-writer.json",
+      "sha256": "f8c343ec6c890b66c14d779a32dff80ee9719abf5e959e584375e585a1302e1e",
+      "count": 35
+    },
+    "external-results.json": {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\external-results.json",
+      "sha256": "4bdd9618450b70819e89dc54edef589faf3434b7b1cda4ed4329989546508806",
+      "count": 53
+    },
+    "scope-results.json": {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\scope-results.json",
+      "sha256": "8e4668ffe5895c541d41d50f49bd8767046c120feb135f6c992a2a9601afe78c",
+      "count": 32
+    }
+  },
+  "uiReports": [
+    {
+      "mode": "default",
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\ui-qa\\default\\ui-results.json",
+      "sha256": "b8e8303515c691a2c39050c3984674a509c1394f7e6f81f4c31f8b2af16c19ca",
+      "count": 49
+    },
+    {
+      "mode": "integration-impact",
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\ui-qa\\integration-impact\\ui-integration-impact-results.json",
+      "sha256": "e371fced562983b3ec0800d69aa8765abfbae0f4cd4e67c80fe3ebedd730e4f2",
+      "count": 23
+    },
+    {
+      "mode": "sync-levels",
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\ui-qa\\sync-levels\\ui-sync-levels-results.json",
+      "sha256": "dae3b9ea8a640ce09471585d653ae62460904acd71af78c8786df14d5ed53771",
+      "count": 34
+    },
+    {
+      "mode": "coverage-compact",
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\ui-qa\\coverage-compact\\ui-coverage-compact-results.json",
+      "sha256": "4c223dfc7a1a34192625083d406310554cf33d71e3f215d58c4a8350cbc68a66",
+      "count": 71
+    },
+    {
+      "mode": "hardening",
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\ui-qa\\hardening\\ui-hardening-results.json",
+      "sha256": "86a90388a3b98a45807f732e481ff43faf3d6e23dd4c52ab53e2c3032b06e9ad",
+      "count": 30
+    },
+    {
+      "mode": "visual-usability",
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\ui-qa\\visual-usability\\ui-visual-usability-results.json",
+      "sha256": "b7c970e82df168d3a8fe6a4dbb77ae9c269ff64712498d39d49ee114551d77f3",
+      "count": 105
+    },
+    {
+      "mode": "map-first",
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\ui-qa\\map-first\\ui-map-first-results.json",
+      "sha256": "547c1b45dfbeca203f2af9bd9be074dafe3d4a8c5e1c37755056b51934aab058",
+      "count": 73
+    },
+    {
+      "mode": "cell-overview",
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\ui-qa\\cell-overview\\ui-cell-overview-results.json",
+      "sha256": "f81e876455573d47b0cf7046ffa61f33ba1cda85a105a6fd020539e4f5cd38a8",
+      "count": 181
+    },
+    {
+      "mode": "offset-init",
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\ui-qa\\offset-init\\ui-offset-init-results.json",
+      "sha256": "2f9e476a78bc9b7308e087f2f64c017ed026b07d15380f0213b0f6529955bf7f",
+      "count": 37
+    },
+    {
+      "mode": "measurement-workflow",
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\ui-qa\\measurement-workflow\\ui-measurement-workflow-results.json",
+      "sha256": "08b206815b67164596f47adf80aadc2b7b7fee2cd9355211bf81849d33f296b0",
+      "count": 44
+    },
+    {
+      "mode": "bulk-history",
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\ui-qa\\bulk-history\\ui-bulk-history-results.json",
+      "sha256": "10c9341094dd947b1166c6adb413161f4ed7e545e4888164861f0a356e37b703",
+      "count": 47
+    },
+    {
+      "mode": "representative",
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\ui-qa\\representative\\ui-representative-results.json",
+      "sha256": "a496f8f448ece94eb0b8d41a488c8a99e58f5a25643b64de5d88009f137404be",
+      "count": 53
+    },
+    {
+      "mode": "side-panels",
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\ui-qa\\side-panels\\ui-side-panels-results.json",
+      "sha256": "388666c1188a495336963637b824eff198c87868595e90a9ed8f376cfa8c129d",
+      "count": 96
+    },
+    {
+      "mode": "final-offsets",
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\ui-qa\\final-offsets\\ui-final-offsets-results.json",
+      "sha256": "9b0e03e1a1dce8bf19630cd4b5e07ca0e45403990ba9f7d92fc5367d8d90478d",
+      "count": 35
+    }
+  ],
+  "checks": [
+    {
+      "name": "최종_실행보고서:core-results.json",
+      "passed": true
+    },
+    {
+      "name": "복사된_보고서_SHA:core-results.json",
+      "passed": true
+    },
+    {
+      "name": "최종_실행보고서:controller-production.json",
+      "passed": true
+    },
+    {
+      "name": "복사된_보고서_SHA:controller-production.json",
+      "passed": true
+    },
+    {
+      "name": "최종_실행보고서:backend-read.json",
+      "passed": true
+    },
+    {
+      "name": "복사된_보고서_SHA:backend-read.json",
+      "passed": true
+    },
+    {
+      "name": "최종_실행보고서:bridge-writer.json",
+      "passed": true
+    },
+    {
+      "name": "복사된_보고서_SHA:bridge-writer.json",
+      "passed": true
+    },
+    {
+      "name": "최종_실행보고서:external-results.json",
+      "passed": true
+    },
+    {
+      "name": "복사된_보고서_SHA:external-results.json",
+      "passed": true
+    },
+    {
+      "name": "최종_실행보고서:scope-results.json",
+      "passed": true
+    },
+    {
+      "name": "복사된_보고서_SHA:scope-results.json",
+      "passed": true
+    },
+    {
+      "name": "현재_소스15개_범위_일치",
+      "passed": true
+    },
+    {
+      "name": "생산_소스:Drilling.Common/Review/CAutoFineReviewCoordinator.cs",
+      "passed": true
+    },
+    {
+      "name": "생산_소스:Drilling.Common/Review/CReviewManager.cs",
+      "passed": true
+    },
+    {
+      "name": "생산_소스:Drilling.Common/Review/CReviewMeasurementOffset.cs",
+      "passed": true
+    },
+    {
+      "name": "생산_소스:Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs",
+      "passed": true
+    },
+    {
+      "name": "생산_소스:Drilling.File/ReviewOffset/CReviewOffsetFile.cs",
+      "passed": true
+    },
+    {
+      "name": "생산_소스:Drilling.UI/Drilling.UI.csproj",
+      "passed": true
+    },
+    {
+      "name": "생산_소스:Drilling.UI/Menu/Menus/CManualInspectionBackend.cs",
+      "passed": true
+    },
+    {
+      "name": "생산_소스:Drilling.UI/Menu/Menus/CManualInspectionController.cs",
+      "passed": true
+    },
+    {
+      "name": "생산_소스:Drilling.UI/Menu/Menus/CManualInspectionUpdateMonitor.cs",
+      "passed": true
+    },
+    {
+      "name": "생산_소스:Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Offset.cs",
+      "passed": true
+    },
+    {
+      "name": "생산_소스:Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.cs",
+      "passed": true
+    },
+    {
+      "name": "생산_소스:Drilling.UI/Menu/Menus/CMenuCorrection.cs",
+      "passed": true
+    },
+    {
+      "name": "생산_소스:Drilling.UI/Views/CManualInspectionUiContract.cs",
+      "passed": true
+    },
+    {
+      "name": "생산_소스:Drilling.UI/Views/CManualInspectionView.xaml",
+      "passed": true
+    },
+    {
+      "name": "생산_소스:Drilling.UI/Views/CManualInspectionView.xaml.cs",
+      "passed": true
+    },
+    {
+      "name": "범위63개_실제트리_일치",
+      "passed": true
+    },
+    {
+      "name": "QA3_복사경로_미리확보",
+      "passed": true
+    },
+    {
+      "name": "Core_연결소스_SHA:Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs",
+      "passed": true
+    },
+    {
+      "name": "Core_연결소스_SHA:Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs",
+      "passed": true
+    },
+    {
+      "name": "Core_연결소스_SHA:Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
+      "passed": true
+    },
+    {
+      "name": "현재_실제DLL:Drilling.UI",
+      "passed": true
+    },
+    {
+      "name": "실제DLL_실행복사본:D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\Drilling.UI\\bin\\Release\\net8.0-windows\\Drilling.UI",
+      "passed": true
+    },
+    {
+      "name": "실제DLL_실행복사본:D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BackendReadHarness\\bin\\Release\\net8.0-windows\\Drilling.UI",
+      "passed": true
+    },
+    {
+      "name": "현재_실제DLL:Drilling.Common",
+      "passed": true
+    },
+    {
+      "name": "실제DLL_실행복사본:D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\Drilling.UI\\bin\\Release\\net8.0-windows\\Drilling.Common",
+      "passed": true
+    },
+    {
+      "name": "실제DLL_실행복사본:D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BackendReadHarness\\bin\\Release\\net8.0-windows\\Drilling.Common",
+      "passed": true
+    },
+    {
+      "name": "현재_실제DLL:Drilling.File",
+      "passed": true
+    },
+    {
+      "name": "실제DLL_실행복사본:D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\Drilling.UI\\bin\\Release\\net8.0-windows\\Drilling.File",
+      "passed": true
+    },
+    {
+      "name": "실제DLL_실행복사본:D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BackendReadHarness\\bin\\Release\\net8.0-windows\\Drilling.File",
+      "passed": true
+    },
+    {
+      "name": "실Controller_벤더미로드_현재Assembly",
+      "passed": true
+    },
+    {
+      "name": "실Common투영_벤더미로드_현재Assembly",
+      "passed": true
+    },
+    {
+      "name": "실Backend_Assembly출처:Drilling.UI",
+      "passed": true
+    },
+    {
+      "name": "실Backend_Assembly출처:Drilling.Common",
+      "passed": true
+    },
+    {
+      "name": "수정전_128불일치_정상보존",
+      "passed": true
+    },
+    {
+      "name": "수정전_역방향만_128불일치",
+      "passed": true
+    },
+    {
+      "name": "수정후_256일치_CSV8_원측정보존",
+      "passed": true
+    },
+    {
+      "name": "수정후_진단복사_SHA",
+      "passed": true
+    },
+    {
+      "name": "패리티_실제DLL:Drilling.Common.dll",
+      "passed": true
+    },
+    {
+      "name": "패리티_실제DLL:Drilling.File.dll",
+      "passed": true
+    },
+    {
+      "name": "WPF_모드_전체통과:default",
+      "passed": true
+    },
+    {
+      "name": "WPF_모드_SHA:default",
+      "passed": true
+    },
+    {
+      "name": "WPF_모드_전체통과:integration-impact",
+      "passed": true
+    },
+    {
+      "name": "WPF_모드_SHA:integration-impact",
+      "passed": true
+    },
+    {
+      "name": "WPF_모드_전체통과:sync-levels",
+      "passed": true
+    },
+    {
+      "name": "WPF_모드_SHA:sync-levels",
+      "passed": true
+    },
+    {
+      "name": "WPF_모드_전체통과:coverage-compact",
+      "passed": true
+    },
+    {
+      "name": "WPF_모드_SHA:coverage-compact",
+      "passed": true
+    },
+    {
+      "name": "WPF_모드_전체통과:hardening",
+      "passed": true
+    },
+    {
+      "name": "WPF_모드_SHA:hardening",
+      "passed": true
+    },
+    {
+      "name": "WPF_모드_전체통과:visual-usability",
+      "passed": true
+    },
+    {
+      "name": "WPF_모드_SHA:visual-usability",
+      "passed": true
+    },
+    {
+      "name": "WPF_모드_전체통과:map-first",
+      "passed": true
+    },
+    {
+      "name": "WPF_모드_SHA:map-first",
+      "passed": true
+    },
+    {
+      "name": "WPF_모드_전체통과:cell-overview",
+      "passed": true
+    },
+    {
+      "name": "WPF_모드_SHA:cell-overview",
+      "passed": true
+    },
+    {
+      "name": "WPF_내부출처:cell-overview:Views/CManualInspectionUiContract.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_내부출처:cell-overview:Views/CManualInspectionMapControl.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_내부출처:cell-overview:Views/CManualInspectionScatterControl.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_내부출처:cell-overview:Views/CManualInspectionView.xaml",
+      "passed": true
+    },
+    {
+      "name": "WPF_내부출처:cell-overview:Views/CManualInspectionView.xaml.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_모드_전체통과:offset-init",
+      "passed": true
+    },
+    {
+      "name": "WPF_모드_SHA:offset-init",
+      "passed": true
+    },
+    {
+      "name": "WPF_내부출처:offset-init:Views/CManualInspectionUiContract.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_내부출처:offset-init:Views/CManualInspectionMapControl.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_내부출처:offset-init:Views/CManualInspectionScatterControl.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_내부출처:offset-init:Views/CManualInspectionView.xaml",
+      "passed": true
+    },
+    {
+      "name": "WPF_내부출처:offset-init:Views/CManualInspectionView.xaml.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_모드_전체통과:measurement-workflow",
+      "passed": true
+    },
+    {
+      "name": "WPF_모드_SHA:measurement-workflow",
+      "passed": true
+    },
+    {
+      "name": "WPF_내부출처:measurement-workflow:Views/CManualInspectionUiContract.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_내부출처:measurement-workflow:Views/CManualInspectionMapControl.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_내부출처:measurement-workflow:Views/CManualInspectionScatterControl.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_내부출처:measurement-workflow:Views/CManualInspectionView.xaml",
+      "passed": true
+    },
+    {
+      "name": "WPF_내부출처:measurement-workflow:Views/CManualInspectionView.xaml.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_모드_전체통과:bulk-history",
+      "passed": true
+    },
+    {
+      "name": "WPF_모드_SHA:bulk-history",
+      "passed": true
+    },
+    {
+      "name": "WPF_내부출처:bulk-history:Views/CManualInspectionUiContract.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_내부출처:bulk-history:Views/CManualInspectionMapControl.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_내부출처:bulk-history:Views/CManualInspectionScatterControl.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_내부출처:bulk-history:Views/CManualInspectionView.xaml",
+      "passed": true
+    },
+    {
+      "name": "WPF_내부출처:bulk-history:Views/CManualInspectionView.xaml.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_모드_전체통과:representative",
+      "passed": true
+    },
+    {
+      "name": "WPF_모드_SHA:representative",
+      "passed": true
+    },
+    {
+      "name": "WPF_내부출처:representative:Views/CManualInspectionUiContract.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_내부출처:representative:Views/CManualInspectionMapControl.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_내부출처:representative:Views/CManualInspectionScatterControl.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_내부출처:representative:Views/CManualInspectionView.xaml",
+      "passed": true
+    },
+    {
+      "name": "WPF_내부출처:representative:Views/CManualInspectionView.xaml.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_모드_전체통과:side-panels",
+      "passed": true
+    },
+    {
+      "name": "WPF_모드_SHA:side-panels",
+      "passed": true
+    },
+    {
+      "name": "WPF_내부출처:side-panels:Views/CManualInspectionView.xaml",
+      "passed": true
+    },
+    {
+      "name": "WPF_내부출처:side-panels:Views/CManualInspectionView.xaml.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_내부출처:side-panels:Views/CManualInspectionUiContract.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_모드_전체통과:final-offsets",
+      "passed": true
+    },
+    {
+      "name": "WPF_모드_SHA:final-offsets",
+      "passed": true
+    },
+    {
+      "name": "WPF_내부출처:final-offsets:Views/CManualInspectionView.xaml",
+      "passed": true
+    },
+    {
+      "name": "WPF_내부출처:final-offsets:Views/CManualInspectionView.xaml.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_내부출처:final-offsets:Views/CManualInspectionUiContract.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_내부출처:final-offsets:Views/CManualInspectionMapControl.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_내부출처:final-offsets:Views/CManualInspectionScatterControl.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF14종_합계878",
+      "passed": true
+    },
+    {
+      "name": "WPF_현재입력:tests/ManualInspection/UiHarness/BulkHistoryCases.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_현재입력:tests/ManualInspection/UiHarness/CellOverviewCases.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_현재입력:tests/ManualInspection/UiHarness/CoverageCompactCases.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_현재입력:tests/ManualInspection/UiHarness/FinalOffsetCases.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_현재입력:tests/ManualInspection/UiHarness/HardeningCases.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_현재입력:tests/ManualInspection/UiHarness/MapFirstCases.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_현재입력:tests/ManualInspection/UiHarness/MeasurementWorkflowCases.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_현재입력:tests/ManualInspection/UiHarness/OffsetInitCases.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_현재입력:tests/ManualInspection/UiHarness/Program.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_현재입력:tests/ManualInspection/UiHarness/RepresentativeCases.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_현재입력:tests/ManualInspection/UiHarness/SidePanelsCases.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_현재입력:tests/ManualInspection/UiHarness/VisualUsabilityCases.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_현재입력:tests/ManualInspection/UiHarness/ManualInspection.UiHarness.csproj",
+      "passed": true
+    },
+    {
+      "name": "WPF_현재입력:Drilling.UI/Views/CManualInspectionView.xaml",
+      "passed": true
+    },
+    {
+      "name": "WPF_현재입력:Drilling.UI/Views/CManualInspectionView.xaml.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_현재입력:Drilling.UI/Views/CManualInspectionUiContract.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_현재입력:Drilling.UI/Views/CManualInspectionMapControl.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_현재입력:Drilling.UI/Views/CManualInspectionScatterControl.cs",
+      "passed": true
+    },
+    {
+      "name": "WPF_현재입력:Drilling.UI/Themes/ThemeDark.xaml",
+      "passed": true
+    },
+    {
+      "name": "WPF_현재입력:Drilling.UI/Themes/ThemeLight.xaml",
+      "passed": true
+    },
+    {
+      "name": "WPF_현재입력:Drilling.UI/App.xaml",
+      "passed": true
+    },
+    {
+      "name": "WPF_집계복사_SHA",
+      "passed": true
+    },
+    {
+      "name": "Release_0경고0오류_로그출처",
+      "passed": true
+    },
+    {
+      "name": "문서문자_코드블록:README.md",
+      "passed": true
+    },
+    {
+      "name": "내부링크:README.md:FINAL_REVIEW_OFFSET_11.24.3.md",
+      "passed": true
+    },
+    {
+      "name": "내부링크:README.md:../../tests/ManualInspection/FINAL_REVIEW_OFFSET_QA.md",
+      "passed": true
+    },
+    {
+      "name": "내부링크:README.md:validation.json",
+      "passed": true
+    },
+    {
+      "name": "내부링크:README.md:MASTER_INTEGRATION_11.24.2.md",
+      "passed": true
+    },
+    {
+      "name": "내부링크:README.md:../../tests/ManualInspection/MASTER_INTEGRATION_QA.md",
+      "passed": true
+    },
+    {
+      "name": "내부링크:README.md:validation.json",
+      "passed": true
+    },
+    {
+      "name": "내부링크:README.md:FIRST_LOAD_PANELS_11.24.1.md",
+      "passed": true
+    },
+    {
+      "name": "내부링크:README.md:../../tests/ManualInspection/FIRST_LOAD_PANELS_QA.md",
+      "passed": true
+    },
+    {
+      "name": "내부링크:README.md:validation.json",
+      "passed": true
+    },
+    {
+      "name": "내부링크:README.md:RETRY_VISIBILITY_11.24.0.md",
+      "passed": true
+    },
+    {
+      "name": "내부링크:README.md:../../tests/ManualInspection/RETRY_VISIBILITY_QA.md",
+      "passed": true
+    },
+    {
+      "name": "내부링크:README.md:validation.json",
+      "passed": true
+    },
+    {
+      "name": "내부링크:README.md:STANDARD_SELECTION_REFERENCE_11.23.2.md",
+      "passed": true
+    },
+    {
+      "name": "내부링크:README.md:../../tests/ManualInspection/STANDARD_SELECTION_REFERENCE_QA.md",
+      "passed": true
+    },
+    {
+      "name": "내부링크:README.md:CELL_CLICK_OFFSET_SYNC_11.23.1.md",
+      "passed": true
+    },
+    {
+      "name": "내부링크:README.md:../../tests/ManualInspection/CELL_CLICK_OFFSET_SYNC_QA.md",
+      "passed": true
+    },
+    {
+      "name": "내부링크:README.md:BULK_HISTORY_11.23.0.md",
+      "passed": true
+    },
+    {
+      "name": "내부링크:README.md:validation.json",
+      "passed": true
+    },
+    {
+      "name": "내부링크:README.md:../../tests/ManualInspection/BULK_HISTORY_QA.md",
+      "passed": true
+    },
+    {
+      "name": "내부링크:README.md:images/manual-11.24.1-notebook-dark.png",
+      "passed": true
+    },
+    {
+      "name": "내부링크:README.md:images/manual-11.24.1-scatter-correction-dark.png",
+      "passed": true
+    },
+    {
+      "name": "내부링크:README.md:images/manual-11.24.1-level-settings-dark.png",
+      "passed": true
+    },
+    {
+      "name": "내부링크:README.md:validation.json",
+      "passed": true
+    },
+    {
+      "name": "내부링크:README.md:MEASUREMENT_WORKFLOW_11.21.2.md",
+      "passed": true
+    },
+    {
+      "name": "내부링크:README.md:history/validation-61578db.json",
+      "passed": true
+    },
+    {
+      "name": "내부링크:README.md:../../tests/ManualInspection/README.md",
+      "passed": true
+    },
+    {
+      "name": "내부링크:README.md:Reference/A3_Review_Workspace.html",
+      "passed": true
+    },
+    {
+      "name": "내부링크:README.md:BULK_HISTORY_11.23.0.md",
+      "passed": true
+    },
+    {
+      "name": "내부링크:README.md:history/validation-367a727.json",
+      "passed": true
+    },
+    {
+      "name": "내부링크:README.md:CELL_CLICK_OFFSET_SYNC_11.23.1.md",
+      "passed": true
+    },
+    {
+      "name": "내부링크:README.md:history/validation-89e92a0.json",
+      "passed": true
+    },
+    {
+      "name": "문서문자_코드블록:FINAL_REVIEW_OFFSET_11.24.3.md",
+      "passed": true
+    },
+    {
+      "name": "내부링크:FINAL_REVIEW_OFFSET_11.24.3.md:../../Drilling.UI/CAppStartup.cs",
+      "passed": true
+    },
+    {
+      "name": "내부링크:FINAL_REVIEW_OFFSET_11.24.3.md:../../Drilling.File/ReviewOffset/CReviewOffsetFile.cs",
+      "passed": true
+    },
+    {
+      "name": "내부링크:FINAL_REVIEW_OFFSET_11.24.3.md:../../Drilling.Common/Station/CStationProcess.cs",
+      "passed": true
+    },
+    {
+      "name": "내부링크:FINAL_REVIEW_OFFSET_11.24.3.md:../../Drilling.UI/Menu/Menus/CMenuCorrection.cs",
+      "passed": true
+    },
+    {
+      "name": "내부링크:FINAL_REVIEW_OFFSET_11.24.3.md:../../Drilling.Common/Review/CReviewManager.cs",
+      "passed": true
+    },
+    {
+      "name": "내부링크:FINAL_REVIEW_OFFSET_11.24.3.md:../../Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Offset.cs",
+      "passed": true
+    },
+    {
+      "name": "내부링크:FINAL_REVIEW_OFFSET_11.24.3.md:../../Drilling.Common/Review/CAutoFineReviewCoordinator.cs",
+      "passed": true
+    },
+    {
+      "name": "내부링크:FINAL_REVIEW_OFFSET_11.24.3.md:../../Drilling.UI/Menu/Menus/CManualInspectionBackend.cs",
+      "passed": true
+    },
+    {
+      "name": "내부링크:FINAL_REVIEW_OFFSET_11.24.3.md:../../Drilling.UI/Menu/Menus/CManualInspectionController.cs",
+      "passed": true
+    },
+    {
+      "name": "내부링크:FINAL_REVIEW_OFFSET_11.24.3.md:../../Drilling.Common/Review/CReviewMeasurementOffset.cs",
+      "passed": true
+    },
+    {
+      "name": "내부링크:FINAL_REVIEW_OFFSET_11.24.3.md:validation.json",
+      "passed": true
+    },
+    {
+      "name": "내부링크:FINAL_REVIEW_OFFSET_11.24.3.md:../../tests/ManualInspection/FINAL_REVIEW_OFFSET_QA.md",
+      "passed": true
+    },
+    {
+      "name": "내부링크:FINAL_REVIEW_OFFSET_11.24.3.md:images/manual-11.24.3-final-dark.png",
+      "passed": true
+    },
+    {
+      "name": "내부링크:FINAL_REVIEW_OFFSET_11.24.3.md:images/manual-11.24.3-final-light.png",
+      "passed": true
+    },
+    {
+      "name": "문서문자_코드블록:FINAL_REVIEW_OFFSET_QA.md",
+      "passed": true
+    },
+    {
+      "name": "내부링크:FINAL_REVIEW_OFFSET_QA.md:../../docs/ManualInspection/validation.json",
+      "passed": true
+    },
+    {
+      "name": "실제_ConfigRoot_선택_설명",
+      "passed": true
+    },
+    {
+      "name": "sparse_없음_실측0_구분",
+      "passed": true
+    },
+    {
+      "name": "최종JSON_r은저장시각표식",
+      "passed": true
+    },
+    {
+      "name": "Simple절대_재가공잔차_조건_설명",
+      "passed": true
+    },
+    {
+      "name": "Fine_전체차단_미검사열보존_구분",
+      "passed": true
+    },
+    {
+      "name": "기존_B자동반전금지_Head0_현장한계",
+      "passed": true
+    },
+    {
+      "name": "시험수치_업무문서와일치",
+      "passed": true
+    },
+    {
+      "name": "동일흔적_확인을가공증거로승격안함",
+      "passed": true
+    },
+    {
+      "name": "합성그림_SHA_크기:manual-11.24.3-final-dark.png",
+      "passed": true
+    },
+    {
+      "name": "합성그림_SHA_크기:manual-11.24.3-final-light.png",
+      "passed": true
+    },
+    {
+      "name": "직전manifest_역사원문보존",
+      "passed": true
+    },
+    {
+      "name": "pending_manifest는정상최종화",
+      "passed": true
+    },
+    {
+      "name": "운영CSV_벤더_테마무변경",
+      "passed": true
+    },
+    {
+      "name": "git_diff_check",
+      "passed": true
+    }
+  ],
+  "checkCount": 200,
+  "sourceSha256": {
+    "Drilling.Common/Review/CAutoFineReviewCoordinator.cs": "de93f27b8070bd8bebd6d4c67ee3147299448bc7eb940da7b83ab9bd2b2dbd7e",
+    "Drilling.Common/Review/CReviewManager.cs": "32bb509070f077f16b22059cb7c2ed815a351b8a7876c4fdd1da75649de255cd",
+    "Drilling.Common/Review/CReviewMeasurementOffset.cs": "6c9caab67da04f67334a27ed2f6218aceea1f6c4e31d12bd9cf0b9e1881e8693",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs": "450235d122834247a329b541d3a44e8683bdcfb6d6431b84bf28df20719ec6e7",
+    "Drilling.File/ReviewOffset/CReviewOffsetFile.cs": "322d7c92b8bd044779e7cda61e80bbd52654eefa0422eb8ebe88ee6e1530b24f",
+    "Drilling.UI/Drilling.UI.csproj": "07c8fdea7f9166391a4f329782e9554aaebbf4e82e2af43bb5ac9ab0544ab284",
+    "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs": "645b57058316479238afdc40d8a802ab0f25d3096a12fbdea3c4bbee69148e12",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "bc79f640be9d274846a875b508a56e3d3ff28d83547eead75b8db9ff41578d8e",
+    "Drilling.UI/Menu/Menus/CManualInspectionUpdateMonitor.cs": "2f237b8efa8ee47de8aa6af04f4d934474bea4e3bcb759217dfbad1591bb9b8b",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Offset.cs": "0ec33aefb0847d2886301be4fb5db0d73db47dd45c45342d71d8678a14f6b0ea",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.cs": "47cf020a2a387c2e5e5de3cd210df897a852675eb600dc7041b456b9c6398907",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.cs": "388dda336057dbf57eff598d5c3648491ae9972ec387db25498f0cf4f4bbdb52",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "6b3757f96a5c73c0d41dd15c6ba4061e3cec9f05f06e67d981610e5f045be14d",
+    "Drilling.UI/Views/CManualInspectionView.xaml": "5cb9ed433266a67eddb89f7fdf826cd0c46ce816361ef1e2041475c06178f8a6",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "37eb7f07ce6a6d80447981aeb83346f76aa34b6b7749a983169c1b8093139e13"
+  },
+  "actualAssemblies": {
+    "Drilling.UI": {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\Drilling.UI\\bin\\Release\\net8.0-windows\\Drilling.UI.dll",
+      "sha256": "b2e696014fc8ab8f15ba27913ade090b48b4a35b3b43cdf513e71ec53cf772b6"
+    },
+    "Drilling.Common": {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\Drilling.Common\\bin\\Release\\net8.0\\Drilling.Common.dll",
+      "sha256": "acd3cd5bba9c285add5f7433e9f68879f55dda419fb961683249c0176b59e9a7"
+    },
+    "Drilling.File": {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\Drilling.File\\bin\\Release\\net8.0\\Drilling.File.dll",
+      "sha256": "89b770d0e00ceea5c6f32ae7f4da4292095c384521974b664e6d64c30e57c9a3"
+    }
+  },
+  "coordinateParity": {
+    "baselineSha256": "fb62e129b2a389c82dd4bb9ffb335d4215e467ea9859fa91402d20915332b41e",
+    "correctedSha256": "c1051cc5db5549f7942c421ad2e7d73c238924e9ccb6c579020aa4e4c0807302",
+    "baselineExpectedMismatch": 128,
+    "correctedMatches": 256,
+    "correctedMismatches": 0,
+    "realHardwarePerformanceClaimed": false
+  },
+  "documentation": {
+    "documents": [
+      {
+        "path": "docs/ManualInspection/README.md",
+        "sha256": "6ec9d84c333e00b8cd8af054bb96d840cb449ce6e87063bfb8a09cd446524628"
+      },
+      {
+        "path": "docs/ManualInspection/FINAL_REVIEW_OFFSET_11.24.3.md",
+        "sha256": "70a800f0c0fa0001fc8ab6c4a9edea20e0f36e2ad9eb8601c4a115fd9a7867a6"
+      },
+      {
+        "path": "tests/ManualInspection/FINAL_REVIEW_OFFSET_QA.md",
+        "sha256": "9e19d72a8961bd89d82918217bce58c576a1975ee9b1a5721455c882589d3231"
+      }
+    ],
+    "internalLinks": [
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "FINAL_REVIEW_OFFSET_11.24.3.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\FINAL_REVIEW_OFFSET_11.24.3.md"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "../../tests/ManualInspection/FINAL_REVIEW_OFFSET_QA.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\FINAL_REVIEW_OFFSET_QA.md"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "validation.json",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\validation.json"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "MASTER_INTEGRATION_11.24.2.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\MASTER_INTEGRATION_11.24.2.md"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "../../tests/ManualInspection/MASTER_INTEGRATION_QA.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\MASTER_INTEGRATION_QA.md"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "validation.json",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\validation.json"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "FIRST_LOAD_PANELS_11.24.1.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\FIRST_LOAD_PANELS_11.24.1.md"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "../../tests/ManualInspection/FIRST_LOAD_PANELS_QA.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\FIRST_LOAD_PANELS_QA.md"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "validation.json",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\validation.json"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "RETRY_VISIBILITY_11.24.0.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\RETRY_VISIBILITY_11.24.0.md"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "../../tests/ManualInspection/RETRY_VISIBILITY_QA.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\RETRY_VISIBILITY_QA.md"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "validation.json",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\validation.json"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "STANDARD_SELECTION_REFERENCE_11.23.2.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\STANDARD_SELECTION_REFERENCE_11.23.2.md"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "../../tests/ManualInspection/STANDARD_SELECTION_REFERENCE_QA.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\STANDARD_SELECTION_REFERENCE_QA.md"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "CELL_CLICK_OFFSET_SYNC_11.23.1.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\CELL_CLICK_OFFSET_SYNC_11.23.1.md"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "../../tests/ManualInspection/CELL_CLICK_OFFSET_SYNC_QA.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\CELL_CLICK_OFFSET_SYNC_QA.md"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "BULK_HISTORY_11.23.0.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\BULK_HISTORY_11.23.0.md"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "validation.json",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\validation.json"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "../../tests/ManualInspection/BULK_HISTORY_QA.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BULK_HISTORY_QA.md"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "images/manual-11.24.1-notebook-dark.png",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\images\\manual-11.24.1-notebook-dark.png"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "images/manual-11.24.1-scatter-correction-dark.png",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\images\\manual-11.24.1-scatter-correction-dark.png"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "images/manual-11.24.1-level-settings-dark.png",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\images\\manual-11.24.1-level-settings-dark.png"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "validation.json",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\validation.json"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "MEASUREMENT_WORKFLOW_11.21.2.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\MEASUREMENT_WORKFLOW_11.21.2.md"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "history/validation-61578db.json",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\history\\validation-61578db.json"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "../../tests/ManualInspection/README.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\README.md"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "Reference/A3_Review_Workspace.html",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\Reference\\A3_Review_Workspace.html"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "BULK_HISTORY_11.23.0.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\BULK_HISTORY_11.23.0.md"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "history/validation-367a727.json",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\history\\validation-367a727.json"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "CELL_CLICK_OFFSET_SYNC_11.23.1.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\CELL_CLICK_OFFSET_SYNC_11.23.1.md"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "history/validation-89e92a0.json",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\history\\validation-89e92a0.json"
+      },
+      {
+        "document": "docs/ManualInspection/FINAL_REVIEW_OFFSET_11.24.3.md",
+        "target": "../../Drilling.UI/CAppStartup.cs",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\Drilling.UI\\CAppStartup.cs"
+      },
+      {
+        "document": "docs/ManualInspection/FINAL_REVIEW_OFFSET_11.24.3.md",
+        "target": "../../Drilling.File/ReviewOffset/CReviewOffsetFile.cs",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\Drilling.File\\ReviewOffset\\CReviewOffsetFile.cs"
+      },
+      {
+        "document": "docs/ManualInspection/FINAL_REVIEW_OFFSET_11.24.3.md",
+        "target": "../../Drilling.Common/Station/CStationProcess.cs",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\Drilling.Common\\Station\\CStationProcess.cs"
+      },
+      {
+        "document": "docs/ManualInspection/FINAL_REVIEW_OFFSET_11.24.3.md",
+        "target": "../../Drilling.UI/Menu/Menus/CMenuCorrection.cs",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\Drilling.UI\\Menu\\Menus\\CMenuCorrection.cs"
+      },
+      {
+        "document": "docs/ManualInspection/FINAL_REVIEW_OFFSET_11.24.3.md",
+        "target": "../../Drilling.Common/Review/CReviewManager.cs",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\Drilling.Common\\Review\\CReviewManager.cs"
+      },
+      {
+        "document": "docs/ManualInspection/FINAL_REVIEW_OFFSET_11.24.3.md",
+        "target": "../../Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Offset.cs",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\Drilling.UI\\Menu\\Menus\\CMenuCorrection.ReviewData.Offset.cs"
+      },
+      {
+        "document": "docs/ManualInspection/FINAL_REVIEW_OFFSET_11.24.3.md",
+        "target": "../../Drilling.Common/Review/CAutoFineReviewCoordinator.cs",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\Drilling.Common\\Review\\CAutoFineReviewCoordinator.cs"
+      },
+      {
+        "document": "docs/ManualInspection/FINAL_REVIEW_OFFSET_11.24.3.md",
+        "target": "../../Drilling.UI/Menu/Menus/CManualInspectionBackend.cs",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\Drilling.UI\\Menu\\Menus\\CManualInspectionBackend.cs"
+      },
+      {
+        "document": "docs/ManualInspection/FINAL_REVIEW_OFFSET_11.24.3.md",
+        "target": "../../Drilling.UI/Menu/Menus/CManualInspectionController.cs",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\Drilling.UI\\Menu\\Menus\\CManualInspectionController.cs"
+      },
+      {
+        "document": "docs/ManualInspection/FINAL_REVIEW_OFFSET_11.24.3.md",
+        "target": "../../Drilling.Common/Review/CReviewMeasurementOffset.cs",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\Drilling.Common\\Review\\CReviewMeasurementOffset.cs"
+      },
+      {
+        "document": "docs/ManualInspection/FINAL_REVIEW_OFFSET_11.24.3.md",
+        "target": "validation.json",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\validation.json"
+      },
+      {
+        "document": "docs/ManualInspection/FINAL_REVIEW_OFFSET_11.24.3.md",
+        "target": "../../tests/ManualInspection/FINAL_REVIEW_OFFSET_QA.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\FINAL_REVIEW_OFFSET_QA.md"
+      },
+      {
+        "document": "docs/ManualInspection/FINAL_REVIEW_OFFSET_11.24.3.md",
+        "target": "images/manual-11.24.3-final-dark.png",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\images\\manual-11.24.3-final-dark.png"
+      },
+      {
+        "document": "docs/ManualInspection/FINAL_REVIEW_OFFSET_11.24.3.md",
+        "target": "images/manual-11.24.3-final-light.png",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\images\\manual-11.24.3-final-light.png"
+      },
+      {
+        "document": "tests/ManualInspection/FINAL_REVIEW_OFFSET_QA.md",
+        "target": "../../docs/ManualInspection/validation.json",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\validation.json"
+      }
+    ],
+    "internalLinkCount": 46,
+    "images": [
+      {
+        "path": "docs/ManualInspection/images/manual-11.24.3-final-dark.png",
+        "sha256": "56db80cf28190960530f6675268f1c016651be312b9cba592b08bc5760700715",
+        "width": 1108,
+        "height": 548,
+        "visuallyReviewed": true
+      },
+      {
+        "path": "docs/ManualInspection/images/manual-11.24.3-final-light.png",
+        "sha256": "1d7d5fc7097e0592714887e1e032d1995ec1c6cca39d93d01fd1f4cb4c74733d",
+        "width": 1478,
+        "height": 869,
+        "visuallyReviewed": true
+      }
+    ],
+    "stagedManifestPassedAtAudit": false,
+    "note": "현재 schema16은 QA3 복사를 기다리는 정상적인 pending 상태이다. 이 고정 QA3를 복사한 뒤 부모가 passed=true/3rounds로 생성하고 외부 최종 일치 검사를 수행한다.",
+    "resolvedCorrections": [
+      "실행폴더 단정 대신 실제 ConfigRoot 선택 방식과 화면 절대경로를 기준으로 정정",
+      "Fine 요청점 NG/미완료 전체차단과 anchor 없는 열의 기존값 보존을 구분"
+    ],
+    "technicalMeaningReviewed": true
+  },
+  "resolvedImplementationFindings": [
+    "계산과 같은 basis로 legacy preview·조건부 저장을 연결",
+    "Stage→DESIGN 저장 경계 통일 후 실제256개 조합 및CSV8개 일치",
+    "독립 최종 snapshot 조회로 dirty/raw/열린파일·후보·기존 engine을 보존",
+    "최종 읽기 중 알림 coalesce·새frame 강제대기·취소/늦은응답 가드와 실제회귀",
+    "Head0 legacy SCANNER 임의 Head1 변환·최종내보내기 차단",
+    "최종 저장값과 작업 기준 B/후보 F 표시를 분리"
+  ],
+  "knownOperationalLimits": [
+    "가공 당시 Review Revision을 옛CSV에서 항상 증명하지 못한다. 같은 흔적의 새 측정을 새 잔차로 자동 인정하지 않는다.",
+    "기존 저장 B를 일괄 자동 반전하지 않는다. 잘못된 이전 역방향값은 현장 기준 확인 후 필요한 범위만 재설정·재가공·재측정한다.",
+    "소프트웨어 합성 검사이며 장비 인터락·도달정밀도·광학/통신 타이밍·실물 보정성능 검수를 대신하지 않는다."
+  ],
+  "visualReview": "복사된 compactDark/wideLight2PNG를 직접 열람했다. 최종 파일명/저장행/단위와 최종 Review/작업 기준B를 구분하고, 지도 중심·기존테마·접힌표·NG색/Init회색을 유지한다. 그림은 합성fakeController이며 실제설비접속사진이 아니다.",
+  "notExecutedByQaInThisRound": [
+    "생산 프로그램/설비 App·Root·Manager·벤더 실행",
+    "PLC/Vision 통신·실모션·AeroScript·레이저",
+    "실제 운영CSV·실가공·Git mutation",
+    "이미 통과한 전체시험의 불필요한 중복 재실행"
+  ]
+}

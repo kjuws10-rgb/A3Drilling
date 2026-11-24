@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Collections.Frozen;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Text;
 using System.Text.Json;
@@ -51,6 +53,12 @@ public sealed class CManualInspectionController : IManualInspectionController
     private bool _syncPending, _syncQueued, _explicitResultView;
     private string _synchronizationText = "같은 Recipe·기판의 최근 측정과 활성 보정을 자동 확인합니다.";
     private CManualInspectionUpdateMonitor? _updateMonitor;
+    private CManualInspectionSavedOffsetSnapshot? _finalOffsets;
+    private IReadOnlyDictionary<string,CManualInspectionUiOffset> _finalUiPoints=new Dictionary<string,CManualInspectionUiOffset>(StringComparer.Ordinal);
+    private IReadOnlySet<string> _finalInitializedPointKeys=FrozenSet<string>.Empty;
+    private readonly SemaphoreSlim _finalOffsetReadGate=new(1,1);
+    private bool _finalOffsetReadQueued,_finalOffsetFollowupScheduled;
+    private string _finalOffsetStatus="최종 저장 보정 확인 전";
     private Dictionary<string, CManualInspectionImportedResult> _displayedImports = new(StringComparer.Ordinal);
     public CManualInspectionUiSnapshot Snapshot { get; private set; } = new();
     public event EventHandler? Changed;
@@ -90,6 +98,92 @@ public sealed class CManualInspectionController : IManualInspectionController
 
     public void DisableAutomaticUpdates() { _updateMonitor?.Dispose(); _updateMonitor = null; }
 
+    /// <summary>Legacy Review completion notification. Reads saved results/offsets; never starts motion or applies a candidate.</summary>
+    public Task NotifyExternalReviewChangedAsync(CancellationToken cancellationToken=default)
+        => SynchronizeExternalAsync(cancellationToken);
+
+    private static bool SameSavedFrame(ST_MANUAL_CONTEXT context,CManualInspectionSavedOffsetSnapshot saved)
+        => context.RecipeId==saved.RecipeId && context.RunId==saved.RunId && context.CoordinateSignature==saved.CoordinateSignature;
+
+    private void AcceptFinalOffsets(CManualInspectionSavedOffsetSnapshot? saved)
+    {
+        if(saved is null) { _finalOffsets=null;_finalOffsetStatus="이 연결은 별도 최종 저장 보정 조회를 제공하지 않습니다.";return; }
+        if(_source is null || !SameSavedFrame(_source.Context,saved) || saved.ValuesByPointKey.Any(pair=>!pair.Value.IsFinite)
+            || _source.Points.Any(point=>!saved.ValuesByPointKey.ContainsKey(point.Key)))
+            throw new InvalidDataException("최종 저장 보정의 모델·회차·좌표·전체 위치가 현재 작업과 다릅니다.");
+        _finalOffsets=saved with
+        {
+            ValuesByPointKey=new ReadOnlyDictionary<string,ST_MANUAL_OFFSET>(saved.ValuesByPointKey.ToDictionary(pair=>pair.Key,pair=>pair.Value,StringComparer.Ordinal)),
+            InitializedOffsetKeys=saved.InitializedOffsetKeys.ToFrozenSet(StringComparer.Ordinal),AppliedPointKeys=saved.AppliedPointKeys.ToFrozenSet(StringComparer.Ordinal)
+        };
+        _finalUiPoints=new ReadOnlyDictionary<string,CManualInspectionUiOffset>(saved.ValuesByPointKey.ToDictionary(pair=>pair.Key,
+            pair=>new CManualInspectionUiOffset(pair.Value.XUm,pair.Value.YUm),StringComparer.Ordinal));
+        var pointOffsetKeys=_source.Points.ToDictionary(point=>point.Key,point=>point.OffsetKey,StringComparer.Ordinal);
+        _finalInitializedPointKeys=saved.ValuesByPointKey.Keys.Where(key=>saved.InitializedOffsetKeys.Contains(pointOffsetKeys.GetValueOrDefault(key)
+            ?? string.Join("/",key.Split('/').Where(part=>part.StartsWith('C') || part.StartsWith('S'))))).ToFrozenSet(StringComparer.Ordinal);
+        _finalOffsetStatus=string.IsNullOrWhiteSpace(saved.FilePath)?"저장된 측정 보정 파일 없음 · 미적용 위치는 값 없음"
+            : $"최종 저장 {saved.SavedAt?.ToLocalTime():MM-dd HH:mm:ss} · {saved.RowCount:N0}행 · Init {saved.InitializedRowCount:N0}행 · 미저장 작업 제외";
+    }
+
+    private async Task RefreshFinalOffsets(CancellationToken token,bool waitForFresh=false)
+    {
+        if(_source is null) return;
+        if(!await _finalOffsetReadGate.WaitAsync(waitForFresh?Timeout.Infinite:0,token))
+        { _finalOffsetReadQueued=true;return; }
+        var publishCancelledRead=false;
+        try
+        {
+            // At most the original read and one coalesced latest read own the gate. Further
+            // notifications yield to the dispatcher, so continuous writes cannot spin this call.
+            for(var attempt=0;attempt<2;attempt++)
+            {
+                _finalOffsetReadQueued=false;
+                var source=_source;var backend=_backend;
+                bool CurrentFrame()=>_source is not null && backend==_backend && source.Context.RecipeId==_source.Context.RecipeId
+                    && source.Context.RunId==_source.Context.RunId && source.Context.CoordinateSignature==_source.Context.CoordinateSignature;
+                try
+                {
+                    var saved=await backend.ReadSavedOffsetSnapshotAsync(source,token);
+                    if(!CurrentFrame()) { _finalOffsetReadQueued=false;return; }
+                    AcceptFinalOffsets(saved);
+                }
+                catch(OperationCanceledException)
+                {
+                    _finalOffsetReadQueued=false;
+                    if(CurrentFrame()) { _finalOffsets=null;_finalOffsetStatus="최종 저장 보정 확인 중지 · 다시 확인하세요.";publishCancelledRead=true; }
+                    throw;
+                }
+                catch(Exception error)
+                {
+                    if(!CurrentFrame()) { _finalOffsetReadQueued=false;return; }
+                    _finalOffsets=null;_finalOffsetStatus="최종 저장 보정 확인 실패 · "+error.Message;
+                }
+                if(!_finalOffsetReadQueued) break;
+            }
+        }
+        finally
+        {
+            _finalOffsetReadGate.Release();
+            if(publishCancelledRead) Publish(reusePoints:true);
+            else ScheduleFinalOffsetFollowup();
+        }
+    }
+
+    private void ScheduleFinalOffsetFollowup()
+    {
+        if(!_finalOffsetReadQueued || _finalOffsetFollowupScheduled) return;
+        var dispatcher=Application.Current?.Dispatcher;
+        if(dispatcher is null || dispatcher.HasShutdownStarted) { _finalOffsetReadQueued=false;return; }
+        _finalOffsetFollowupScheduled=true;
+        dispatcher.BeginInvoke(DispatcherPriority.Background,new Action(async()=>
+        {
+            _finalOffsetFollowupScheduled=false;
+            if(!_finalOffsetReadQueued) return;
+            try { await RefreshFinalOffsets(CancellationToken.None);Publish(reusePoints:true); }
+            catch(OperationCanceledException) { _finalOffsetReadQueued=false; }
+        }));
+    }
+
     /// <summary>
     /// Read-only refresh requested by another menu/file save or by tab activation. Do not reenter the
     /// mutable production adapter during motion/write, or replace pending work without confirmation.
@@ -100,6 +194,9 @@ public sealed class CManualInspectionController : IManualInspectionController
         if (dispatcher is not null && !dispatcher.CheckAccess())
         { await dispatcher.InvokeAsync(() => SynchronizeExternalAsync(cancellationToken)).Task.Unwrap(); return; }
         if (_source is null || _backend != _production) return;
+        // The saved map is a separate read-only projection, so drafts, incomplete runs and an
+        // explicitly opened result keep their raw/candidate state while still seeing the latest file.
+        await RefreshFinalOffsets(cancellationToken);
         if (_explicitResultView)
         { _synchronizationText = "선택한 파일 작업 유지 · 자동으로 다른 자료로 전환하지 않습니다. 원래 작업은 파일 메뉴에서 돌아가세요."; Publish(reusePoints: true); return; }
         _syncQueued = true;
@@ -186,7 +283,8 @@ public sealed class CManualInspectionController : IManualInspectionController
                 or EN_MANUAL_INSPECTION_UI_ACTION.CancelOffsetEdit or EN_MANUAL_INSPECTION_UI_ACTION.UpdateLimits
                 or EN_MANUAL_INSPECTION_UI_ACTION.UpdateLevels or EN_MANUAL_INSPECTION_UI_ACTION.SetAllowManual
                 or EN_MANUAL_INSPECTION_UI_ACTION.ExportCsv or EN_MANUAL_INSPECTION_UI_ACTION.ExportOffsetBundle
-                or EN_MANUAL_INSPECTION_UI_ACTION.ExportSession or EN_MANUAL_INSPECTION_UI_ACTION.ShowPoint))
+                or EN_MANUAL_INSPECTION_UI_ACTION.ExportSession or EN_MANUAL_INSPECTION_UI_ACTION.ShowPoint
+                or EN_MANUAL_INSPECTION_UI_ACTION.ExportFinalOffsets))
             {
                 _loadFailureRecovered=true; // No source load was attempted; retain a writable draft.
                 throw new InvalidOperationException("통합 Offset은 아직 저장 전입니다. 모델 Offset 저장 또는 편집 취소 후 이동·측정·파일 전환하세요.");
@@ -228,6 +326,8 @@ public sealed class CManualInspectionController : IManualInspectionController
                     _status="통합 Offset 편집을 취소했습니다. 실제 활성 보정과 원측정은 그대로입니다.";break;
                 case EN_MANUAL_INSPECTION_UI_ACTION.ExportOffsetBundle:
                     await ExportOffsetBundle(request.ResultPath,token);break;
+                case EN_MANUAL_INSPECTION_UI_ACTION.ExportFinalOffsets:
+                    await ExportFinalOffsets(request.ResultPath,token);break;
                 case EN_MANUAL_INSPECTION_UI_ACTION.ImportOffsetBundle:
                     await Current(token);
                     var importPath=request.ResultPath??ChooseFile(false,"json");
@@ -319,7 +419,7 @@ public sealed class CManualInspectionController : IManualInspectionController
     private async Task LoadSource(string? path, CancellationToken token, bool keepBackend = false, bool automatic = false, bool preserveFileWork = false)
     {
         _loadFailureRecovered = false;
-        if (path is not null) { await OpenResultWorkspace(path, token,preserveFileWork); return; }
+        if (path is not null) { await OpenResultWorkspace(path, token,preserveFileWork); await RefreshFinalOffsets(token,true); return; }
         var previous = _source is not null && !IsOffsetDraftRecoveryBlocked(SessionPath()) ? _engine.CaptureSession() : null;
         if (previous is not null) SaveLocalSession();
         if (!keepBackend) _backend = _production;
@@ -333,6 +433,7 @@ public sealed class CManualInspectionController : IManualInspectionController
         if(!automatic || !sameFrame) ClearMeasurementReceipt();
         _engine.Load(next.Context, next.Points, next.Values, next.Limits, next.FieldEvaluator,next.StoredInitializedOffsetKeys);
         _source = next; _allowManual = false; _explicitResultView = path is not null;
+        if(_finalOffsets is not null && !SameSavedFrame(next.Context,_finalOffsets)) _finalOffsets=null;
         _stageX = _stageY = double.NaN;
         var saved = SessionPath();
         if (path is null && (sameFrame || System.IO.File.Exists(saved)))
@@ -410,6 +511,7 @@ public sealed class CManualInspectionController : IManualInspectionController
         _synchronizationText = path is null ? "최근 측정·현재 활성 보정 표시 · " + next.Description
             : "선택 결과 조회 · " + next.SourcePath;
         if (_syncPending) _synchronizationText = "외부 결과 확인 대기 · 미완료 측정을 보존했습니다. 잔여 측정 후 갱신합니다.";
+        await RefreshFinalOffsets(token,true);
     }
 
     private sealed record WorkspaceBookmark(CManualInspectionWorkspace Engine, CManualInspectionSource Source,
@@ -582,6 +684,7 @@ public sealed class CManualInspectionController : IManualInspectionController
         _status=exact ? "파일 이전의 선택 Recipe 작업·측정·후보·설정을 복구했습니다. 장비 이동은 하지 않았습니다."
             : sameCoordinates ? "원래 Recipe 화면으로 복귀 · 현재 활성 보정값을 반영했습니다. 이전 측정은 이력으로 보존하고 후보는 다시 측정·계산하세요."
             : "현재 Recipe·가공 회차로 복귀했습니다. 달라진 기준의 옛 측정·후보는 자동 재사용하지 않으며 이전 자동 보관 파일은 보존합니다.";
+        await RefreshFinalOffsets(token,true);
     }
 
     private static bool SameFrame(ST_MANUAL_CONTEXT left, ST_MANUAL_CONTEXT right) => left.RecipeId == right.RecipeId
@@ -927,6 +1030,7 @@ public sealed class CManualInspectionController : IManualInspectionController
                     : _source.AppliedOffsetKeys.Concat(_source.Points.Where(p => written.Contains(p.OffsetKey)).Select(p => p.Key)).ToHashSet(StringComparer.Ordinal)
             };
             _status = "모델 통합 Offset 저장 완료 · 최신 누적값 하나로 반영 · 보호 Offset·기존 파일/원측정 이력 보존";
+            await RefreshFinalOffsets(CancellationToken.None,true);
         }
         catch { _engine.AbortApply(snapshot); throw; }
     }
@@ -946,6 +1050,7 @@ public sealed class CManualInspectionController : IManualInspectionController
                 StoredInitializedOffsetKeys=_engine.ActiveInitializedOffsetKeys.ToHashSet(StringComparer.Ordinal) };
             ClearMeasurementReceipt();
             _status=(redo?"보정을 다시 적용했습니다.":"이전 보정으로 되돌렸습니다.")+$" 되돌리기 {_engine.UndoCount}/10 · 다시 적용 {_engine.RedoCount}회 · 원측정 이력 보존";
+            await RefreshFinalOffsets(CancellationToken.None,true);
         }
         catch { _engine.AbortRestore(snapshot); throw; }
     }
@@ -1085,6 +1190,40 @@ public sealed class CManualInspectionController : IManualInspectionController
             :"현재 적용된 모델 통합 Offset과 보호 설정 참고값·최종 좌표를 파일 하나로 내보냈습니다. 미적용 측정 후보는 제외했습니다.";
     }
 
+    private async Task ExportFinalOffsets(string? requestedPath,CancellationToken token)
+    {
+        if(_source is null) throw new InvalidOperationException("먼저 현재 모델을 불러오세요.");
+        var path=requestedPath;
+        if(path is null)
+        {
+            if(ChooseFile==DefaultChooseFile)
+            {
+                await RefreshFinalOffsets(token,true);
+                if(_finalOffsets is null) throw new InvalidOperationException(_finalOffsetStatus);
+                var name=string.Concat(_source.Context.RecipeId.Select(ch=>Path.GetInvalidFileNameChars().Contains(ch)?'_':ch));
+                var revision=_finalOffsets.SavedAt?.ToString("yyyyMMddHHmmssfff",CultureInfo.InvariantCulture)??"initial";
+                var dialog=new SaveFileDialog { Filter="최종 저장 Offset (*.json)|*.json",DefaultExt=".json",FileName=$"{name}_final_r{revision}.json" };
+                path=dialog.ShowDialog()==true?dialog.FileName:null;
+            }
+            else path=ChooseFile(true,"json");
+        }
+        if(path is null) return;
+        await _finalOffsetReadGate.WaitAsync(token);
+        try
+        {
+            var saved=await _backend.ExportFinalOffsetBundleAsync(_source,path,token);
+            if(saved is null) throw new InvalidOperationException("최종 저장 보정 내보내기 결과를 확인할 수 없습니다.");
+            AcceptFinalOffsets(saved);
+            _status="현재 모델의 최종 저장 누적 Offset·보호 설정 참고값·최종 좌표를 내보냈습니다. 작업 중인 미저장 후보와 원측정은 유지했습니다.";
+        }
+        catch
+        {
+            _finalOffsets=null;_finalOffsetStatus="최종 저장 보정 내보내기 실패 · 최신 기준을 다시 확인하세요.";
+            throw;
+        }
+        finally { _finalOffsetReadGate.Release();ScheduleFinalOffsetFollowup(); }
+    }
+
     private void ClearMeasurementReceipt() { _lastMeasuredPointKey=null;_lastMeasurementText=""; }
 
     private SessionBundle Bundle() => new(1, _backend is CManualInspectionReplayBackend, _simulationScenario,
@@ -1215,8 +1354,17 @@ public sealed class CManualInspectionController : IManualInspectionController
         }).ToArray();
         if (!reusePoints) _pendingPointPublication = false;
         var op = _engine.Operation; var validation = candidate?.Validation;
+        var final=_finalOffsets is not null && c is not null && SameSavedFrame(c,_finalOffsets)?_finalOffsets:null;
         Snapshot = new()
         {
+            HasFinalOffsetSnapshot=final is not null,
+            FinalOffsetPoints=final is null?new Dictionary<string,CManualInspectionUiOffset>(StringComparer.Ordinal)
+                :_finalUiPoints,
+            FinalInitializedOffsetKeys=final?.InitializedOffsetKeys??FrozenSet<string>.Empty,FinalInitializedPointKeys=final is null?FrozenSet<string>.Empty:_finalInitializedPointKeys,
+            FinalAppliedPointKeys=final?.AppliedPointKeys??FrozenSet<string>.Empty,
+            FinalOffsetFilePath=final?.FilePath??"",FinalOffsetFileName=final?.FileName??"",FinalOffsetSavedAt=final?.SavedAt,
+            FinalOffsetContentSha256=final?.ContentSha256??"",FinalOffsetRevisionId=final?.RevisionId??"",
+            FinalOffsetRowCount=final?.RowCount??0,FinalOffsetInitializedRowCount=final?.InitializedRowCount??0,FinalOffsetStatusText=_finalOffsetStatus,
             CanReturnToPreviousWorkspace=_previousWorkspace is not null,
             IsOffsetEditPending=offsetEdit,OffsetInitPending=offsetEdit&&candidate!.IsMeasurementOffsetInitialization,
             MeasurementSequence=_measurementSequence,LastMeasuredPointKey=_lastMeasuredPointKey,LastMeasurementText=_lastMeasurementText,

@@ -1,0 +1,8987 @@
+{
+  "schemaVersion": "a3-offset-frame-parity-diagnostic/1",
+  "baseline": "7de760c",
+  "diagnosticMode": "working-tree-fixed",
+  "checkedRows": 256,
+  "matched": 256,
+  "mismatched": 0,
+  "parityPassed": true,
+  "reproduced": false,
+  "csvFlipRoundTrips": 8,
+  "rawPreserved": true,
+  "manualLiveAndImportedMatch": true,
+  "loadedVendorAssemblies": [],
+  "assemblies": [
+    {
+      "Location": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\parity\\bin\\Release\\net8.0-windows\\Drilling.Common.dll",
+      "sha256": "acd3cd5bba9c285add5f7433e9f68879f55dda419fb961683249c0176b59e9a7"
+    },
+    {
+      "Location": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\parity\\bin\\Release\\net8.0-windows\\Drilling.File.dll",
+      "sha256": "89b770d0e00ceea5c6f32ae7f4da4292095c384521974b664e6d64c30e57c9a3"
+    }
+  ],
+  "scope": "Actual production static methods and real Result CSV parser/writer with synthetic records; no Manager/App/Root/device/PLC/Vision instance. This is the post-fix comparison under the same synthetic conditions; a parity pass does not certify physical calibration performance.",
+  "rows": [
+    {
+      "direction": -1,
+      "head": 1,
+      "flipBits": 0,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      }
+    },
+    {
+      "direction": -1,
+      "head": 1,
+      "flipBits": 0,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      },
+      "manualScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      }
+    },
+    {
+      "direction": -1,
+      "head": 2,
+      "flipBits": 0,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      }
+    },
+    {
+      "direction": -1,
+      "head": 2,
+      "flipBits": 0,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      },
+      "manualScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      }
+    },
+    {
+      "direction": -1,
+      "head": 3,
+      "flipBits": 0,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      }
+    },
+    {
+      "direction": -1,
+      "head": 3,
+      "flipBits": 0,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      },
+      "manualScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      }
+    },
+    {
+      "direction": -1,
+      "head": 4,
+      "flipBits": 0,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      }
+    },
+    {
+      "direction": -1,
+      "head": 4,
+      "flipBits": 0,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      },
+      "manualScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      }
+    },
+    {
+      "direction": -1,
+      "head": 5,
+      "flipBits": 0,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      }
+    },
+    {
+      "direction": -1,
+      "head": 5,
+      "flipBits": 0,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      },
+      "manualScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      }
+    },
+    {
+      "direction": -1,
+      "head": 6,
+      "flipBits": 0,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      }
+    },
+    {
+      "direction": -1,
+      "head": 6,
+      "flipBits": 0,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      },
+      "manualScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      }
+    },
+    {
+      "direction": -1,
+      "head": 7,
+      "flipBits": 0,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      }
+    },
+    {
+      "direction": -1,
+      "head": 7,
+      "flipBits": 0,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      },
+      "manualScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      }
+    },
+    {
+      "direction": -1,
+      "head": 8,
+      "flipBits": 0,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      }
+    },
+    {
+      "direction": -1,
+      "head": 8,
+      "flipBits": 0,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      },
+      "manualScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      }
+    },
+    {
+      "direction": 1,
+      "head": 1,
+      "flipBits": 0,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      }
+    },
+    {
+      "direction": 1,
+      "head": 1,
+      "flipBits": 0,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      },
+      "manualScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      }
+    },
+    {
+      "direction": 1,
+      "head": 2,
+      "flipBits": 0,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      }
+    },
+    {
+      "direction": 1,
+      "head": 2,
+      "flipBits": 0,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      },
+      "manualScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      }
+    },
+    {
+      "direction": 1,
+      "head": 3,
+      "flipBits": 0,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      }
+    },
+    {
+      "direction": 1,
+      "head": 3,
+      "flipBits": 0,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      },
+      "manualScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      }
+    },
+    {
+      "direction": 1,
+      "head": 4,
+      "flipBits": 0,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      }
+    },
+    {
+      "direction": 1,
+      "head": 4,
+      "flipBits": 0,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      },
+      "manualScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      }
+    },
+    {
+      "direction": 1,
+      "head": 5,
+      "flipBits": 0,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      }
+    },
+    {
+      "direction": 1,
+      "head": 5,
+      "flipBits": 0,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      },
+      "manualScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      }
+    },
+    {
+      "direction": 1,
+      "head": 6,
+      "flipBits": 0,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      }
+    },
+    {
+      "direction": 1,
+      "head": 6,
+      "flipBits": 0,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      },
+      "manualScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      }
+    },
+    {
+      "direction": 1,
+      "head": 7,
+      "flipBits": 0,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      }
+    },
+    {
+      "direction": 1,
+      "head": 7,
+      "flipBits": 0,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      },
+      "manualScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      }
+    },
+    {
+      "direction": 1,
+      "head": 8,
+      "flipBits": 0,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      }
+    },
+    {
+      "direction": 1,
+      "head": 8,
+      "flipBits": 0,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      },
+      "manualScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      }
+    },
+    {
+      "direction": -1,
+      "head": 1,
+      "flipBits": 1,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      }
+    },
+    {
+      "direction": -1,
+      "head": 1,
+      "flipBits": 1,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      },
+      "manualScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      }
+    },
+    {
+      "direction": -1,
+      "head": 2,
+      "flipBits": 1,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      }
+    },
+    {
+      "direction": -1,
+      "head": 2,
+      "flipBits": 1,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      },
+      "manualScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      }
+    },
+    {
+      "direction": -1,
+      "head": 3,
+      "flipBits": 1,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      }
+    },
+    {
+      "direction": -1,
+      "head": 3,
+      "flipBits": 1,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      },
+      "manualScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      }
+    },
+    {
+      "direction": -1,
+      "head": 4,
+      "flipBits": 1,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      }
+    },
+    {
+      "direction": -1,
+      "head": 4,
+      "flipBits": 1,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      },
+      "manualScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      }
+    },
+    {
+      "direction": -1,
+      "head": 5,
+      "flipBits": 1,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      }
+    },
+    {
+      "direction": -1,
+      "head": 5,
+      "flipBits": 1,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      },
+      "manualScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      }
+    },
+    {
+      "direction": -1,
+      "head": 6,
+      "flipBits": 1,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      }
+    },
+    {
+      "direction": -1,
+      "head": 6,
+      "flipBits": 1,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      },
+      "manualScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      }
+    },
+    {
+      "direction": -1,
+      "head": 7,
+      "flipBits": 1,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      }
+    },
+    {
+      "direction": -1,
+      "head": 7,
+      "flipBits": 1,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      },
+      "manualScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      }
+    },
+    {
+      "direction": -1,
+      "head": 8,
+      "flipBits": 1,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      }
+    },
+    {
+      "direction": -1,
+      "head": 8,
+      "flipBits": 1,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      },
+      "manualScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      }
+    },
+    {
+      "direction": 1,
+      "head": 1,
+      "flipBits": 1,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      }
+    },
+    {
+      "direction": 1,
+      "head": 1,
+      "flipBits": 1,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      },
+      "manualScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      }
+    },
+    {
+      "direction": 1,
+      "head": 2,
+      "flipBits": 1,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      }
+    },
+    {
+      "direction": 1,
+      "head": 2,
+      "flipBits": 1,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      },
+      "manualScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      }
+    },
+    {
+      "direction": 1,
+      "head": 3,
+      "flipBits": 1,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      }
+    },
+    {
+      "direction": 1,
+      "head": 3,
+      "flipBits": 1,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      },
+      "manualScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      }
+    },
+    {
+      "direction": 1,
+      "head": 4,
+      "flipBits": 1,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      }
+    },
+    {
+      "direction": 1,
+      "head": 4,
+      "flipBits": 1,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      },
+      "manualScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      }
+    },
+    {
+      "direction": 1,
+      "head": 5,
+      "flipBits": 1,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      }
+    },
+    {
+      "direction": 1,
+      "head": 5,
+      "flipBits": 1,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      },
+      "manualScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      }
+    },
+    {
+      "direction": 1,
+      "head": 6,
+      "flipBits": 1,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      }
+    },
+    {
+      "direction": 1,
+      "head": 6,
+      "flipBits": 1,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      },
+      "manualScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      }
+    },
+    {
+      "direction": 1,
+      "head": 7,
+      "flipBits": 1,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      }
+    },
+    {
+      "direction": 1,
+      "head": 7,
+      "flipBits": 1,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      },
+      "manualScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      }
+    },
+    {
+      "direction": 1,
+      "head": 8,
+      "flipBits": 1,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      }
+    },
+    {
+      "direction": 1,
+      "head": 8,
+      "flipBits": 1,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      },
+      "manualScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      }
+    },
+    {
+      "direction": -1,
+      "head": 1,
+      "flipBits": 2,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      }
+    },
+    {
+      "direction": -1,
+      "head": 1,
+      "flipBits": 2,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      },
+      "manualScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      }
+    },
+    {
+      "direction": -1,
+      "head": 2,
+      "flipBits": 2,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      }
+    },
+    {
+      "direction": -1,
+      "head": 2,
+      "flipBits": 2,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      },
+      "manualScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      }
+    },
+    {
+      "direction": -1,
+      "head": 3,
+      "flipBits": 2,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      }
+    },
+    {
+      "direction": -1,
+      "head": 3,
+      "flipBits": 2,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      },
+      "manualScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      }
+    },
+    {
+      "direction": -1,
+      "head": 4,
+      "flipBits": 2,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      }
+    },
+    {
+      "direction": -1,
+      "head": 4,
+      "flipBits": 2,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      },
+      "manualScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      }
+    },
+    {
+      "direction": -1,
+      "head": 5,
+      "flipBits": 2,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      }
+    },
+    {
+      "direction": -1,
+      "head": 5,
+      "flipBits": 2,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      },
+      "manualScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      }
+    },
+    {
+      "direction": -1,
+      "head": 6,
+      "flipBits": 2,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      }
+    },
+    {
+      "direction": -1,
+      "head": 6,
+      "flipBits": 2,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      },
+      "manualScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      }
+    },
+    {
+      "direction": -1,
+      "head": 7,
+      "flipBits": 2,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      }
+    },
+    {
+      "direction": -1,
+      "head": 7,
+      "flipBits": 2,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      },
+      "manualScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      }
+    },
+    {
+      "direction": -1,
+      "head": 8,
+      "flipBits": 2,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      }
+    },
+    {
+      "direction": -1,
+      "head": 8,
+      "flipBits": 2,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      },
+      "manualScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      }
+    },
+    {
+      "direction": 1,
+      "head": 1,
+      "flipBits": 2,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      }
+    },
+    {
+      "direction": 1,
+      "head": 1,
+      "flipBits": 2,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      },
+      "manualScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      }
+    },
+    {
+      "direction": 1,
+      "head": 2,
+      "flipBits": 2,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      }
+    },
+    {
+      "direction": 1,
+      "head": 2,
+      "flipBits": 2,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      },
+      "manualScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      }
+    },
+    {
+      "direction": 1,
+      "head": 3,
+      "flipBits": 2,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      }
+    },
+    {
+      "direction": 1,
+      "head": 3,
+      "flipBits": 2,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      },
+      "manualScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      }
+    },
+    {
+      "direction": 1,
+      "head": 4,
+      "flipBits": 2,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      }
+    },
+    {
+      "direction": 1,
+      "head": 4,
+      "flipBits": 2,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      },
+      "manualScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      }
+    },
+    {
+      "direction": 1,
+      "head": 5,
+      "flipBits": 2,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      }
+    },
+    {
+      "direction": 1,
+      "head": 5,
+      "flipBits": 2,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      },
+      "manualScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      }
+    },
+    {
+      "direction": 1,
+      "head": 6,
+      "flipBits": 2,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      }
+    },
+    {
+      "direction": 1,
+      "head": 6,
+      "flipBits": 2,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      },
+      "manualScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      }
+    },
+    {
+      "direction": 1,
+      "head": 7,
+      "flipBits": 2,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      }
+    },
+    {
+      "direction": 1,
+      "head": 7,
+      "flipBits": 2,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      },
+      "manualScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      }
+    },
+    {
+      "direction": 1,
+      "head": 8,
+      "flipBits": 2,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      }
+    },
+    {
+      "direction": 1,
+      "head": 8,
+      "flipBits": 2,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      },
+      "manualScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      }
+    },
+    {
+      "direction": -1,
+      "head": 1,
+      "flipBits": 3,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      }
+    },
+    {
+      "direction": -1,
+      "head": 1,
+      "flipBits": 3,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      },
+      "manualScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      }
+    },
+    {
+      "direction": -1,
+      "head": 2,
+      "flipBits": 3,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      }
+    },
+    {
+      "direction": -1,
+      "head": 2,
+      "flipBits": 3,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      },
+      "manualScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      }
+    },
+    {
+      "direction": -1,
+      "head": 3,
+      "flipBits": 3,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      }
+    },
+    {
+      "direction": -1,
+      "head": 3,
+      "flipBits": 3,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      },
+      "manualScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      }
+    },
+    {
+      "direction": -1,
+      "head": 4,
+      "flipBits": 3,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      }
+    },
+    {
+      "direction": -1,
+      "head": 4,
+      "flipBits": 3,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      },
+      "manualScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      }
+    },
+    {
+      "direction": -1,
+      "head": 5,
+      "flipBits": 3,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      }
+    },
+    {
+      "direction": -1,
+      "head": 5,
+      "flipBits": 3,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      },
+      "manualScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      }
+    },
+    {
+      "direction": -1,
+      "head": 6,
+      "flipBits": 3,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      }
+    },
+    {
+      "direction": -1,
+      "head": 6,
+      "flipBits": 3,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      },
+      "manualScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      }
+    },
+    {
+      "direction": -1,
+      "head": 7,
+      "flipBits": 3,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      }
+    },
+    {
+      "direction": -1,
+      "head": 7,
+      "flipBits": 3,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      },
+      "manualScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      }
+    },
+    {
+      "direction": -1,
+      "head": 8,
+      "flipBits": 3,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      }
+    },
+    {
+      "direction": -1,
+      "head": 8,
+      "flipBits": 3,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "fineScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      },
+      "manualScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      }
+    },
+    {
+      "direction": 1,
+      "head": 1,
+      "flipBits": 3,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      }
+    },
+    {
+      "direction": 1,
+      "head": 1,
+      "flipBits": 3,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      },
+      "manualScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      }
+    },
+    {
+      "direction": 1,
+      "head": 2,
+      "flipBits": 3,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      }
+    },
+    {
+      "direction": 1,
+      "head": 2,
+      "flipBits": 3,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      },
+      "manualScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      }
+    },
+    {
+      "direction": 1,
+      "head": 3,
+      "flipBits": 3,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      }
+    },
+    {
+      "direction": 1,
+      "head": 3,
+      "flipBits": 3,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      },
+      "manualScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      }
+    },
+    {
+      "direction": 1,
+      "head": 4,
+      "flipBits": 3,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      }
+    },
+    {
+      "direction": 1,
+      "head": 4,
+      "flipBits": 3,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      },
+      "manualScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      }
+    },
+    {
+      "direction": 1,
+      "head": 5,
+      "flipBits": 3,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      }
+    },
+    {
+      "direction": 1,
+      "head": 5,
+      "flipBits": 3,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      },
+      "manualScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      }
+    },
+    {
+      "direction": 1,
+      "head": 6,
+      "flipBits": 3,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      }
+    },
+    {
+      "direction": 1,
+      "head": 6,
+      "flipBits": 3,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      },
+      "manualScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      }
+    },
+    {
+      "direction": 1,
+      "head": 7,
+      "flipBits": 3,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      }
+    },
+    {
+      "direction": 1,
+      "head": 7,
+      "flipBits": 3,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      },
+      "manualScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      }
+    },
+    {
+      "direction": 1,
+      "head": 8,
+      "flipBits": 3,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      }
+    },
+    {
+      "direction": 1,
+      "head": 8,
+      "flipBits": 3,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualStoredDesignMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "fineScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      },
+      "manualScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      }
+    },
+    {
+      "direction": -1,
+      "head": 1,
+      "flipBits": 4,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      }
+    },
+    {
+      "direction": -1,
+      "head": 1,
+      "flipBits": 4,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      },
+      "manualScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      }
+    },
+    {
+      "direction": -1,
+      "head": 2,
+      "flipBits": 4,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      }
+    },
+    {
+      "direction": -1,
+      "head": 2,
+      "flipBits": 4,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      },
+      "manualScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      }
+    },
+    {
+      "direction": -1,
+      "head": 3,
+      "flipBits": 4,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      }
+    },
+    {
+      "direction": -1,
+      "head": 3,
+      "flipBits": 4,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      },
+      "manualScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      }
+    },
+    {
+      "direction": -1,
+      "head": 4,
+      "flipBits": 4,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      }
+    },
+    {
+      "direction": -1,
+      "head": 4,
+      "flipBits": 4,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      },
+      "manualScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      }
+    },
+    {
+      "direction": -1,
+      "head": 5,
+      "flipBits": 4,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      }
+    },
+    {
+      "direction": -1,
+      "head": 5,
+      "flipBits": 4,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      },
+      "manualScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      }
+    },
+    {
+      "direction": -1,
+      "head": 6,
+      "flipBits": 4,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      }
+    },
+    {
+      "direction": -1,
+      "head": 6,
+      "flipBits": 4,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      },
+      "manualScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      }
+    },
+    {
+      "direction": -1,
+      "head": 7,
+      "flipBits": 4,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      }
+    },
+    {
+      "direction": -1,
+      "head": 7,
+      "flipBits": 4,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      },
+      "manualScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      }
+    },
+    {
+      "direction": -1,
+      "head": 8,
+      "flipBits": 4,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      }
+    },
+    {
+      "direction": -1,
+      "head": 8,
+      "flipBits": 4,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      },
+      "manualScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      }
+    },
+    {
+      "direction": 1,
+      "head": 1,
+      "flipBits": 4,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      }
+    },
+    {
+      "direction": 1,
+      "head": 1,
+      "flipBits": 4,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      },
+      "manualScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      }
+    },
+    {
+      "direction": 1,
+      "head": 2,
+      "flipBits": 4,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      }
+    },
+    {
+      "direction": 1,
+      "head": 2,
+      "flipBits": 4,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      },
+      "manualScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      }
+    },
+    {
+      "direction": 1,
+      "head": 3,
+      "flipBits": 4,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      }
+    },
+    {
+      "direction": 1,
+      "head": 3,
+      "flipBits": 4,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      },
+      "manualScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      }
+    },
+    {
+      "direction": 1,
+      "head": 4,
+      "flipBits": 4,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      }
+    },
+    {
+      "direction": 1,
+      "head": 4,
+      "flipBits": 4,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      },
+      "manualScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      }
+    },
+    {
+      "direction": 1,
+      "head": 5,
+      "flipBits": 4,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      }
+    },
+    {
+      "direction": 1,
+      "head": 5,
+      "flipBits": 4,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      },
+      "manualScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      }
+    },
+    {
+      "direction": 1,
+      "head": 6,
+      "flipBits": 4,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      }
+    },
+    {
+      "direction": 1,
+      "head": 6,
+      "flipBits": 4,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      },
+      "manualScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      }
+    },
+    {
+      "direction": 1,
+      "head": 7,
+      "flipBits": 4,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      }
+    },
+    {
+      "direction": 1,
+      "head": 7,
+      "flipBits": 4,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      },
+      "manualScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      }
+    },
+    {
+      "direction": 1,
+      "head": 8,
+      "flipBits": 4,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      }
+    },
+    {
+      "direction": 1,
+      "head": 8,
+      "flipBits": 4,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      },
+      "manualScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      }
+    },
+    {
+      "direction": -1,
+      "head": 1,
+      "flipBits": 5,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      }
+    },
+    {
+      "direction": -1,
+      "head": 1,
+      "flipBits": 5,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      },
+      "manualScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      }
+    },
+    {
+      "direction": -1,
+      "head": 2,
+      "flipBits": 5,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      }
+    },
+    {
+      "direction": -1,
+      "head": 2,
+      "flipBits": 5,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      },
+      "manualScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      }
+    },
+    {
+      "direction": -1,
+      "head": 3,
+      "flipBits": 5,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      }
+    },
+    {
+      "direction": -1,
+      "head": 3,
+      "flipBits": 5,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      },
+      "manualScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      }
+    },
+    {
+      "direction": -1,
+      "head": 4,
+      "flipBits": 5,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      }
+    },
+    {
+      "direction": -1,
+      "head": 4,
+      "flipBits": 5,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      },
+      "manualScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      }
+    },
+    {
+      "direction": -1,
+      "head": 5,
+      "flipBits": 5,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      }
+    },
+    {
+      "direction": -1,
+      "head": 5,
+      "flipBits": 5,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      },
+      "manualScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      }
+    },
+    {
+      "direction": -1,
+      "head": 6,
+      "flipBits": 5,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      }
+    },
+    {
+      "direction": -1,
+      "head": 6,
+      "flipBits": 5,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      },
+      "manualScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      }
+    },
+    {
+      "direction": -1,
+      "head": 7,
+      "flipBits": 5,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      }
+    },
+    {
+      "direction": -1,
+      "head": 7,
+      "flipBits": 5,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      },
+      "manualScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      }
+    },
+    {
+      "direction": -1,
+      "head": 8,
+      "flipBits": 5,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      }
+    },
+    {
+      "direction": -1,
+      "head": 8,
+      "flipBits": 5,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      },
+      "manualScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      }
+    },
+    {
+      "direction": 1,
+      "head": 1,
+      "flipBits": 5,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      }
+    },
+    {
+      "direction": 1,
+      "head": 1,
+      "flipBits": 5,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      },
+      "manualScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      }
+    },
+    {
+      "direction": 1,
+      "head": 2,
+      "flipBits": 5,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      }
+    },
+    {
+      "direction": 1,
+      "head": 2,
+      "flipBits": 5,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      },
+      "manualScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      }
+    },
+    {
+      "direction": 1,
+      "head": 3,
+      "flipBits": 5,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      }
+    },
+    {
+      "direction": 1,
+      "head": 3,
+      "flipBits": 5,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      },
+      "manualScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      }
+    },
+    {
+      "direction": 1,
+      "head": 4,
+      "flipBits": 5,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      }
+    },
+    {
+      "direction": 1,
+      "head": 4,
+      "flipBits": 5,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      },
+      "manualScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      }
+    },
+    {
+      "direction": 1,
+      "head": 5,
+      "flipBits": 5,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      }
+    },
+    {
+      "direction": 1,
+      "head": 5,
+      "flipBits": 5,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      },
+      "manualScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      }
+    },
+    {
+      "direction": 1,
+      "head": 6,
+      "flipBits": 5,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      }
+    },
+    {
+      "direction": 1,
+      "head": 6,
+      "flipBits": 5,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      },
+      "manualScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      }
+    },
+    {
+      "direction": 1,
+      "head": 7,
+      "flipBits": 5,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      }
+    },
+    {
+      "direction": 1,
+      "head": 7,
+      "flipBits": 5,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      },
+      "manualScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      }
+    },
+    {
+      "direction": 1,
+      "head": 8,
+      "flipBits": 5,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      }
+    },
+    {
+      "direction": 1,
+      "head": 8,
+      "flipBits": 5,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      },
+      "manualScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      }
+    },
+    {
+      "direction": -1,
+      "head": 1,
+      "flipBits": 6,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      }
+    },
+    {
+      "direction": -1,
+      "head": 1,
+      "flipBits": 6,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      },
+      "manualScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      }
+    },
+    {
+      "direction": -1,
+      "head": 2,
+      "flipBits": 6,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      }
+    },
+    {
+      "direction": -1,
+      "head": 2,
+      "flipBits": 6,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      },
+      "manualScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      }
+    },
+    {
+      "direction": -1,
+      "head": 3,
+      "flipBits": 6,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      }
+    },
+    {
+      "direction": -1,
+      "head": 3,
+      "flipBits": 6,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      },
+      "manualScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      }
+    },
+    {
+      "direction": -1,
+      "head": 4,
+      "flipBits": 6,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      }
+    },
+    {
+      "direction": -1,
+      "head": 4,
+      "flipBits": 6,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      },
+      "manualScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      }
+    },
+    {
+      "direction": -1,
+      "head": 5,
+      "flipBits": 6,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      }
+    },
+    {
+      "direction": -1,
+      "head": 5,
+      "flipBits": 6,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      },
+      "manualScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      }
+    },
+    {
+      "direction": -1,
+      "head": 6,
+      "flipBits": 6,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      }
+    },
+    {
+      "direction": -1,
+      "head": 6,
+      "flipBits": 6,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      },
+      "manualScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      }
+    },
+    {
+      "direction": -1,
+      "head": 7,
+      "flipBits": 6,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      }
+    },
+    {
+      "direction": -1,
+      "head": 7,
+      "flipBits": 6,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      },
+      "manualScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      }
+    },
+    {
+      "direction": -1,
+      "head": 8,
+      "flipBits": 6,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      }
+    },
+    {
+      "direction": -1,
+      "head": 8,
+      "flipBits": 6,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      },
+      "manualScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      }
+    },
+    {
+      "direction": 1,
+      "head": 1,
+      "flipBits": 6,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      }
+    },
+    {
+      "direction": 1,
+      "head": 1,
+      "flipBits": 6,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      },
+      "manualScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      }
+    },
+    {
+      "direction": 1,
+      "head": 2,
+      "flipBits": 6,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      }
+    },
+    {
+      "direction": 1,
+      "head": 2,
+      "flipBits": 6,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      },
+      "manualScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      }
+    },
+    {
+      "direction": 1,
+      "head": 3,
+      "flipBits": 6,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      }
+    },
+    {
+      "direction": 1,
+      "head": 3,
+      "flipBits": 6,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      },
+      "manualScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      }
+    },
+    {
+      "direction": 1,
+      "head": 4,
+      "flipBits": 6,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      }
+    },
+    {
+      "direction": 1,
+      "head": 4,
+      "flipBits": 6,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      },
+      "manualScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      }
+    },
+    {
+      "direction": 1,
+      "head": 5,
+      "flipBits": 6,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      }
+    },
+    {
+      "direction": 1,
+      "head": 5,
+      "flipBits": 6,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      },
+      "manualScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      }
+    },
+    {
+      "direction": 1,
+      "head": 6,
+      "flipBits": 6,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      }
+    },
+    {
+      "direction": 1,
+      "head": 6,
+      "flipBits": 6,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      },
+      "manualScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      }
+    },
+    {
+      "direction": 1,
+      "head": 7,
+      "flipBits": 6,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      }
+    },
+    {
+      "direction": 1,
+      "head": 7,
+      "flipBits": 6,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      },
+      "manualScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      }
+    },
+    {
+      "direction": 1,
+      "head": 8,
+      "flipBits": 6,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      }
+    },
+    {
+      "direction": 1,
+      "head": 8,
+      "flipBits": 6,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      },
+      "manualScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      }
+    },
+    {
+      "direction": -1,
+      "head": 1,
+      "flipBits": 7,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      }
+    },
+    {
+      "direction": -1,
+      "head": 1,
+      "flipBits": 7,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      },
+      "manualScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      }
+    },
+    {
+      "direction": -1,
+      "head": 2,
+      "flipBits": 7,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      }
+    },
+    {
+      "direction": -1,
+      "head": 2,
+      "flipBits": 7,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      },
+      "manualScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      }
+    },
+    {
+      "direction": -1,
+      "head": 3,
+      "flipBits": 7,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      }
+    },
+    {
+      "direction": -1,
+      "head": 3,
+      "flipBits": 7,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      },
+      "manualScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      }
+    },
+    {
+      "direction": -1,
+      "head": 4,
+      "flipBits": 7,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      }
+    },
+    {
+      "direction": -1,
+      "head": 4,
+      "flipBits": 7,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      },
+      "manualScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      }
+    },
+    {
+      "direction": -1,
+      "head": 5,
+      "flipBits": 7,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      }
+    },
+    {
+      "direction": -1,
+      "head": 5,
+      "flipBits": 7,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      },
+      "manualScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      }
+    },
+    {
+      "direction": -1,
+      "head": 6,
+      "flipBits": 7,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      }
+    },
+    {
+      "direction": -1,
+      "head": 6,
+      "flipBits": 7,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      },
+      "manualScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      }
+    },
+    {
+      "direction": -1,
+      "head": 7,
+      "flipBits": 7,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      }
+    },
+    {
+      "direction": -1,
+      "head": 7,
+      "flipBits": 7,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      },
+      "manualScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      }
+    },
+    {
+      "direction": -1,
+      "head": 8,
+      "flipBits": 7,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      }
+    },
+    {
+      "direction": -1,
+      "head": 8,
+      "flipBits": 7,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "fineScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      },
+      "manualScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      }
+    },
+    {
+      "direction": 1,
+      "head": 1,
+      "flipBits": 7,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "manualScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.006,
+        "Y": -0.004
+      }
+    },
+    {
+      "direction": 1,
+      "head": 1,
+      "flipBits": 7,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      },
+      "manualScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.003,
+        "Y": -0.002
+      }
+    },
+    {
+      "direction": 1,
+      "head": 2,
+      "flipBits": 7,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "manualScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.006,
+        "Y": 0.004
+      }
+    },
+    {
+      "direction": 1,
+      "head": 2,
+      "flipBits": 7,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      },
+      "manualScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.003,
+        "Y": 0.002
+      }
+    },
+    {
+      "direction": 1,
+      "head": 3,
+      "flipBits": 7,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "manualScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.006,
+        "Y": 0.004
+      }
+    },
+    {
+      "direction": 1,
+      "head": 3,
+      "flipBits": 7,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      },
+      "manualScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.003,
+        "Y": 0.002
+      }
+    },
+    {
+      "direction": 1,
+      "head": 4,
+      "flipBits": 7,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "manualScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.004,
+        "Y": -0.006
+      }
+    },
+    {
+      "direction": 1,
+      "head": 4,
+      "flipBits": 7,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      },
+      "manualScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.002,
+        "Y": -0.003
+      }
+    },
+    {
+      "direction": 1,
+      "head": 5,
+      "flipBits": 7,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "manualScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.004,
+        "Y": -0.006
+      }
+    },
+    {
+      "direction": 1,
+      "head": 5,
+      "flipBits": 7,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      },
+      "manualScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.002,
+        "Y": -0.003
+      }
+    },
+    {
+      "direction": 1,
+      "head": 6,
+      "flipBits": 7,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "manualScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.004,
+        "Y": 0.006
+      }
+    },
+    {
+      "direction": 1,
+      "head": 6,
+      "flipBits": 7,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      },
+      "manualScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.002,
+        "Y": 0.003
+      }
+    },
+    {
+      "direction": 1,
+      "head": 7,
+      "flipBits": 7,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "manualScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.004,
+        "Y": 0.006
+      }
+    },
+    {
+      "direction": 1,
+      "head": 7,
+      "flipBits": 7,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      },
+      "manualScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      },
+      "productionExpectedScannerMm": {
+        "X": 0.002,
+        "Y": 0.003
+      }
+    },
+    {
+      "direction": 1,
+      "head": 8,
+      "flipBits": 7,
+      "scale": 1,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.006,
+        "Y": -0.004
+      }
+    },
+    {
+      "direction": 1,
+      "head": 8,
+      "flipBits": 7,
+      "scale": 0.5,
+      "parity": true,
+      "rawMm": {
+        "X": 0.004,
+        "Y": 0.006
+      },
+      "flippedMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "manualStoredDesignMm": {
+        "X": -0.006,
+        "Y": -0.004
+      },
+      "fineScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      },
+      "manualScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      },
+      "productionExpectedScannerMm": {
+        "X": -0.003,
+        "Y": -0.002
+      }
+    }
+  ]
+}

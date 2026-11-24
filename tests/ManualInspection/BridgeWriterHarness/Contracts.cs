@@ -144,6 +144,10 @@ namespace Drilling.Common.Review {
 
         public abstract Task<ST_REVIEW_OFFSET_FILE_DATA> LoadLatest(string recipeId, CancellationToken cancellationToken = default);
         public abstract Task<ST_REVIEW_OFFSET_FILE_DATA> SaveNew(string recipeId, IReadOnlyList<ST_REVIEW_OFFSET_ROW> rows, CancellationToken cancellationToken = default);
+        public virtual Task<ST_REVIEW_OFFSET_FILE_DATA> SaveNewIfLatestUnchanged(string recipeId,ST_REVIEW_OFFSET_FILE_DATA expected,IReadOnlyList<ST_REVIEW_OFFSET_ROW> rows,CancellationToken token=default)
+            => throw new NotSupportedException();
+        public virtual Task<ST_REVIEW_OFFSET_FILE_DATA> SaveNewFromSourceIfUnchanged(string recipeId,ST_REVIEW_OFFSET_FILE_DATA expected,IReadOnlyList<ST_REVIEW_OFFSET_ROW> rows,string source,bool allowDuplicate,CancellationToken token=default)
+            => throw new NotSupportedException();
         public abstract Task<ST_REVIEW_OFFSET_SOURCE_APPLICATION?> FindSourceApplication(
             string recipeId,
             string sourceResultFile,

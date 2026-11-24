@@ -117,15 +117,25 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
         return Load(normalizedRecipeId, latestFile, cancellationToken);
     }
 
-    public override async Task<ST_REVIEW_OFFSET_FILE_DATA> SaveNew(
+    public override Task<ST_REVIEW_OFFSET_FILE_DATA> SaveNew(
         string recipeId,
         IReadOnlyList<ST_REVIEW_OFFSET_ROW> rows,
         CancellationToken cancellationToken = default)
+        => SaveNewWithExpected(recipeId,rows,null,cancellationToken);
+
+    public override Task<ST_REVIEW_OFFSET_FILE_DATA> SaveNewIfLatestUnchanged(
+        string recipeId,ST_REVIEW_OFFSET_FILE_DATA expected,IReadOnlyList<ST_REVIEW_OFFSET_ROW> rows,
+        CancellationToken cancellationToken = default)
+        => SaveNewWithExpected(recipeId,rows,expected ?? throw new ArgumentNullException(nameof(expected)),cancellationToken);
+
+    private async Task<ST_REVIEW_OFFSET_FILE_DATA> SaveNewWithExpected(
+        string recipeId,IReadOnlyList<ST_REVIEW_OFFSET_ROW> rows,ST_REVIEW_OFFSET_FILE_DATA? expected,CancellationToken cancellationToken)
     {
         await _fileLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             using var processLease = await AcquireProcessLease(cancellationToken).ConfigureAwait(false);
+            using var activeLease = expected is null ? null : VerifyExpectedBasis(recipeId,expected,cancellationToken);
             return SaveNewCore(recipeId, rows, cancellationToken);
         }
         finally
@@ -157,12 +167,23 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
         }
     }
 
-    public override async Task<ST_REVIEW_OFFSET_FILE_DATA> SaveNewFromSource(
+    public override Task<ST_REVIEW_OFFSET_FILE_DATA> SaveNewFromSource(
         string recipeId,
         IReadOnlyList<ST_REVIEW_OFFSET_ROW> rows,
         string sourceResultFile,
         bool allowDuplicate,
         CancellationToken cancellationToken = default)
+        => SaveSourceWithExpected(recipeId,rows,sourceResultFile,allowDuplicate,null,cancellationToken);
+
+    public override Task<ST_REVIEW_OFFSET_FILE_DATA> SaveNewFromSourceIfUnchanged(
+        string recipeId,ST_REVIEW_OFFSET_FILE_DATA expected,IReadOnlyList<ST_REVIEW_OFFSET_ROW> rows,
+        string sourceResultFile,bool allowDuplicate,CancellationToken cancellationToken = default)
+        => SaveSourceWithExpected(recipeId,rows,sourceResultFile,allowDuplicate,
+            expected ?? throw new ArgumentNullException(nameof(expected)),cancellationToken);
+
+    private async Task<ST_REVIEW_OFFSET_FILE_DATA> SaveSourceWithExpected(
+        string recipeId,IReadOnlyList<ST_REVIEW_OFFSET_ROW> rows,string sourceResultFile,bool allowDuplicate,
+        ST_REVIEW_OFFSET_FILE_DATA? expected,CancellationToken cancellationToken)
     {
         await _fileLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
@@ -171,6 +192,7 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
             // @보호 [옵셋적용] 중복이력 - Source Result의 기존 적용 이력을 확인하고 명시적 허용 없이는 새 Offset을 만들지 않는다.
             cancellationToken.ThrowIfCancellationRequested();
             var normalizedRecipeId = RequireRecipeId(recipeId, "Review Offset 저장");
+            using var activeLease = expected is null ? null : VerifyExpectedBasis(normalizedRecipeId,expected,cancellationToken);
             var sourceIdentity = NormalizeSourceIdentity(sourceResultFile, requireExistingFile: true);
             var appliedAt = _now();
             var existing = FindSourceApplicationAcrossHistory(
@@ -301,6 +323,35 @@ public sealed class CReviewOffsetFile : CReviewOffsetFileBase
             }
         }
         finally { _fileLock.Release(); }
+    }
+
+    // Called only while the process/store locks are held. Retain the returned non-delete-sharing
+    // read handle through publication so a same-name external editor cannot race the SHA check.
+    private FileStream? VerifyExpectedBasis(string recipeId,ST_REVIEW_OFFSET_FILE_DATA expected,CancellationToken token)
+    {
+        var id=RequireRecipeId(recipeId,"Review Offset 저장 기준");
+        if(!expected.RecipeId.Equals(id,StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Review Offset 계산 기준의 Recipe가 다릅니다.");
+        var latest=LoadLatestCore(id,token);
+        static string Full(string path)=>string.IsNullOrWhiteSpace(path)?"":Path.GetFullPath(path);
+        if(!Full(latest.FilePath).Equals(Full(expected.FilePath),StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("활성 Review Offset이 변경되었습니다. 최신 기준으로 다시 계산하세요.");
+        if(string.IsNullOrWhiteSpace(latest.FilePath))
+        {
+            if(expected.ContentSha256.Length!=0 || expected.Rows.Count!=0)
+                throw new InvalidOperationException("비어 있는 Review Offset 계산 기준이 실제 파일과 다릅니다.");
+            return null;
+        }
+        var lease=OpenStableRead(latest.FilePath);
+        try
+        {
+            var digest=Digest(lease);
+            if(!digest.Equals(latest.ContentSha256,StringComparison.OrdinalIgnoreCase)
+                || !digest.Equals(expected.ContentSha256,StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("활성 Review Offset 파일 내용이 변경되었습니다. 최신 기준으로 다시 계산하세요.");
+            return lease;
+        }
+        catch { lease.Dispose();throw; }
     }
 
     private ST_REVIEW_OFFSET_FILE_DATA SaveNewCore(

@@ -76,6 +76,7 @@ internal static partial class Program
         });
 #endif
         await RunSynchronizationChecks();
+        await RunFinalOffsetSyncChecks();
         await RunCoverageChecks();
         await RunHardeningChecks();
         await RunPresentationChecks();

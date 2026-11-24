@@ -1,0 +1,907 @@
+{
+  "schemaVersion": "a3-manual-inspection-core-tests/1",
+  "passed": true,
+  "count": 221,
+  "failed": 0,
+  "tests": [
+    {
+      "name": "load_copies_caller_collections",
+      "passed": true
+    },
+    {
+      "name": "duplicate_point_identity_rejected",
+      "passed": true
+    },
+    {
+      "name": "nonfinite_point_position_rejected",
+      "passed": true
+    },
+    {
+      "name": "nonfinite_measurement_rejected",
+      "passed": true
+    },
+    {
+      "name": "unknown_judge_never_becomes_ok",
+      "passed": true
+    },
+    {
+      "name": "mismatched_measurement_run_rejected",
+      "passed": true
+    },
+    {
+      "name": "mismatched_measurement_coordinates_rejected",
+      "passed": true
+    },
+    {
+      "name": "masked_measurement_rejected",
+      "passed": true
+    },
+    {
+      "name": "empty_or_all_masked_candidate_rejected",
+      "passed": true
+    },
+    {
+      "name": "direct_candidate_is_base_plus_error",
+      "passed": true
+    },
+    {
+      "name": "ng_direct_cannot_validate",
+      "passed": true
+    },
+    {
+      "name": "original_measurement_missing_blocks_apply",
+      "passed": true
+    },
+    {
+      "name": "copy_same_final_not_same_delta",
+      "passed": true
+    },
+    {
+      "name": "copy_ng_preserves_error_original_and_blocks_validation",
+      "passed": true
+    },
+    {
+      "name": "proxy_reference_keeps_frozen_root_final",
+      "passed": true
+    },
+    {
+      "name": "copy_preview_rejects_changed_selection",
+      "passed": true
+    },
+    {
+      "name": "copy_preview_rejects_changed_measurement",
+      "passed": true
+    },
+    {
+      "name": "copy_reason_required",
+      "passed": true
+    },
+    {
+      "name": "copy_excludes_masked_and_reference",
+      "passed": true
+    },
+    {
+      "name": "copy_keeps_unrelated_pending_candidate",
+      "passed": true
+    },
+    {
+      "name": "copy_uses_existing_reference_candidate_final",
+      "passed": true
+    },
+    {
+      "name": "copy_undo_restores_working_and_candidate",
+      "passed": true
+    },
+    {
+      "name": "copy_undo_rejects_new_measurement",
+      "passed": true
+    },
+    {
+      "name": "copy_undo_rejects_changed_limits",
+      "passed": true
+    },
+    {
+      "name": "limits_zero_negative_nan_infinity_rejected",
+      "passed": true
+    },
+    {
+      "name": "delta_limit_is_inclusive_at_boundary",
+      "passed": true
+    },
+    {
+      "name": "delta_above_limit_rejected",
+      "passed": true
+    },
+    {
+      "name": "total_limit_is_inclusive_at_boundary",
+      "passed": true
+    },
+    {
+      "name": "total_above_limit_rejected",
+      "passed": true
+    },
+    {
+      "name": "field_evaluator_required",
+      "passed": true
+    },
+    {
+      "name": "field_checked_for_unselected_and_sibling_points",
+      "passed": true
+    },
+    {
+      "name": "field_evaluator_exception_blocks_not_crashes",
+      "passed": true
+    },
+    {
+      "name": "same_shot_different_beam_final_conflict_rejected",
+      "passed": true
+    },
+    {
+      "name": "same_shot_same_final_collapses_to_one_csv_key",
+      "passed": true
+    },
+    {
+      "name": "apply_updates_unselected_beam_sibling_base",
+      "passed": true
+    },
+    {
+      "name": "snapshot_reservation_preserves_active_until_commit",
+      "passed": true
+    },
+    {
+      "name": "pending_file_write_blocks_all_mutators",
+      "passed": true
+    },
+    {
+      "name": "tampered_snapshot_rejected_and_original_can_abort",
+      "passed": true
+    },
+    {
+      "name": "applied_candidate_cannot_be_applied_twice",
+      "passed": true
+    },
+    {
+      "name": "same_raw_timestamp_attempt_change_does_not_reset_ledger",
+      "passed": true
+    },
+    {
+      "name": "same_run_reload_retains_duplicate_ledger",
+      "passed": true
+    },
+    {
+      "name": "new_raw_can_be_applied_again",
+      "passed": true
+    },
+    {
+      "name": "rollback_writes_new_revision_without_deleting_history",
+      "passed": true
+    },
+    {
+      "name": "rollback_write_failure_preserves_current",
+      "passed": true
+    },
+    {
+      "name": "new_measurement_invalidates_old_candidate",
+      "passed": true
+    },
+    {
+      "name": "limits_change_invalidates_candidate",
+      "passed": true
+    },
+    {
+      "name": "coordinate_signature_change_invalidates_candidate",
+      "passed": true
+    },
+    {
+      "name": "read_only_lineage_blocks_candidate",
+      "passed": true
+    },
+    {
+      "name": "operation_preview_rejects_stale_settings",
+      "passed": true
+    },
+    {
+      "name": "masked_operation_targets_excluded",
+      "passed": true
+    },
+    {
+      "name": "old_measurement_cannot_count_as_fresh_completion",
+      "passed": true
+    },
+    {
+      "name": "late_or_unrelated_result_rejected",
+      "passed": true
+    },
+    {
+      "name": "move_only_does_not_modify_measurement",
+      "passed": true
+    },
+    {
+      "name": "automatic_correction_requires_all_new_direct_ok",
+      "passed": true
+    },
+    {
+      "name": "ng_during_automatic_measurement_blocks_only_correction",
+      "passed": true
+    },
+    {
+      "name": "stopped_operation_blocks_existing_validated_candidate",
+      "passed": true
+    },
+    {
+      "name": "retry_preview_does_not_clear_pending_and_retry_is_measure_only",
+      "passed": true
+    },
+    {
+      "name": "premature_complete_becomes_error",
+      "passed": true
+    },
+    {
+      "name": "scatter_population_sigma_exclusions_and_origin",
+      "passed": true
+    },
+    {
+      "name": "scatter_original_and_working_proxy_distinct",
+      "passed": true
+    },
+    {
+      "name": "scatter_empty_does_not_invent_zero_measurement",
+      "passed": true
+    },
+    {
+      "name": "ten_thousand_points_no_implicit_record_limit",
+      "passed": true
+    },
+    {
+      "name": "direct_working_error_must_match_original_raw_conversion",
+      "passed": true
+    },
+    {
+      "name": "direct_working_ok_cannot_override_original_ng",
+      "passed": true
+    },
+    {
+      "name": "apply_requires_prior_validation",
+      "passed": true
+    },
+    {
+      "name": "session_roundtrip_retains_provenance_and_revalidates_candidate",
+      "passed": true
+    },
+    {
+      "name": "session_roundtrip_keeps_applied_raw_ledger",
+      "passed": true
+    },
+    {
+      "name": "session_restore_requires_actual_revision_and_values",
+      "passed": true
+    },
+    {
+      "name": "session_restore_rejects_geometry_or_mask_mismatch",
+      "passed": true
+    },
+    {
+      "name": "session_restore_missing_proxy_reference_provenance_invalidates_lineage",
+      "passed": true
+    },
+    {
+      "name": "session_proxy_error_original_is_valid_not_invented",
+      "passed": true
+    },
+    {
+      "name": "session_running_restores_stopped_without_automatic_motion",
+      "passed": true
+    },
+    {
+      "name": "session_applying_resets_approval_and_pending_file_write",
+      "passed": true
+    },
+    {
+      "name": "session_pending_completed_overlap_rejected",
+      "passed": true
+    },
+    {
+      "name": "session_operation_coordinate_context_mismatch_rejected",
+      "passed": true
+    },
+    {
+      "name": "session_operation_base_revision_mismatch_rejected",
+      "passed": true
+    },
+    {
+      "name": "session_revision_parent_must_exist",
+      "passed": true
+    },
+    {
+      "name": "capture_error_remains_incomplete_until_new_valid_response",
+      "passed": true
+    },
+    {
+      "name": "valid_ng_response_is_measured_complete_with_no_auto_correction",
+      "passed": true
+    },
+    {
+      "name": "restored_measured_delta_cannot_override_raw_error",
+      "passed": true
+    },
+    {
+      "name": "same_semantic_raw_with_new_response_uid_time_does_not_reset_ledger",
+      "passed": true
+    },
+    {
+      "name": "session_completed_operation_can_reference_applied_parent_revision",
+      "passed": true
+    },
+    {
+      "name": "masked_unassigned_head_zero_is_marker_only_without_coordinate_evidence",
+      "passed": true
+    },
+    {
+      "name": "imported_result_is_not_direct_reference_until_new_measurement",
+      "passed": true
+    },
+    {
+      "name": "native_reference_copy_preserves_old_imported_original_frame",
+      "passed": true
+    },
+    {
+      "name": "missing_proxy_original_is_excluded_as_unknown_in_original_scatter",
+      "passed": true
+    },
+    {
+      "name": "remeasurement_history_retains_previous_raw_and_proxy_state",
+      "passed": true
+    },
+    {
+      "name": "file_quantization_is_reflected_in_active_base_and_candidate",
+      "passed": true
+    },
+    {
+      "name": "actual_writer_values_beyond_quantization_tolerance_are_rejected",
+      "passed": true
+    },
+    {
+      "name": "actual_writer_missing_point_is_rejected",
+      "passed": true
+    },
+    {
+      "name": "actual_writer_sibling_beam_mismatch_is_rejected",
+      "passed": true
+    },
+    {
+      "name": "file_quantization_rechecks_total_limit_before_reserving_write",
+      "passed": true
+    },
+    {
+      "name": "file_quantization_rechecks_actual_field_before_reserving_write",
+      "passed": true
+    },
+    {
+      "name": "same_run_old_session_cannot_clear_current_incomplete_measurements",
+      "passed": true
+    },
+    {
+      "name": "applied_reference_copy_reuses_active_final_without_double_error",
+      "passed": true
+    },
+    {
+      "name": "sibling_beam_apply_consumes_reference_old_raw_for_copy",
+      "passed": true
+    },
+    {
+      "name": "other_shot_apply_does_not_consume_untouched_reference_raw",
+      "passed": true
+    },
+    {
+      "name": "copy_to_different_groups_keeps_same_unconsumed_reference_final",
+      "passed": true
+    },
+    {
+      "name": "rollback_reference_uses_saved_base_without_readding_consumed_raw",
+      "passed": true
+    },
+    {
+      "name": "session_restore_preserves_consumed_reference_final",
+      "passed": true
+    },
+    {
+      "name": "fresh_reference_raw_after_apply_can_form_new_final",
+      "passed": true
+    },
+    {
+      "name": "apply_snapshot_consumed_tokens_include_native_siblings",
+      "passed": true
+    },
+    {
+      "name": "manual_target_snapshot_does_not_consume_unrelated_reference_shot",
+      "passed": true
+    },
+    {
+      "name": "tampered_consumed_token_dictionary_rejected_without_commit",
+      "passed": true
+    },
+    {
+      "name": "aborted_snapshot_does_not_consume_reference_or_sibling_raw",
+      "passed": true
+    },
+    {
+      "name": "older_raw_a_after_raw_b_is_still_consumed",
+      "passed": true
+    },
+    {
+      "name": "session_keeps_all_consumed_raw_not_only_latest",
+      "passed": true
+    },
+    {
+      "name": "durable_seed_keeps_two_tokens_for_same_point",
+      "passed": true
+    },
+    {
+      "name": "consumed_companion_does_not_block_fresh_driving_beam",
+      "passed": true
+    },
+    {
+      "name": "same_run_changed_beam_display_keeps_opaque_history_on_restore",
+      "passed": true
+    },
+    {
+      "name": "same_run_old_session_cannot_erase_new_durable_consumed_history",
+      "passed": true
+    },
+    {
+      "name": "seeded_state_sequences_preserve_shared_shot_values_and_consumed_raw_32x6",
+      "passed": true
+    },
+    {
+      "name": "ng_proxy_session_remeasure_reference_preserves_copy_snapshot_until_explicit_recopy",
+      "passed": true
+    },
+    {
+      "name": "offset_init_stages_zero_for_all_cells_without_changing_active_values",
+      "passed": true
+    },
+    {
+      "name": "offset_init_needs_no_successful_measurement_and_can_clear_ng_or_unmeasured_values",
+      "passed": true
+    },
+    {
+      "name": "offset_init_can_remove_large_legacy_base_but_still_uses_total_and_field_validation",
+      "passed": true
+    },
+    {
+      "name": "offset_init_checks_entire_workspace_field_even_outside_selection",
+      "passed": true
+    },
+    {
+      "name": "offset_init_cancel_restores_previous_candidate_and_working_provenance",
+      "passed": true
+    },
+    {
+      "name": "offset_init_requires_validation_before_write_and_flags_full_replacement",
+      "passed": true
+    },
+    {
+      "name": "offset_init_abort_keeps_active_base_and_retryable_draft",
+      "passed": true
+    },
+    {
+      "name": "offset_init_commit_clears_working_values_but_preserves_original_and_history",
+      "passed": true
+    },
+    {
+      "name": "offset_init_cannot_reenable_previously_consumed_camera_raw",
+      "passed": true
+    },
+    {
+      "name": "offset_init_after_commit_fresh_camera_raw_accumulates_from_zero",
+      "passed": true
+    },
+    {
+      "name": "offset_replacement_import_is_absolute_not_another_accumulation",
+      "passed": true
+    },
+    {
+      "name": "offset_replacement_import_still_enforces_delta_limit",
+      "passed": true
+    },
+    {
+      "name": "offset_replacement_rejects_partial_unknown_nonfinite_or_conflicting_beam_values",
+      "passed": true
+    },
+    {
+      "name": "offset_init_draft_blocks_measurement_and_motion_until_save_or_cancel",
+      "passed": true
+    },
+    {
+      "name": "offset_init_cannot_erase_an_incomplete_measurement_batch",
+      "passed": true
+    },
+    {
+      "name": "offset_init_session_restore_keeps_draft_and_demands_validation",
+      "passed": true
+    },
+    {
+      "name": "offset_init_same_run_reload_cannot_silently_erase_draft",
+      "passed": true
+    },
+    {
+      "name": "offset_init_cancel_after_session_restore_restores_prior_candidate_without_old_approval",
+      "passed": true
+    },
+    {
+      "name": "scoped_init_stages_shared_offset_siblings_and_keeps_every_other_base",
+      "passed": true
+    },
+    {
+      "name": "scoped_init_validates_every_final_field_and_retains_outside_raw_eligibility",
+      "passed": true
+    },
+    {
+      "name": "scoped_init_commit_gray_metadata_propagates_across_head_siblings",
+      "passed": true
+    },
+    {
+      "name": "scoped_init_rejects_unknown_empty_scope_and_deduplicates_selected_keys",
+      "passed": true
+    },
+    {
+      "name": "scoped_init_cancel_restores_candidate_and_gray_provenance_exactly",
+      "passed": true
+    },
+    {
+      "name": "scoped_init_abort_never_changes_active_values_or_initialized_flags",
+      "passed": true
+    },
+    {
+      "name": "scoped_init_large_legacy_delta_exemption_does_not_exempt_untouched_fields",
+      "passed": true
+    },
+    {
+      "name": "real_zero_measurement_clears_initialized_state_but_is_still_direct_valid_measurement",
+      "passed": true
+    },
+    {
+      "name": "copy_to_initialized_target_restores_proxy_state_without_fabricating_original",
+      "passed": true
+    },
+    {
+      "name": "scoped_init_session_roundtrip_preserves_scope_without_write_approval",
+      "passed": true
+    },
+    {
+      "name": "scoped_init_after_a_prior_init_keeps_preexisting_gray_scope",
+      "passed": true
+    },
+    {
+      "name": "valid_measured_zero_initial_load_is_not_classified_as_explicit_offset_init",
+      "passed": true
+    },
+    {
+      "name": "rollback_of_init_restores_previous_nonzero_base_and_noninit_state",
+      "passed": true
+    },
+    {
+      "name": "rollback_from_real_zero_measurement_to_init_zero_restores_gray_metadata",
+      "passed": true
+    },
+    {
+      "name": "session_rejects_null_foreign_duplicate_and_nonzero_initialized_revision_metadata",
+      "passed": true
+    },
+    {
+      "name": "tampered_init_scope_snapshot_is_rejected_and_untampered_snapshot_can_abort",
+      "passed": true
+    },
+    {
+      "name": "session_initialized_point_with_nonzero_active_value_is_rejected",
+      "passed": true
+    },
+    {
+      "name": "unsaved_fresh_measurement_does_not_clear_saved_init_state_when_other_shot_is_applied",
+      "passed": true
+    },
+    {
+      "name": "legacy_session_without_init_metadata_cannot_erase_proven_native_init_state",
+      "passed": true
+    },
+    {
+      "name": "native_init_revision_can_restore_new_unsaved_measurement_with_clear_point_flag",
+      "passed": true
+    },
+    {
+      "name": "legacy_measured_zero_session_without_init_metadata_remains_valid_measured_zero",
+      "passed": true
+    },
+    {
+      "name": "bulk_whole_model_collects_valid_points_from_all_cells_and_heads",
+      "passed": true
+    },
+    {
+      "name": "bulk_excludes_ng_masked_unmeasured_but_keeps_real_measured_zero",
+      "passed": true
+    },
+    {
+      "name": "bulk_excludes_initialization_even_with_preserved_historic_raw",
+      "passed": true
+    },
+    {
+      "name": "bulk_has_no_fake_targets_for_fresh_unmeasured_model",
+      "passed": true
+    },
+    {
+      "name": "bulk_never_readds_consumed_raw_and_preserves_applied_baseline",
+      "passed": true
+    },
+    {
+      "name": "bulk_adopted_file_measurement_is_eligible_but_unproven_import_is_not",
+      "passed": true
+    },
+    {
+      "name": "bulk_includes_explicit_representative_copy_with_original_judge_and_manual_gate",
+      "passed": true
+    },
+    {
+      "name": "bulk_conflicting_fresh_beams_at_one_shot_block_atomic_save",
+      "passed": true
+    },
+    {
+      "name": "bulk_consistent_beams_share_one_written_offset",
+      "passed": true
+    },
+    {
+      "name": "bulk_real_zero_proxy_marks_previously_empty_target_measured_and_undo_redo_restore_state",
+      "passed": true
+    },
+    {
+      "name": "bulk_proxy_to_never_measured_target_keeps_valid_lineage_through_session_restore",
+      "passed": true
+    },
+    {
+      "name": "bulk_proxy_over_edited_import_without_original_raw_does_not_fabricate_raw_or_lose_lineage_on_restore",
+      "passed": true
+    },
+    {
+      "name": "history_undo_twice_redo_returns_exact_saved_states",
+      "passed": true
+    },
+    {
+      "name": "history_retains_exactly_ten_preceding_applied_states",
+      "passed": true
+    },
+    {
+      "name": "history_aborted_undo_and_redo_do_not_move_cursor_or_change_values",
+      "passed": true
+    },
+    {
+      "name": "history_new_apply_after_undo_discards_only_redo_branch",
+      "passed": true
+    },
+    {
+      "name": "history_undo_does_not_authorize_same_measurement_again",
+      "passed": true
+    },
+    {
+      "name": "history_changed_basis_clears_unsaved_residual_and_reserves_its_consumption",
+      "passed": true
+    },
+    {
+      "name": "history_roundtrip_session_preserves_undone_cursor_and_redo_target",
+      "passed": true
+    },
+    {
+      "name": "history_init_zero_and_real_zero_remain_distinct_during_undo_redo",
+      "passed": true
+    },
+    {
+      "name": "history_unrelated_undo_keeps_fresh_measurement_and_reset_time_boundary_of_unchanged_init_shot",
+      "passed": true
+    },
+    {
+      "name": "history_external_revision_load_cannot_reuse_old_timeline",
+      "passed": true
+    },
+    {
+      "name": "history_missing_native_offset_baseline_stays_absent_after_first_bulk_and_undo",
+      "passed": true
+    },
+    {
+      "name": "history_undo_quantized_legacy_baseline_roundtrips_and_redoes",
+      "passed": true
+    },
+    {
+      "name": "history_coordinate_frame_change_resets_undo_and_redo_baseline",
+      "passed": true
+    },
+    {
+      "name": "history_restore_rejects_saved_state_missing_authoritative_native_init_keys",
+      "passed": true
+    },
+    {
+      "name": "history_reserved_write_blocks_other_undo_redo_or_measurement",
+      "passed": true
+    },
+    {
+      "name": "history_session_foreign_duplicate_and_out_of_range_timeline_rejected_atomically",
+      "passed": true
+    },
+    {
+      "name": "reference_missing_zero_and_initialized_historic_raw_have_no_copy_value",
+      "passed": true
+    },
+    {
+      "name": "reference_numeric_base_requires_authoritative_stored_row_evidence",
+      "passed": true
+    },
+    {
+      "name": "reference_stored_zero_is_copyable_without_inventing_ok_raw_or_zero_precision",
+      "passed": true
+    },
+    {
+      "name": "reference_invalid_candidate_validation_does_not_disqualify_valid_raw_value",
+      "passed": true
+    },
+    {
+      "name": "reference_unadopted_import_mode_or_frame_never_becomes_manual_ok_anchor",
+      "passed": true
+    },
+    {
+      "name": "reference_masked_point_can_supply_valid_value_but_cannot_be_a_device_target",
+      "passed": true
+    },
+    {
+      "name": "unassigned_head_has_no_camera_reference_but_explicit_design_base_remains_unknown",
+      "passed": true
+    },
+    {
+      "name": "proxy_reference_is_flattened_and_keeps_frozen_final_after_root_remeasurement",
+      "passed": true
+    },
+    {
+      "name": "proxy_reference_ng_state_and_nullable_target_original_are_preserved",
+      "passed": true
+    },
+    {
+      "name": "proxy_root_target_or_self_rejects_before_any_other_target_is_changed",
+      "passed": true
+    },
+    {
+      "name": "proxy_reverse_historical_copy_is_allowed_and_undo_restores_frozen_metadata",
+      "passed": true
+    },
+    {
+      "name": "proxy_reverse_copy_session_and_apply_do_not_add_frozen_final_twice",
+      "passed": true
+    },
+    {
+      "name": "proxy_session_final_tampering_cannot_be_laundered_as_a_new_reference",
+      "passed": true
+    },
+    {
+      "name": "proxy_session_unknown_value_kind_or_root_cycle_invalidates_lineage",
+      "passed": true
+    },
+    {
+      "name": "session_claimed_base_evidence_is_replaced_by_the_real_expected_source",
+      "passed": true
+    },
+    {
+      "name": "legacy_proxy_metadata_can_be_referenced_only_with_matching_root_or_real_stored_base",
+      "passed": true
+    },
+    {
+      "name": "saved_measurement_init_undo_redo_keep_authoritative_base_evidence_separate",
+      "passed": true
+    },
+    {
+      "name": "retry_new_selection_preview_is_non_mutating_and_original_retry_stays_optional",
+      "passed": true
+    },
+    {
+      "name": "retry_new_begin_archives_original_queue_and_invalidates_only_unreceived_old_residual",
+      "passed": true
+    },
+    {
+      "name": "retry_manual_move_measure_and_flying_can_replace_idle_failed_queue_without_auto_correction",
+      "passed": true
+    },
+    {
+      "name": "retry_running_stale_masked_and_legacy_auto_requests_cannot_replace_original_queue",
+      "passed": true
+    },
+    {
+      "name": "retry_previous_operation_late_measurement_and_completion_cannot_change_new_operation",
+      "passed": true
+    },
+    {
+      "name": "retry_new_response_ng_is_preserved_even_if_completion_was_interrupted",
+      "passed": true
+    },
+    {
+      "name": "retry_session_preserves_superseded_queue_audit_current_remaining_raw_and_ledger",
+      "passed": true
+    },
+    {
+      "name": "retry_explicit_original_remaining_never_supersedes_or_reenables_auto_apply",
+      "passed": true
+    },
+    {
+      "name": "retry_session_missing_before_versions_is_rejected_instead_of_partly_superseding",
+      "passed": true
+    },
+    {
+      "name": "state_copy_initial_absence_never_creates_numeric_zero_ok_raw_or_candidate",
+      "passed": true
+    },
+    {
+      "name": "state_copy_preserves_nonzero_active_base_and_ng_original_and_ledger_then_undo",
+      "passed": true
+    },
+    {
+      "name": "state_copy_only_removes_affected_numeric_candidates_and_keeps_other_rows",
+      "passed": true
+    },
+    {
+      "name": "state_copy_error_status_and_masked_source_preserve_no_correction_eligibility",
+      "passed": true
+    },
+    {
+      "name": "state_copy_is_captured_and_reference_later_measurement_does_not_resurrect_target",
+      "passed": true
+    },
+    {
+      "name": "state_copy_stale_preview_and_blank_reason_are_non_mutating",
+      "passed": true
+    },
+    {
+      "name": "state_copy_session_roundtrip_keeps_nonzero_base_and_empty_metadata_without_fake_raw",
+      "passed": true
+    },
+    {
+      "name": "state_copy_tampered_ok_self_missing_reference_and_foreign_frame_are_rejected",
+      "passed": true
+    },
+    {
+      "name": "state_copy_old_and_equal_time_external_sync_cannot_resurrect_cleared_result",
+      "passed": true
+    },
+    {
+      "name": "state_copy_clock_rollback_and_real_new_zero_measurement_clear_only_working_state",
+      "passed": true
+    },
+    {
+      "name": "state_copy_numeric_copy_and_saved_offset_init_clear_logical_metadata",
+      "passed": true
+    },
+    {
+      "name": "state_copy_reconnect_does_not_invalidate_captured_metadata_or_promote_raw",
+      "passed": true
+    },
+    {
+      "name": "state_copy_failed_measurement_retirement_never_revives_prior_applied_base_or_raw",
+      "passed": true
+    },
+    {
+      "name": "state_copy_foreign_import_original_provenance_survives_init_absolute_save_and_undo",
+      "passed": true
+    },
+    {
+      "name": "state_copy_absence_shared_shot_save_preserves_captured_state_and_actual_ng_raw",
+      "passed": true
+    }
+  ],
+  "sourceFiles": [
+    {
+      "path": "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs",
+      "sha256": "73af74d4c65c1e7e155903390ab52d9f564c8d7fefda4d81d4101e717dde02c2"
+    },
+    {
+      "path": "Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs",
+      "sha256": "450235d122834247a329b541d3a44e8683bdcfb6d6431b84bf28df20719ec6e7"
+    },
+    {
+      "path": "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
+      "sha256": "41d8c0d0fa64350914075cf398b4ccc7f0a82a0439372de1b334ba87c743e09c"
+    }
+  ],
+  "scope": "Linked production ManualInspection common files only; synthetic values/fake field evaluator. No equipment, WPF, SDK or device scripts executed."
+}

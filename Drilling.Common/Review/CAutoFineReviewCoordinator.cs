@@ -134,7 +134,8 @@
                 var design = previous is null ? (X: 0d, Y: 0d) : CReviewOffsetData.ToDesign(plan.Parameters, shot.HeadNo, previous.ReviewOffsetX, previous.ReviewOffsetY, previous.IsDesignCoordinate);
                 if (!double.IsFinite(design.X) || !double.IsFinite(design.Y))
                     throw new InvalidDataException("기존 Review Offset 값이 유효하지 않습니다.");
-                rows[key] = new(shot.CellNo, key.Item2, CAlignShotOffsetData.RoundValue(design.X + delta.X), CAlignShotOffsetData.RoundValue(design.Y + delta.Y))
+                var designDelta = CReviewMeasurementOffset.StageToDesign(plan.Parameters,delta.X,delta.Y);
+                rows[key] = new(shot.CellNo, key.Item2, CAlignShotOffsetData.RoundValue(design.X + designDelta.X), CAlignShotOffsetData.RoundValue(design.Y + designDelta.Y))
                 {
                     IsDesignCoordinate = true
                 };
@@ -143,8 +144,9 @@
             ST_REVIEW_OFFSET_FILE_DATA saved;
             try
             {
-                saved = await offsets.SaveNewFromSource(
+                saved = await offsets.SaveNewFromSourceIfUnchanged(
                     plan.Request.Plan.RecipeId,
+                    latest,
                     rows.Values.OrderBy(row => row.CellId).ThenBy(row => row.ShotId).ToArray(),
                     result.ResultFilePath,
                     allowDuplicate: false,

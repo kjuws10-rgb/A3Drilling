@@ -17,6 +17,10 @@ namespace Drilling.UI.Menu.Menus
         IReadOnlyList<KeyValuePair<string, string>> ConsumedMeasurements => [];
         IReadOnlySet<string> ImportedInitializedOffsetKeys => new HashSet<string>(StringComparer.Ordinal);
         Task<CManualInspectionSource> LoadAsync(string? resultPath, CancellationToken token, IReadOnlyList<string>? displayKeys = null);
+        Task<CManualInspectionSavedOffsetSnapshot?> ReadSavedOffsetSnapshotAsync(CManualInspectionSource source,CancellationToken token)
+            => Task.FromResult<CManualInspectionSavedOffsetSnapshot?>(null);
+        Task<CManualInspectionSavedOffsetSnapshot?> ExportFinalOffsetBundleAsync(CManualInspectionSource source,string path,CancellationToken token)
+            => throw new NotSupportedException("Backend does not support final saved offset export.");
         Task EnsureCurrentAsync(CManualInspectionSource source, CancellationToken token);
         void GuardOperation();
         Task<CManualInspectionMeasurement> ExecutePointAsync(CManualInspectionSource source, string key,
@@ -60,7 +64,13 @@ namespace Drilling.UI.Menu.Menus
         public IReadOnlySet<string> InitializationOffsetKeys { get; init; } = new HashSet<string>(StringComparer.Ordinal);
         public bool HasExplicitMeasurementState { get; init; }
         public IReadOnlySet<string>? StoredInitializedOffsetKeys { get; init; }
+        public double ShiftOffsetXmm { get; init; }
+        public double ShiftOffsetYmm { get; init; }
+        public CManualInspectionSavedOffsetSnapshot? SavedOffsets { get; init; }
     }
+    public sealed record CManualInspectionSavedOffsetSnapshot(string RecipeId,string RunId,string CoordinateSignature,string RevisionId,
+        string FilePath,string FileName,DateTimeOffset? SavedAt,string ContentSha256,int RowCount,int InitializedRowCount,
+        IReadOnlyDictionary<string,ST_MANUAL_OFFSET> ValuesByPointKey,IReadOnlySet<string> InitializedOffsetKeys,IReadOnlySet<string> AppliedPointKeys);
     public sealed record CManualInspectionImportedResult(string Path, DateTimeOffset SavedAt, string Origin);
     public sealed record CManualInspectionMeasurement(string Key, ST_MANUAL_MEASUREMENT Measurement, double ReviewXmm, double StageYmm);
     public static class CManualInspectionBackend

@@ -1,10 +1,20 @@
-# MANUAL INSPECTION · 11.24.2
+# MANUAL INSPECTION · 11.24.3
 
-브랜치: `feature/manual-inspection-master-integration-20261124.2`
+브랜치: `feature/manual-inspection-final-review-offset-20261124.3`
 
-master 기준 Commit: `0219666f9053b907d96d7e0aa7d0c6c1be3a73d4`
+기준 Commit: `7de760ccfe57ed75de3b8c9484c0b14114857be0` · 최신 master를 통합한 11.24.2
 
 **master에는 병합하지 않는다.** 기존 테마와 지도 중심 구성을 유지한다.
+
+## 11.24.3 · 최종 Review 보정 확인과 완료 동기화
+
+최종값은 `Config/RECIPE/<모델>_reviewoffset/`의 최신 누적 CSV에 있다. 방식별 측정 원문과 구분하며 Rough/Fine은 이 최종값에 새 잔차를 누적한다. Simple 입력은 선택 범위의 절대값 대체다.
+
+왼쪽 정보에 최종 파일명·시각·경로·SHA를 표시하고, **최종 보정 지도 보기 / 저장된 최종 Review 산포 / 최종 보정 파일 내보내기**를 제공한다. 미저장 작업·원측정은 유지하고 저장된 최종값을 별도로 갱신한다. 측정 완료와 보정 저장 완료는 구분한다.
+
+역방향 Y의 Stage→Design 저장 경계와 계산 기준이 바뀐 뒤 옛 값으로 저장하는 경합을 보완했다. 기존 B를 자동 뒤집지 않으며 동일 가공 흔적을 새 잔차로 반복 누적해도 된다고 판단하지 않는다.
+
+[질문별 설명·파일 위치·운영 조건](FINAL_REVIEW_OFFSET_11.24.3.md) · [이번 검증](../../tests/ManualInspection/FINAL_REVIEW_OFFSET_QA.md) · [현재 manifest](validation.json)
 
 ## 11.24.2 · 최신 master에 전체 Manual Inspection 통합
 

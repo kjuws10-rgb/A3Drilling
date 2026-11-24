@@ -1,4 +1,4 @@
-﻿namespace Drilling.UI.Menu.Menus
+namespace Drilling.UI.Menu.Menus
 {
     using System.ComponentModel;
     using System.Globalization;
@@ -44,6 +44,7 @@
         private string _currentSettingDetail = "Vision Flip: -\nScanner Flip: -";
         private string _calculatedSettingDetail = "";
         private string _currentReviewOffsetRecipeName = "Recipe: -";
+        private ST_REVIEW_OFFSET_FILE_DATA? _reviewOffsetPreviewBasis;
         private bool _outputViewerIsCellDetailVisible;
         private int _outputViewerSelectedCellNo;
         private int _outputViewerRefreshVersion;
@@ -155,7 +156,8 @@
                 _selectedRecipeIdProvider,
                 _statusReporter,
                 () => ExecuteReviewOffsetRollback(),
-                SaveReviewOffsetFromResult);
+                SaveReviewOffsetFromResult,
+                saveReviewOffsetIfUnchanged: SaveReviewOffsetFromResult);
             InspectionReviewData = new CReviewDataPanel(
                 _reviewResultFile,
                 _reviewOffsetFile,
@@ -167,7 +169,8 @@
                 () => ExecuteReviewOffsetRollback(),
                 SaveReviewOffsetFromResult,
                 inspectionResultsOnly: true,
-                inspectionResultTypeProvider: () => Review?.SelectedInspectionResultType ?? "ALL_SHOT");
+                inspectionResultTypeProvider: () => Review?.SelectedInspectionResultType ?? "ALL_SHOT",
+                saveReviewOffsetIfUnchanged: SaveReviewOffsetFromResult);
             if (defaultManager is not null && defaultScriptFile is not null)
                 DefaultOffset.ExecuteAction = ExecuteDefaultAction;
             DefaultOffset.SourceInvalidated += () => { if (_defaultOwnSave) return; _defaultCancellation?.Cancel(); if (_defaultCancellation is null) _defaultRun = null; };
@@ -425,7 +428,11 @@
         {
             Review = review ?? throw new ArgumentNullException(nameof(review));
             Review.OpenSavedReviewResultAsync = OpenSavedReviewResult;
-            Review.RefreshInspectionResultsAsync = () => InspectionReviewData.ReloadForInspectionModeChange();
+            Review.RefreshInspectionResultsAsync = async () =>
+            {
+                await InspectionReviewData.ReloadForInspectionModeChange();
+                await RefreshManualInspectionAfterReview();
+            };
             Review.RefreshInspectionRunModeAsync = RefreshInspectionRunModePanel;
             Review.IsExternalInspectionOperationActive = () => _isReviewOperationRunning;
         }
@@ -537,6 +544,20 @@
 
             _isReviewOperationRunning = value;
             Review?.NotifyExternalInspectionExecutionStateChanged();
+            // Rough/Fine/Simple and Init/Rollback all end here. Refresh only the display;
+            // a completed legacy operation must never implicitly apply a Manual candidate.
+            if (!value) _ = RefreshManualInspectionAfterReview();
+        }
+
+        private async Task RefreshManualInspectionAfterReview()
+        {
+            try { await ManualInspection.NotifyExternalReviewChangedAsync(); }
+            catch (Exception error)
+            {
+                // The result/offset is already committed. A display error must not turn a
+                // successful save into a reported failure or cause the caller to retry a write.
+                System.Diagnostics.Trace.TraceWarning("Manual Inspection display refresh: " + error.Message);
+            }
         }
 
         private async Task OpenSavedReviewResult(string resultPath)
@@ -548,6 +569,7 @@
             SelectedReviewTabIndex = 1;
             Review?.ShowInspectionResultWorkspace();
             await loadTask;
+            await RefreshManualInspectionAfterReview();
         }
 
         public override async Task<CScreenViewModel> Build(CancellationToken cancellationToken = default)
@@ -1655,6 +1677,7 @@
                     return (CurrentRows: currentRows, CalculatedRows: calculatedRows);
                 });
                 CurrentOffsetRows = calculation.CurrentRows;
+                _reviewOffsetPreviewBasis = currentReviewOffsetFile;
                 CalculatedOffsetRows = calculation.CalculatedRows;
                 ApplyPreviewRows = [];
                 _calculatedSettingDetail = _currentSettingDetail;
@@ -1869,17 +1892,18 @@
                     selectedRecipeId = NormalizeRecipeId(_loadedReviewResult.RecipeId);
                 }
 
-                var latestOffsets = await _reviewOffsetFile.LoadLatest(selectedRecipeId);
+                var basis = _reviewOffsetPreviewBasis ?? throw new InvalidOperationException("Review Offset 계산 기준이 없습니다. 다시 계산해 주세요.");
                 var offsetRecipe = await LoadReviewResultRecipe(_loadedReviewResult);
                 var offsetParameters = BuildOutputViewerParameterMap(offsetRecipe, LoadSimpleOffsetSettings());
                 var mergedRows = await Task.Run(() => MergeReviewOffsetRows(
-                    latestOffsets.Rows,
+                    basis.Rows,
                     ApplyPreviewRows,
                     offsetParameters));
                 var savedOffsetFile = await SaveReviewOffsetFromResult(
                     selectedRecipeId,
                     mergedRows,
-                    _loadedReviewResult.FilePath);
+                    _loadedReviewResult.FilePath,
+                    basis);
                 if (savedOffsetFile is null)
                 {
                     await ReportReviewDataCommand(
@@ -2438,10 +2462,15 @@
             return normalized.StartsWith("CELL", StringComparison.Ordinal) ? normalized : $"CELL{cellNo}_{normalized}";
         }
 
+        private Task<ST_REVIEW_OFFSET_FILE_DATA?> SaveReviewOffsetFromResult(
+            string recipeId,IReadOnlyList<ST_REVIEW_OFFSET_ROW> rows,string sourceResultFile)
+            => throw new InvalidOperationException("Review Offset 계산 기준을 함께 전달해야 합니다. 최신 기준으로 다시 계산하세요.");
+
         private async Task<ST_REVIEW_OFFSET_FILE_DATA?> SaveReviewOffsetFromResult(
             string recipeId,
             IReadOnlyList<ST_REVIEW_OFFSET_ROW> rows,
-            string sourceResultFile)
+            string sourceResultFile,
+            ST_REVIEW_OFFSET_FILE_DATA basis)
         {
             if (string.IsNullOrWhiteSpace(sourceResultFile))
             {
@@ -2466,11 +2495,14 @@
 
             try
             {
-                return await Task.Run(() => _reviewOffsetFile.SaveNewFromSource(
+                var saved = await Task.Run(() => _reviewOffsetFile.SaveNewFromSourceIfUnchanged(
                     recipeId,
+                    basis,
                     rows,
                     sourceResultFile,
                     allowDuplicate));
+                await RefreshManualInspectionAfterReview();
+                return saved;
             }
             catch (CReviewOffsetDuplicateSourceException duplicate) when (!allowDuplicate)
             {
@@ -2480,11 +2512,14 @@
                     return null;
                 }
 
-                return await Task.Run(() => _reviewOffsetFile.SaveNewFromSource(
+                var saved = await Task.Run(() => _reviewOffsetFile.SaveNewFromSourceIfUnchanged(
                     recipeId,
+                    basis,
                     rows,
                     sourceResultFile,
                     allowDuplicate: true));
+                await RefreshManualInspectionAfterReview();
+                return saved;
             }
         }
 
@@ -3225,7 +3260,8 @@
                 var deltas = initialize ? targets.Select(point => new ST_FINE_OFFSET_DELTA(point, 0, 0)).ToArray() : await Task.Run(() => CReviewManager.CalculateFineOffsets(input!.Targets, input.Measurements, input.Flip));
                 var cells = deltas.Select(delta => delta.Shot.CellNo).Distinct().Count();
                 var preserved = Fine.GetOffsetTargets().Count - deltas.Count;
-                var message = $"현재 레시피: {recipe.Name}\n대상: {cells:N0} Cells / {deltas.Count:N0} Shots\n\n" + (initialize ? "레시피 전체 Shot의 측정 Review 보정값을 없음 상태로 초기화하시겠습니까?\n실측 오차 0으로 표시하지 않으며 이전 파일은 보존합니다." : $"{Fine.LineCount} Line · 같은 Cell/열 기준 " + (Fine.LineCount == 1 ? "측정값" : "Y 방향 Lagrange 보간값") + "을 기존 Review Offset에 누적하시겠습니까?\nVision Flip 변환값을 설계 좌표로 저장합니다." + (preserved > 0 ? $"\n검사 기준값이 없는 {preserved:N0}개 Shot은 기존 값을 유지합니다." : "")) + "\n새 REVIEW OFFSET 파일을 생성합니다.";
+                var message = $"현재 레시피: {recipe.Name}\n대상: {cells:N0} Cells / {deltas.Count:N0} Shots\n\n" + (initialize ? "레시피 전체 Shot의 측정 Review 보정값을 없음 상태로 초기화하시겠습니까?\n실측 오차 0으로 표시하지 않으며 이전 파일은 보존합니다." : $"{Fine.LineCount} Line · 같은 Cell/열 기준 " + (Fine.LineCount == 1 ? "측정값" : "Y 방향 Lagrange 보간값") + "을 기존 Review Offset에 누적하시겠습니까?\nVision Flip·Y 주행 방향을 변환한 설계 좌표로 저장합니다." + (preserved > 0 ? $"\n검사 기준값이 없는 {preserved:N0}개 Shot은 기존 값을 유지합니다." : "")) + "\n새 REVIEW OFFSET 파일을 생성합니다.";
+                if (!initialize) message += "\n\n현재 보정을 반영해 새로 가공한 결과의 잔차인지 확인하세요. 같은 가공 흔적을 다시 측정한 오차를 반복 누적하면 과보정될 수 있습니다.";
                 if (!confirm(title, message))
                     return;
                 recipe = await LoadSelectedOutputViewerRecipe(CancellationToken.None, fallbackToFirst: false) ?? throw new InvalidOperationException("현재 레시피가 없습니다.");
@@ -3246,21 +3282,22 @@
                         var key = (point.CellNo, NormalizeReviewOffsetShotId(name));
                         var previous = rows.GetValueOrDefault(key);
                         var current = initialize || previous is null ? (X: 0.0, Y: 0.0) : CReviewOffsetData.ToDesign(parameters, point.HeadNo, previous.ReviewOffsetX, previous.ReviewOffsetY, previous.IsDesignCoordinate);
-                        rows[key] = new(point.CellNo, key.Item2, CAlignShotOffsetData.RoundValue(current.X + delta.X), CAlignShotOffsetData.RoundValue(current.Y + delta.Y))
+                        var designDelta = CReviewMeasurementOffset.StageToDesign(parameters,delta.X,delta.Y);
+                        rows[key] = new(point.CellNo, key.Item2, CAlignShotOffsetData.RoundValue(current.X + designDelta.X), CAlignShotOffsetData.RoundValue(current.Y + designDelta.Y))
                         {
                             IsDesignCoordinate = true,
                             IsMeasurementOffsetInitialized = initialize
                         };
                     }
 
-                    return rows.Values
+                    return (Basis: latest,Rows: rows.Values
                         .OrderBy(row => row.CellId)
                         .ThenBy(row => row.ShotId)
-                        .ToArray();
+                        .ToArray());
                 });
                 var saved = initialize
-                    ? await Task.Run(() => _reviewOffsetFile.SaveNew(recipe.Id, mergedRows))
-                    : await SaveReviewOffsetFromResult(recipe.Id, mergedRows, sourceResultFile);
+                    ? await Task.Run(() => _reviewOffsetFile.SaveNewIfLatestUnchanged(recipe.Id, mergedRows.Basis,mergedRows.Rows))
+                    : await SaveReviewOffsetFromResult(recipe.Id, mergedRows.Rows, sourceResultFile,mergedRows.Basis);
                 if (saved is null)
                 {
                     _statusReporter("FINE Offset Apply: 동일한 검사 결과의 중복 적용을 취소했습니다.");
@@ -4144,7 +4181,7 @@
                         throw new InvalidOperationException("적용할 새 ROUGH 측정값이 없습니다. 초기화한 범위는 다시 측정하세요.");
                 }
                 var deltas = request.Rows.ToDictionary(row => (row.CellId, row.ShotId), row => initialize ? (X: 0.0, Y: 0.0) : inspection.IncrementForShot(request.TargetHeads.GetValueOrDefault((row.CellId, row.ShotId), request.HeadNo), row.CellId));
-                if (!confirm(initialize ? "Offset Init" : "Offset Apply", $"현재 레시피: {recipe.Name}\n{Rough.SelectedHeadsText} / {inspection.Rows.Count}개 기준 Shot / {request.Rows.Count:N0}개 적용 Shot\n\n" + (initialize ? "이 범위의 측정 Review 보정값을 없음 상태로 초기화하시겠습니까?" : "OK 결과의 보정량만 기존 설계 Review Offset에 누적하시겠습니까?\nNG·미검사·이미 적용한 결과의 기존 보정값과 없음 상태는 유지합니다.") + "\n새 REVIEW OFFSET 파일을 생성합니다."))
+                if (!confirm(initialize ? "Offset Init" : "Offset Apply", $"현재 레시피: {recipe.Name}\n{Rough.SelectedHeadsText} / {inspection.Rows.Count}개 기준 Shot / {request.Rows.Count:N0}개 적용 Shot\n\n" + (initialize ? "이 범위의 측정 Review 보정값을 없음 상태로 초기화하시겠습니까?" : "OK 결과의 보정량만 기존 설계 Review Offset에 누적하시겠습니까?\nNG·미검사·이미 적용한 결과의 기존 보정값과 없음 상태는 유지합니다.\n\n현재 보정을 반영한 새 가공의 잔차인지 확인하세요. 같은 가공 흔적의 오차를 반복 누적하면 과보정될 수 있습니다.") + "\n새 REVIEW OFFSET 파일을 생성합니다."))
                     return;
                 EnsureSimpleOffsetSource(request, await LoadSelectedOutputViewerRecipe(CancellationToken.None, false) ?? throw new InvalidOperationException("현재 레시피가 없습니다."), LoadSimpleOffsetSettings());
                 var parameters = BuildOutputViewerParameterMap(recipe, settings);
@@ -4175,14 +4212,14 @@
                         };
                     }
 
-                    return merged.Values
+                    return (Basis: latest,Rows: merged.Values
                         .OrderBy(row => row.CellId)
                         .ThenBy(row => row.ShotId)
-                        .ToArray();
+                        .ToArray());
                 });
                 var saved = initialize
-                    ? await Task.Run(() => _reviewOffsetFile.SaveNew(recipe.Id, mergedRows))
-                    : await SaveReviewOffsetFromResult(recipe.Id, mergedRows, sourceResultFile);
+                    ? await Task.Run(() => _reviewOffsetFile.SaveNewIfLatestUnchanged(recipe.Id, mergedRows.Basis,mergedRows.Rows))
+                    : await SaveReviewOffsetFromResult(recipe.Id, mergedRows.Rows, sourceResultFile,mergedRows.Basis);
                 if (saved is null)
                 {
                     _statusReporter("ROUGH Offset Apply: 동일한 검사 결과의 중복 적용을 취소했습니다.");
@@ -4382,7 +4419,7 @@
                         };
                     }
 
-                    return await _reviewOffsetFile.SaveNew(recipe.Id, rows.Values.OrderBy(row => row.CellId).ThenBy(row => row.ShotId, StringComparer.Ordinal).ToArray());
+                    return await _reviewOffsetFile.SaveNewIfLatestUnchanged(recipe.Id, latest, rows.Values.OrderBy(row => row.CellId).ThenBy(row => row.ShotId, StringComparer.Ordinal).ToArray());
                 });
                 _simpleOffsetRecipeId = result.RecipeId;
                 _simpleOffsetLoad = Task.FromResult(result);
@@ -4414,6 +4451,7 @@
             _simpleOffsetLoad = Task.FromResult(saved);
             Rough.Inspection?.ObserveOffsetInitializations(saved);
             Fine.ObserveOffsetInitializations(saved);
+            _ = RefreshManualInspectionAfterReview();
         }
 
         private static void EnsureSimpleOffsetSource(ST_SIMPLE_OFFSET_CHANGE request, ST_RECIPE_DEFINITION recipe, IReadOnlyList<ST_SYSTEM_PARAMETER> settings)
@@ -7819,9 +7857,10 @@
         private (double X, double Y) DeltaToDesign(ST_REVIEW_PLAN_POINT point)
         {
             var plan = CreatePlan();
-            // Vision Flip defines the received camera error in design coordinates.
-            // Stage direction and Head flips belong to the later script conversion.
-            var design = CReviewManager.VisionErrorToStageOffset(point.ErrorX, point.ErrorY, plan.VisionFlipType);
+            // Keep raw Vision errors untouched; Flip yields Stage mm, then remove the
+            // Stage direction before this increment joins the stored DESIGN baseline.
+            var stage = CReviewManager.VisionErrorToStageOffset(point.ErrorX, point.ErrorY, plan.VisionFlipType);
+            var design = CReviewMeasurementOffset.StageToDesign(_parameters,stage.X,stage.Y);
             return (Round(design.X), Round(design.Y));
         }
 

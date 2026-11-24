@@ -34,10 +34,10 @@ internal static partial class Program
     [STAThread]
     private static int Main(string[] args)
     {
-        if (args.Length is < 2 or > 3 || args.Length == 3 && args[2] is not ("--integration-impact" or "--sync-levels" or "--coverage-compact" or "--hardening" or "--visual-usability" or "--map-first" or "--cell-overview" or "--offset-init" or "--measurement-workflow" or "--bulk-history" or "--representative" or "--side-panels")) { Console.Error.WriteLine("Usage: UiHarness <repository/Drilling.UI> <private-output> [--integration-impact|--sync-levels|--coverage-compact|--hardening|--visual-usability|--map-first|--cell-overview|--offset-init|--measurement-workflow|--bulk-history|--representative|--side-panels]"); return 2; }
+        if (args.Length is < 2 or > 3 || args.Length == 3 && args[2] is not ("--integration-impact" or "--sync-levels" or "--coverage-compact" or "--hardening" or "--visual-usability" or "--map-first" or "--cell-overview" or "--offset-init" or "--measurement-workflow" or "--bulk-history" or "--representative" or "--side-panels" or "--final-offsets")) { Console.Error.WriteLine("Usage: UiHarness <repository/Drilling.UI> <private-output> [--integration-impact|--sync-levels|--coverage-compact|--hardening|--visual-usability|--map-first|--cell-overview|--offset-init|--measurement-workflow|--bulk-history|--representative|--side-panels|--final-offsets]"); return 2; }
         _uiSource = Path.GetFullPath(args[0]); _output = Path.GetFullPath(args[1]); Directory.CreateDirectory(_output);
         _application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-        if (args.Length == 3) return args[2] switch { "--sync-levels" => SyncLevels(), "--coverage-compact" => CoverageCompact(), "--hardening" => Hardening(), "--visual-usability" => VisualUsability(), "--map-first" => MapFirst(), "--cell-overview" => CellOverview(), "--offset-init" => OffsetInit(), "--measurement-workflow" => MeasurementWorkflow(), "--bulk-history" => BulkHistory(), "--representative" => Representative(), "--side-panels" => SidePanels(), _ => IntegrationImpact() };
+        if (args.Length == 3) return args[2] switch { "--sync-levels" => SyncLevels(), "--coverage-compact" => CoverageCompact(), "--hardening" => Hardening(), "--visual-usability" => VisualUsability(), "--map-first" => MapFirst(), "--cell-overview" => CellOverview(), "--offset-init" => OffsetInit(), "--measurement-workflow" => MeasurementWorkflow(), "--bulk-history" => BulkHistory(), "--representative" => Representative(), "--side-panels" => SidePanels(), "--final-offsets" => FinalOffsetCases(), _ => IntegrationImpact() };
         try
         {
             LoadResources("Light");
@@ -250,7 +250,7 @@ internal static partial class Program
             window.Show();Pump();
             var map=(CManualInspectionMapControl)view.FindName("PositionMap");
             Test("default_color_is_measurement_deviation_level",Field<string>(view,"_color")=="level");
-            Test("only_level_and_judge_color_concepts",((ComboBox)view.FindName("ColorFilter")).Items.Count==2);
+            Test("three_color_concepts_include_saved_final_offsets",((ComboBox)view.FindName("ColorFilter")).Items.Count==3);
             Test("advanced_sections_initially_closed",new[]{"InspectorSection","LeftInspectorSection","ReferenceSection","CorrectionSection","SettingsSection","ScatterSection","ResultsSection"}.All(n=>!((Expander)view.FindName(n)).IsExpanded));
             Test("simulation_and_duplicate_motion_controls_removed",new[]{"SimulationOptions","SimulationDemoButton","MoveButton","MoveMeasureCorrectButton","SideStopButton","PanToolButton","LoadResultButton"}.All(n=>view.FindName(n)is null));
             Test("automatic_synchronization_description_reachable",((TextBlock)view.FindName("StatusText")).ToolTip?.ToString()?.Contains(initial.SynchronizationText)==true);
@@ -298,7 +298,7 @@ internal static partial class Program
             menu.Items.OfType<MenuItem>().Single(x=>x.Header.ToString()!.Contains("파일 불러오기")&&!x.Header.ToString()!.Contains("전 작업")).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));Pump();
             Test("file_load_delegates_picker_and_keeps_current_version",fake.Calls.Last().Action==EN_MANUAL_INSPECTION_UI_ACTION.LoadResultFile&&fake.Calls.Last().Request.ResultPath is null&&fake.Calls.Last().Request.ExpectedVersion==103);
             Test("file_load_remains_immediate_and_does_not_request_motion_confirmation",fake.Calls[^1].Action==EN_MANUAL_INSPECTION_UI_ACTION.LoadResultFile&&confirmations.Last().Title.Contains("이동"));
-            Test("more_menu_has_return_portable_offsets_and_results_without_session_or_recent_list",menu.Items.OfType<MenuItem>().Count()==5&&menu.Items.OfType<MenuItem>().Count(x=>x.Header.ToString()!.Contains("통합 Offset"))==2&&menu.Items.OfType<MenuItem>().All(x=>!x.Header.ToString()!.Contains("세션")&&!x.Header.ToString()!.Contains("최근")&&!x.Header.ToString()!.Contains("SIM")));menu.IsOpen=false;
+            Test("more_menu_has_return_portable_offsets_and_results_without_session_or_recent_list",menu.Items.OfType<MenuItem>().Count()==6&&menu.Items.OfType<MenuItem>().Count(x=>x.Header.ToString()!.Contains("통합 Offset 파일 가져오기"))==1&&menu.Items.OfType<MenuItem>().Count(x=>x.Header.ToString()!.Contains("작업 Offset 파일 내보내기"))==1&&menu.Items.OfType<MenuItem>().Count(x=>x.Header.ToString()!.Contains("최종 보정 파일 내보내기"))==1&&menu.Items.OfType<MenuItem>().All(x=>!x.Header.ToString()!.Contains("세션")&&!x.Header.ToString()!.Contains("최근")&&!x.Header.ToString()!.Contains("SIM")));menu.IsOpen=false;
             var oldLevel=CManualInspectionDrawing.AppliedLevel(sample,initial);var changed=initial with{LevelBoundsUm=[10,20,30]};
             Test("new_common_bounds_recolor_existing_offsets",oldLevel==1&&CManualInspectionDrawing.AppliedLevel(sample,changed)==0);
             fake.Replace(snapshot with{Version=104,LevelBoundsUm=[10,20,30]});Pump();Set(view,"_focusKey",snapshot.Points[0].Key);Invoke(view,"Refresh");

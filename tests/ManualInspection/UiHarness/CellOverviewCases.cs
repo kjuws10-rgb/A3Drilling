@@ -213,7 +213,7 @@ internal static partial class Program
         ((Expander)view.FindName("CorrectionSection")).IsExpanded=false;((Expander)view.FindName("PointDetailsSection")).IsExpanded=false;Pump();
         Invoke(view,"Files_Click",view,new RoutedEventArgs());var menu=((Button)view.FindName("FilesButton")).ContextMenu!;
         var items=menu.Items.OfType<MenuItem>().ToArray();
-        Test("file_menu_exposes_return_portable_offset_and_measurement_files_without_session_or_recent_list",items.Length==5&&items.Count(i=>i.Header.ToString()!.Contains("통합 Offset"))==2&&items.Any(i=>i.Header.ToString()!.Contains("돌아가기"))&&items.All(i=>!i.Header.ToString()!.Contains("세션")&&!i.Header.ToString()!.Contains("최근")));
+        Test("file_menu_exposes_return_portable_offset_and_measurement_files_without_session_or_recent_list",items.Length==6&&items.Count(i=>i.Header.ToString()!.Contains("통합 Offset 파일 가져오기"))==1&&items.Count(i=>i.Header.ToString()!.Contains("작업 Offset 파일 내보내기"))==1&&items.Count(i=>i.Header.ToString()!.Contains("최종 보정 파일 내보내기"))==1&&items.Any(i=>i.Header.ToString()!.Contains("돌아가기"))&&items.All(i=>!i.Header.ToString()!.Contains("세션")&&!i.Header.ToString()!.Contains("최근")));
         view.ConfirmationForTesting=(_,text,_)=>{descriptions.Add(text);return false;};
         items.Single(i=>i.Header.ToString()!.Contains("돌아가기")).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));Pump();
         Test("file_return_is_immediate_without_confirmation",fake.Calls.Count==2&&!fake.Snapshot.CanReturnToPreviousWorkspace&&Field<int>(view,"_cell")==3&&descriptions.Count==0);

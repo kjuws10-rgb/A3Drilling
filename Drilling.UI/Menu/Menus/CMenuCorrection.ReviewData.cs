@@ -22,6 +22,7 @@ namespace Drilling.UI.Menu.Menus
             private readonly Action<string> _statusReporter;
             private readonly Func<Task> _rollbackReviewOffset;
             private readonly Func<string, IReadOnlyList<ST_REVIEW_OFFSET_ROW>, string, Task<ST_REVIEW_OFFSET_FILE_DATA?>> _saveReviewOffsetFromResult;
+            private readonly Func<string, IReadOnlyList<ST_REVIEW_OFFSET_ROW>, string, ST_REVIEW_OFFSET_FILE_DATA, Task<ST_REVIEW_OFFSET_FILE_DATA?>> _saveReviewOffsetIfUnchanged;
             private readonly bool _inspectionResultsOnly;
             private readonly Func<string>? _inspectionResultTypeProvider;
             private bool _isBusy;
@@ -41,7 +42,8 @@ namespace Drilling.UI.Menu.Menus
                 Func<Task> rollbackReviewOffset,
                 Func<string, IReadOnlyList<ST_REVIEW_OFFSET_ROW>, string, Task<ST_REVIEW_OFFSET_FILE_DATA?>> saveReviewOffsetFromResult,
                 bool inspectionResultsOnly = false,
-                Func<string>? inspectionResultTypeProvider = null)
+                Func<string>? inspectionResultTypeProvider = null,
+                Func<string,IReadOnlyList<ST_REVIEW_OFFSET_ROW>,string,ST_REVIEW_OFFSET_FILE_DATA,Task<ST_REVIEW_OFFSET_FILE_DATA?>>? saveReviewOffsetIfUnchanged = null)
             {
                 _reviewResultFile = reviewResultFile;
                 _reviewOffsetFile = reviewOffsetFile;
@@ -52,6 +54,8 @@ namespace Drilling.UI.Menu.Menus
                 _statusReporter = statusReporter;
                 _rollbackReviewOffset = rollbackReviewOffset;
                 _saveReviewOffsetFromResult = saveReviewOffsetFromResult;
+                _saveReviewOffsetIfUnchanged = saveReviewOffsetIfUnchanged ?? ((_,_,_,_) =>
+                    throw new NotSupportedException("Review Offset 기준 확인 저장이 연결되지 않았습니다."));
                 _inspectionResultsOnly = inspectionResultsOnly;
                 _inspectionResultTypeProvider = inspectionResultTypeProvider;
                 RefreshCommand = new CButtonCommand(RefreshRequested, _ => !IsBusy);

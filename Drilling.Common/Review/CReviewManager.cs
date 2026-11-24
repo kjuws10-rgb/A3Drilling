@@ -4423,6 +4423,16 @@ namespace Drilling.Common.Review
 
         public abstract Task<ST_REVIEW_OFFSET_FILE_DATA> LoadLatest(string recipeId, CancellationToken cancellationToken = default);
         public abstract Task<ST_REVIEW_OFFSET_FILE_DATA> SaveNew(string recipeId, IReadOnlyList<ST_REVIEW_OFFSET_ROW> rows, CancellationToken cancellationToken = default);
+        /// <summary>Publish a map only if its calculation basis is still the authoritative file.</summary>
+        public virtual Task<ST_REVIEW_OFFSET_FILE_DATA> SaveNewIfLatestUnchanged(
+            string recipeId, ST_REVIEW_OFFSET_FILE_DATA expected,
+            IReadOnlyList<ST_REVIEW_OFFSET_ROW> rows, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException("이 저장소는 Review Offset 기준 확인 저장을 지원하지 않습니다.");
+        public virtual Task<ST_REVIEW_OFFSET_FILE_DATA> SaveNewFromSourceIfUnchanged(
+            string recipeId, ST_REVIEW_OFFSET_FILE_DATA expected,
+            IReadOnlyList<ST_REVIEW_OFFSET_ROW> rows, string sourceResultFile,
+            bool allowDuplicate, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException("이 저장소는 Review Offset 기준·출처 확인 저장을 지원하지 않습니다.");
         public abstract Task<ST_REVIEW_OFFSET_SOURCE_APPLICATION?> FindSourceApplication(
             string recipeId,
             string sourceResultFile,

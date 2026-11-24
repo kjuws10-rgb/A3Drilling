@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Collections.Frozen;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
@@ -25,6 +27,10 @@ public interface IManualInspectionBackend
     IReadOnlyList<string> WatchRoots => [];
     IReadOnlySet<string> ImportedInitializedOffsetKeys => new HashSet<string>(StringComparer.Ordinal);
     Task<CManualInspectionSource> LoadAsync(string? resultPath, CancellationToken token, IReadOnlyList<string>? displayKeys = null);
+    Task<CManualInspectionSavedOffsetSnapshot?> ReadSavedOffsetSnapshotAsync(CManualInspectionSource source, CancellationToken token)
+        => Task.FromResult<CManualInspectionSavedOffsetSnapshot?>(null);
+    Task<CManualInspectionSavedOffsetSnapshot?> ExportFinalOffsetBundleAsync(CManualInspectionSource source,string path,CancellationToken token)
+        => throw new NotSupportedException("이 연결은 최종 저장 Offset 내보내기를 지원하지 않습니다.");
     Task EnsureCurrentAsync(CManualInspectionSource source, CancellationToken token);
     void GuardOperation();
     Task<CManualInspectionMeasurement> ExecutePointAsync(CManualInspectionSource source, string key,
@@ -80,7 +86,20 @@ public sealed record CManualInspectionSource(
     public bool HasExplicitMeasurementState { get; init; }
     /// <summary>Authoritative empty/initialized saved Shot state, independent of newer unsaved raw.</summary>
     public IReadOnlySet<string>? StoredInitializedOffsetKeys { get; init; }
+    public double ShiftOffsetXmm { get; init; }
+    public double ShiftOffsetYmm { get; init; }
+    public CManualInspectionSavedOffsetSnapshot? SavedOffsets { get; init; }
 }
+
+/// <summary>
+/// An immutable read of the authoritative saved model, not an engine baseline, measurement or
+/// correction receipt. Missing rows and explicit Init remain empty even when their numeric neutral is zero.
+/// </summary>
+public sealed record CManualInspectionSavedOffsetSnapshot(
+    string RecipeId,string RunId,string CoordinateSignature,string RevisionId,
+    string FilePath,string FileName,DateTimeOffset? SavedAt,string ContentSha256,int RowCount,int InitializedRowCount,
+    IReadOnlyDictionary<string,ST_MANUAL_OFFSET> ValuesByPointKey,IReadOnlySet<string> InitializedOffsetKeys,
+    IReadOnlySet<string> AppliedPointKeys);
 
 public sealed record CManualInspectionImportedResult(string Path, DateTimeOffset SavedAt, string Origin);
 
@@ -114,7 +133,8 @@ public sealed class CManualInspectionBackend(
     public IReadOnlyList<KeyValuePair<string, string>> ConsumedMeasurements { get; private set; } = [];
     public bool IsSimulation => manager?.Interface().IsSimulation == true && manager.Motion().IsSimulation;
     public string StateDirectory => Path.Combine(Directory.GetParent(results.RootPath)?.FullName ?? results.RootPath, "ManualInspection");
-    public IReadOnlyList<string> WatchRoots => [results.RootPath, offsets.RootPath];
+    public IReadOnlyList<string> WatchRoots => results.SearchRootPaths.Append(offsets.RootPath)
+        .Where(path=>!string.IsNullOrWhiteSpace(path)).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
     public IReadOnlySet<string> ImportedInitializedOffsetKeys { get; private set; } = new HashSet<string>(StringComparer.Ordinal);
 
     public void GuardOperation()
@@ -343,7 +363,9 @@ public sealed class CManualInspectionBackend(
                 + (file is null && resolvedCompletion.Ambiguous ? " · 현재 Product의 가공 Shift 출처가 달라 현재 Recipe의 Shift 0 기준을 사용합니다. 현재 위치를 확인하고 새로 측정하세요." : ""))
         { ReadOnly = false, AppliedOffsetKeys = appliedKeys, ImportedResults = imported,StoredInitializedOffsetKeys=emptyOffsetKeys,
           CellLayouts = BuildCellLayouts(_parameters), GlassWidthMm = Number(_parameters,"GLASS_SIZE_X",0), GlassHeightMm = Number(_parameters,"GLASS_SIZE_Y",0),
-          RecentResults = catalog, ObservationFingerprint = ObservationFingerprint(external, file, _latest, context.CoordinateSignature) };
+          RecentResults = catalog, ObservationFingerprint = ObservationFingerprint(external, file, _latest, context.CoordinateSignature),
+          ShiftOffsetXmm=_shiftX,ShiftOffsetYmm=_shiftY };
+        source=source with { SavedOffsets=SavedSnapshot(source,_latest) };
         // Loading is read-only, but the published coordinate context must be internally current.
         // This also detects same-path offset replacement through the store's content identity.
         await EnsureCurrentAsync(source, token);
@@ -533,6 +555,103 @@ public sealed class CManualInspectionBackend(
         if (_latest is null || Revision(current) != Revision(_latest) || Revision(current) != source.Context.RevisionId)
             throw new InvalidOperationException("다른 작업에서 활성 보정이 바뀌었습니다. 현재 보정을 다시 불러오세요.");
     }
+
+    public async Task<CManualInspectionSavedOffsetSnapshot?> ReadSavedOffsetSnapshotAsync(
+        CManualInspectionSource source,CancellationToken token)
+        => (await ReadSavedState(source,token)).Source.SavedOffsets;
+
+    public async Task<CManualInspectionSavedOffsetSnapshot?> ExportFinalOffsetBundleAsync(
+        CManualInspectionSource source,string path,CancellationToken token)
+    {
+        // Use a detached adapter and the full current model. A draft, an old opened CSV or a
+        // filtered display must never become the active saved map merely because it was exported.
+        var saved=await ReadSavedState(source,token);
+        await saved.Adapter.ExportOffsetBundleAsync(saved.Source,saved.Source.Values,path,false,false,token);
+        return saved.Source.SavedOffsets;
+    }
+
+    private sealed record SavedRead(CManualInspectionBackend Adapter,CManualInspectionSource Source);
+
+    private async Task<SavedRead> ReadSavedState(CManualInspectionSource source,CancellationToken token)
+    {
+        // None of the fields belonging to the live motion/candidate adapter are modified here.
+        // This permits a read while a different tab saves, or this workspace keeps a pending draft.
+        var reader=new CManualInspectionBackend(review,recipes,settings,results,offsets,selectedRecipe,manager,guard);
+        var selected=selectedRecipe();
+        if(!selected.Equals(source.Context.RecipeId,StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("선택 모델이 달라 최종 저장 보정을 연결하지 않았습니다.");
+        reader._recipe=(await recipes.LoadRecipes(token)).SingleOrDefault(recipe=>recipe.Id.Equals(selected,StringComparison.OrdinalIgnoreCase))
+            ?? throw new InvalidOperationException("현재 모델이 없습니다.");
+        reader._sourceSimulation=IsSimulation;
+        reader._sourceRun=reader.RunIdentity();
+        reader._shiftX=source.ShiftOffsetXmm;reader._shiftY=source.ShiftOffsetYmm;
+        reader._parameters=reader.Parameters(reader._recipe);
+        if(reader._sourceRun!=source.Context.RunId || reader.CoordinateSignature()!=source.Context.CoordinateSignature)
+            throw new InvalidOperationException("모델·기판 회차·좌표 기준이 달라 최종 저장 보정을 연결하지 않았습니다.");
+        reader._latest=await Task.Run(()=>offsets.LoadLatest(selected,token),token);
+        if(!reader._latest.RecipeId.Equals(selected,StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException("최종 보정 파일의 모델이 다릅니다.");
+        reader._latest=await reader.RestoreLegacyInitializationMetadata(reader._latest,token);
+        CReviewOffsetData.ApplyToParameters(reader._parameters,reader._latest);
+        reader._parameters["SHIFT_OFFSET_X"]=reader._shiftX.ToString("R",CultureInfo.InvariantCulture);
+        reader._parameters["SHIFT_OFFSET_Y"]=reader._shiftY.ToString("R",CultureInfo.InvariantCulture);
+        var split=Int(reader._parameters,"SPLITED_BEAM_COUNT");
+        if(split<1) throw new InvalidDataException("최종 보정의 Beam 구성을 확인하세요.");
+        var beams=source.Points.Select(point=>point.BeamNo).Append(Math.Min(11,checked(split*split))).Distinct().ToArray();
+        if(beams.Any(beam=>beam<1 || beam>checked(split*split))) throw new InvalidDataException("최종 보정의 Beam 범위가 다릅니다.");
+        reader._plans=await Task.Run(()=>beams.ToDictionary(beam=>beam,
+            beam=>review.CreateAllPlan(reader._recipe,beam,reader._shiftX,reader._shiftY)),token);
+        var process=await Task.Run(()=>CShotCoordinatePlanBuilder.Build(reader._parameters),token);
+        reader._shots=process.Shots.ToDictionary(shot=>OffsetKey(shot.CellNo,shot.CellShotNo),StringComparer.Ordinal);
+        var rows=reader._latest.Rows.ToDictionary(row=>$"{row.CellId}:{Normalize(row.ShotId)}",StringComparer.OrdinalIgnoreCase);
+        var points=new List<ST_MANUAL_POINT>();
+        var values=new Dictionary<string,ST_MANUAL_OFFSET>(StringComparer.Ordinal);
+        var applied=new HashSet<string>(StringComparer.Ordinal);
+        var empty=new HashSet<string>(StringComparer.Ordinal);
+        foreach(var target in reader._plans.Values.SelectMany(plan=>plan.Points))
+        {
+            token.ThrowIfCancellationRequested();
+            var key=$"C{target.CellNo}/H{target.HeadNo}/S{target.ShotNo}/B{target.BeamNo}";
+            var point=new ST_MANUAL_POINT(key,target.CellNo,target.HeadNo,target.ShotNo,target.BeamNo,target.DesignX,target.DesignY)
+            {
+                Row=(target.ShotNo-1)/Math.Max(1,target.PixelCountX),Column=(target.ShotNo-1)%Math.Max(1,target.PixelCountX),
+                Masked=!target.Use || target.HeadNo<=0 || target.ExclusionReason.Length>0
+            };
+            var matrix=CReviewShotNameFormatter.ToMatrixName(target.ShotNo,target.PixelCountX);
+            rows.TryGetValue($"{target.CellNo}:{Normalize(matrix)}",out var row);
+            if(row is { IsDesignCoordinate:false,IsMeasurementOffsetInitialized:false } && target.HeadNo is <1 or >8)
+                throw new InvalidDataException($"최종 보정의 Head가 미배정되어 SCANNER→DESIGN 변환을 확정할 수 없습니다. 파일: {reader._latest.FilePath} · Cell {target.CellNo} / Shot {matrix}. 실제 Head 배정 또는 원본 좌표계를 확인하세요.");
+            var basis=row is null?ST_MANUAL_OFFSET.Zero:CManualInspectionCoordinateBridge.FromFile(row,reader._parameters,Math.Max(1,target.HeadNo));
+            if(row is not null) applied.Add(key);
+            if(row is null || row.IsMeasurementOffsetInitialized) empty.Add(point.OffsetKey);
+            point=point with { IsMeasurementOffsetInitialized=empty.Contains(point.OffsetKey),HasAppliedOffsetEvidence=row is { IsMeasurementOffsetInitialized:false }
+                && (row.IsDesignCoordinate || target.HeadNo is >=1 and <=8) };
+            points.Add(point);values.Add(key,basis);reader._targets.Add(key,target);reader._baseline[point.OffsetKey]=basis;
+        }
+        var geometry=points.ToDictionary(point=>point.Key,StringComparer.Ordinal);
+        foreach(var original in source.Points)
+            if(!geometry.TryGetValue(original.Key,out var actual) || original.CellNo!=actual.CellNo || original.HeadNo!=actual.HeadNo
+                || original.ShotNo!=actual.ShotNo || original.BeamNo!=actual.BeamNo || original.Masked!=actual.Masked
+                || original.XMm!=actual.XMm || original.YMm!=actual.YMm)
+                throw new InvalidDataException("작업 화면과 현재 모델의 실제 위치가 달라 최종 저장 보정을 연결하지 않았습니다.");
+        var current=source with
+        {
+            Context=source.Context with { RevisionId=Revision(reader._latest),SourceResultPath="" },
+            Points=points.ToArray(),Values=new ReadOnlyDictionary<string,ST_MANUAL_OFFSET>(values),AppliedOffsetKeys=applied.ToFrozenSet(StringComparer.Ordinal),
+            StoredInitializedOffsetKeys=empty.ToFrozenSet(StringComparer.Ordinal),SourcePath="",SavedOffsets=null,
+            InitializationCellNos=[],InitializationOffsetKeys=new HashSet<string>(StringComparer.Ordinal),HasExplicitMeasurementState=true
+        };
+        current=current with { SavedOffsets=SavedSnapshot(current,reader._latest) };
+        await reader.EnsureCurrentAsync(current,token);
+        return new(reader,current);
+    }
+
+    private static CManualInspectionSavedOffsetSnapshot SavedSnapshot(CManualInspectionSource source,ST_REVIEW_OFFSET_FILE_DATA file)
+        => new(source.Context.RecipeId,source.Context.RunId,source.Context.CoordinateSignature,Revision(file),file.FilePath,file.FileName,
+            string.IsNullOrWhiteSpace(file.FilePath)?null:file.SavedAt,file.ContentSha256,file.Rows.Count,file.Rows.Count(row=>row.IsMeasurementOffsetInitialized),
+            new ReadOnlyDictionary<string,ST_MANUAL_OFFSET>(source.Values.ToDictionary(pair=>pair.Key,pair=>pair.Value,StringComparer.Ordinal)),
+            (source.StoredInitializedOffsetKeys??source.Points.Where(point=>point.IsMeasurementOffsetInitialized).Select(point=>point.OffsetKey).ToHashSet(StringComparer.Ordinal)).ToFrozenSet(StringComparer.Ordinal),
+            source.AppliedOffsetKeys.ToFrozenSet(StringComparer.Ordinal));
 
     public async Task<CManualInspectionMeasurement> ExecutePointAsync(CManualInspectionSource source, string key,
         EN_MANUAL_OPERATION_KIND kind, Action<string> progress, CancellationToken token)

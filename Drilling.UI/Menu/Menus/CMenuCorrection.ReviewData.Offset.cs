@@ -119,7 +119,7 @@ namespace Drilling.UI.Menu.Menus
                         throw new InvalidOperationException("팝업을 확인하는 동안 Review Offset 파일이 변경되었습니다. DATA LOAD 상태는 유지되므로 OFFSET APPLY를 다시 열어 확인해 주세요.");
                     }
 
-                    var saved = await _saveReviewOffsetFromResult(recipe.Id, plan.SavedRows, sourcePath);
+                    var saved = await _saveReviewOffsetIfUnchanged(recipe.Id, plan.SavedRows, sourcePath,latest);
                     if (saved is null)
                     {
                         _statusReporter("Review Data Offset Apply: 동일한 검사 결과의 중복 적용을 취소했습니다.");
@@ -198,8 +198,9 @@ namespace Drilling.UI.Menu.Menus
                             };
                         }
 
-                        return await _reviewOffsetFile.SaveNew(
+                        return await _reviewOffsetFile.SaveNewIfLatestUnchanged(
                             recipe.Id,
+                            latest,
                             rows.Values.OrderBy(row => row.CellId).ThenBy(row => row.ShotId, StringComparer.OrdinalIgnoreCase).ToArray());
                     });
                     OffsetsInitialized?.Invoke(saved);
@@ -326,8 +327,11 @@ namespace Drilling.UI.Menu.Menus
                     var current = previous is null
                         ? (X: 0.0, Y: 0.0)
                         : CReviewOffsetData.ToDesign(parameters, point.HeadNo, previous.ReviewOffsetX, previous.ReviewOffsetY, previous.IsDesignCoordinate);
-                    var finalX = CAlignShotOffsetData.RoundValue(current.X + delta.X);
-                    var finalY = CAlignShotOffsetData.RoundValue(current.Y + delta.Y);
+                    // Result CSV rows are already Vision-flipped Stage mm. Convert only
+                    // the new increment, never flip or rescale the saved DESIGN baseline.
+                    var designDelta = CReviewMeasurementOffset.StageToDesign(parameters,delta.X,delta.Y);
+                    var finalX = CAlignShotOffsetData.RoundValue(current.X + designDelta.X);
+                    var finalY = CAlignShotOffsetData.RoundValue(current.Y + designDelta.Y);
                     latestByKey[key] = new ST_REVIEW_OFFSET_ROW(point.CellNo, shotName, finalX, finalY)
                     {
                         IsDesignCoordinate = true
@@ -339,8 +343,8 @@ namespace Drilling.UI.Menu.Menus
                         point.ShotKey,
                         current.X,
                         current.Y,
-                        delta.X,
-                        delta.Y,
+                        designDelta.X,
+                        designDelta.Y,
                         finalX,
                         finalY)
                     { HasCurrentMeasurementValue = previous is { IsMeasurementOffsetInitialized: false } });
@@ -552,7 +556,8 @@ namespace Drilling.UI.Menu.Menus
             {
                 return expected.FilePath.Equals(current.FilePath, StringComparison.OrdinalIgnoreCase)
                     && expected.SavedAt.Equals(current.SavedAt)
-                    && expected.Rows.Count == current.Rows.Count;
+                      && expected.Rows.Count == current.Rows.Count
+                      && expected.ContentSha256.Equals(current.ContentSha256,StringComparison.OrdinalIgnoreCase);
             }
 
             private void SetOffsetBusy(bool value)

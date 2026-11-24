@@ -1,0 +1,153 @@
+{
+  "schemaVersion": "a3-final-review-offset-independent-round1/1",
+  "round": 1,
+  "status": "독립 소스·UI 회귀 검토 완료, 후속 소스 수정과 최종 통합 검증 대기",
+  "passed": true,
+  "finalApproval": false,
+  "reviewedAt": "2026-11-24T02:43:35.685471+00:00",
+  "baseCommit": "7de760ccfe57ed75de3b8c9484c0b14114857be0",
+  "checks": [
+    {
+      "name": "legacy_Calculate_current_rows_and_basis_same_object",
+      "passed": true
+    },
+    {
+      "name": "legacy_Save_merges_captured_basis_not_fresh_B",
+      "passed": true
+    },
+    {
+      "name": "actual_Root_supplies_conditional_Func4_to_both_panels",
+      "passed": true
+    },
+    {
+      "name": "ReviewData_panel_saves_same_latest_basis",
+      "passed": true
+    },
+    {
+      "name": "Auto_saves_same_latest_basis",
+      "passed": true
+    },
+    {
+      "name": "raw_stage_to_design_helper_is_single_boundary",
+      "passed": true
+    },
+    {
+      "name": "Rough_and_Fine_apply_helper_before_adding_B",
+      "passed": true
+    },
+    {
+      "name": "Auto_apply_helper_before_adding_B",
+      "passed": true
+    },
+    {
+      "name": "legacy_unsafe_save_delegate_fails_closed",
+      "passed": true
+    },
+    {
+      "name": "writer_CAS_under_store_and_process_lock",
+      "passed": true
+    },
+    {
+      "name": "writer_CAS_path_and_SHA_and_ReadLease",
+      "passed": true
+    },
+    {
+      "name": "writer_legacy_and_Manual_CAS_retained",
+      "passed": true
+    },
+    {
+      "name": "snapshot_reader_is_detached_and_revalidates",
+      "passed": true
+    },
+    {
+      "name": "saved_snapshot_copies_readonly_values_and_sets",
+      "passed": true
+    },
+    {
+      "name": "host_notifies_readonly_after_legacy_completion",
+      "passed": true
+    },
+    {
+      "name": "new_WPF_mode_all35_pass",
+      "passed": true
+    },
+    {
+      "name": "all14_WPF_modes878_pass",
+      "passed": true
+    },
+    {
+      "name": "UI_build0warning0error",
+      "passed": true
+    },
+    {
+      "name": "no_source_conflict_markers",
+      "passed": true
+    }
+  ],
+  "checkCount": 19,
+  "sourceSha256": {
+    "Drilling.Common/Review/CReviewMeasurementOffset.cs": "6c9caab67da04f67334a27ed2f6218aceea1f6c4e31d12bd9cf0b9e1881e8693",
+    "Drilling.Common/Review/CReviewManager.cs": "32bb509070f077f16b22059cb7c2ed815a351b8a7876c4fdd1da75649de255cd",
+    "Drilling.Common/Review/CAutoFineReviewCoordinator.cs": "de93f27b8070bd8bebd6d4c67ee3147299448bc7eb940da7b83ab9bd2b2dbd7e",
+    "Drilling.File/ReviewOffset/CReviewOffsetFile.cs": "322d7c92b8bd044779e7cda61e80bbd52654eefa0422eb8ebe88ee6e1530b24f",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.cs": "388dda336057dbf57eff598d5c3648491ae9972ec387db25498f0cf4f4bbdb52",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Offset.cs": "0ec33aefb0847d2886301be4fb5db0d73db47dd45c45342d71d8678a14f6b0ea",
+    "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs": "3f149d7af6cf3d2b32bbb38ac1b70986834ea99d408b18687b978e6fc8b7cb6e",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "bc79f640be9d274846a875b508a56e3d3ff28d83547eead75b8db9ff41578d8e",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "6b3757f96a5c73c0d41dd15c6ba4061e3cec9f05f06e67d981610e5f045be14d",
+    "Drilling.UI/Views/CManualInspectionView.xaml": "5cb9ed433266a67eddb89f7fdf826cd0c46ce816361ef1e2041475c06178f8a6",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "37eb7f07ce6a6d80447981aeb83346f76aa34b6b7749a983169c1b8093139e13"
+  },
+  "uiEvidence": {
+    "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\ui-qa\\ui-final-review-validation.json",
+    "sha256": "fc97331e7d9dde1d382dba1fffe22e9b8f0ec47bdcf6f35414c13fc9699be25d",
+    "modes": 14,
+    "tests": 878,
+    "newFinalOffsetTests": 35,
+    "inputFiles": 21
+  },
+  "testEdits": {
+    "new": "tests/ManualInspection/UiHarness/FinalOffsetCases.cs",
+    "registration": [
+      "Program.cs",
+      "ManualInspection.UiHarness.csproj"
+    ],
+    "expectationOnly": [
+      "ColorFilter 2→3, 파일 메뉴 5→6 및 가져오기/작업 내보내기/최종 내보내기 각1개",
+      "Program.cs/CellOverviewCases.cs/OffsetInitCases.cs/MeasurementWorkflowCases.cs의 해당 기대만 수정"
+    ],
+    "guardExpectationsWeakened": false
+  },
+  "confirmedFindings": [
+    {
+      "id": "final-read-notification-coalescing",
+      "severity": "P2",
+      "status": "수정 승인·담당 에이전트 구현/회귀 진행 중",
+      "details": "최종 저장값 읽기 중 새 알림을 skip하면 명시 파일/dirty 작업에서 후속 갱신을 놓칠 수 있음. 최신 알림을 coalesce하여 한 번 더 읽고 늦은/취소된 frame은 무시하도록 요청함."
+    }
+  ],
+  "additionalReviewQuestions": [
+    {
+      "id": "legacy-scanner-head0-final-export",
+      "status": "담당 에이전트에 확인 요청",
+      "details": "최종 snapshot의 legacy SCANNER 행을 임의 Head1 DESIGN 근거로 확정하지 않는지 확인. Head0는 실제 보정 자격을 부여하지 않아야 함."
+    },
+    {
+      "id": "working-B-label",
+      "status": "Root에 좁은 문구 개선 제안",
+      "details": "최종 저장 B와 보존된 작업 B가 다를 수 있어 상세의 현재 보정 B를 작업 기준 B로 구분하면 혼동을 줄임."
+    }
+  ],
+  "remainingPhysicalBaselineLimit": "CAS는 계산/merge 후 외부 저장 경쟁을 막지만 동일 가공 흔적을 재검사한 전체 오차와 재가공 후 새 잔차를 구분하는 영구 가공 기준을 생성하지 않는다. 확인 문구를 추가하더라도 물리 가공 증거가 자동 보증됐다고 주장하면 안 됨.",
+  "visualReview": [
+    "compactDark/wideLight PNG 직접 확인",
+    "최종 파일 이름·경로/SHA tooltip, 저장 B 지도, NG 빨강·Init/없음 회색·실측0을 구분",
+    "기존 테마·중앙 지도·접힌 하단표·좌우 패널 유지"
+  ],
+  "notExecuted": [
+    "설비 App/Root/Manager",
+    "벤더 SDK·PLC/Vision·실모션·AeroScript·레이저",
+    "실제 운영 CSV·실제 모델 저장"
+  ],
+  "noProductionOrGitEditsByQa": true
+}

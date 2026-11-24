@@ -1,0 +1,170 @@
+{
+  "passed": true,
+  "modes": [
+    {
+      "mode": "default",
+      "exitCode": 0,
+      "passed": true,
+      "tests": 49,
+      "report": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\ui-qa\\default\\ui-results.json",
+      "reportSha256": "b8e8303515c691a2c39050c3984674a509c1394f7e6f81f4c31f8b2af16c19ca",
+      "seconds": 6.95
+    },
+    {
+      "mode": "integration-impact",
+      "exitCode": 0,
+      "passed": true,
+      "tests": 23,
+      "report": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\ui-qa\\integration-impact\\ui-integration-impact-results.json",
+      "reportSha256": "e371fced562983b3ec0800d69aa8765abfbae0f4cd4e67c80fe3ebedd730e4f2",
+      "seconds": 2.55
+    },
+    {
+      "mode": "sync-levels",
+      "exitCode": 0,
+      "passed": true,
+      "tests": 34,
+      "report": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\ui-qa\\sync-levels\\ui-sync-levels-results.json",
+      "reportSha256": "dae3b9ea8a640ce09471585d653ae62460904acd71af78c8786df14d5ed53771",
+      "seconds": 2.83
+    },
+    {
+      "mode": "coverage-compact",
+      "exitCode": 0,
+      "passed": true,
+      "tests": 71,
+      "report": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\ui-qa\\coverage-compact\\ui-coverage-compact-results.json",
+      "reportSha256": "4c223dfc7a1a34192625083d406310554cf33d71e3f215d58c4a8350cbc68a66",
+      "seconds": 4.89
+    },
+    {
+      "mode": "hardening",
+      "exitCode": 0,
+      "passed": true,
+      "tests": 30,
+      "report": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\ui-qa\\hardening\\ui-hardening-results.json",
+      "reportSha256": "86a90388a3b98a45807f732e481ff43faf3d6e23dd4c52ab53e2c3032b06e9ad",
+      "seconds": 1.69
+    },
+    {
+      "mode": "visual-usability",
+      "exitCode": 0,
+      "passed": true,
+      "tests": 105,
+      "report": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\ui-qa\\visual-usability\\ui-visual-usability-results.json",
+      "reportSha256": "b7c970e82df168d3a8fe6a4dbb77ae9c269ff64712498d39d49ee114551d77f3",
+      "seconds": 9.31
+    },
+    {
+      "mode": "map-first",
+      "exitCode": 0,
+      "passed": true,
+      "tests": 73,
+      "report": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\ui-qa\\map-first\\ui-map-first-results.json",
+      "reportSha256": "547c1b45dfbeca203f2af9bd9be074dafe3d4a8c5e1c37755056b51934aab058",
+      "seconds": 6.39
+    },
+    {
+      "mode": "cell-overview",
+      "exitCode": 0,
+      "passed": true,
+      "tests": 181,
+      "report": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\ui-qa\\cell-overview\\ui-cell-overview-results.json",
+      "reportSha256": "f81e876455573d47b0cf7046ffa61f33ba1cda85a105a6fd020539e4f5cd38a8",
+      "seconds": 12.26
+    },
+    {
+      "mode": "offset-init",
+      "exitCode": 0,
+      "passed": true,
+      "tests": 37,
+      "report": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\ui-qa\\offset-init\\ui-offset-init-results.json",
+      "reportSha256": "2f9e476a78bc9b7308e087f2f64c017ed026b07d15380f0213b0f6529955bf7f",
+      "seconds": 4.53
+    },
+    {
+      "mode": "measurement-workflow",
+      "exitCode": 0,
+      "passed": true,
+      "tests": 44,
+      "report": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\ui-qa\\measurement-workflow\\ui-measurement-workflow-results.json",
+      "reportSha256": "08b206815b67164596f47adf80aadc2b7b7fee2cd9355211bf81849d33f296b0",
+      "seconds": 5.45
+    },
+    {
+      "mode": "bulk-history",
+      "exitCode": 0,
+      "passed": true,
+      "tests": 47,
+      "report": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\ui-qa\\bulk-history\\ui-bulk-history-results.json",
+      "reportSha256": "10c9341094dd947b1166c6adb413161f4ed7e545e4888164861f0a356e37b703",
+      "seconds": 4.75
+    },
+    {
+      "mode": "representative",
+      "exitCode": 0,
+      "passed": true,
+      "tests": 53,
+      "report": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\ui-qa\\representative\\ui-representative-results.json",
+      "reportSha256": "a496f8f448ece94eb0b8d41a488c8a99e58f5a25643b64de5d88009f137404be",
+      "seconds": 3.31
+    },
+    {
+      "mode": "side-panels",
+      "exitCode": 0,
+      "passed": true,
+      "tests": 96,
+      "report": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\ui-qa\\side-panels\\ui-side-panels-results.json",
+      "reportSha256": "388666c1188a495336963637b824eff198c87868595e90a9ed8f376cfa8c129d",
+      "seconds": 6.61
+    },
+    {
+      "mode": "final-offsets",
+      "exitCode": 0,
+      "passed": true,
+      "tests": 35,
+      "report": "D:\\CodexWork\\A3_Manual_Inspection_20261124_3_FinalReviewOffset\\ui-qa\\final-offsets\\ui-final-offsets-results.json",
+      "reportSha256": "9b0e03e1a1dce8bf19630cd4b5e07ca0e45403990ba9f7d92fc5367d8d90478d",
+      "seconds": 3.22
+    }
+  ],
+  "totals": {
+    "modes": 14,
+    "tests": 878,
+    "failures": 0
+  },
+  "harnessBuild": {
+    "configuration": "Release",
+    "exitCode": 0,
+    "warnings": 0,
+    "errors": 0,
+    "logSha256": "fdd70108ff139a74c699bf1a9b29e090beb59679de80d17210a4494ebcaa9b30"
+  },
+  "sourceInputsUnchanged": true,
+  "changedInputs": [],
+  "sourceHashes": {
+    "tests/ManualInspection/UiHarness/BulkHistoryCases.cs": "5c3cff43de223bb71d1c359f53e0e15b28d61a1f69248f758f56007b10d6545d",
+    "tests/ManualInspection/UiHarness/CellOverviewCases.cs": "8ed3f1b5cfa3a0ffa22f7f7245d0093c5126ad18a6d318902c8c9f0db2df232c",
+    "tests/ManualInspection/UiHarness/CoverageCompactCases.cs": "1b14336597c66b9a576180d9ae95816bc8aee9c43d7d007fe4e5de13b1d3020e",
+    "tests/ManualInspection/UiHarness/FinalOffsetCases.cs": "6a16a05bfd927cb7ff72643ed849aa42d17ea91668aa4e0f93672f1d2e03776a",
+    "tests/ManualInspection/UiHarness/HardeningCases.cs": "1007c87cca7710c87e10aedc2baae2f21189200aee1adefaea379972902ff3b1",
+    "tests/ManualInspection/UiHarness/MapFirstCases.cs": "441673797bc6a5f33da26108aaace8e690820b84389090f000efb09e8a97574a",
+    "tests/ManualInspection/UiHarness/MeasurementWorkflowCases.cs": "65440f07c1990d2b8974333aa08dcba29216231ce0d695d585fb3c9341798b39",
+    "tests/ManualInspection/UiHarness/OffsetInitCases.cs": "92bf8d062cadd44b0af0197109a54e487b1dfe84654b2767515ce432028d26f7",
+    "tests/ManualInspection/UiHarness/Program.cs": "393f5dd589483986a176972b22b992a73e5166a98f33ac543192b44df4d82b52",
+    "tests/ManualInspection/UiHarness/RepresentativeCases.cs": "eecfa83beeaee9701e4463d5b7084cc328a3c34f70bbb2e9bcd639954b614efb",
+    "tests/ManualInspection/UiHarness/SidePanelsCases.cs": "8b4c79f2f7fa5dc5aeaa1755c2b046686fbc5a05201134d7f163ce556ef4f786",
+    "tests/ManualInspection/UiHarness/VisualUsabilityCases.cs": "3eed9eeca10d41cfed56a97336164136a590fc339019737dc4660f02ed3402a5",
+    "tests/ManualInspection/UiHarness/ManualInspection.UiHarness.csproj": "e1cad623d45353134568501f72373edf3c13a7ef7e237a7a9f234c9dc4842948",
+    "Drilling.UI/Views/CManualInspectionView.xaml": "5cb9ed433266a67eddb89f7fdf826cd0c46ce816361ef1e2041475c06178f8a6",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "37eb7f07ce6a6d80447981aeb83346f76aa34b6b7749a983169c1b8093139e13",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "6b3757f96a5c73c0d41dd15c6ba4061e3cec9f05f06e67d981610e5f045be14d",
+    "Drilling.UI/Views/CManualInspectionMapControl.cs": "e5664889149d3a7ee9f4cc9d3fa898a40546e77472bffd10eae00a9ab37f0fdb",
+    "Drilling.UI/Views/CManualInspectionScatterControl.cs": "1cc3fb7be94547c2e714d8809906f2df6018e5805b6ed44ecc9fd2c398e6a0bb",
+    "Drilling.UI/Themes/ThemeDark.xaml": "08bc81877f8766d2198e515f869e6b06f74f4b4c6eb7a1a9d8093234f11b2e4c",
+    "Drilling.UI/Themes/ThemeLight.xaml": "2a3d9bc68816fd0c25360ae10c3d344354ac494c5ec03fc7f7077adaff99ea87",
+    "Drilling.UI/App.xaml": "34b55a666684d02ffc18dcb66313415e72629a7f027e5a5d42ecb0357df82357"
+  },
+  "binarySha256": "ac2c16cc493d544a59d73843349f988044829943f87b39ee3ed30ecd0c71be1b",
+  "scope": "Source-linked production WPF/current themes and synthetic immutable snapshots/fake Controller. No equipment App/Root/Manager/vendor, PLC/Vision/motion, real CSV or real offset export executes."
+}
