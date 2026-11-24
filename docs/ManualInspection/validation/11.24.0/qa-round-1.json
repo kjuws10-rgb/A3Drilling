@@ -1,0 +1,108 @@
+{
+  "round": 1,
+  "status": "independent_source_contract_review_complete",
+  "passed": true,
+  "baseCommit": "3a2526dacf988cf303a102dc432a6eaa9394e9d4",
+  "reviewedAt": "2026-11-23T23:25:02.435139+00:00",
+  "sourceSha256AtBase": {
+    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs": "ac67757c52cc757d5f5bf6c1280c14f87f7a02f312a65477c84f7313b5860386",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs": "817f4e22b0d4751ff87a7bdca6ef1bae2a917846b346987f8d4454c3085d5768",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "6952ed65bc4cb8a7df763c9cf73643740d57d6b8831bbc8eec4986309018ec56",
+    "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs": "e6885216719d043cc2dd3d1e296f4b09b64124cb4a33359b699f7e035199d121",
+    "Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs": "8e7a239bcbaf630383e9330fcb53ddb0cdf538111d8a1f754867524c1808164c",
+    "Drilling.UI/Views/CManualInspectionMapControl.cs": "1ba5879799346cb66a4100bc2800a9f4f3e3e05b23ae4ee10b6f225e5f72dc6e",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "0e66cbf6f241125473771218ee812b135a79365ac4577d65a880b851ba7cd475",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "d7e8386ca69bca1c3982b7a8bb53b5da0b7abcd71c2227b0f5a016ef1171f9b6",
+    "Drilling.UI/Menu/Menus/CMenuMonitor.cs": "53f19371d1345668ac17e0dc0279b853714f4ea516c9c021dba872463758aea1",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.cs": "a7523686c1ac3805899022e42113e0127c3f75f030f8d4d0d50a0f0586a0c75f",
+    "Drilling.Common/Recipe/CShotCoordinatePlanBuilder.cs": "1aae4cf012a52ee08305dee90b5f650a61e2b1ca10485815cf9c797cd3795c6e",
+    "Drilling.UI/Menu/Menus/CReviewOffsetDisplaySnapshot.cs": "789b5e3d4b8e2d8bf6db455cb4bc7a459ddf920ba59a21431de129c07ab5e4e3",
+    "Drilling.UI/CRootView.cs": "5fc2cbdf12fa6b005d22210a582563bd8cacbc3def7e82ad141b66a26d02c8cc",
+    "Drilling.UI/Views/CMonitorView.xaml": "31be0fe92151ef3f3fbcfe7f76462dfc9f681386059d65a3fd976d277b75b46f"
+  },
+  "scope": {
+    "readOnlyProduction": true,
+    "equipmentExecuted": false,
+    "vendorLoaded": false,
+    "repositoryWrites": false,
+    "workspaceKnowledgeRead": [
+      "00-시작/INDEX.md",
+      "00-시작/PROJECTS.md",
+      "00-시작/CATEGORIES.md",
+      "01-온톨로지/ROUTING.md",
+      "PRJ-A3 README/STATUS/TASKS/DECISIONS excerpts",
+      "20-공통지식/PROJECT-SHARING.md excerpt"
+    ],
+    "knowledgeLimit": "Read relevant excerpts and indexes, not all workspace originals; parent owns shared KB update."
+  },
+  "contracts": [
+    "Failed/stopped queue remains available to explicit RetryRemaining, but a confirmed fresh selection may replace it only after valid BeginOperation; Preview/cancel/stale failure must retain previous queue.",
+    "NG/ERROR/unmeasured values do not become valid correction input; existing raw records/ledger/history persist when replacing only the active queue.",
+    "Busy/control cleanup, lineage, current real coordinates, pending offset edit, Masking, stale preview and current-position verification guards remain.",
+    "Cell badge font, bounds, text padding and hit-test follow the same zoom scale; geometry never repacked by labels.",
+    "Blink is presentation only, based on current in-flight point, never last received point; 500ms phase, stop/unload cleanup, original NG/empty fill preserved.",
+    "Saved ReviewOffset display is authoritative per-recipe latest cumulative B in file mm; planner converts DESIGN to SCANNER once and applies percent only to displayed machining contribution; camera target remains independent."
+  ],
+  "findings": [
+    {
+      "id": "R1-QUEUE",
+      "severity": "confirmed_user_block",
+      "evidence": "CManualInspectionWorkspace.cs:781-807 PreviewOperation HasIncomplete allows only exact MoveMeasure retry; Controller.Run:698-718 calls it after source validation",
+      "recommendation": "Allow nonretry fresh operation to atomically supersede terminal queue in BeginOperation; no state mutation from Preview."
+    },
+    {
+      "id": "R1-CURRENT-MEASURE",
+      "severity": "related_ui_gate",
+      "evidence": "CManualInspectionView.xaml.cs:488 MeasureCurrent disabled by HasIncomplete; context MoveMeasure confirmation1012-1033 does not have this gate",
+      "recommendation": "Parent defines fresh current-position measurement policy; do not blanket-remove correction/Undo/Copy HasIncomplete guards."
+    },
+    {
+      "id": "R1-LABEL",
+      "severity": "confirmed_requirement",
+      "evidence": "CManualInspectionMapControl.cs:489 fixed11 text;528 width and529 height21 screen-fixed",
+      "recommendation": "Scale rendered font/label bounds/padding together; keep collision layout/hit-test aligned."
+    },
+    {
+      "id": "R1-BLINK",
+      "severity": "confirmed_missing",
+      "evidence": "Controller729 LastMeasuredPointKey updates only after result; Backend586-592 Flying callbacks occur after entire line result transaction",
+      "recommendation": "Typed current in-flight progress, not parsing user text or blinking last measured result; 0.5s presentation timer lifecycle."
+    },
+    {
+      "id": "R1-MONITOR-AXES",
+      "severity": "confirmed_display_inconsistency",
+      "evidence": "PlanBuilder145/180 stores ReviewOffsetX/Y in SCANNER; Monitor3500 converts for ShotDetail, but4237-4239 directly adds scanner pair to DESIGN; called by3483 and4221",
+      "recommendation": "Convert scanner offsets back to DESIGN in summary helper or use consistent calculation result; UI display only, no process formula change."
+    },
+    {
+      "id": "R1-MONITOR-PRECISION",
+      "severity": "confirmed_display_limit",
+      "evidence": "Monitor FormatCoordinateValue4269-4271 F4 mm can show <0.05um contribution as0; scale0 also shows0 while savedB nonzero",
+      "recommendation": "Sufficient fixed precision and savedB/coordinate space/provenance/scale description distinct from effective contribution."
+    }
+  ],
+  "monitorFlow": [
+    "CRootView2327 monitor timer -> RefreshMonitorLiveData959 -> CMenuMonitor.RefreshLiveData875 -> RefreshCoordinateReviewOffsets1039 -> authoritative file version -> _refreshCurrentScreen",
+    "CRootView.RefreshCurrentScreen553 -> Monitor.Build -> BuildCoordinateViewerData3115 -> selectedRecipe -> Recipe+Setting temporary map -> LoadLatest(recipe.Id)3148 -> ApplyToParameters3149 -> BuildPlan3167",
+    "PlanBuilder145 ToScanner +148 ReviewOffsetScale -> ST_HEAD_SHOT_POINT ReviewOffsetX/Y SCANNER contribution180/181 -> Monitor3500 ScannerOffsetToDesign -> REVIEW row3513",
+    "ApplyCoordinateViewerData3789 assigns CalculationRows -> Notify3818 -> CMonitorView.xaml3549 ItemsSource/X3595/Y3596; no missing binding found",
+    "Setting may override same Recipe key3356-3372, but authoritative file overlay is after both so storedReview row wins and clears stale global/perShot entries."
+  ],
+  "recommendedRegressionCases": [
+    "Partial failure A1complete/A2error/A3remaining -> preview new B then cancel/stale invalid preserves A retry; valid B Begin supersedes only queue, A1 raw/ledger/history retained.",
+    "Explicit RetryRemaining uses exact remaining keys once; new fresh P2P/Flying/current-position semantics match parent contract; stop/late operation ID prevents old callbacks.",
+    "No eligible correction from untouched NG/ERROR/unmeasured; fresh source frame/revision or pending Init still blocks actual device/correction.",
+    "500ms phase currentpoint starts before backend await; point switch resets; completion/error/stop/unload clears timer; Flying sparse/duplicate key ignored; no raw/candidate/hash mutation from blink.",
+    "Labels zoom0.4/1/2,48Cells,rotated/disabled/longnumbers,offscreen/collision and click consistency; existing standard keyboard and gesture suite remains.",
+    "Actual full Monitor build+apply with saved DESIGN and legacySCANNER rows, head swap+flip, 0/100/200%scale, sub0.05um, Init vs actual0, samepath changedSHA, modelA/B, Undo/Redo, unchangedRecipe editor input."
+  ],
+  "notExecuted": [
+    "Equipment program",
+    "AeroScript",
+    "Vendor SDK load/decompile",
+    "Device commands",
+    "Git commit/push",
+    "Formal hardware validation"
+  ],
+  "next": "Read frozen production diff and independent focused/actual regression reports in Round2; final provenance and docs audit in Round3."
+}

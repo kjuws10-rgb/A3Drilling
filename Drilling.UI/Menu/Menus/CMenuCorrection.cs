@@ -95,7 +95,7 @@
             = CRecipeConfirmDialog.ShowDuplicateOffsetConfirmation;
 
         private CancellationTokenSource? _roughCancellation;
-        internal bool BlocksMenuNavigation => Review?.BlocksMenuNavigation == true
+        internal bool BlocksMenuNavigation => ManualInspection.IsBusy || Review?.BlocksMenuNavigation == true
             || _isReviewOperationRunning
             || _fineCancellation is { IsCancellationRequested: false }
             || _roughCancellation is { IsCancellationRequested: false }
@@ -140,6 +140,12 @@
             _alignOffsetLogFile = alignOffsetLogFile;
             _defaultManager = defaultManager;
             _defaultScriptFile = defaultScriptFile;
+            ManualInspection = new CManualInspectionController(new CManualInspectionBackend(
+                reviewManager, recipeManager, settingManager, reviewResultFile, reviewOffsetFile,
+                selectedRecipeIdProvider, defaultManager, GuardManualInspection), statusReporter);
+            ManualInspection.EnableAutomaticUpdates();
+            if (System.Windows.Application.Current is { } application)
+                application.Exit += (_, _) => ManualInspection.DisableAutomaticUpdates();
             ReviewData = new CReviewDataPanel(
                 _reviewResultFile,
                 _reviewOffsetFile,
@@ -173,6 +179,8 @@
                 ShowLineDetails = CFineLineDetailsDialog.Show
             };
             Fine.SourceInvalidated += () => _fineCancellation?.Cancel();
+            ReviewData.OffsetsInitialized = ObserveSharedReviewInitialization;
+            InspectionReviewData.OffsetsInitialized = ObserveSharedReviewInitialization;
             InitializeRough(interfaceManager);
             SelectTabCommand = new CButtonCommand(SelectTab);
             ExecuteCommand = new CButtonCommand(Execute, _ => !_isReviewOperationRunning);
@@ -264,11 +272,24 @@
             get => _selectedReviewTabIndex;
             set
             {
-                var normalized = Math.Clamp(value, 0, 1);
+                var normalized = Math.Clamp(value, 0, 2);
+                if (_selectedReviewTabIndex == 2 && normalized != 2 && ManualInspection.IsBusy)
+                {
+                    OnPropertyChanged(nameof(SelectedReviewTabIndex));
+                    return;
+                }
                 if (_selectedReviewTabIndex == normalized)
                     return;
 
                 _selectedReviewTabIndex = normalized;
+                // A different Review tab may have saved/initialized the shared model offsets.
+                // Refresh only at navigation boundaries, never while a sequence/save owns them.
+                if (!_isReviewOperationRunning && !Simple.IsOffsetOperationRunning
+                    && Rough.Inspection?.IsRunning != true && !Fine.IsRunning)
+                {
+                    _simpleOffsetLoad = null;
+                    _lastReviewOffsetWarning = "";
+                }
                 OnPropertyChanged(nameof(SelectedReviewTabIndex));
                 if (IsReviewCorrectionTab)
                     _ = _refreshCurrentScreen();
@@ -461,6 +482,19 @@
             if (showFine)
             {
                 Fine.Update(recipe, settings);
+                if (recipe is not null)
+                {
+                    try
+                    {
+                        if (_simpleOffsetLoad is null || _simpleOffsetLoad.IsCanceled || _simpleOffsetLoad.IsFaulted || _simpleOffsetRecipeId != recipe.Id)
+                        {
+                            _simpleOffsetRecipeId = recipe.Id;
+                            _simpleOffsetLoad = Task.Run(() => _reviewOffsetFile.LoadLatest(recipe.Id, cancellationToken), cancellationToken);
+                        }
+                        Fine.ObserveOffsetInitializations(await _simpleOffsetLoad.WaitAsync(cancellationToken));
+                    }
+                    catch (CReviewOffsetValidationException error) { ReportInvalidReviewOffset(error); }
+                }
                 return;
             }
 
@@ -554,10 +588,13 @@
             {
                 var showSimple = _selectedReviewTabIndex == 0;
                 var showInspection = _selectedReviewTabIndex == 1;
+                var showManualInspection = _selectedReviewTabIndex == 2;
                 var showRough = showInspection && Review?.IsRoughInspectionMode == true;
                 var showFine = showInspection && Review?.IsFineInspectionMode == true;
                 try
                 {
+                    if (showManualInspection)
+                        await ManualInspection.EnsureLoaded(cancellationToken);
                     if (showInspection)
                     {
                         if (Review is not null)
@@ -1928,7 +1965,8 @@
                 var shotKey = NormalizeReviewShotKey(row.ShotKey, row.CellNo);
                 var saved = offsetValues.GetValueOrDefault(shotKey);
                 var offset = saved is null ? (0.0, 0.0) : CReviewOffsetData.ToScanner(parameters, row.HeadNo, saved.ReviewOffsetX, saved.ReviewOffsetY, saved.IsDesignCoordinate);
-                rows.Add(new ST_CORRECTION_REVIEW_OFFSET_ROW(shotKey, $"H{row.HeadNo:00}", offset.Item1, offset.Item2, "CURRENT"));
+                rows.Add(new ST_CORRECTION_REVIEW_OFFSET_ROW(shotKey, $"H{row.HeadNo:00}", offset.Item1, offset.Item2,
+                    saved is null || saved.IsMeasurementOffsetInitialized ? "EMPTY" : "CURRENT"));
             }
 
             return rows;
@@ -2077,7 +2115,8 @@
                 var shotKey = NormalizeReviewShotKey(point.ShotKey, point.CellNo);
                 var saved = offsetValues.GetValueOrDefault(shotKey);
                 var offset = saved is null ? (0.0, 0.0) : CReviewOffsetData.ToScanner(parameters, point.HeadNo, saved.ReviewOffsetX, saved.ReviewOffsetY, saved.IsDesignCoordinate);
-                rows.Add(new ST_CORRECTION_REVIEW_OFFSET_ROW(shotKey, $"H{point.HeadNo:00}", offset.Item1, offset.Item2, "CURRENT"));
+                rows.Add(new ST_CORRECTION_REVIEW_OFFSET_ROW(shotKey, $"H{point.HeadNo:00}", offset.Item1, offset.Item2,
+                    saved is null || saved.IsMeasurementOffsetInitialized ? "EMPTY" : "CURRENT"));
             }
 
             return rows;
@@ -2685,6 +2724,7 @@
 #region Alarm
         public override async Task StopForHeavyAlarm()
         {
+            var manualInspectionStop = ManualInspection.StopAsync();
             if (Review is not null)
                 await Review.StopForHeavyAlarm();
             _roughCancellation?.Cancel();
@@ -2693,6 +2733,7 @@
             if (_isReviewOperationRunning)
                 _reviewManager.Stop();
             if (_defaultStopped is { } stopped) await stopped.Task.WaitAsync(TimeSpan.FromSeconds(15));
+            await manualInspectionStop;
         }
 
 #endregion
@@ -3177,12 +3218,14 @@
                 var settings = LoadSimpleOffsetSettings();
                 EnsureSource(recipe, settings);
                 // Capture full-precision results on the UI dispatcher. Calculation and file I/O run off the UI thread.
+                if (!initialize)
+                    ObserveSharedReviewInitialization(await _reviewOffsetFile.LoadLatest(recipe.Id));
                 var input = initialize ? null : Fine.CreateOffsetInput();
                 var targets = Fine.GetOffsetTargets();
                 var deltas = initialize ? targets.Select(point => new ST_FINE_OFFSET_DELTA(point, 0, 0)).ToArray() : await Task.Run(() => CReviewManager.CalculateFineOffsets(input!.Targets, input.Measurements, input.Flip));
                 var cells = deltas.Select(delta => delta.Shot.CellNo).Distinct().Count();
                 var preserved = Fine.GetOffsetTargets().Count - deltas.Count;
-                var message = $"현재 레시피: {recipe.Name}\n대상: {cells:N0} Cells / {deltas.Count:N0} Shots\n\n" + (initialize ? "레시피 전체 Shot의 Review Offset X/Y를 0.000으로 초기화하시겠습니까?\n되돌릴 수 없습니다." : $"{Fine.LineCount} Line · 같은 Cell/열 기준 " + (Fine.LineCount == 1 ? "측정값" : "Y 방향 Lagrange 보간값") + "을 기존 Review Offset에 누적하시겠습니까?\nVision Flip 변환값을 설계 좌표로 저장합니다." + (preserved > 0 ? $"\n검사 기준값이 없는 {preserved:N0}개 Shot은 기존 값을 유지합니다." : "")) + "\n새 REVIEW OFFSET 파일을 생성합니다.";
+                var message = $"현재 레시피: {recipe.Name}\n대상: {cells:N0} Cells / {deltas.Count:N0} Shots\n\n" + (initialize ? "레시피 전체 Shot의 측정 Review 보정값을 없음 상태로 초기화하시겠습니까?\n실측 오차 0으로 표시하지 않으며 이전 파일은 보존합니다." : $"{Fine.LineCount} Line · 같은 Cell/열 기준 " + (Fine.LineCount == 1 ? "측정값" : "Y 방향 Lagrange 보간값") + "을 기존 Review Offset에 누적하시겠습니까?\nVision Flip 변환값을 설계 좌표로 저장합니다." + (preserved > 0 ? $"\n검사 기준값이 없는 {preserved:N0}개 Shot은 기존 값을 유지합니다." : "")) + "\n새 REVIEW OFFSET 파일을 생성합니다.";
                 if (!confirm(title, message))
                     return;
                 recipe = await LoadSelectedOutputViewerRecipe(CancellationToken.None, fallbackToFirst: false) ?? throw new InvalidOperationException("현재 레시피가 없습니다.");
@@ -3205,7 +3248,8 @@
                         var current = initialize || previous is null ? (X: 0.0, Y: 0.0) : CReviewOffsetData.ToDesign(parameters, point.HeadNo, previous.ReviewOffsetX, previous.ReviewOffsetY, previous.IsDesignCoordinate);
                         rows[key] = new(point.CellNo, key.Item2, CAlignShotOffsetData.RoundValue(current.X + delta.X), CAlignShotOffsetData.RoundValue(current.Y + delta.Y))
                         {
-                            IsDesignCoordinate = true
+                            IsDesignCoordinate = true,
+                            IsMeasurementOffsetInitialized = initialize
                         };
                     }
 
@@ -3233,6 +3277,7 @@
                     if (!initialize)
                         _reviewManager?.FineMonitor.MarkOffsetSaved(Fine.MonitorRunId, saved.FileName);
                 }
+                if (initialize) ObserveSharedReviewInitialization(saved);
 
                 _statusReporter($"{title}: {saved.FileName}");
                 completed($"{title} 완료", $"{deltas.Count:N0}개 Shot의 Review Offset을 {(initialize ? "초기화" : "누적 적용")}했습니다.\n{saved.FileName}");
@@ -4089,8 +4134,17 @@
 
                 if (action is not ("OFFSET_APPLY" or "OFFSET_INIT"))
                     return;
+                if (!initialize)
+                {
+                    // Tab refresh is asynchronous. Recheck the authoritative reset metadata before
+                    // capturing deltas so a fast Apply click cannot use a pre-Init representative.
+                    ObserveSharedReviewInitialization(await _reviewOffsetFile.LoadLatest(recipe.Id));
+                    if (!request.Rows.Any(row => inspection.HasApplicableMeasurement(
+                            request.TargetHeads.GetValueOrDefault((row.CellId, row.ShotId), request.HeadNo), row.CellId)))
+                        throw new InvalidOperationException("적용할 새 ROUGH 측정값이 없습니다. 초기화한 범위는 다시 측정하세요.");
+                }
                 var deltas = request.Rows.ToDictionary(row => (row.CellId, row.ShotId), row => initialize ? (X: 0.0, Y: 0.0) : inspection.IncrementForShot(request.TargetHeads.GetValueOrDefault((row.CellId, row.ShotId), request.HeadNo), row.CellId));
-                if (!confirm(initialize ? "Offset Init" : "Offset Apply", $"현재 레시피: {recipe.Name}\n{Rough.SelectedHeadsText} / {inspection.Rows.Count}개 기준 Shot / {request.Rows.Count:N0}개 적용 Shot\n\n" + (initialize ? "이 범위의 Review Offset X/Y를 0.000으로 초기화하시겠습니까?" : "OK 결과의 보정량만 기존 설계 Review Offset에 누적하시겠습니까?\nNG·미검사·이미 적용한 결과는 0.000을 누적하여 기존값을 유지합니다.") + "\n새 REVIEW OFFSET 파일을 생성합니다."))
+                if (!confirm(initialize ? "Offset Init" : "Offset Apply", $"현재 레시피: {recipe.Name}\n{Rough.SelectedHeadsText} / {inspection.Rows.Count}개 기준 Shot / {request.Rows.Count:N0}개 적용 Shot\n\n" + (initialize ? "이 범위의 측정 Review 보정값을 없음 상태로 초기화하시겠습니까?" : "OK 결과의 보정량만 기존 설계 Review Offset에 누적하시겠습니까?\nNG·미검사·이미 적용한 결과의 기존 보정값과 없음 상태는 유지합니다.") + "\n새 REVIEW OFFSET 파일을 생성합니다."))
                     return;
                 EnsureSimpleOffsetSource(request, await LoadSelectedOutputViewerRecipe(CancellationToken.None, false) ?? throw new InvalidOperationException("현재 레시피가 없습니다."), LoadSimpleOffsetSettings());
                 var parameters = BuildOutputViewerParameterMap(recipe, settings);
@@ -4105,12 +4159,19 @@
                     {
                         var key = (target.CellId, target.ShotId);
                         var previous = merged.GetValueOrDefault(key);
+                        var hasMeasurement = inspection.HasApplicableMeasurement(request.TargetHeads.GetValueOrDefault(key, request.HeadNo), target.CellId);
+                        // NG, unmeasured and already-consumed representatives add no new evidence.
+                        // Preserve their old state/absence instead of inventing a measured zero row.
+                        if (!initialize && !hasMeasurement)
+                            continue;
                         var current = previous is null ? (X: 0.0, Y: 0.0) : CReviewOffsetData.ToDesign(parameters, request.TargetHeads.GetValueOrDefault(key, request.HeadNo), previous.ReviewOffsetX, previous.ReviewOffsetY, previous.IsDesignCoordinate);
                         var delta = deltas[key];
-                        merged[key] = previous is { IsDesignCoordinate: true } && !initialize && delta == (0, 0) ? previous : target with
+                        merged[key] = previous is { IsDesignCoordinate: true } && !initialize && delta == (0, 0) ? previous with { IsMeasurementOffsetInitialized = false, MeasurementInitializedAt = null } : target with
                         {
                             ReviewOffsetX = initialize ? 0 : CRoughCorrectionPanel.Round(current.X + delta.X),
-                            ReviewOffsetY = initialize ? 0 : CRoughCorrectionPanel.Round(current.Y + delta.Y)
+                            ReviewOffsetY = initialize ? 0 : CRoughCorrectionPanel.Round(current.Y + delta.Y),
+                            IsMeasurementOffsetInitialized = initialize,
+                            MeasurementInitializedAt = null
                         };
                     }
 
@@ -4133,6 +4194,7 @@
                 inspection.MarkApplied(initialize);
                 Rough.AcceptSavedOffsets(saved, request.Rows, recipe, settings);
                 Simple.Update(recipe, settings, saved);
+                if (initialize) ObserveSharedReviewInitialization(saved);
                 _statusReporter($"ROUGH Review Offset 저장: {saved.FileName}");
                 completed(initialize ? "Offset Init 완료" : "Offset Apply 완료", $"{saved.FileName}\n{request.Rows.Count:N0}개 Shot의 Review Offset을 저장했습니다.");
             }
@@ -4300,7 +4362,7 @@
                 }
 
                 EnsureSimpleOffsetSource(request!, recipe, settings);
-                var message = $"현재 레시피: {recipe.Name}\n대상: {request!.Scope} / {request.Rows.Count:N0} Shot\n" + $"Design Offset: X {request.X:0.000} / Y {request.Y:0.000} mm\n\n" + (action == "OFFSET_INIT" ? "해당 범위의 Review Offset X/Y를 모두 0.000으로 초기화하시겠습니까?" : "해당 범위의 모든 Shot을 입력한 X/Y 값으로 덮어쓰시겠습니까?") + "\n선택 범위 밖의 값은 유지하고 새 REVIEW OFFSET 파일을 생성합니다.";
+                var message = $"현재 레시피: {recipe.Name}\n대상: {request!.Scope} / {request.Rows.Count:N0} Shot\n" + (action == "OFFSET_INIT" ? "측정 보정값 없음 · 실측 오차 0이 아님\n\n" : $"Design Offset: X {request.X:0.000} / Y {request.Y:0.000} mm\n\n") + (action == "OFFSET_INIT" ? "해당 범위의 측정 Review 보정값을 없음 상태로 초기화하시겠습니까?" : "해당 범위의 모든 Shot을 입력한 X/Y 값으로 덮어쓰시겠습니까?") + "\n선택 범위 밖의 값은 유지하고 새 REVIEW OFFSET 파일을 생성합니다.";
                 if (!confirm(title, message))
                     return;
                 recipe = await LoadSelectedOutputViewerRecipe(CancellationToken.None, fallbackToFirst: false) ?? throw new InvalidOperationException("현재 선택된 레시피가 없습니다.");
@@ -4326,7 +4388,8 @@
                 _simpleOffsetLoad = Task.FromResult(result);
                 Simple.AcceptSavedOffsets(result, request.Rows, recipe, settings);
                 Rough.Update(recipe, settings, result);
-                var resultMessage = $"{request.Scope} / {request.Rows.Count:N0} Shot의 Review Offset을 " + (action == "OFFSET_INIT" ? "0.000으로 초기화했습니다." : "입력값으로 저장했습니다.") + $"\n{result.FileName}";
+                if (action == "OFFSET_INIT") ObserveSharedReviewInitialization(result);
+                var resultMessage = $"{request.Scope} / {request.Rows.Count:N0} Shot의 Review Offset을 " + (action == "OFFSET_INIT" ? "없음 상태로 초기화했습니다." : "입력값으로 저장했습니다.") + $"\n{result.FileName}";
                 _statusReporter(resultMessage);
                 completed($"{title} 완료", resultMessage);
             }
@@ -4345,6 +4408,14 @@
         }
 
         private ST_SYSTEM_PARAMETER[] LoadSimpleOffsetSettings() => _settingManager.LoadSection(EN_SETTING_TAB.Option).Concat(_settingManager.LoadSection(EN_SETTING_TAB.Motor)).ToArray();
+        private void ObserveSharedReviewInitialization(ST_REVIEW_OFFSET_FILE_DATA saved)
+        {
+            _simpleOffsetRecipeId = saved.RecipeId;
+            _simpleOffsetLoad = Task.FromResult(saved);
+            Rough.Inspection?.ObserveOffsetInitializations(saved);
+            Fine.ObserveOffsetInitializations(saved);
+        }
+
         private static void EnsureSimpleOffsetSource(ST_SIMPLE_OFFSET_CHANGE request, ST_RECIPE_DEFINITION recipe, IReadOnlyList<ST_SYSTEM_PARAMETER> settings)
         {
             var parameters = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -5887,7 +5958,9 @@
                 GroupCountY = shot.GroupCountY,
                 IsMasked = state.IsMasked,
                 IsChessSkipped = state.IsChessSkipped,
-                StoredTitle = "Design Offset (mm)"
+                StoredTitle = "Design Offset (mm)",
+                HasMeasurementValue = !_reviewOffsets || CReviewOffsetData.HasMeasurementValue(_parameters,
+                    $"CELL{shot.CellNo}_{CReviewShotNameFormatter.ToMatrixName(shot.CellShotNo, shot.GroupCountX)}_REVIEW_OFFSET_")
             };
         }
 
@@ -6080,10 +6153,11 @@
         public bool IsMasked { get; init; }
         public bool IsChessSkipped { get; init; }
         public string StoredTitle { get; init; } = "Design Offset (mm)";
-        public string DesignOffsetX => Format(StoredX);
-        public string DesignOffsetY => Format(StoredY);
-        public string ScannerOffsetGx => Format(ScannerX);
-        public string ScannerOffsetGy => Format(ScannerY);
+        public bool HasMeasurementValue { get; init; } = true;
+        public string DesignOffsetX => HasMeasurementValue ? Format(StoredX) : "—";
+        public string DesignOffsetY => HasMeasurementValue ? Format(StoredY) : "—";
+        public string ScannerOffsetGx => HasMeasurementValue ? Format(ScannerX) : "—";
+        public string ScannerOffsetGy => HasMeasurementValue ? Format(ScannerY) : "—";
         public string CoordinateDetail => $"{HeadTransform}\n{(IsMasked ? "MASKING" : IsChessSkipped ? "CHESS / LASER OFF" : "SHOT")}";
 
         private static string Format(double value) => CAlignShotOffsetData.RoundValue(value).ToString("F3", CultureInfo.InvariantCulture);
@@ -6119,6 +6193,9 @@
         private int _sourceVersion;
         private bool _operationRunning;
         private readonly Dictionary<string, ST_FINE_REVIEW_LINE> _lastSnapshots = new();
+        private readonly Dictionary<string, DateTimeOffset> _seenOffsetInitializations = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, DateTimeOffset> _measurementObservedAt = new(StringComparer.OrdinalIgnoreCase);
+        private string _initializationRecipeId = "";
         private double _width = 780, _height = 660;
         public event PropertyChangedEventHandler? PropertyChanged;
         public event Action? SourceInvalidated;
@@ -6295,6 +6372,7 @@
             SourceInvalidated?.Invoke();
             _lastSnapshots.Clear();
             _recipe = null;
+            _seenOffsetInitializations.Clear(); _measurementObservedAt.Clear(); _initializationRecipeId = "";
             LastResultPath = "";
             _offsetApplied = false;
             RecipeId = "";
@@ -6334,6 +6412,7 @@
             _offsetApplied = false;
             _shiftOffsetX = 0.0;
             _shiftOffsetY = 0.0;
+            _measurementObservedAt.Clear();
             var selection = CReviewRulePlanBuilder.Build(_source, new(EN_REVIEW_CORRECTION_RULE.Fine, EN_REVIEW_CORRECTION_SCOPE.HeadCell, SelectedBeam, "", EN_REVIEW_REFERENCE_LINE.First, LineCount)).ShotKeys.ToHashSet(StringComparer.OrdinalIgnoreCase);
             var cellModels = _source.Points.Select(point => point.CellNo).Distinct().ToDictionary(cell => cell, cell => CRecipeModelPixelCountReader.ReadCellModelType(_parameters, cell));
             var counts = cellModels.Values.GroupBy(model => model).ToDictionary(group => group.Key, group => group.Count());
@@ -6531,6 +6610,8 @@
             {
                 if (_lastSnapshots.GetValueOrDefault(incoming.Key) == incoming || !byKey.TryGetValue(incoming.Key, out var line))
                     continue;
+                foreach (var point in incoming.Points.Where(point => point.State is EN_REVIEW_POINT_STATE.Ok or EN_REVIEW_POINT_STATE.Ng || point.Judge == "ERROR"))
+                    _measurementObservedAt[point.ShotKey] = DateTimeOffset.UtcNow;
                 layoutChanged |= line.ApplyProgress(incoming, _source!.VisionFlipType);
                 _lastSnapshots[incoming.Key] = incoming;
             }
@@ -6779,9 +6860,78 @@
         }
 
         private void RefreshOffsetEligibility() => _allOffsetResultsOk = Lines.Count > 0 && Lines.All(line => line.State == EN_FINE_LINE_STATE.Complete && line.NgCount == 0 && line.Points.All(point => point.State == EN_REVIEW_POINT_STATE.Ok && string.Equals(point.Judge?.Trim(), "OK", StringComparison.OrdinalIgnoreCase)));
+
+        /// <summary>Invalidate pre-Init anchors for affected Cell/design-X interpolation columns.
+        /// Init of a non-inspected Shot still affects the anchors that produce that whole column.
+        /// Repeated reads of the same row epoch must never clear a later fresh measurement.</summary>
+        public void ObserveOffsetInitializations(ST_REVIEW_OFFSET_FILE_DATA file)
+        {
+            if (_source is null || !string.Equals(file.RecipeId, RecipeId, StringComparison.OrdinalIgnoreCase)) return;
+            if (_initializationRecipeId != RecipeId)
+            {
+                _initializationRecipeId = RecipeId;
+                _seenOffsetInitializations.Clear();
+            }
+            static string Key(int cell, string shot) => $"{cell}:{shot.Trim().Replace('-', '_').Replace('.', '_').ToUpperInvariant()}";
+            var targets = _source.Points.ToDictionary(point => Key(point.CellNo,
+                CReviewShotNameFormatter.ToMatrixName(point.ShotNo, point.PixelCountX)), StringComparer.OrdinalIgnoreCase);
+            var columns = new Dictionary<(int Cell, double X), DateTimeOffset>();
+            foreach (var row in file.Rows.Where(row => row.IsMeasurementOffsetInitialized))
+            {
+                var key = Key(row.CellId, row.ShotId);
+                if (!targets.TryGetValue(key, out var target)) continue;
+                var epoch = row.MeasurementInitializedAt ?? file.SavedAt;
+                if (_seenOffsetInitializations.TryGetValue(key, out var seen) && seen == epoch) continue;
+                _seenOffsetInitializations[key] = epoch;
+                var column = (target.CellNo, Math.Round(target.DesignX, 6));
+                if (!columns.TryGetValue(column, out var previous) || previous < epoch) columns[column] = epoch;
+            }
+            var cleared = false;
+            foreach (var line in Lines)
+            {
+                var changed = false;
+                var points = line.Points.Select(point =>
+                {
+                    if (!columns.TryGetValue((point.CellNo, Math.Round(point.DesignX, 6)), out var epoch)
+                        || _measurementObservedAt.GetValueOrDefault(point.ShotKey, DateTimeOffset.MinValue) > epoch
+                        || point.State == EN_REVIEW_POINT_STATE.Ready && point.Judge == "WAIT") return point;
+                    changed = true;
+                    return point with { State = EN_REVIEW_POINT_STATE.Ready, Judge = "WAIT", ErrorX = 0, ErrorY = 0 };
+                }).ToArray();
+                if (!changed) continue;
+                line.UpdateRoute(points);
+                line.ApplyResults(points.Where(point => point.State is EN_REVIEW_POINT_STATE.Ok or EN_REVIEW_POINT_STATE.Ng or EN_REVIEW_POINT_STATE.Current || point.Judge == "ERROR")
+                    .Select(point => new ST_FINE_SHOT_RESULT(point.ShotKey,
+                        point.State is EN_REVIEW_POINT_STATE.Ok or EN_REVIEW_POINT_STATE.Ng ? point.ErrorX : null,
+                        point.State is EN_REVIEW_POINT_STATE.Ok or EN_REVIEW_POINT_STATE.Ng ? point.ErrorY : null,
+                        point.State == EN_REVIEW_POINT_STATE.Current ? "RUNNING" : point.Judge)).ToArray(), _source.VisionFlipType);
+                line.Update(line.NgCount > 0 ? EN_FINE_LINE_STATE.Ng : EN_FINE_LINE_STATE.Wait);
+                cleared = true;
+            }
+            if (!cleared) return;
+            _lastSnapshots.Clear(); LastResultPath = ""; _offsetApplied = false;
+            RefreshOffsetEligibility();
+            Status = "측정 보정 초기화 · 해당 보정 열의 이전 측정은 새 검사 후 적용하세요.";
+            Notify();
+        }
+
         public void AcceptOffsetSave(bool initialize, string fileName)
         {
             _offsetApplied = !initialize;
+            if (initialize)
+            {
+                // The historic CSV is retained, but an Init is not a fresh zero measurement.
+                // Remove current residual/OK eligibility just as the Manual Inspection workspace does.
+                _lastSnapshots.Clear();
+                LastResultPath = "";
+                foreach (var line in Lines)
+                {
+                    line.UpdateRoute(line.Points.Select(point => point with { State = EN_REVIEW_POINT_STATE.Ready, Judge = "WAIT", ErrorX = 0, ErrorY = 0 }).ToArray());
+                    line.ApplyResults([], _source?.VisionFlipType ?? EN_VISION_FLIP_TYPE.Normal);
+                    line.Update(EN_FINE_LINE_STATE.Wait);
+                }
+                RefreshOffsetEligibility();
+            }
             Status = $"Review Offset {(initialize ? "초기화" : "누적 적용")} 완료 · {fileName}";
             Notify();
         }
@@ -7135,7 +7285,7 @@
         {
             get
             {
-                return FormatDisplayValue(OffsetXValue);
+                return State == "EMPTY" ? "—" : FormatDisplayValue(OffsetXValue);
             }
         }
 
@@ -7143,7 +7293,7 @@
         {
             get
             {
-                return FormatDisplayValue(OffsetYValue);
+                return State == "EMPTY" ? "—" : FormatDisplayValue(OffsetYValue);
             }
         }
 
@@ -7151,7 +7301,7 @@
         {
             get
             {
-                return CStatusBrush.ForDisplayState(State);
+                return State == "EMPTY" ? CStatusBrush.Muted : CStatusBrush.ForDisplayState(State);
             }
         }
 
@@ -7161,6 +7311,7 @@
             {
                 return State.Trim().ToUpperInvariant() switch
                 {
+                    "EMPTY" => CStatusBrush.Muted,
                     "PENDING" => CStatusBrush.Wait,
                     "SAVED" => CStatusBrush.Online,
                     _ => CStatusBrush.PrimaryText
@@ -7273,15 +7424,17 @@
                     break;
             }
 
+            var emptyReview = selectedKind == "REVIEW" && !CReviewOffsetData.HasMeasurementValue(_parameters,
+                $"CELL{shot.CellNo}_{name}_REVIEW_OFFSET_");
             return new(
                 shot.ShotKey,
                 name,
                 $"H{shot.HeadNo:00}",
-                Number(saved.X),
-                Number(saved.Y),
-                Number(converted.X),
-                Number(converted.Y),
-                detail,
+                emptyReview ? "—" : Number(saved.X),
+                emptyReview ? "—" : Number(saved.Y),
+                emptyReview ? "—" : Number(converted.X),
+                emptyReview ? "—" : Number(converted.Y),
+                emptyReview ? detail + "\n측정 보정값 없음 · 미적용 또는 초기화" : detail,
                 shot.ShotKey.Equals(_selectedShotKey, StringComparison.OrdinalIgnoreCase));
         }
 
@@ -7343,6 +7496,9 @@
             CAlignKeyMarginSettings.DefaultMarginY);
         private IReadOnlyDictionary<string, string> _parameters = new Dictionary<string, string>();
         private string _targetSignature = "";
+        private readonly Dictionary<string, DateTimeOffset> _seenOffsetInitializations = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, DateTimeOffset> _measurementObservedAt = new(StringComparer.OrdinalIgnoreCase);
+        private string _initializationRecipeId = "";
         private int _sourceVersion;
         private const int DefaultBeamNo = 11;
         private int _selectedBeam = DefaultBeamNo;
@@ -7400,6 +7556,7 @@
                 SourceInvalidated?.Invoke();
                 _targetSignature = "";
                 Rows = [];
+                _measurementObservedAt.Clear();
                 LastResultPath = "";
                 _shiftOffsetX = 0.0;
                 _shiftOffsetY = 0.0;
@@ -7418,6 +7575,7 @@
         public void Clear()
         {
             _sourceVersion++;
+            _seenOffsetInitializations.Clear(); _measurementObservedAt.Clear(); _initializationRecipeId = "";
             SourceInvalidated?.Invoke();
             _recipe = null;
             _targetSignature = "";
@@ -7439,7 +7597,7 @@
             if (_targetSignature == signature)
             {
                 foreach (var row in Rows)
-                    row.SetCurrent(ReadDesignOffset(row.Point.HeadNo, row.Point.CellNo, row.ShotName));
+                    row.SetCurrent(ReadDesignOffset(row.Point.HeadNo, row.Point.CellNo, row.ShotName), HasStoredMeasurement(row));
                 return;
             }
 
@@ -7469,7 +7627,7 @@
 
             Rows = CReviewManager.OrderRoughTargets(points).Select((point, index) => new CRoughCorrectionRow(point with { PointNo = index + 1 }, byKey[point.ShotKey].Name, DeltaToDesign)).ToArray();
             foreach (var row in Rows)
-                row.SetCurrent(ReadDesignOffset(row.Point.HeadNo, row.Point.CellNo, row.ShotName));
+                row.SetCurrent(ReadDesignOffset(row.Point.HeadNo, row.Point.CellNo, row.ShotName), HasStoredMeasurement(row));
             Status = "검사 대기";
             Notify();
         }
@@ -7531,7 +7689,11 @@
             var points = snapshot.Points.ToDictionary(point => point.ShotKey, StringComparer.OrdinalIgnoreCase);
             foreach (var row in Rows)
                 if (points.TryGetValue(row.Point.ShotKey, out var point))
+                {
+                    if (point.State is EN_REVIEW_POINT_STATE.Ok or EN_REVIEW_POINT_STATE.Ng || point.Judge == "ERROR")
+                        _measurementObservedAt[point.ShotKey] = DateTimeOffset.UtcNow;
                     row.Update(point);
+                }
             Status = snapshot.Message;
             LastResultPath = snapshot.ResultFilePath;
             RefreshFeedback();
@@ -7585,6 +7747,51 @@
             return row is { Applied: false, Point.State: EN_REVIEW_POINT_STATE.Ok } ? row.DesignDelta : (0, 0);
         }
 
+        public bool HasApplicableMeasurement(int headNo, int cellNo) =>
+            Rows.FirstOrDefault(item => item.Point.HeadNo == headNo && (owner.IsHeadScope || item.Point.CellNo == cellNo))
+                is { Applied: false, Point.State: EN_REVIEW_POINT_STATE.Ok };
+
+        /// <summary>A representative covers its Head/Head+Cell range, not just its measured Shot.</summary>
+        public void ObserveOffsetInitializations(ST_REVIEW_OFFSET_FILE_DATA file)
+        {
+            if (_recipe is null || !string.Equals(file.RecipeId, _recipe.Id, StringComparison.OrdinalIgnoreCase)) return;
+            if (_initializationRecipeId != _recipe.Id)
+            {
+                _initializationRecipeId = _recipe.Id;
+                _seenOffsetInitializations.Clear();
+            }
+            static string Key(int cell, string shot) => $"{cell}:{shot.Trim().Replace('-', '_').Replace('.', '_').ToUpperInvariant()}";
+            var assigned = _assigned.ToDictionary(shot => Key(shot.CellNo, shot.Name), StringComparer.OrdinalIgnoreCase);
+            var affected = new List<(int Head, int Cell, DateTimeOffset Epoch)>();
+            foreach (var value in file.Rows.Where(row => row.IsMeasurementOffsetInitialized))
+            {
+                var key = Key(value.CellId, value.ShotId);
+                if (!assigned.TryGetValue(key, out var target)) continue;
+                var epoch = value.MeasurementInitializedAt ?? file.SavedAt;
+                if (_seenOffsetInitializations.TryGetValue(key, out var seen) && seen == epoch) continue;
+                _seenOffsetInitializations[key] = epoch;
+                affected.Add((target.HeadNo, target.CellNo, epoch));
+            }
+            var cleared = false;
+            foreach (var row in Rows)
+            {
+                var epoch = affected.Where(target => target.Head == row.Point.HeadNo && (owner.IsHeadScope || target.Cell == row.Point.CellNo))
+                    .Select(target => target.Epoch).DefaultIfEmpty(DateTimeOffset.MinValue).Max();
+                if (epoch == DateTimeOffset.MinValue || _measurementObservedAt.GetValueOrDefault(row.Point.ShotKey, DateTimeOffset.MinValue) > epoch
+                    || row.Point.State == EN_REVIEW_POINT_STATE.Ready && row.Point.Judge == "WAIT") continue;
+                row.Applied = false;
+                row.Update(row.Point with { State = EN_REVIEW_POINT_STATE.Ready, Judge = "WAIT", ErrorX = 0, ErrorY = 0 });
+                cleared = true;
+            }
+            if (!cleared) return;
+            LastResultPath = "";
+            Status = "측정 보정 초기화 · 해당 대표 범위를 다시 검사하세요.";
+            Notify(); owner.RefreshInspectionDisplay();
+        }
+
+        private bool HasStoredMeasurement(CRoughCorrectionRow row) => CReviewOffsetData.HasMeasurementValue(_parameters,
+            $"CELL{row.Point.CellNo}_{row.ShotName}_REVIEW_OFFSET_");
+
         public void MarkApplied(bool initialize)
         {
             foreach (var row in Rows)
@@ -7632,8 +7839,8 @@
         public string Title => $"{Point.PointNo}. H{Point.HeadNo:00} / Cell{Point.CellNo:00}-{ShotName}";
         public string ReviewX => Point.ReviewTargetX.ToString("0.000", CultureInfo.InvariantCulture);
         public string StageY => Point.ReviewTargetY.ToString("0.000", CultureInfo.InvariantCulture);
-        public string CurrentX { get; private set; } = "0.000";
-        public string CurrentY { get; private set; } = "0.000";
+        public string CurrentX { get; private set; } = "—";
+        public string CurrentY { get; private set; } = "—";
         public bool Applied { get; set; }
         public (double X, double Y) DesignDelta => Point.State is EN_REVIEW_POINT_STATE.Ok or EN_REVIEW_POINT_STATE.Ng ? toDesign(Point) : (0, 0);
         public string DeltaX => Point.State is EN_REVIEW_POINT_STATE.Ok or EN_REVIEW_POINT_STATE.Ng ? CRoughCorrectionPanel.Round(Point.ErrorX).ToString("0.000", CultureInfo.InvariantCulture) : "-";
@@ -7660,10 +7867,10 @@
             Notify();
         }
 
-        public void SetCurrent((double X, double Y) value)
+        public void SetCurrent((double X, double Y) value, bool hasMeasurementValue = true)
         {
-            var x = value.X.ToString("0.000", CultureInfo.InvariantCulture);
-            var y = value.Y.ToString("0.000", CultureInfo.InvariantCulture);
+            var x = hasMeasurementValue ? value.X.ToString("0.000", CultureInfo.InvariantCulture) : "—";
+            var y = hasMeasurementValue ? value.Y.ToString("0.000", CultureInfo.InvariantCulture) : "—";
             if (CurrentX == x && CurrentY == y)
                 return;
             CurrentX = x;
@@ -7783,7 +7990,10 @@
             }
 
             if (RecipeId == recipe.Id && RecipeName == recipe.Name && ErrorText.Length == 0 && _parameters.Count == parameters.Count && parameters.All(item => _parameters.GetValueOrDefault(item.Key) == item.Value))
+            {
+                if (currentOffsets is not null) Inspection?.ObserveOffsetInitializations(currentOffsets);
                 return;
+            }
             var assignment = new Dictionary<string, string>(parameters, StringComparer.OrdinalIgnoreCase)
             {
                 ["HEAD_COUNT"] = "8"
@@ -7851,6 +8061,7 @@
             ErrorText = "";
             RefreshHeadPreview();
             UpdateCell();
+            if (currentOffsets is not null) Inspection?.ObserveOffsetInitializations(currentOffsets);
             Notify();
         }
 
@@ -7977,7 +8188,8 @@
             var input = CorrectionRows.SingleOrDefault() ?? throw new InvalidOperationException("프리뷰의 Shot 박스를 선택해 주세요.");
             var x = initialize ? 0 : double.Parse(input.InputX, CultureInfo.InvariantCulture);
             var y = initialize ? 0 : double.Parse(input.InputY, CultureInfo.InvariantCulture);
-            var rows = _cells.Values.SelectMany(shots => shots).Where(shot => shot.HeadNo == _selectedHead && (IsHeadScope || shot.CellNo == input.CellNo)).Select(shot => new ST_REVIEW_OFFSET_ROW(shot.CellNo, shot.Name, x, y) { IsDesignCoordinate = true }).ToArray();
+            var rows = _cells.Values.SelectMany(shots => shots).Where(shot => shot.HeadNo == _selectedHead && (IsHeadScope || shot.CellNo == input.CellNo)).Select(shot => new ST_REVIEW_OFFSET_ROW(shot.CellNo, shot.Name, x, y)
+            { IsDesignCoordinate = true, IsMeasurementOffsetInitialized = initialize }).ToArray();
             if (rows.Length == 0)
                 throw new InvalidOperationException("적용할 Shot이 없습니다.");
             return new(
@@ -8070,7 +8282,8 @@
                 }
 
                 var design = CReviewOffsetData.ToDesign(_parameters, _selectedHead, Current("X"), Current("Y"), CReviewOffsetData.IsDesignCoordinate(_parameters, $"CELL{row.CellNo}_{row.ShotName}_REVIEW_OFFSET_"));
-                input.UpdateCurrent(design.X, design.Y);
+                input.UpdateCurrent(design.X, design.Y, CReviewOffsetData.HasMeasurementValue(_parameters,
+                    $"CELL{row.CellNo}_{row.ShotName}_REVIEW_OFFSET_"));
                 return input;
             }).ToArray();
             OffsetActionCommand.NotifyCanExecuteChanged();
@@ -8320,8 +8533,8 @@
         public string ShotKey { get; } = shotKey;
         public string ShotName { get; } = shotName;
         public string Title { get; } = $"Cell{cellNo:00}-{shotName}";
-        public string CurrentX { get; private set; } = "0.000";
-        public string CurrentY { get; private set; } = "0.000";
+        public string CurrentX { get; private set; } = "—";
+        public string CurrentY { get; private set; } = "—";
         public bool HasPendingChanges => (_editedX || _editedY)
             && (!_inputX.Equals(CurrentX, StringComparison.Ordinal)
                 || !_inputY.Equals(CurrentY, StringComparison.Ordinal));
@@ -8348,18 +8561,18 @@
             }
         }
 
-        public void UpdateCurrent(double x, double y)
+        public void UpdateCurrent(double x, double y, bool hasMeasurementValue = true)
         {
-            var currentX = Format(x);
-            var currentY = Format(y);
+            var currentX = hasMeasurementValue ? Format(x) : "—";
+            var currentY = hasMeasurementValue ? Format(y) : "—";
             if (CurrentX == currentX && CurrentY == currentY)
                 return;
             CurrentX = currentX;
             CurrentY = currentY;
             if (!_editedX)
-                _inputX = currentX;
+                _inputX = Format(x);
             if (!_editedY)
-                _inputY = currentY;
+                _inputY = Format(y);
             Notify();
         }
 

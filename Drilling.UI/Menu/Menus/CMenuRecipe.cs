@@ -38,6 +38,13 @@
         private const string SelectRecipeSettingKey = "SELECT_RECIPE";
         private readonly CRecipeManager _recipeManager;
         private readonly CSettingManager _settingManager;
+        private readonly CReviewOffsetFileBase? _reviewOffsetFile;
+        private CReviewOffsetDisplaySnapshot? _savedReviewOffsetPreview;
+        private long _previewBuildEpoch;
+        private long _savedOffsetReadEpoch;
+        private int _previewBuildDepth;
+        private int _savedOffsetRefreshRunning;
+        private string _savedOffsetPreviewError = "";
         private readonly Func<string> _selectRecipeIdProvider;
         private readonly Action<string> _selectRecipeIdSetter;
         private readonly Func<string> _viewRecipeIdProvider;
@@ -81,11 +88,13 @@
             Action<string> setStatusMessage, 
             Action<EN_MENU, string> showLoadingScreen, 
             Action refreshShellStatus, 
-            Func<Task> refreshCurrentScreen
+            Func<Task> refreshCurrentScreen,
+            CReviewOffsetFileBase? reviewOffsetFile = null
         )
         {
             _recipeManager = recipeManager;
             _settingManager = settingManager;
+            _reviewOffsetFile=reviewOffsetFile;
             _selectRecipeIdProvider = selectRecipeIdProvider;
             _selectRecipeIdSetter = selectRecipeIdSetter;
             _viewRecipeIdProvider = viewRecipeIdProvider;
@@ -567,8 +576,19 @@
 
         public override async Task<CScreenViewModel> Build(CancellationToken cancellationToken = default)
         {
+            var epoch=Interlocked.Increment(ref _previewBuildEpoch);
+            Interlocked.Increment(ref _previewBuildDepth);
+            _previewRefreshCancellation?.Cancel();
+            var requestedView=NormalizeRecipeIdInput(_viewRecipeIdProvider());
+            var requestedSelect=NormalizeRecipeIdInput(_selectRecipeIdProvider());
+            try
+            {
             var recipes = await _recipeManager.LoadRecipes(cancellationToken);
             var history = await _recipeManager.LoadHistory(cancellationToken);
+            if(epoch!=Volatile.Read(ref _previewBuildEpoch)
+                || !requestedView.Equals(NormalizeRecipeIdInput(_viewRecipeIdProvider()),StringComparison.OrdinalIgnoreCase)
+                || !requestedSelect.Equals(NormalizeRecipeIdInput(_selectRecipeIdProvider()),StringComparison.OrdinalIgnoreCase))
+                throw new OperationCanceledException("Recipe 미리보기 기준이 바뀌었습니다.",cancellationToken);
             var commonSettings = _settingManager.LoadSection(EN_SETTING_TAB.Option, cancellationToken);
             var optionSettings = commonSettings.Concat(_settingManager.LoadSection(EN_SETTING_TAB.Motor, cancellationToken)).ToArray();
             _alignKeyMargins = CAlignKeyMarginSettings.Read(commonSettings);
@@ -582,6 +602,16 @@
             }
 
             var recipe = GetSelectedRecipe(recipes, viewRecipeId);
+            var readEpoch=Interlocked.Increment(ref _savedOffsetReadEpoch);
+            var savedFile=recipe is not null && _reviewOffsetFile is not null
+                ? await Task.Run(()=>_reviewOffsetFile.LoadLatest(recipe.Id,cancellationToken),cancellationToken) : null;
+            cancellationToken.ThrowIfCancellationRequested();
+            if(epoch!=Volatile.Read(ref _previewBuildEpoch) || readEpoch!=Volatile.Read(ref _savedOffsetReadEpoch)
+                || !viewRecipeId.Equals(NormalizeRecipeIdInput(_viewRecipeIdProvider()),StringComparison.OrdinalIgnoreCase)
+                || !requestedSelect.Equals(NormalizeRecipeIdInput(_selectRecipeIdProvider()),StringComparison.OrdinalIgnoreCase))
+                throw new OperationCanceledException("Recipe 미리보기 기준이 바뀌었습니다.",cancellationToken);
+            _savedReviewOffsetPreview=savedFile is not null && recipe is not null
+                ? CReviewOffsetDisplaySnapshot.Create(recipe.Id,savedFile) : null;
             var selectedRecipeFile = GetRecipeFileName(recipe);
             var selectRecipeFile = GetRecipeFileName(selectRecipe);
             if (string.IsNullOrWhiteSpace(selectRecipeFile) && !string.IsNullOrWhiteSpace(selectRecipeId))
@@ -688,6 +718,53 @@
                 [new("Managed Items", recipe?.Parameters.Select(BuildDisplay4).ToArray() ?? []), new("Change History", history.Select(BuildDisplay5).ToArray())], 
                 recipe: this
             );
+            }
+            finally { Interlocked.Decrement(ref _previewBuildDepth); }
+        }
+
+        /// <summary>Refresh only the saved Review overlay for the currently displayed Recipe.
+        /// Draft editor values and Recipe save rows are never modified by this read-only refresh.</summary>
+        public async Task RefreshSavedReviewOffsetPreview(CancellationToken cancellationToken = default)
+        {
+            if (_reviewOffsetFile is null || Volatile.Read(ref _previewBuildDepth) > 0
+                || Interlocked.CompareExchange(ref _savedOffsetRefreshRunning, 1, 0) != 0) return;
+            var recipeId = GetRecipeIdFromParameter(SelectedRecipeFile);
+            var epoch = Volatile.Read(ref _previewBuildEpoch);
+            try
+            {
+                if (string.IsNullOrWhiteSpace(recipeId)
+                    || !recipeId.Equals(NormalizeRecipeIdInput(_viewRecipeIdProvider()), StringComparison.OrdinalIgnoreCase)) return;
+                var readEpoch = Interlocked.Increment(ref _savedOffsetReadEpoch);
+                // LoadLatest may synchronously parse a complete CSV after its lease is granted. Keep
+                // that work off the UI thread; only the guarded preview publication resumes here.
+                var saved = await Task.Run(() => _reviewOffsetFile.LoadLatest(recipeId, cancellationToken), cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
+                if (Volatile.Read(ref _previewBuildDepth) > 0 || epoch != Volatile.Read(ref _previewBuildEpoch)
+                    || readEpoch != Volatile.Read(ref _savedOffsetReadEpoch)
+                    || !recipeId.Equals(GetRecipeIdFromParameter(SelectedRecipeFile), StringComparison.OrdinalIgnoreCase)
+                    || !recipeId.Equals(NormalizeRecipeIdInput(_viewRecipeIdProvider()), StringComparison.OrdinalIgnoreCase)) return;
+                var revision = CReviewOffsetDisplaySnapshot.GetRevisionIdentity(recipeId, saved);
+                if (_savedReviewOffsetPreview?.RevisionIdentity == revision)
+                {
+                    _savedOffsetPreviewError = "";
+                    return;
+                }
+                _savedReviewOffsetPreview = CReviewOffsetDisplaySnapshot.Create(recipeId, saved);
+                _savedOffsetPreviewError = "";
+                var cell = GetSelectedRecipeCell();
+                if (IsCellCategory && _isCellDetailVisible && cell is not null)
+                    UpdateShotGroupRows(BuildShotGroupRows(AllManagedItems, cell));
+            }
+            catch (Exception exception) when (exception is IOException or InvalidDataException or UnauthorizedAccessException)
+            {
+                if (!IsCurrentPreviewGeneration(epoch, recipeId)) return;
+                // A transient sharing violation or invalid replacement must leave the last valid
+                // preview intact. Avoid repeating the same status message on every timer tick.
+                if (_savedOffsetPreviewError != exception.Message)
+                    _setStatusMessage("Recipe Review 보정값 미리보기 갱신 실패: " + exception.Message);
+                _savedOffsetPreviewError = exception.Message;
+            }
+            finally { Interlocked.Exchange(ref _savedOffsetRefreshRunning, 0); }
         }
 
         private async Task ShowPreviousRecipePage()
@@ -1557,9 +1634,12 @@
             _previewRefreshCancellation?.Dispose();
             var cancellation = new CancellationTokenSource();
             _previewRefreshCancellation = cancellation;
+            var epoch=Volatile.Read(ref _previewBuildEpoch);
+            var recipeId=GetRecipeIdFromParameter(SelectedRecipeFile);
             try
             {
                 await Task.Delay(250, cancellation.Token);
+                if(!IsCurrentPreviewGeneration(epoch,recipeId)) return;
                 await _refreshCurrentScreen();
             }
             catch (OperationCanceledException)
@@ -1574,6 +1654,8 @@
             _previewRefreshCancellation?.Dispose();
             var cancellation = new CancellationTokenSource();
             _previewRefreshCancellation = cancellation;
+            var epoch=Volatile.Read(ref _previewBuildEpoch);
+            var recipeId=GetRecipeIdFromParameter(SelectedRecipeFile);
             bool MatchesItem(global::Drilling.UI.Menu.Menus.ST_RECIPE_CELL_VIEW_MODEL cell)
             {
                 return cell.CellNo == _selectedCellNo;
@@ -1582,6 +1664,7 @@
             try
             {
                 await Task.Delay(400, cancellation.Token);
+                if(!IsCurrentPreviewGeneration(epoch,recipeId)) return;
                 var cells = BuildCells(AllManagedItems, GetCellCount(AllManagedItems), _alignKeyMargins);
                 _recipeCells = cells;
                 CellOverviewRows = BuildCellOverviewRows(cells, AllManagedItems);
@@ -1609,9 +1692,12 @@
             _previewRefreshCancellation?.Dispose();
             var cancellation = new CancellationTokenSource();
             _previewRefreshCancellation = cancellation;
+            var epoch=Volatile.Read(ref _previewBuildEpoch);
+            var recipeId=GetRecipeIdFromParameter(SelectedRecipeFile);
             try
             {
                 await Task.Delay(400, cancellation.Token);
+                if(!IsCurrentPreviewGeneration(epoch,recipeId)) return;
                 var preview = BuildHeadPreview(AllManagedItems, _headPreviewSettings, SelectedGroup, _alignKeyMargins);
                 HeadPreviewImage = preview.Image;
                 HeadPreviewLabels = preview.Labels;
@@ -1625,6 +1711,11 @@
             // A newer edit restarted the debounce timer.
             }
         }
+
+        private bool IsCurrentPreviewGeneration(long epoch,string recipeId)
+            => Volatile.Read(ref _previewBuildDepth)==0 && epoch==Volatile.Read(ref _previewBuildEpoch)
+                && recipeId.Equals(GetRecipeIdFromParameter(SelectedRecipeFile),StringComparison.OrdinalIgnoreCase)
+                && recipeId.Equals(NormalizeRecipeIdInput(_viewRecipeIdProvider()),StringComparison.OrdinalIgnoreCase);
 
         private static ST_RECIPE_DEFINITION? GetSelectedRecipe(IReadOnlyList<ST_RECIPE_DEFINITION> recipes, string selectedRecipeId)
         {
@@ -2701,7 +2792,7 @@
             return CCellPatternCalculator.Calculate(new ST_CELL_PATTERN_DEFINITION(cell.CellNo, firstPixelX, firstPixelY, rotation, pixelSize, modelPattern.PixelCountX, modelPattern.PixelCountY, modelPattern.ProcessPitch, splitBeamCount, akMarginX, akMarginY), includeShotCenters);
         }
 
-        private static IReadOnlyDictionary<(int CellNo, int CellShotNo), (double OffsetX, double OffsetY)> BuildFinalShotOffsets(
+        private IReadOnlyDictionary<(int CellNo, int CellShotNo), (double OffsetX, double OffsetY)> BuildFinalShotOffsets(
             IReadOnlyList<ST_RECIPE_PARAMETER_EDITOR_ITEM> managedItems,
             ST_ALIGN_KEY_MARGINS alignKeyMargins)
         {
@@ -2725,6 +2816,9 @@
                 var parameters = managedItems.GroupBy(SelectManagedParameterKey, StringComparer.OrdinalIgnoreCase).ToDictionary(SelectManagedParameterGroupKey, SelectValue, StringComparer.OrdinalIgnoreCase);
                 parameters[CAlignKeyMarginSettings.MarginXKey] = alignKeyMargins.X.ToString("R", CultureInfo.InvariantCulture);
                 parameters[CAlignKeyMarginSettings.MarginYKey] = alignKeyMargins.Y.ToString("R", CultureInfo.InvariantCulture);
+                if(_savedReviewOffsetPreview is { } saved
+                    && saved.RecipeId.Equals(GetRecipeIdFromParameter(SelectedRecipeFile),StringComparison.OrdinalIgnoreCase))
+                    parameters=saved.ApplyToCopy(parameters);
                 var coordinatePlan = CShotCoordinatePlanBuilder.Build(parameters);
                 return coordinatePlan.Shots.GroupBy(shot => (shot.CellNo, shot.CellShotNo)).ToDictionary(group => group.Key, group =>
                 {

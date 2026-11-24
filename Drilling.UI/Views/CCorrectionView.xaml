@@ -262,6 +262,9 @@
             <TabItem Header="INSPECTION">
                 <views:CReviewView Margin="0,8,0,0" />
             </TabItem>
+            <TabItem Header="MANUAL INSPECTION">
+                <views:CManualInspectionView Margin="0,8,0,0" DataContext="{Binding CurrentScreen.Correction.ManualInspection}" />
+            </TabItem>
         </TabControl>
 
         <ItemsControl Grid.Row="2"

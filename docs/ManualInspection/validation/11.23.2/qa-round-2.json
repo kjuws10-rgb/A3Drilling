@@ -1,0 +1,163 @@
+{
+  "round": 2,
+  "status": "independent_diff_and_focused_regression_review_complete",
+  "passed": true,
+  "baseCommit": "89e92a015802523ba81b871a752d0c71e62e627f",
+  "reviewedAt": "2026-11-23T22:57:30.684827+09:00",
+  "findings": [
+    {
+      "id": "UNADOPTED-WORKING-TO-PROXY-PRIVILEGE",
+      "status": "resolved_source_review_and_focused_core_regression_passed",
+      "severity": "confirmed_source_control_flow",
+      "file": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\Drilling.Common\\Review\\ManualInspection\\CManualInspectionWorkspace.cs",
+      "observedSha256": "296d2291b62cd5cf264b2a1d71f513d57f2edb19df1e3e5cc0a50e8f530a611d",
+      "sourceTrace": [
+        "ResolveReferenceValue accepts generic reference.HasFiniteError without IsDirectMeasurement/RequireMeasurementLineage",
+        "Source=IMPORTED,Judge=OK,finite errors,AdoptedFileMeasurement=null falls into this branch",
+        "New WORKING token digest can be created without a valid native/adopted raw receipt",
+        "ConfirmReferenceCopy labels target MANUAL,OK and captures current Run/coordinate plus token",
+        "Existing MANUAL candidate validation checks token present and proxy Run/coordinate rather than original direct measurement adoption"
+      ],
+      "syntheticScenario": "Current real-mode workspace + imported SIM/mismatched finite OK row with no adoption receipt -> mark representative -> attempt copy to ordinary missing target. Marker is allowed; copying must not create a target that can save as validated real correction.",
+      "executionStatus": "Source trace only at this point; implementation was changing and no incomplete code was compiled. Must link final regression reproduction/fix result after source freeze.",
+      "parentDecision": "Generic finite working values do not acquire copy/apply permission; preserve native/adopted direct lineage or authoritative saved B/proxy evidence.",
+      "sourceFix": "Generic HasFiniteError branch replaced with IsDirectMeasurement && HasFiniteError plus RequireMeasurementLineage; authoritative saved B and frozen proxy paths remain separate.",
+      "regression": "reference_unadopted_import_mode_or_frame_never_becomes_manual_ok_anchor"
+    },
+    {
+      "id": "PROXY-FINAL-SESSION-TAMPER-LAUNDERING",
+      "status": "resolved_source_review_and_focused_core_regression_passed",
+      "severity": "new_proxy_representative_consistency_boundary",
+      "sourceTrace": [
+        "Restore validates proxy Final finite and token nonempty but does not visibly bind token to captured Final",
+        "Existing direct-only representatives could not reuse a modified target proxy as a new source",
+        "With proxy representatives enabled, restoring a modified Proxy.Final then copying it may create a new Candidate with current SourceFingerprint and propagate changed F"
+      ],
+      "requiredProbe": "Normal A→B copy session -> modify B.Proxy.Final only (and separately modify related candidate F) -> restore -> attempt B representative→C copy/apply. Confirm inconsistent captured-value provenance cannot gain valid authority. Preserve legitimate frozen proxy after root remeasurement and old-schema compatibility.",
+      "executionStatus": "Reported as source consistency risk; await implementer regression/final contract, no claim of performed exploit or hardware test.",
+      "sourceFix": "ReferenceValueProof binds frozen F/kind/root/error/token/basis/time/metadata; ResolveReferenceValue, ValidateCandidate and RestoreSession verify consistency. Legacy metadata checks remain separate. This is an integrity checksum, not authentication.",
+      "regression": "proxy_session_final_tampering_cannot_be_laundered_as_a_new_reference"
+    }
+  ],
+  "additionalBoundariesSent": [
+    "HasAppliedOffsetEvidence must derive from actual native stored row and be synchronized through commit/Undo/Redo/Init/session; a forged session flag cannot authorize empty0",
+    "Proxy representative token must come from frozen root evidence, not proxy target OriginalMeasurement",
+    "Masked point must have focus-only UI selection path for unrestricted marker without entering device operation selected keys",
+    "Snapshot frame identity must clear marker on coordinate Setting changes within same Recipe/Run",
+    "B-only unknown/null-error copies must stay honestly unknown and fail existing save eligibility",
+    "Root confirmed Excel modifier semantics override focus-only/additive alternatives"
+  ],
+  "productionEditsByQa": false,
+  "deviceOrVendorExecution": false,
+  "mapReview": {
+    "status": "diff_review_complete_no_confirmed_defect",
+    "testedReport": "D:\\CodexWork\\A3_Manual_Inspection_20261123_2_SelectionReference\\map\\ui\\ui-cell-overview-results.json",
+    "passed": true,
+    "tests": 157,
+    "reportSha256": "018cc719d6a46485ec91edda51bbaf7a903a0c3c3f301b8ee0417926f0276de8",
+    "currentMapSourceShaMatches": true,
+    "contract": [
+      "Ctrl row/column edge follows parent-confirmed Excel-style contract",
+      "Shift anchor range expands/contracts; CtrlShift selects range to edge; no additive Ctrl behavior",
+      "Latest point visibility/Masking/disabled checks preserved",
+      "Labels use fixed screen-space font and collision lanes; actual polygons/point slots unchanged; label HitCell rectangle equals displayed badge",
+      "Masked click updates focus only, never adds a device target or opens device operations",
+      "Keyboard selection remains visual; operation menu/controller guards unchanged"
+    ]
+  },
+  "designClarifications": [
+    {
+      "topic": "CopiedFrom historical key graph may cycle without live value dependency",
+      "parentDecision": "A→B→C then C→B allowed. CopiedFrom records timestamped historical copy origin; current values always use frozen Final and flat RootKey. Never recursively evaluate current CopiedFrom graph. Actual root/self/RootKey dependency cycle is rejected before mutation.",
+      "verificationNeeded": [
+        "Reverse repeated copy does not add raw twice",
+        "Source remeasurement does not alter captured F",
+        "Undo/save/session roundtrip preserves historical meaning"
+      ]
+    }
+  ],
+  "referenceCoreReport": {
+    "path": "D:\\CodexWork\\A3_Manual_Inspection_20261123_2_SelectionReference\\reference\\core-round2.json",
+    "passed": true,
+    "count": 197,
+    "sha256": "9377a083c5b050d7c4f55a02f07c3c89533b9c8d87fa019a3d05f086a3882311",
+    "sourceFiles": [
+      {
+        "path": "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs",
+        "sha256": "817f4e22b0d4751ff87a7bdca6ef1bae2a917846b346987f8d4454c3085d5768"
+      },
+      {
+        "path": "Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs",
+        "sha256": "bab8e44e537583ef70fa17b39eee4ccf8c5ca1c4d5000d63b7e97d61fc050de5"
+      },
+      {
+        "path": "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
+        "sha256": "ac67757c52cc757d5f5bf6c1280c14f87f7a02f312a65477c84f7313b5860386"
+      }
+    ],
+    "allCurrentSourcesMatch": true,
+    "focusedRegressionTests": [
+      "reference_unadopted_import_mode_or_frame_never_becomes_manual_ok_anchor",
+      "proxy_session_final_tampering_cannot_be_laundered_as_a_new_reference",
+      "proxy_reverse_historical_copy_is_allowed_and_undo_restores_frozen_metadata",
+      "proxy_session_unknown_value_kind_or_root_cycle_invalidates_lineage",
+      "session_claimed_base_evidence_is_replaced_by_the_real_expected_source",
+      "legacy_proxy_metadata_can_be_referenced_only_with_matching_root_or_real_stored_base"
+    ],
+    "executedBy": "reference implementation agent; independently checked report/results/current source SHA by QA"
+  },
+  "limitations": [
+    "Core197/Map157/source-linked Controller182 are focused preintegration evidence; final actual Controller/Backend/all UI counts and DLL/source identity are checked separately in round3",
+    "Integrity proof checks local captured-value consistency and is not a cryptographic authentication promise",
+    "QA edited only its own audit files; production/test edits and equipment execution remain0"
+  ],
+  "sourceLinkedControllerPreflight": {
+    "path": "D:\\CodexWork\\A3_Manual_Inspection_20261123_2_SelectionReference\\reference\\controller-round3.json",
+    "passed": true,
+    "count": 182,
+    "sha256": "38622d3fb7dba0f4a0e527c83fb9879b4a949f6bfa93e1151f9ea606f8401297",
+    "scope": "Source-linked ControllerHarness preflight, duplicate of final actual-assembly Controller suite except actual-only checks; do not sum with final actual Controller",
+    "currentControllerSha256": "6952ed65bc4cb8a7df763c9cf73643740d57d6b8831bbc8eec4986309018ec56",
+    "focusedChecks": [
+      {
+        "name": "reference_error_without_numeric_error_projects_no_value_without_exception_control_flow",
+        "passed": true
+      },
+      {
+        "name": "reference_projection_marks_missing_imported_and_masked_points_without_faking_copy_values",
+        "passed": true
+      },
+      {
+        "name": "reference_projection_stored_base_is_copyable_without_turning_unknown_state_into_ok",
+        "passed": true
+      },
+      {
+        "name": "reference_proxy_can_supply_another_copy_after_root_changes_and_only_selected_final_is_saved",
+        "passed": true
+      },
+      {
+        "name": "reference_ng_proxy_reverse_copy_keeps_ng_and_remains_unsavable",
+        "passed": true
+      },
+      {
+        "name": "reference_masked_source_never_enters_masked_motion_or_masked_correction_target",
+        "passed": true
+      },
+      {
+        "name": "reference_unassigned_head_cannot_turn_unproven_camera_values_into_manual_offset",
+        "passed": true
+      }
+    ]
+  },
+  "headZeroAuthority": {
+    "status": "source_fix_and_focused_regression_reviewed",
+    "source": "Native HasAppliedOffsetEvidence requires non-Init actual row AND (DESIGN coordinate row OR HeadNo in1..8). Core unknown Head raw cannot become a copy source; authoritative DESIGN B may copy only as unknown/null-error state.",
+    "scope": "Does not infer Head1 conversion authority for a Head0 legacy SCANNER row."
+  },
+  "displayPerformance": {
+    "status": "source_and_controller_regression_verified",
+    "source": "Publish uses initialization/no-direct-finite-raw/no-proxy/no-authoritative-B early unavailable-value branches rather than repeated exception control flow. Direct/B/proxy authority still uses ResolveReferenceValue.",
+    "regression": "reference_error_without_numeric_error_projects_no_value_without_exception_control_flow",
+    "result": "passed; FirstChance InvalidOperationException count0 as asserted by source-linked Controller preflight"
+  }
+}

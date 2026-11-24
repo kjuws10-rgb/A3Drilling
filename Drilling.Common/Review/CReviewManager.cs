@@ -1614,7 +1614,12 @@ namespace Drilling.Common.Review
         {
             var savedAt = DateTimeOffset.Now;
             var resultFileRows = GetMeasuredResultRows(results);
-            await reviewResultFile.Save(new ST_REVIEW_RESULT_DATA(plan, resultFileRows, savedAt, reviewProductId ?? "", plan.InspectionMethod) { ResultStatus = "COMPLETED", TotalCount = plan.ReviewPoints.Count, TargetFilePath = null }, cancellationToken).ConfigureAwait(false);
+            await reviewResultFile.Save(new ST_REVIEW_RESULT_DATA(plan, resultFileRows, savedAt, reviewProductId ?? "", plan.InspectionMethod)
+            {
+                ResultStatus = "COMPLETED", TotalCount = plan.ReviewPoints.Count, TargetFilePath = null,
+                IsStageSimulation = IsReviewDeviceSimulation(EN_EQP_MODULE.Melsec, GetReviewStageDeviceNo()),
+                IsVisionSimulation = IsReviewSimulation()
+            }, cancellationToken).ConfigureAwait(false);
             LastSavedResultPath = reviewResultFile.LastSavedPath;
             WriteReviewLog("RESULT_FILE_SAVED", "Review result file saved.");
             if (string.IsNullOrWhiteSpace(reviewProductId) || productManager is null)
@@ -4252,6 +4257,8 @@ namespace Drilling.Common.Review
     );
     public sealed record ST_REVIEW_RESULT_DATA(ST_REVIEW_PLAN Plan, IReadOnlyList<ST_REVIEW_PLAN_POINT> Results, DateTimeOffset SavedAt, string GlassId = "", string InspectionMethod = "P2P")
     {
+        public bool? IsStageSimulation { get; init; }
+        public bool? IsVisionSimulation { get; init; }
         public string ResultStatus { get; init; } = "COMPLETED";
         public int TotalCount { get; init; }
         public string? TargetFilePath { get; init; }
@@ -4270,6 +4277,9 @@ namespace Drilling.Common.Review
     }
     public sealed record ST_REVIEW_RESULT_FILE_DATA(string FilePath, string FileName, string RecipeId, DateTimeOffset SavedAt, IReadOnlyList<ST_REVIEW_RESULT_FILE_ROW> Rows)
     {
+        /// <summary>Null for legacy/mixed/unknown files; these must not be auto-merged as live measurements.</summary>
+        public bool? IsStageSimulation { get; init; }
+        public bool? IsVisionSimulation { get; init; }
         public string GlassId { get; init; } = "";
         public string InspectionMethod { get; init; } = "";
         public string RunType { get; init; } = "";
@@ -4358,10 +4368,16 @@ namespace Drilling.Common.Review
     {
         // Files without coordinate metadata contain legacy scanner-coordinate offsets.
         public bool IsDesignCoordinate { get; init; }
+        public bool IsMeasurementOffsetInitialized { get; init; }
+        /// <summary>Per-row reset boundary; unrelated later saves must not hide a newer measurement.</summary>
+        public DateTimeOffset? MeasurementInitializedAt { get; init; }
     }
 
     public sealed record ST_REVIEW_OFFSET_FILE_DATA(string RecipeId, string FilePath, string FileName, DateTimeOffset SavedAt, IReadOnlyList<ST_REVIEW_OFFSET_ROW> Rows)
     {
+        /// <summary>SHA-256 of the exact persisted bytes read with Rows, when supported by the store.</summary>
+        public string ContentSha256 { get; init; } = "";
+        public bool HasMeasurementStateMetadata { get; init; }
         public static ST_REVIEW_OFFSET_FILE_DATA Empty(string recipeId)
         {
             return new ST_REVIEW_OFFSET_FILE_DATA(recipeId, "", "", DateTimeOffset.MinValue, []);
@@ -4394,12 +4410,31 @@ namespace Drilling.Common.Review
     {
         public abstract string RootPath { get; }
 
+        /// <summary>
+        /// New Manual Inspection transaction: check the active revision under the writer's own lock
+        /// before appending a new file and its source history. Existing correction callers are unchanged.
+        /// Unsupported stores must fail closed rather than silently use a non-atomic Load/Save pair.
+        /// </summary>
+        public virtual Task<ST_REVIEW_OFFSET_FILE_DATA> SaveNewIfUnchanged(
+            string recipeId, string expectedLatestFilePath, IReadOnlyList<ST_REVIEW_OFFSET_ROW> rows,
+            string sourceResultFile, CancellationToken cancellationToken = default,
+            string? expectedLatestContentSha256 = null)
+            => throw new NotSupportedException("이 저장소는 Manual Inspection의 활성 Revision 확인 저장을 지원하지 않습니다.");
+
         public abstract Task<ST_REVIEW_OFFSET_FILE_DATA> LoadLatest(string recipeId, CancellationToken cancellationToken = default);
         public abstract Task<ST_REVIEW_OFFSET_FILE_DATA> SaveNew(string recipeId, IReadOnlyList<ST_REVIEW_OFFSET_ROW> rows, CancellationToken cancellationToken = default);
         public abstract Task<ST_REVIEW_OFFSET_SOURCE_APPLICATION?> FindSourceApplication(
             string recipeId,
             string sourceResultFile,
             CancellationToken cancellationToken = default);
+        /// <summary>
+        /// Evidence of a completed application, including one later rolled back by another Review
+        /// menu. Manual Inspection uses it for its immutable same-run measurement consumption guard.
+        /// The existing active-source lookup and reapply/rollback policy remain separate.
+        /// </summary>
+        public virtual Task<ST_REVIEW_OFFSET_SOURCE_APPLICATION?> FindCommittedSourceApplication(
+            string recipeId, string sourceResultFile, CancellationToken cancellationToken = default)
+            => FindSourceApplication(recipeId, sourceResultFile, cancellationToken);
         public abstract Task<ST_REVIEW_OFFSET_FILE_DATA> SaveNewFromSource(
             string recipeId,
             IReadOnlyList<ST_REVIEW_OFFSET_ROW> rows,

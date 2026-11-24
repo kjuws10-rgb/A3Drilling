@@ -16,6 +16,7 @@ namespace Drilling.UI.Menu.Menus
         public sealed partial class CReviewDataPanel
         {
             private bool _isOffsetBusy;
+            public Action<ST_REVIEW_OFFSET_FILE_DATA>? OffsetsInitialized { get; set; }
 
             public bool CanEditOffsets => !IsInspectionOffsetRestricted
                 && HasLoadedData
@@ -162,7 +163,7 @@ namespace Drilling.UI.Menu.Menus
 
                     if (!CRecipeConfirmDialog.ShowConfirmation(
                             "Review Offset Init",
-                            $"현재 레시피: {recipe.Name}\n대상: {points.Select(point => point.CellNo).Distinct().Count():N0} Cells / {points.Length:N0} Shots\n\n기존 Review Offset X/Y를 모두 0.000으로 초기화하시겠습니까?\n새 REVIEW OFFSET 파일을 생성합니다.",
+                            $"현재 레시피: {recipe.Name}\n대상: {points.Select(point => point.CellNo).Distinct().Count():N0} Cells / {points.Length:N0} Shots\n\n측정 Review 보정값을 모두 없음 상태로 초기화하시겠습니까?\n초기화는 실측 오차 0이 아닙니다. 기존 파일은 보존하고 새 REVIEW OFFSET 파일을 생성합니다.",
                             "초기화",
                             useDangerStyle: true))
                     {
@@ -181,7 +182,8 @@ namespace Drilling.UI.Menu.Menus
                             {
                                 rows[(row.CellId, shot)] = new ST_REVIEW_OFFSET_ROW(row.CellId, shot, 0.0, 0.0)
                                 {
-                                    IsDesignCoordinate = true
+                                    IsDesignCoordinate = true,
+                                    IsMeasurementOffsetInitialized = true
                                 };
                             }
                         }
@@ -191,7 +193,8 @@ namespace Drilling.UI.Menu.Menus
                             var shot = NormalizeReviewOffsetShotId(CReviewShotNameFormatter.ToMatrixName(point.ShotNo, point.PixelCountX));
                             rows[(point.CellNo, shot)] = new ST_REVIEW_OFFSET_ROW(point.CellNo, shot, 0.0, 0.0)
                             {
-                                IsDesignCoordinate = true
+                                IsDesignCoordinate = true,
+                                IsMeasurementOffsetInitialized = true
                             };
                         }
 
@@ -199,7 +202,8 @@ namespace Drilling.UI.Menu.Menus
                             recipe.Id,
                             rows.Values.OrderBy(row => row.CellId).ThenBy(row => row.ShotId, StringComparer.OrdinalIgnoreCase).ToArray());
                     });
-                    var message = $"{points.Length:N0}개 Shot의 Review Offset을 0.000으로 초기화했습니다.\n{saved.FileName}";
+                    OffsetsInitialized?.Invoke(saved);
+                    var message = $"{points.Length:N0}개 Shot의 측정 Review 보정값을 없음 상태로 초기화했습니다.\n{saved.FileName}";
                     _statusReporter(message.Replace(Environment.NewLine, " "));
                     CRecipeConfirmDialog.ShowCompletion("Review Offset Init 완료", message);
                 }
@@ -338,7 +342,8 @@ namespace Drilling.UI.Menu.Menus
                         delta.X,
                         delta.Y,
                         finalX,
-                        finalY));
+                        finalY)
+                    { HasCurrentMeasurementValue = previous is { IsMeasurementOffsetInitialized: false } });
                 }
 
                 var orderedRows = displayRows
@@ -726,10 +731,11 @@ namespace Drilling.UI.Menu.Menus
             double FinalX,
             double FinalY)
         {
+            public bool HasCurrentMeasurementValue { get; init; } = true;
             public string Head => $"H{HeadNo:00}";
             public string Cell => $"CELL{CellNo:00}";
-            public string CurrentXText => CurrentX.ToString("F3", CultureInfo.InvariantCulture);
-            public string CurrentYText => CurrentY.ToString("F3", CultureInfo.InvariantCulture);
+            public string CurrentXText => HasCurrentMeasurementValue ? CurrentX.ToString("F3", CultureInfo.InvariantCulture) : "—";
+            public string CurrentYText => HasCurrentMeasurementValue ? CurrentY.ToString("F3", CultureInfo.InvariantCulture) : "—";
             public string AddXText => AddX.ToString("F3", CultureInfo.InvariantCulture);
             public string AddYText => AddY.ToString("F3", CultureInfo.InvariantCulture);
             public string FinalXText => FinalX.ToString("F3", CultureInfo.InvariantCulture);

@@ -1,0 +1,208 @@
+{
+  "schemaVersion": "a3-manual-inspection-validation/13",
+  "programVersion": "11.24.0",
+  "baseCommit": "3a2526dacf988cf303a102dc432a6eaa9394e9d4",
+  "featureBranch": "feature/manual-inspection-retry-visibility-20261124.0",
+  "verifiedDate": "2026-11-24",
+  "passed": true,
+  "build": {
+    "solution": "Drilling.sln",
+    "configuration": "Release",
+    "warnings": 0,
+    "errors": 0,
+    "logSha256": "0a097f1acf44abea79935ae5b6ecb5cda7872f801082025a9f29f30d1859ff90",
+    "uiAssemblySha256": "99de66953a9ce429b8c891ad3cc4915ae465cb72689c89dfeee68fe3012445e7",
+    "commonAssemblySha256": "98cf7f601b3aa5c1e20c97c40234c347b96aebc5ceb19af54620c8dd7e48de49"
+  },
+  "checks": {
+    "core-results.json": {
+      "passed": true,
+      "count": 206,
+      "path": "validation/11.24.0/core-results.json",
+      "sha256": "1ddcc9295aee283e17427d70a4806d47d34a676fa98e5a9e33b4857c04d89f3f"
+    },
+    "controller-production.json": {
+      "passed": true,
+      "count": 200,
+      "path": "validation/11.24.0/controller-production.json",
+      "sha256": "85adcced925c42667bf55f9bdaed76114d48f56d0003f2ec43843a51e395928d"
+    },
+    "backend-read.json": {
+      "passed": true,
+      "count": 105,
+      "path": "validation/11.24.0/backend-read.json",
+      "sha256": "bdd457855f0fd89a44fe04f919dec15f50872cb86163f45c550dacb7bcc32238"
+    }
+  },
+  "wpf": {
+    "passed": true,
+    "count": 742,
+    "modes": [
+      {
+        "mode": "bulk-history",
+        "passed": true,
+        "count": 46,
+        "path": "validation/11.24.0/ui-bulk-history-results.json",
+        "sha256": "9996b680783510ee39c8d0ad82ffe8ebbd05f6560d141425aeb68b112e09f6bb"
+      },
+      {
+        "mode": "cell-overview",
+        "passed": true,
+        "count": 181,
+        "path": "validation/11.24.0/ui-cell-overview-results.json",
+        "sha256": "c902d6a18a71bfc0e2398aebbddc64428675eeaaabb5b01337c3d664f70e4ee2"
+      },
+      {
+        "mode": "coverage-compact",
+        "passed": true,
+        "count": 71,
+        "path": "validation/11.24.0/ui-coverage-compact-results.json",
+        "sha256": "30cfe590c9acb8a3b140bf82445d45ecec38471e413bfa50a2973736dfbbb27c"
+      },
+      {
+        "mode": "hardening",
+        "passed": true,
+        "count": 30,
+        "path": "validation/11.24.0/ui-hardening-results.json",
+        "sha256": "86a90388a3b98a45807f732e481ff43faf3d6e23dd4c52ab53e2c3032b06e9ad"
+      },
+      {
+        "mode": "integration-impact",
+        "passed": true,
+        "count": 23,
+        "path": "validation/11.24.0/ui-integration-impact-results.json",
+        "sha256": "e371fced562983b3ec0800d69aa8765abfbae0f4cd4e67c80fe3ebedd730e4f2"
+      },
+      {
+        "mode": "map-first",
+        "passed": true,
+        "count": 73,
+        "path": "validation/11.24.0/ui-map-first-results.json",
+        "sha256": "07368789aea5833811b3d3134e591c4720fca0084252ef0d02d25e6d0689da39"
+      },
+      {
+        "mode": "measurement-workflow",
+        "passed": true,
+        "count": 44,
+        "path": "validation/11.24.0/ui-measurement-workflow-results.json",
+        "sha256": "3302ac88f033f4c5a12aa0e62caa132938aa0e931115a7b45504e493c3b64ec6"
+      },
+      {
+        "mode": "native",
+        "passed": true,
+        "count": 49,
+        "path": "validation/11.24.0/ui-results.json",
+        "sha256": "0b8e0c8f8f8725f0359bf9be3517039ec0e3bc9f46126d7f68a20c4135ec9455"
+      },
+      {
+        "mode": "offset-init",
+        "passed": true,
+        "count": 37,
+        "path": "validation/11.24.0/ui-offset-init-results.json",
+        "sha256": "1c12d496b51fefa19243735683946d2fdd4ea7d984d6dac169a60137eab197ee"
+      },
+      {
+        "mode": "representative",
+        "passed": true,
+        "count": 49,
+        "path": "validation/11.24.0/ui-representative-results.json",
+        "sha256": "9cf77df8f388a774fe49adf9faccac3c2c620be13e1d230a7a80f7e082135295"
+      },
+      {
+        "mode": "sync-levels",
+        "passed": true,
+        "count": 34,
+        "path": "validation/11.24.0/ui-sync-levels-results.json",
+        "sha256": "302f5b36b833b78b52a43f33799054e353f0f37dfaf9392e6766e3b3c817d79e"
+      },
+      {
+        "mode": "visual-usability",
+        "passed": true,
+        "count": 105,
+        "path": "validation/11.24.0/ui-visual-usability-results.json",
+        "sha256": "62dfe8e2a81f086ba7427cee7c198983137b87fd501125d44482de7d8d1d8ae8"
+      }
+    ]
+  },
+  "scope": {
+    "passed": true,
+    "count": 33,
+    "report": "validation/11.24.0/scope-results.json"
+  },
+  "independentReview": {
+    "passed": true,
+    "rounds": [
+      {
+        "round": 1,
+        "path": "validation/11.24.0/qa-round-1.json",
+        "sha256": "484c7e28a1305a0acee408a971e4edf0488281a9051d229c97d510d416ca127b"
+      },
+      {
+        "round": 2,
+        "path": "validation/11.24.0/qa-round-2.json",
+        "sha256": "3cf97ddafaac6c1018c4fb1c708f565f4e89c8f7032509675efcdf9ffdad851b"
+      },
+      {
+        "round": 3,
+        "path": "validation/11.24.0/qa-round-3.json",
+        "sha256": "2933e94680875e57884751a822ae54ba383a3faea1ae0f166f642bf6b95e7bb2"
+      }
+    ]
+  },
+  "documentationLinks": 29,
+  "productionSha256": {
+    "Drilling.Common/Review/CManualInspectionCoordinateBridge.cs": "faf320044ebb800f2f5216cf0900c2e23b6d12d8a2cb86e089825bc8d97d9344",
+    "Drilling.Common/Review/CManualInspectionResultProjection.cs": "03223a4c6310d266c0e462fdaf246a6c2da99d58c60419c5c04341f9a5893bcb",
+    "Drilling.Common/Review/CReviewManager.cs": "d78c3950a0297d14e913287f11e94e211c3887c51330ab5dc4abeb6982a67d60",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs": "817f4e22b0d4751ff87a7bdca6ef1bae2a917846b346987f8d4454c3085d5768",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs": "e953b75280c37ebec4a0d0c58db7a05a4099cdc00cc841e7ad20bf8dc1a577a4",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs": "5331aeefbb1adcff63ad5ba982316b634a7fa67afdc4a39f9357815f017a064f",
+    "Drilling.Common/Station/CStageReviewSequences.cs": "49e1a43341978bc8ae28013cebce4827cb99e933b04df32aab4ad74d5a9402a7",
+    "Drilling.File/ReviewOffset/CReviewOffsetFile.cs": "170e69c69387fc04c3d9e275c515ee51252127c3499dda687a2c6a93e5bc819d",
+    "Drilling.File/ReviewResult/CReviewResultFile.cs": "48d76ca790635663fc3f247f5e88483dbb9c318d6f1a1bd8ecec4761005ee3cc",
+    "Drilling.UI/CRootView.cs": "cc23a576c580c60ff245609853fa75fe32d896b7bf01b08277700eaed68f68ac",
+    "Drilling.UI/Drilling.UI.csproj": "2771451fbf87e77bd604071c0793f727deac1e895c9fd03c39bf15e3483056e4",
+    "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs": "0dbab53437f3a43cf3b955b5b98cc77e6329ab6613b070b2127901ad47326821",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "a30840215dc7dce675347a49674f2bdde76ec1ea67a9ff2ccc4f1ffb82a71b8e",
+    "Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs": "a7e6849d10bf5baebbe56d56084f74bdfb852289b30c571d9908f0a244855228",
+    "Drilling.UI/Menu/Menus/CManualInspectionUpdateMonitor.cs": "a5d8854aea32ae9eb9cf4cfa05c99cf6ab0548dddcebd7fa32a94335ab94a1e0",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.ManualInspection.cs": "12af934e028a18f1b714d7be9a3e777434f6b21e66b16184e294b5acccbe17df",
+    "Drilling.UI/Menu/Menus/CMenuMonitor.cs": "70c03d8bd10bc72b04c9f322adb986dd7c331a397b0241708dd3b83e368c7f2a",
+    "Drilling.UI/Menu/Menus/CMenuRecipe.cs": "5c3d300be071074a77763e5ae1d8a74f92c0879723ecbf4fcc46a3003a96a8a3",
+    "Drilling.UI/Menu/Menus/CReviewOffsetDisplaySnapshot.cs": "789b5e3d4b8e2d8bf6db455cb4bc7a459ddf920ba59a21431de129c07ab5e4e3",
+    "Drilling.UI/Views/CCorrectionView.xaml": "850404c76dda72d2d741b74f07a8161966f6cd55d173697bebaf619ee79e296c",
+    "Drilling.UI/Views/CCorrectionView.xaml.cs": "aad7dd20f74ecfb6876c917e11ae1ef2e6494aad5d5c9ada9fb4ac9596c4e980",
+    "Drilling.UI/Views/CManualInspectionMapControl.cs": "5b6cc72cedd966186fae81dd825986e498018a06dd4b373192f762cbe274fbb3",
+    "Drilling.UI/Views/CManualInspectionScatterControl.cs": "df7e0a29296a9197cede3accb3da2eb2c2ececec28081f7786abe76ccfbfa451",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "6c80b499bd2bb9e376cac1eb94777dbefe0660efbee1b6b1def44a8e2d1a80ab",
+    "Drilling.UI/Views/CManualInspectionView.xaml": "33727e38d5ecd4d52fc737355ae68230c2b563ee44441f12712cb5e3218b65c4",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "6f1810a3abfdc35891f7aeaf562b0db8b84e530f4e735dc7b373b9db5c25a303"
+  },
+  "userWorkflow": [
+    "Cell captions scale with visible physical cell size and zoom, no fixed badge minimum",
+    "P2P target and actual Flying line blink every 500ms without changing result colours",
+    "SIM Flying highlights the currently executed synthetic point, not the entire queue",
+    "Idle failed queue can be retried or superseded by a validated new manual operation",
+    "Superseded audit/raw/saved offsets remain; unreturned old residuals lose current correction eligibility",
+    "Latest saved Review file is overlaid into Monitor temporary parameter map",
+    "Shot Detail shows transformed/scaled contribution in mm with six decimal places and saved-value tooltip",
+    "Initialized or absent Review value is empty; real measured zero remains numeric",
+    "NG/unmeasured correction restrictions, duplicate guards, confirmation and Undo/Redo remain"
+  ],
+  "preserved": [
+    "master and previous feature branch",
+    "hardware/default/first-beam/distortion",
+    "raw measurements/history and original CSV writer",
+    "core coordinate conversion formulas",
+    "Recipe editor save input and Root wiring",
+    "existing themes/configuration/vendor files"
+  ],
+  "verificationScope": "Synthetic source-linked WPF and Core, actual Controller/Backend assemblies and pure managers/file writer/Monitor build and property publication. Equipment App/Root/Manager, vendor SDK, PLC, Vision, motion, AeroScript and laser not executed. UI blinking does not assert motor feedback or real-time precision.",
+  "previousEvidence": {
+    "path": "history/validation-3a2526d.json",
+    "writerCount": 35,
+    "projectionCount": 53,
+    "rerun": false,
+    "reason": "Unchanged protected implementations; not added to current totals."
+  }
+}

@@ -1,0 +1,200 @@
+{
+  "passed": true,
+  "tests": 37,
+  "failures": 0,
+  "checks": [
+    {
+      "name": "offset_ui_single_cell_has_exactly_one_whole_cell_button",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "offset_ui_default_folded_workspace_still_has_no_scroll",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "offset_ui_overview_does_not_draw_duplicate_whole_cell_button",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "offset_init_button_is_in_manual_correction_panel_and_initially_ready",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "offset_init_dispatches_without_confirmation",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "offset_init_description_names_every_protected_offset_family",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "offset_init_description_explains_full_model_preview_and_old_file_preservation",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "offset_init_immediate_dispatch_uses_current_version_once_per_click",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "offset_init_pending_reuses_button_as_cancel_instead_of_adding_duplicate_control",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "offset_init_pending_labels_the_state_as_unsaved",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "offset_init_pending_table_and_color_labels_keep_simple_measurement_views",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "offset_init_pending_only_exposes_context_save_with_automatic_validation",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "offset_init_pending_common_dispatch_blocks_stale_plan_operations",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "offset_file_menu_exposes_single_portable_import_and_export",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "offset_pending_menu_allows_exports_but_blocks_switching_sources",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "offset_pending_export_is_allowed_without_model_save",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "offset_edit_cancel_is_immediate_without_confirmation",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "offset_edit_cancel_confirmation_dispatches_cancel_only",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "offset_pending_model_save_confirms_explicit_apply_action",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "offset_init_cancel_projection_restores_original_labels_and_enabled_operations",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "offset_init_after_fold_returns_to_scroll_free_map",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "offset_init_button_allows_explicit_idle_reset_after_incomplete_measurement",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "offset_init_button_has_no_legacy_readonly_gate",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_defaults_to_measurement_residuals_and_all_heads",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_cumulative_uses_base_even_when_fresh_residual_or_ng_exists",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_cumulative_keeps_explicit_zero_and_latest_error_with_applied_history",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_cumulative_does_not_invent_missing_or_masked_offset",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_cumulative_auto_scale_ignores_unrelated_large_raw_and_missing_b",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_cumulative_labels_distinguish_correction_amount_from_residual_error",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_cumulative_head_scope_gathers_all_cells_including_error_history",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_cumulative_current_cell_scope_includes_explicit_zero",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_cumulative_multiple_selected_cells_use_entire_cell_populations",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_cumulative_population_is_not_reduced_by_map_filters",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_cumulative_fixed_scale_preserves_full_statistics",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_cumulative_fit_restores_full_multiple_cell_range",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_original_mode_never_substitutes_cumulative_b",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_offset_switch_does_not_modify_original_or_working_records",
+      "passed": true,
+      "details": null
+    }
+  ],
+  "sourceHashes": {
+    "Views/CManualInspectionUiContract.cs": "dc56c89a107c544f38c498382c095bd5c8e91c148d88936d93414aa223b5d955",
+    "Views/CManualInspectionMapControl.cs": "5b6cc72cedd966186fae81dd825986e498018a06dd4b373192f762cbe274fbb3",
+    "Views/CManualInspectionScatterControl.cs": "696f69435b79a1cc8322f960e1d95e9f58fe2f149878c62b7e9e9fe163d7635e",
+    "Views/CManualInspectionView.xaml": "bc4c4aea45be471ceda11af051f1703d0a2e9db36954ed59b23ef0471dbab69c",
+    "Views/CManualInspectionView.xaml.cs": "e6223934280240bf4c88acaae20c0135ba736c85549d29935a4da5056fc02598"
+  },
+  "scope": "Current source-linked WPF Manual Inspection and app themes with synthetic immutable snapshots/fake controller. No equipment App/Root/Manager/vendor SDK, PLC/Vision/motion or scripts."
+}

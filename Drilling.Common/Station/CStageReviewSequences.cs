@@ -652,6 +652,18 @@ public sealed partial class CStageReviewSequences(CInterfaceManager interfaces, 
 
         internal Task VerifyArrival(ST_STAGE_MOVE_TARGET target, CancellationToken token) => WaitArrival(target, token);
 
+        /// <summary>
+        /// Read-only arrival proof for the new inspection-at-current-position action.
+        /// Keep this Session alive through the camera transaction so another UI move cannot
+        /// acquire the Stage owner between the position check and the labelled measurement.
+        /// </summary>
+        public Task VerifyCurrentTarget(ST_STAGE_MOVE_TARGET target, CancellationToken token = default)
+        {
+            if (!double.IsFinite(target.X) || !double.IsFinite(target.Y) || !Enum.IsDefined(target.Mode))
+                throw new ArgumentException("현재 위치 확인 목표가 유효하지 않습니다.", nameof(target));
+            return WaitArrival(target, token);
+        }
+
         private async Task WaitArrival(ST_STAGE_MOVE_TARGET target, CancellationToken token)
         {
             // @보호 [스테이지이동] 도착판정 - Busy OFF만으로 완료하지 않고 참여 축 위치가 목표 +/- 0.0005 mm인지 함께 확인한다.

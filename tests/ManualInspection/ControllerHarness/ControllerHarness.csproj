@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net8.0-windows</TargetFramework><UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <UseActualAssemblies Condition="'$(UseActualAssemblies)' == ''">false</UseActualAssemblies>
+    <ProductionRoot Condition="'$(ProductionRoot)' == ''">$(MSBuildThisFileDirectory)..\..\..\</ProductionRoot>
+    <DefineConstants Condition="'$(UseActualAssemblies)' == 'true'">$(DefineConstants);ACTUAL_ASSEMBLIES</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="SyncCases.cs" />
+    <Compile Include="CoverageCases.cs" />
+    <Compile Include="HardeningCases.cs" />
+    <Compile Include="PresentationCases.cs" />
+    <Compile Include="CellOverviewCases.cs" />
+    <Compile Include="OffsetInitCases.cs" />
+    <Compile Include="MeasurementWorkflowCases.cs" />
+    <Compile Include="BulkHistoryCases.cs" />
+    <Compile Include="RepresentativeCases.cs" />
+    <Compile Include="RetryVisibilityCases.cs" />
+    <Compile Include="FirstLoadStateCases.cs" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(UseActualAssemblies)' != 'true'">
+    <Compile Include="Contracts.cs" />
+    <Compile Include="../../../Drilling.Common/Review/ManualInspection/*.cs" Link="Production/%(Filename)%(Extension)" />
+    <Compile Include="../../../Drilling.UI/Menu/Menus/CManualInspectionController.cs" Link="Production/CManualInspectionController.cs" />
+    <Compile Include="../../../Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs" Link="Production/CManualInspectionReplayBackend.cs" />
+    <Compile Include="../../../Drilling.UI/Menu/Menus/CManualInspectionUpdateMonitor.cs" Link="Production/CManualInspectionUpdateMonitor.cs" />
+    <Compile Include="../../../Drilling.UI/Views/CManualInspectionUiContract.cs" Link="Production/CManualInspectionUiContract.cs" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(UseActualAssemblies)' == 'true'">
+    <ProjectReference Include="$(ProductionRoot)/Drilling.UI/Drilling.UI.csproj" />
+  </ItemGroup>
+</Project>

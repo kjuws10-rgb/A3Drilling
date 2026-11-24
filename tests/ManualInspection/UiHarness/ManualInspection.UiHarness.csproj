@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="CoverageCompactCases.cs" />
+    <Compile Include="HardeningCases.cs" />
+    <Compile Include="VisualUsabilityCases.cs" />
+    <Compile Include="MapFirstCases.cs" />
+    <Compile Include="CellOverviewCases.cs" />
+    <Compile Include="OffsetInitCases.cs" />
+    <Compile Include="MeasurementWorkflowCases.cs" />
+    <Compile Include="BulkHistoryCases.cs" />
+    <Compile Include="RepresentativeCases.cs" />
+    <Compile Include="SidePanelsCases.cs" />
+    <Compile Include="../../../Drilling.UI/Views/CManualInspectionUiContract.cs" Link="CManualInspectionUiContract.cs" />
+    <Compile Include="../../../Drilling.UI/Views/CManualInspectionMapControl.cs" Link="CManualInspectionMapControl.cs" />
+    <Compile Include="../../../Drilling.UI/Views/CManualInspectionScatterControl.cs" Link="CManualInspectionScatterControl.cs" />
+    <Compile Include="../../../Drilling.UI/Views/CManualInspectionView.xaml.cs" Link="CManualInspectionView.xaml.cs" />
+    <Page Include="../../../Drilling.UI/Views/CManualInspectionView.xaml" Link="CManualInspectionView.xaml" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,179 @@
+{
+  "schemaVersion": "a3-manual-inspection-ui-sync-levels/1",
+  "passed": true,
+  "tests": 34,
+  "failures": 0,
+  "scope": "Native WPF with fake controller, applied/measurement Level policy, simplified controls and real description/confirmation dispatch. No equipment app or SDK.",
+  "checks": [
+    {
+      "name": "default_color_is_measurement_deviation_level",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "only_level_and_judge_color_concepts",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "advanced_sections_initially_closed",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "simulation_and_duplicate_motion_controls_removed",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "automatic_synchronization_description_reachable",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "deferred_synchronization_is_explicit",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "same_applied_level_across_cells_heads_and_sources",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "unmeasured_but_applied_point_has_level",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "applied_zero_is_level_one",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "missing_offset_is_gray_not_false_zero",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "draft_final_never_colors_active_map",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "active_level_keeps_ng_red_before_applying_level_palette",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "measurement_error_remains_distinct_from_successful_history",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "measurement_and_applied_share_inclusive_bounds",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "level_upper_ranges_distinct",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "radial_metric_uses_common_policy",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "invalid_level_policy_fails_to_gray",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "point_details_show_external_measurement_origin",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "point_details_prioritize_measurement_deviation_and_judge",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "refresh_dispatches_immediately_without_confirmation",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "refresh_description_still_explains_no_machine_effect",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "refresh_immediate_keeps_expected_version",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "removed_measurement_correction_explains_separate_bulk_without_dialog",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "operation_cancel_sends_no_device_request",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "context_measurement_uses_selected_keys",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "stop_is_immediate_without_confirmation",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calculate_description_does_not_claim_saved",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "retry_description_no_implicit_correction",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "file_load_delegates_picker_and_keeps_current_version",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "file_load_remains_immediate_and_does_not_request_motion_confirmation",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "more_menu_has_return_portable_offsets_and_results_without_session_or_recent_list",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "new_common_bounds_recolor_existing_offsets",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "table_and_detail_use_same_current_level_scale",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "representative_selection_is_immediate_without_confirmation",
+      "passed": true,
+      "details": null
+    }
+  ]
+}

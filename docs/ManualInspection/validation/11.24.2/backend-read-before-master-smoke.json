@@ -1,0 +1,446 @@
+{
+  "passed": true,
+  "count": 107,
+  "failed": 0,
+  "tests": [
+    {
+      "name": "reused_host_product_ids_still_separate_new_physical_runs",
+      "passed": true
+    },
+    {
+      "name": "unproven_other_recipe_completion_shift_never_authorizes_movement",
+      "passed": true
+    },
+    {
+      "name": "actual_backend_loads_real_recipe_planner_and_explicit_zero_history",
+      "passed": true
+    },
+    {
+      "name": "old_version_committed_history_is_preserved_without_blocking_fresh_current_work",
+      "passed": true
+    },
+    {
+      "name": "old_uncommitted_reservation_does_not_invent_consumption",
+      "passed": true
+    },
+    {
+      "name": "old_incomplete_session_is_preserved_without_blocking_current_recipe_measurement",
+      "passed": true
+    },
+    {
+      "name": "same_path_offset_replacement_rejects_stale_backend_before_action",
+      "passed": true
+    },
+    {
+      "name": "selection_changed_while_catalog_is_loading_is_not_published",
+      "passed": true
+    },
+    {
+      "name": "coordinate_setting_changed_while_catalog_is_loading_is_not_published",
+      "passed": true
+    },
+    {
+      "name": "offset_changed_while_catalog_is_loading_is_not_published",
+      "passed": true
+    },
+    {
+      "name": "explicit_other_recipe_result_is_rejected",
+      "passed": true
+    },
+    {
+      "name": "actual_explicit_result_uses_current_recipe_geometry_without_file_readonly_gate",
+      "passed": true
+    },
+    {
+      "name": "explicit_file_still_rejects_head_or_design_coordinate_mismatch",
+      "passed": true
+    },
+    {
+      "name": "explicit_file_still_rejects_unmatched_shot_and_out_of_range_beam",
+      "passed": true
+    },
+    {
+      "name": "actual_loader_adopts_edited_and_manual_file_values_without_inventing_original_raw",
+      "passed": true
+    },
+    {
+      "name": "fresh_native_measurement_clears_adopted_file_receipt",
+      "passed": true
+    },
+    {
+      "name": "mode_mismatched_file_is_navigable_but_cannot_promote_simulation_values_to_correction",
+      "passed": true
+    },
+    {
+      "name": "automatic_import_without_adoption_receipt_is_not_promoted_to_correction_anchor",
+      "passed": true
+    },
+    {
+      "name": "actual_committed_receipt_blocks_same_explicit_file_after_offset_revision_change",
+      "passed": true
+    },
+    {
+      "name": "actual_loader_publishes_recipe_cell_boundary_and_glass_dimensions",
+      "passed": true
+    },
+    {
+      "name": "display_beam_slots_validate_duplicate_and_out_of_range_keys",
+      "passed": true
+    },
+    {
+      "name": "unknown_glass_does_not_auto_merge_unrelated_result_catalog",
+      "passed": true
+    },
+    {
+      "name": "backend_guard_fails_without_device_manager",
+      "passed": true
+    },
+    {
+      "name": "fresh_native_model_without_offset_csv_preserves_geometry_and_allows_measurement_preview",
+      "passed": true
+    },
+    {
+      "name": "saved_native_init_does_not_mask_targets_or_disable_new_measurement_preview",
+      "passed": true
+    },
+    {
+      "name": "portable_offset_exports_latest_absolute_map_once_instead_of_summing_history",
+      "passed": true
+    },
+    {
+      "name": "portable_offset_includes_protected_reference_only_and_exact_planner_coordinates",
+      "passed": true
+    },
+    {
+      "name": "portable_init_zeroes_measurement_map_but_preserves_protected_contributions_and_source_files",
+      "passed": true
+    },
+    {
+      "name": "portable_init_clears_hidden_historical_rows_and_writer_keeps_old_csv_bytes",
+      "passed": true
+    },
+    {
+      "name": "portable_import_returns_absolute_values_without_saving_or_overwriting_protected_reference",
+      "passed": true
+    },
+    {
+      "name": "portable_import_rejects_recipe_coordinate_geometry_and_mask_mismatch",
+      "passed": true
+    },
+    {
+      "name": "portable_import_rejects_partial_duplicate_unknown_and_nonfinite_rows",
+      "passed": true
+    },
+    {
+      "name": "portable_json_rejects_duplicate_unknown_fields_and_unit_changes",
+      "passed": true
+    },
+    {
+      "name": "portable_export_refuses_overwrite_inside_operating_folders_and_non_json_target",
+      "passed": true
+    },
+    {
+      "name": "portable_roundtrip_never_promotes_history_rows_or_scanner_commands_to_active_offsets",
+      "passed": true
+    },
+    {
+      "name": "portable_source_revision_change_is_rechecked_before_import_and_export",
+      "passed": true
+    },
+    {
+      "name": "portable_whole_model_rows_expand_and_shrink_displayed_beam_siblings_without_double_accumulation",
+      "passed": true
+    },
+    {
+      "name": "portable_extra_beam_must_match_real_recipe_beam_range_key_head_and_geometry",
+      "passed": true
+    },
+    {
+      "name": "portable_import_requires_all_model_shot_rows_even_when_display_beam_changes",
+      "passed": true
+    },
+    {
+      "name": "measurement_state_csv_preserves_explicit_init_zero_and_origin_time",
+      "passed": true
+    },
+    {
+      "name": "measurement_state_csv_keeps_real_measured_zero_distinct_from_init",
+      "passed": true
+    },
+    {
+      "name": "measurement_state_csv_legacy_header_without_optional_columns_still_loads_as_measured",
+      "passed": true
+    },
+    {
+      "name": "measurement_state_csv_state_only_transition_creates_new_file_and_preserves_old_bytes",
+      "passed": true
+    },
+    {
+      "name": "measurement_state_csv_rejects_initialized_nonzero_instead_of_hiding_real_offset",
+      "passed": true
+    },
+    {
+      "name": "measurement_state_scoped_cell_init_resets_hidden_same_cell_legacy_but_preserves_other_cells",
+      "passed": true
+    },
+    {
+      "name": "measurement_state_scoped_head_init_keeps_unknown_head_legacy_rows",
+      "passed": true
+    },
+    {
+      "name": "measurement_state_unrelated_partial_save_does_not_renew_old_init_timestamp",
+      "passed": true
+    },
+    {
+      "name": "measurement_state_reinit_same_zero_explicitly_renews_only_its_scope_timestamp",
+      "passed": true
+    },
+    {
+      "name": "measurement_state_portable_schema_two_preserves_init_and_import_metadata",
+      "passed": true
+    },
+    {
+      "name": "measurement_state_portable_measured_zero_has_no_initialized_import_metadata",
+      "passed": true
+    },
+    {
+      "name": "measurement_state_portable_schema_one_without_new_fields_remains_supported",
+      "passed": true
+    },
+    {
+      "name": "measurement_state_portable_schema_one_cannot_inject_new_init_state",
+      "passed": true
+    },
+    {
+      "name": "measurement_state_portable_full_init_export_carries_gray_metadata_for_known_and_legacy_rows",
+      "passed": true
+    },
+    {
+      "name": "measurement_state_csv_invalid_state_and_timestamp_are_not_silently_treated_as_measured",
+      "passed": true
+    },
+    {
+      "name": "measurement_state_active_export_keeps_saved_init_even_after_unsaved_new_measurement",
+      "passed": true
+    },
+    {
+      "name": "empty_review_metadata_distinguishes_missing_initialized_and_real_measured_zero",
+      "passed": true
+    },
+    {
+      "name": "empty_review_legacy_pair_is_explicit_value_but_default_global_zero_is_not",
+      "passed": true
+    },
+    {
+      "name": "empty_simple_current_display_is_absent_and_real_zero_remains_numeric",
+      "passed": true
+    },
+    {
+      "name": "empty_rough_current_display_is_absent_and_real_zero_remains_numeric",
+      "passed": true
+    },
+    {
+      "name": "empty_review_viewer_and_cell_rows_never_print_zero_as_precision",
+      "passed": true
+    },
+    {
+      "name": "empty_review_apply_preview_distinguishes_missing_current_value_from_real_zero",
+      "passed": true
+    },
+    {
+      "name": "empty_fine_init_clears_raw_eligibility_but_real_zero_apply_keeps_measurement_True",
+      "passed": true
+    },
+    {
+      "name": "empty_fine_init_clears_raw_eligibility_but_real_zero_apply_keeps_measurement_False",
+      "passed": true
+    },
+    {
+      "name": "empty_native_model_has_no_measured_offsets_and_retains_missing_keys_for_undo",
+      "passed": true
+    },
+    {
+      "name": "empty_native_missing_zero_rows_export_as_absent_not_measured_precision",
+      "passed": true
+    },
+    {
+      "name": "empty_native_first_real_zero_save_creates_measured_row_without_untouched_missing_rows",
+      "passed": true
+    },
+    {
+      "name": "empty_native_partial_bulk_does_not_synthesize_init_rows_that_erase_unsaved_ng",
+      "passed": true
+    },
+    {
+      "name": "empty_fine_external_init_invalidates_whole_column_including_unmeasured_target_shot_only",
+      "passed": true
+    },
+    {
+      "name": "empty_fine_repeated_old_init_epoch_does_not_erase_newly_measured_zero",
+      "passed": true
+    },
+    {
+      "name": "empty_rough_external_init_clears_representative_scope_from_another_assigned_shot",
+      "passed": true
+    },
+    {
+      "name": "empty_rough_first_seen_old_init_and_repeated_epoch_keep_fresh_zero_and_error",
+      "passed": true
+    },
+    {
+      "name": "native_reference_base_evidence_distinguishes_missing_zero_stored_zero_and_init",
+      "passed": true
+    },
+    {
+      "name": "native_unadopted_sim_file_cannot_be_laundered_through_representative_copy",
+      "passed": true
+    },
+    {
+      "name": "native_adopted_file_can_supply_value_without_prior_candidate_validation",
+      "passed": true
+    },
+    {
+      "name": "native_unassigned_head_legacy_scanner_row_does_not_claim_authoritative_design_evidence",
+      "passed": true
+    },
+    {
+      "name": "native_assigned_head4_legacy_scanner_row_keeps_its_actual_axis_conversion",
+      "passed": true
+    },
+    {
+      "name": "native_first_load_without_review_file_can_copy_empty_state_without_saving_fake_zero",
+      "passed": true
+    },
+    {
+      "name": "native_empty_reference_copies_working_state_while_nonzero_saved_model_offset_remains_exact",
+      "passed": true
+    },
+    {
+      "name": "monitor_saved_review_change_refreshes_once_then_keeps_same_version",
+      "passed": true
+    },
+    {
+      "name": "monitor_empty_selection_fallback_model_refreshes_and_recipe_versions_are_distinct",
+      "passed": true
+    },
+    {
+      "name": "monitor_inflight_model_switch_and_tab_switch_do_not_publish_stale_offsets",
+      "passed": true
+    },
+    {
+      "name": "monitor_concurrent_refresh_is_coalesced_without_device_calls",
+      "passed": true
+    },
+    {
+      "name": "monitor_read_failure_retains_display_reports_once_and_recovers",
+      "passed": true
+    },
+    {
+      "name": "monitor_cancelled_read_never_rebuilds_and_releases_refresh_guard",
+      "passed": true
+    },
+    {
+      "name": "monitor_unchanged_success_clears_error_episode_so_repeated_failure_is_reported",
+      "passed": true
+    },
+    {
+      "name": "monitor_actual_shot_detail_saved_design_offsets_match_each_basis_and_head_transform",
+      "passed": true
+    },
+    {
+      "name": "monitor_actual_saved_offset_refresh_rebuilds_selected_shot_without_reselection",
+      "passed": true
+    },
+    {
+      "name": "monitor_review_scale_zero_hundred_twohundred_preserves_saved_value_and_shows_contribution",
+      "passed": true
+    },
+    {
+      "name": "monitor_review_init_and_absence_are_empty_but_measured_zero_is_valid",
+      "passed": true
+    },
+    {
+      "name": "monitor_review_subtenth_micron_value_remains_visible_in_shot_detail",
+      "passed": true
+    },
+    {
+      "name": "monitor_latest_file_overrides_stale_recipe_setting_values_without_mutating_them",
+      "passed": true
+    },
+    {
+      "name": "monitor_restored_review_rows_roundtrip_through_writer_and_actual_detail",
+      "passed": true
+    },
+    {
+      "name": "monitor_legacy_scanner_saved_row_is_converted_once_not_as_design_twice",
+      "passed": true
+    },
+    {
+      "name": "recipe_saved_review_overlay_uses_real_planner_and_never_changes_editor_or_save_input",
+      "passed": true
+    },
+    {
+      "name": "recipe_live_overlay_tracks_save_undo_redo_and_init_without_recipe_reload",
+      "passed": true
+    },
+    {
+      "name": "recipe_unchanged_revision_keeps_rows_but_state_only_and_same_path_sha_change_refresh",
+      "passed": true
+    },
+    {
+      "name": "recipe_viewed_model_overlay_is_separate_from_selected_process_model",
+      "passed": true
+    },
+    {
+      "name": "recipe_snapshot_is_immutable_model_scoped_and_preserves_protected_offsets",
+      "passed": true
+    },
+    {
+      "name": "recipe_same_path_without_sha_uses_row_digest_instead_of_missing_update",
+      "passed": true
+    },
+    {
+      "name": "recipe_invalid_or_foreign_saved_file_is_reported_once_without_replacing_valid_preview",
+      "passed": true
+    },
+    {
+      "name": "recipe_slow_saved_offset_poll_is_single_flight_and_publishes_once",
+      "passed": true
+    },
+    {
+      "name": "recipe_old_poll_cannot_overwrite_new_view_build",
+      "passed": true
+    },
+    {
+      "name": "recipe_mid_build_model_switch_discards_old_publish_and_next_build_recovers",
+      "passed": true
+    },
+    {
+      "name": "recipe_cancelled_poll_releases_guard_and_read_failure_keeps_last_valid_preview",
+      "passed": true
+    },
+    {
+      "name": "recipe_editor_debounce_cannot_rebuild_after_view_switch",
+      "passed": true
+    },
+    {
+      "name": "recipe_latest_offset_poll_reads_off_calling_thread_and_rebuilds_actual_visible_shot",
+      "passed": true
+    },
+    {
+      "name": "vendor_assemblies_never_loaded",
+      "passed": true
+    }
+  ],
+  "productionAssemblies": {
+    "Drilling.UI": {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BackendReadHarness\\bin\\Release\\net8.0-windows\\Drilling.UI.dll",
+      "sha256": "d7fce26f54a726bc7a8cbe25134a88c24f48a36dcf461ba1b49c707bec5dfe25"
+    },
+    "Drilling.Common": {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BackendReadHarness\\bin\\Release\\net8.0-windows\\Drilling.Common.dll",
+      "sha256": "001c32d241dd4fa737190f5dd46ad59062303924cf18c55353ffd1fd668142ca"
+    }
+  },
+  "scope": "Actual UI production adapter \u002B actual pure Review/Recipe/Setting managers, parser/writer; synthetic temp data; no equipment Manager/App/Root or vendor objects."
+}

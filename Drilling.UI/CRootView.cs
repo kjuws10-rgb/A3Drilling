@@ -1,4 +1,4 @@
-﻿namespace Drilling.UI
+namespace Drilling.UI
 {
     using System.Windows;
     using System.Windows.Threading;
@@ -117,6 +117,7 @@
         private bool _mainLiveStatusErrorActive;
         private CancellationTokenSource? _mainLiveStatusRefreshCts;
         private long _lastMonitorScreenRefreshTimestamp;
+        private long _lastRecipeOffsetRefreshTimestamp;
         private long _lastMonitorShellStatusRefreshTimestamp;
         private long _lastMainLiveStatusRefreshTimestamp;
         private long _lastPmLifeStatusRefreshTimestamp;
@@ -606,8 +607,10 @@
                             StatusMessage = "PM lock entered. Operation commands are blocked.";
                         }
                     }
-                    catch (OperationCanceledException) when (buildToken.IsCancellationRequested)
+                    catch (OperationCanceledException) when (buildToken.IsCancellationRequested || targetMenu.Menu == EN_MENU.Recipe)
                     {
+                        // Recipe preview may discard an obsolete model/offset read without cancelling
+                        // the outer menu token. Rebuild the latest selection in the existing pending loop.
                         // 메뉴 전환으로 취소된 경우 새 메뉴 Build를 같은 루프에서 우선 처리한다.
                         _screenRefreshPending = !GetScreenBuildToken().IsCancellationRequested;
                     }
@@ -827,6 +830,12 @@
 
         private bool CheckStageMotionOwnership(Action<string, string> warn, string operation)
         {
+            if (_menus.TryGetValue(EN_MENU.Correction, out var correctionMenu)
+                && correctionMenu is CMenuCorrection { ManualInspection.IsBusy: true })
+            {
+                warn("작업 진행 중", "Manual Inspection 동작/보정 저장을 완료하거나 STOP 정리가 끝난 후 전환하세요.");
+                return false;
+            }
             var manualMovePending = _menus.TryGetValue(EN_MENU.Manual, out var menu)
                 && menu is CMenuManual manual && manual.IsManualStageMovePending;
             if (!manualMovePending && !_interfaceManager.StageReviewSequences.IsActive)
@@ -2311,6 +2320,7 @@
                     var nowTimestamp = Stopwatch.GetTimestamp();
                     var monitorRefreshInterval = MonitorDefaultRefreshInterval;
                     var shouldRefreshMonitorScreen = SelectedMenu.Menu == EN_MENU.Monitor && HasElapsed(_lastMonitorScreenRefreshTimestamp, nowTimestamp, monitorRefreshInterval);
+                    var shouldRefreshRecipeOffsets = SelectedMenu.Menu == EN_MENU.Recipe && HasElapsed(_lastRecipeOffsetRefreshTimestamp, nowTimestamp, monitorRefreshInterval);
                     var shouldRefreshManualScannerStatus = SelectedMenu.Menu == EN_MENU.Manual && CurrentScreen.Manual is not null;
                     var shouldRefreshMainLiveStatus = SelectedMenu.Menu == EN_MENU.Main && HasElapsed(_lastMainLiveStatusRefreshTimestamp, nowTimestamp, MainLiveStatusRefreshInterval);
                     var shouldRefreshPmLifeStatus = SelectedMenu.Menu == EN_MENU.Pm && HasElapsed(_lastPmLifeStatusRefreshTimestamp, nowTimestamp, PmLifeStatusRefreshInterval);
@@ -2318,6 +2328,14 @@
                     {
                         _lastMonitorScreenRefreshTimestamp = nowTimestamp;
                         await RefreshMonitorLiveData();
+                        return;
+                    }
+
+                    if (shouldRefreshRecipeOffsets)
+                    {
+                        _lastRecipeOffsetRefreshTimestamp = nowTimestamp;
+                        if (_menus.TryGetValue(EN_MENU.Recipe, out var recipeMenu) && recipeMenu is CMenuRecipe recipe)
+                            await recipe.RefreshSavedReviewOffsetPreview();
                         return;
                     }
 
@@ -2599,9 +2617,10 @@
                 SelectRecipe, 
                 SetRecipeStatusMessage, 
                 ShowRecipeLoadingScreen, 
-                RefreshShellStatusItems, 
-                RefreshCurrentScreen
-            ), 
+                RefreshShellStatusItems,
+                RefreshCurrentScreen,
+                _manager.ReviewOffsetFile()
+            ),
                 new CMenuSetting(
                 settingManager, 
                 SelectSelectedSettingTab, 
@@ -2641,6 +2660,10 @@
             }
 
             correctionMenu.ConfigureReview(reviewMenu);
+            correctionMenu.ManualInspectionBlockReason = () => _operationMode != EN_SYSTEM_MODE.Manual
+                ? "MANUAL 모드에서만 Manual Inspection을 실행할 수 있습니다."
+                : _pmLockStatus.IsLocked ? "PM 잠금을 해제한 후 실행하세요."
+                : _autoCycleState != EN_AUTO_CYCLE_STATE.Ready ? "MAIN Cycle이 진행 중입니다." : null;
             foreach (var menu in menus)
                 menu.OperationAllowed = CheckHeavyAlarmForOperation;
             reviewMenu.OperationAllowed = CheckHeavyAlarmForOperation;

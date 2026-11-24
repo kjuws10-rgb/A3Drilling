@@ -1,0 +1,913 @@
+{
+  "status": "final_independent_review_complete",
+  "baseCommit": "367a7276822d73d7709cd64f94847ee979c4d557",
+  "constraints": [
+    "read_only_production_source_review",
+    "no_device_or_vendor_execution",
+    "no_production_or_test_edits"
+  ],
+  "baseSourceHashes": {
+    "Drilling.UI/Views/CManualInspectionMapControl.cs": "d96c7b1b57f651ca27f9e14476754a43afa42e26710584479fdf315cad80cc3f",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "51f16b4c2376f70a142f3d6fb7e2e86f184350a6b0534291cbc5ef9eafe901a0",
+    "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs": "79b8bc0367725c22314369e740d8038fa3ec51bf8ba32db6f1ae5730e97f452e",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "2ab6dd32b4d9a9eb0fef846f66e70a865b2abe6b9265f7f2f2e8890403434879",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs": "ec57d2c2b252676d8fe65d22cd20a10fe83a543c083b7677fb49f40b3b20749f"
+  },
+  "confirmedBaseFindings": [
+    {
+      "id": "CELL-BODY-CLICK",
+      "severity": "requirement_gap",
+      "file": "Drilling.UI/Views/CManualInspectionMapControl.cs",
+      "evidence": [
+        "HitCell matches only _cellHeaders.Header rect",
+        "OnMouseLeftButtonDown executes ActivateCellHeader immediately",
+        "OnMouseLeftButtonUp non-drag point hit changes selection rather than opens Cell"
+      ],
+      "impact": "Full Cell point/body click does not navigate; drag beginning in header immediately navigates rather than selects."
+    },
+    {
+      "id": "OFFSET-INIT-PENDING",
+      "severity": "confirmed_guard_cause",
+      "files": [
+        "Drilling.UI/Views/CManualInspectionMapControl.cs",
+        "Drilling.UI/Menu/Menus/CManualInspectionController.cs",
+        "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs",
+        "Drilling.UI/Views/CManualInspectionView.xaml.cs"
+      ],
+      "evidence": [
+        "Map.ShowOperationMenu disables movement when IsOffsetEditPending",
+        "View.RefreshButtons sets operate false when IsOffsetEditPending",
+        "Controller.ExecuteAsync blocks movement on HasPendingOffsetEdit",
+        "Workspace.PreviewOperation and RecordMeasurement call GuardNoOffsetEdit"
+      ],
+      "impact": "Unsaved Init draft blocks measurement intentionally to avoid using preview offsets as actual machine offsets; fresh missing baseline or committed Init has no state-based move prohibition.",
+      "policyNeeded": "Initialize draft vs stored Init must be differentiated; any new measure path must use actually committed coordinate basis."
+    },
+    {
+      "id": "RESTORED-PENDING-DRAFT",
+      "severity": "reproducible_source_path",
+      "file": "Drilling.UI/Menu/Menus/CManualInspectionController.cs",
+      "range": "307-345,952-975",
+      "evidence": [
+        "LoadSource restores saved SessionBundle for same Recipe/Run/CoordinateSignature/Revision",
+        "RestoreSession includes pending replacement Candidate",
+        "Publish maps HasPendingOffsetEdit to IsOffsetEditPending; View and Map disable movement"
+      ],
+      "impact": "A user can enter a fresh program/model view with movement disabled without clicking Init in this run, when an earlier compatible unsaved draft is auto-restored. This does not prove that the reported machine actually had such a checkpoint."
+    },
+    {
+      "id": "SAVE-NO-CROSS-MENU-PUBLICATION",
+      "severity": "requirement_gap",
+      "file": "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs",
+      "range": "622-681",
+      "evidence": [
+        "SaveCore commits authoritative offset file and updates only backend _latest/_parameters/_shots/_baseline",
+        "Station prepared review offset invalidation exists",
+        "No successful save notification to CMenuCorrection/CMenuMonitor/CMenuRecipe in current path"
+      ],
+      "impact": "Other views can retain previous offset projection until independently refreshed."
+    },
+    {
+      "id": "CORRECTION-CACHE-STALE",
+      "severity": "requirement_gap",
+      "file": "Drilling.UI/Menu/Menus/CMenuCorrection.cs",
+      "range": "274-295,489-517",
+      "evidence": [
+        "Simple/Rough/Fine share cached Task<ST_REVIEW_OFFSET_FILE_DATA>",
+        "Cache invalidation on Review tab transition exists; no manual-save success notification"
+      ],
+      "impact": "Already-built correction display can retain previous B without tab refresh."
+    },
+    {
+      "id": "MONITOR-COORDINATE-NO-LIVE-REFRESH",
+      "severity": "requirement_gap",
+      "file": "Drilling.UI/Menu/Menus/CMenuMonitor.cs",
+      "range": "872-901,3077-3111",
+      "evidence": [
+        "BuildCoordinateViewerData reads latest authoritative offset file",
+        "RefreshLiveData explicitly returns for COORDINATE VIEWER",
+        "CRootView one-second status timer calls RefreshMonitorLiveData, which calls RefreshLiveData only"
+      ],
+      "impact": "A visible coordinate viewer can remain stale indefinitely after an external offset save; entering/rebuilding loads latest."
+    },
+    {
+      "id": "RECIPE-FINAL-PREVIEW-MISSING-RUNTIME-B",
+      "severity": "requirement_gap",
+      "file": "Drilling.UI/Menu/Menus/CMenuRecipe.cs",
+      "range": "2604-2626,2704-2740",
+      "evidence": [
+        "BuildFinalShotOffsets builds a parameter map only from managed recipe editor items and AK margins",
+        "No LoadLatest or ReviewOffsetFile overlay occurs anywhere in this menu"
+      ],
+      "impact": "Recipe final-shot preview may not represent current measurement-derived offset file. Correction must overlay display-only plan parameters without inserting runtime B into editable recipe data."
+    }
+  ],
+  "recommendedBoundaries": [
+    "overview point/body/header single click navigates without modifying selection or dispatching equipment",
+    "overview drag beginning in header or body selects points without Cell navigation",
+    "polygon corners outside a rotated Cell bounding box do not navigate",
+    "zoom/pan and Alt pan preserve exact hit test",
+    "fresh model no CSV -> MoveMeasure -> actual zero remains measured",
+    "committed Init -> MoveMeasure -> fresh NG remains red",
+    "unsaved Init new policy preserves active-vs-draft basis, save failure and cancellation cause no movement",
+    "non-Init imported bundle draft retains required guard",
+    "scoped Init protects unrelated offsets and hardware/default/first beam/distortion",
+    "filter state may hide all initialized points; no fabricated successful measurements to enable UI",
+    "Popup cancel: no Controller dispatch/file write/measurement consumption",
+    "Popup nested reentry: one modal and one dispatch; guard unlocked in finally",
+    "Popup stale version/controller swap/lost eligibility: no write",
+    "In-flight repeated Bulk and already consumed raw: no second save",
+    "Initial saved pending draft restore distinguished from no measurement and from incomplete-operation retry",
+    "Cross-screen invalidation only after committed file success; failure/cancel does not publish",
+    "Undo/Redo/Init and every producer publish the correct per-recipe revision",
+    "Different recipe offsets stay isolated; runtime overlay never enters editor/save parameters",
+    "Visible coordinate viewer rebuilds only on revision change; no per-tick full geometry redraw",
+    "Busy inspection or unsaved drafts preserve working raw/candidate while marking refresh pending"
+  ],
+  "additionalScope": [
+    "Bulk correction/Calculate/Validate/Save confirmation descriptions",
+    "Immediate Review Offset publication to recipe/correction/coordinate-monitor displays",
+    "Initial model load movement disabled independent of Init click"
+  ],
+  "crossScreenFollowup": {
+    "rough": "CSimpleCorrectionPanel.Update overlays current file, updates _parameters/cell/current rows; same-current early return is correct. UpdateReviewCorrectionPanel(showRough) is already invoked after Review tab transition clears shared cache. Inspection.SourceMap removes ReviewOffset keys so publication alone does not invalidate fresh raw.",
+    "reviewData": "CReviewDataPanel stores historical result rows, not a persistent Current B table. ShowCurrentReviewOffsets reads LoadLatest each time; ApplyOffset reads latest before preview and again after confirmation and compares sources. Preserve historical measurement Error/Judge when B changes.",
+    "legacyCurrentOffsetRows": "Outer CMenuCorrection.CurrentOffsetRows/SaveAppliedReviewOffsets are legacy; no XAML binding to CurrentOffsetRows and no caller of SaveAppliedReviewOffsets found in current repository search. Do not refresh unrelated historical records as a substitute for current B.",
+    "reviewPanelPlan": "CMenuReview._lastAllPlan caches by Recipe object/Beam; camera targets in CReviewManager.CreateShotBeamPositionCalculator are design/AK/beam/Shift references, intentionally independent of Review correction B. Latest B publication must not move these reference targets.",
+    "monitorMinimalChange": "Visible coordinate viewer latest-version polling and rebuild only on revision change is appropriate; model identity must be rechecked across awaited file load.",
+    "recipeMinimalChange": "Latest authoritative per-model file should overlay a temporary map for final-shot preview only. Editor managedItems/save data and source Recipe objects remain unchanged.",
+    "initialBusyExclusion": "Restored RUNNING operations become STOPPED and write tokens clear; View_Loaded refreshes and Controller finally publishes busy=false. No confirmed permanent initial IsBusy bug from source inspection; earlier compatible pending offset draft is a concrete disabled entry mechanism."
+  },
+  "implementationReview": {
+    "map": "Read current diff: overview defers navigation until release, checks exact polygon and zoom/pan inverse; >4 DIP drag uses rectangle selection, Ctrl drag additive, pan priority preserved, capture and fast-up handled. No new confirmed defect found in reviewed diff.",
+    "bulkConfirmation": "Generalized 4-action confirmation reviewed: Bulk/Calculate/Validate/Save explain action; dedicated pending flag participates in Busy; try/catch/finally restores lock and prevents modal failure dispatch; post-confirm controller/version/eligibility checked.",
+    "reportedByImplementer": {
+      "overviewUiTests": 111,
+      "overviewUiReport": "D:\\CodexWork\\A3_Manual_Inspection_20261123_1_Overview\\ui-map\\ui-cell-overview-results.json",
+      "readReportPassed": true
+    },
+    "monitorBoundaryRaised": "Resolved in current source: selected provider is captured before await and compared afterward, preserving fallback selection while preventing A-to-B publication."
+  },
+  "independentNewDiffFindings": [
+    {
+      "id": "RECOVERY-BLOCK-LEAKS-TO-OTHER-MODEL",
+      "status": "source_fix_verified_final_integration_passed",
+      "severity": "confirmed_correctness_boundary",
+      "file": "Drilling.UI/Menu/Menus/CManualInspectionController.cs",
+      "evidence": "_offsetDraftRecoveryBlocked resets only in disk RestoreSession success; checkpoint-absent LoadSource success does not clear it. SaveLocalSession returns when flag true.",
+      "scenario": "A draft backup failure -> switch to fresh B with no checkpoint -> B LoadSource success -> B normal measurements never checkpoint.",
+      "recommendedFix": "Clear recovery-block flag when successfully opening a source/checkpoint path that is not the failed draft; retain protected original A bytes. Add A failure -> B valid checkpoint -> A retry regression.",
+      "fix": "Recovery protection now stores an absolute failed SessionPath and gates capture/save only for that path. Other model B can checkpoint normally while A original remains protected."
+    },
+    {
+      "id": "RECIPE-POLL-OVERLAP-STARVATION",
+      "status": "source_fix_verified_final_integration_passed",
+      "severity": "confirmed_async_boundary",
+      "file": "Drilling.UI/Menu/Menus/CMenuRecipe.cs",
+      "evidence": "RefreshSavedReviewOffsetPreview increments _savedOffsetReadEpoch for every call but has no in-flight guard; Root async timer can overlap awaited loads.",
+      "scenario": "Slow LoadLatest exceeding timer interval -> each later poll invalidates earlier completion, and exclusive file store reads can queue.",
+      "recommendedFix": "A per-recipe-preview in-flight guard released in finally, preserving source epoch and selected-model identity checks; test with a blocked fake store then a second poll.",
+      "fix": "RefreshSavedReviewOffsetPreview now uses Interlocked.CompareExchange in-flight guard and finally release; read epoch/model checks remain. File LoadLatest is offloaded to Task.Run."
+    },
+    {
+      "id": "RECIPE-STALE-BUILD-UNHANDLED-CANCELLATION",
+      "status": "source_fix_verified_final_integration_passed",
+      "severity": "confirmed_source_control_flow",
+      "files": [
+        "Drilling.UI/Menu/Menus/CMenuRecipe.cs",
+        "Drilling.UI/CRootView.cs"
+      ],
+      "evidence": [
+        "Recipe Build throws OperationCanceledException on provider/epoch change even when supplied token is not canceled",
+        "Recipe.View sets new ViewRecipeId and requests current-screen refresh",
+        "Root.SetViewRecipeId only updates field and does not cancel screen-build token",
+        "Root.RefreshCurrentScreen while already running only sets pending flag; current Build continues with uncanceled token",
+        "Root catch(OperationCanceledException) is filtered to buildToken.IsCancellationRequested"
+      ],
+      "scenario": "A Recipe Build awaits offset read -> user chooses VIEW model B -> root queues another refresh but does not cancel A token -> A provider mismatch throws OCE -> catch filter false, so exception escapes original async command even though a new Build may later be queued.",
+      "recommendedFix": "Ensure stale view changes cancel the owning Build token, or handle the internal stale-build cancellation explicitly at Root and retry latest selection. Test full top-level model switching while the read is blocked.",
+      "fix": "Root.RefreshCurrentScreen now treats Recipe OperationCanceledException as an obsolete build and retries the pending/current view instead of allowing it to escape the async command."
+    }
+  ],
+  "reviewedSourceSha256": {
+    "Drilling.UI/Views/CManualInspectionMapControl.cs": "0f9b4d6c831bc887d243f6dba5a940a8078d3c205ddcdbb9f0cc74b2d8f7cebd",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "0a86851302b9bf477b364eaee9cde200f2c2f3404392514fbead7a978baa71d4",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "c04ec29d61b45b96e61580a43c0d94e0c828cead0bd8f5f522011a51708496ea",
+    "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs": "79b8bc0367725c22314369e740d8038fa3ec51bf8ba32db6f1ae5730e97f452e",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.cs": "7da813fe044b60eaf27304f35d6d457d313c764a0a50d799f53ec9135f2ee250",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Offset.cs": "cd409cf4b0046191d9e0d8d320dd4e1855c909e0a1480eddb443a13d74349414",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Display.cs": "d8d2bcf72b26adb6ef00ec04f3dc0b1e4cae885c706852e0f9cc98eaf219f6a5",
+    "Drilling.UI/Menu/Menus/CMenuReview.cs": "6bd252e598a2748bb393a0607d32ac786f36cfb0c4e377330cf44e1964388376",
+    "Drilling.UI/Menu/Menus/CMenuMonitor.cs": "c19f209fbba060a42c04a32d7bf2f2f0cb2ff44ed1671c74f4aaaa9bc53f164e",
+    "Drilling.UI/Menu/Menus/CMenuRecipe.cs": "5c3d300be071074a77763e5ae1d8a74f92c0879723ecbf4fcc46a3003a96a8a3",
+    "Drilling.UI/Menu/Menus/CReviewOffsetDisplaySnapshot.cs": "789b5e3d4b8e2d8bf6db455cb4bc7a459ddf920ba59a21431de129c07ab5e4e3",
+    "Drilling.UI/CRootView.cs": "cc23a576c580c60ff245609853fa75fe32d896b7bf01b08277700eaed68f68ac",
+    "Drilling.Common/Review/CReviewManager.cs": "d78c3950a0297d14e913287f11e94e211c3887c51330ab5dc4abeb6982a67d60",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs": "ec57d2c2b252676d8fe65d22cd20a10fe83a543c083b7677fb49f40b3b20749f",
+    "Drilling.File/ReviewOffset/CReviewOffsetFile.cs": "170e69c69387fc04c3d9e275c515ee51252127c3499dda687a2c6a93e5bc819d",
+    "Drilling.UI/Views/CManualInspectionView.xaml": "84fb0cd6e0aca65751d5e6f4ceb716882c72b178c731cede9ba43ccc1fb01df0",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "fd9bfc313769a7ce0fa284a27e0a7da8eca3f4d084f62d50cb829a1485e760e6"
+  },
+  "reviewedAt": "2026-11-23T11:40:47.045482+09:00",
+  "passed": true,
+  "limits": [
+    "QA performed independent source/diff and report/provenance validation; final integration execution performed by parent and implementation agents",
+    "No production or test source edits by this QA agent",
+    "No equipment App/Root/Manager/vendor/motion/Vision/PLC/AeroScript/laser execution",
+    "Actual user-machine checkpoint bytes unavailable; auto-restored draft is a validated failure path, not direct forensic inspection"
+  ],
+  "mapUiReportRead": {
+    "path": "D:\\CodexWork\\A3_Manual_Inspection_20261123_1_CellClick\\ui\\cell-overview\\ui-cell-overview-results.json",
+    "passed": true,
+    "tests": 133,
+    "sha256": "a1aad2bf6ee958c6a06ffa09f6ce64b757d513da5ba6cbe33c8eced978f9025f",
+    "currentMapMatchesTestedMap": true
+  },
+  "diffCheck": true,
+  "selectedCorrectionSimplification": {
+    "sourceReviewed": true,
+    "status": "final_source_and_actual_controller_178_regression_verified",
+    "currentPolicy": "Existing manual selected Calculate was direct B+raw delta or representative final F, with no Simple/Rough/Fine interpolation option in this tab. No new interpolation algorithm should be added by this UI simplification.",
+    "reviewedSequence": [
+      "ExecuteAsync common version check/semaphore/stop guard",
+      "Current verifies active model/coordinate/revision",
+      "Distinct requested keys, no expansion by current visible filter",
+      "NG/unmeasured/Init/Masking/consumed/unproven/unchanged proxy refused before writer",
+      "BuildDirectCandidate uses existing B + delta = F or captured proxy F",
+      "ValidateCandidate preserves provenance, Cell/Shot sibling consistency, all-point Field and delta/total limits",
+      "Apply(sourceVerified=true) reserves snapshot, durable writer rechecks model/device/revision, commits ledger and Undo only after writer success"
+    ],
+    "importantBoundaries": [
+      "Actual zero first save remains valid; consumed actual-zero second click must create no save/Undo step",
+      "Selected hidden points stay included as frozen request keys; bulk stays whole-model and excludes invalid results",
+      "Cell/Shot format shares correction among sibling Beams; field validation still covers unselected siblings",
+      "Manual copied results automatically allow manual rows only as already explicit representative-copy action",
+      "Init/imported bundle shows only context save and revalidates at save time, including after limit changes",
+      "Popup cancel/stale version/reentry/modal exception dispatch zero controller writes",
+      "Failed validation or writer leaves active B/ledger/history unchanged; failed candidate display may remain for explanation"
+    ],
+    "sourceNotes": [
+      "New action appended at enum end preserves existing values",
+      "New action included in _waitForControlStop",
+      "Legacy Calculate/Validate/Apply APIs retained for compatibility while ordinary UI uses a combined selected action",
+      "Apply sourceVerified skips redundant UI Current reload only; backend GuardOperation/EnsureCurrent/SaveNewIfUnchanged guards retained"
+    ],
+    "testRecommendations": [
+      "selected one key changes only that Shot and mirrors its sibling Beam state",
+      "mixed selected valid + NG/unmeasured/consumed fails atomically, no implicit subset save",
+      "same-shot conflicting F blocks all selected writes",
+      "realzero first apply then duplicate request writes once total",
+      "writer failure/cancellation preserves Undo count and permits later valid retry",
+      "one selected apply produces one Undo/Redo state; Undo restores previous Init/absence correctly",
+      "pending bundle/init limit-change then save auto-validates; invalid limit saves zero",
+      "popup cancellation, concurrent reentry, stale snapshot and exact target list"
+    ],
+    "actualControllerReport": "D:\\CodexWork\\A3_Manual_Inspection_20261123_1_CellClick\\controller-production.json",
+    "finalChecks": [
+      "eligible preview rejects consumed genuine zero/unchanged proxy before writer",
+      "selected invalid/NG/Masking/missing refuses entire transaction",
+      "same Shot sibling Beam sharing explained",
+      "pending Init/bundle save remains available and automatically revalidates",
+      "legacy APIs retained internally; ordinary UI shows combined selected/model-wide actions",
+      "existing provenance/limits/Field/all-sibling validation, ledger and Undo use unchanged engine paths"
+    ]
+  },
+  "finalResults": {
+    "core": 180,
+    "actualController": 178,
+    "actualBackend": 91,
+    "sourceLinkedUi": 640,
+    "uiModes": 11,
+    "scope": 33,
+    "reports": [
+      {
+        "path": "D:\\CodexWork\\A3_Manual_Inspection_20261123_1_CellClick\\core-results.json",
+        "passed": true,
+        "count": 180,
+        "sha256": "2de8db3f6ef828b867395a01519e6c80779e24c641ab0a50f6735526cbd45e00"
+      },
+      {
+        "path": "D:\\CodexWork\\A3_Manual_Inspection_20261123_1_CellClick\\controller-production.json",
+        "passed": true,
+        "count": 178,
+        "sha256": "26b9e84811fb8bacc3987bafbbd804b60a721b3db899af1957d8b8110d10efe5"
+      },
+      {
+        "path": "D:\\CodexWork\\A3_Manual_Inspection_20261123_1_CellClick\\backend-read.json",
+        "passed": true,
+        "count": 91,
+        "sha256": "f0fcd15b353878b5816a56f2d4ba3e900052eac4332b763df6125df4491fbd51"
+      },
+      {
+        "path": "D:\\CodexWork\\A3_Manual_Inspection_20261123_1_CellClick\\scope-results.json",
+        "passed": true,
+        "count": 33,
+        "sha256": "5cd358b067cdb9199d0498873dccc0752244016efd5ce5c1909adf75c51f69fb"
+      },
+      {
+        "path": "D:\\CodexWork\\A3_Manual_Inspection_20261123_1_CellClick\\ui\\bulk-history\\ui-bulk-history-results.json",
+        "passed": true,
+        "count": 46,
+        "sha256": "66d1751b3dda596b4617f2900d5f195d3fd566d3e59f06ebcb670920a4cafdb7"
+      },
+      {
+        "path": "D:\\CodexWork\\A3_Manual_Inspection_20261123_1_CellClick\\ui\\cell-overview\\ui-cell-overview-results.json",
+        "passed": true,
+        "count": 133,
+        "sha256": "a1aad2bf6ee958c6a06ffa09f6ce64b757d513da5ba6cbe33c8eced978f9025f"
+      },
+      {
+        "path": "D:\\CodexWork\\A3_Manual_Inspection_20261123_1_CellClick\\ui\\coverage-compact\\ui-coverage-compact-results.json",
+        "passed": true,
+        "count": 71,
+        "sha256": "6db925124c28fa24c712748a327e75c5061f9d7dd0beebbde1599fb861eeade0"
+      },
+      {
+        "path": "D:\\CodexWork\\A3_Manual_Inspection_20261123_1_CellClick\\ui\\hardening\\ui-hardening-results.json",
+        "passed": true,
+        "count": 30,
+        "sha256": "f9e3a7e863253e2930e491a57e34dd062da5cc96098927171e70672065b40eda"
+      },
+      {
+        "path": "D:\\CodexWork\\A3_Manual_Inspection_20261123_1_CellClick\\ui\\integration-impact\\ui-integration-impact-results.json",
+        "passed": true,
+        "count": 23,
+        "sha256": "8a746bd3016bbf7dc5c8ad9b5184be27b974d0386eaf5a23c8768a99d6186a13"
+      },
+      {
+        "path": "D:\\CodexWork\\A3_Manual_Inspection_20261123_1_CellClick\\ui\\map-first\\ui-map-first-results.json",
+        "passed": true,
+        "count": 73,
+        "sha256": "431c37714a51b2d96631bd580082c5682a3bf64187ee8d182cd7fb856ff64e87"
+      },
+      {
+        "path": "D:\\CodexWork\\A3_Manual_Inspection_20261123_1_CellClick\\ui\\measurement-workflow\\ui-measurement-workflow-results.json",
+        "passed": true,
+        "count": 39,
+        "sha256": "d66b68ce64eaf4728f73cdb59b4574bf11671383f66e7ce56bad6c345f48dc4a"
+      },
+      {
+        "path": "D:\\CodexWork\\A3_Manual_Inspection_20261123_1_CellClick\\ui\\native\\ui-results.json",
+        "passed": true,
+        "count": 49,
+        "sha256": "06cb3dee04c65e420e4ec757a0b58cda39a4d05f1c0eebd9b6e0edd1776a8c85"
+      },
+      {
+        "path": "D:\\CodexWork\\A3_Manual_Inspection_20261123_1_CellClick\\ui\\offset-init\\ui-offset-init-results.json",
+        "passed": true,
+        "count": 37,
+        "sha256": "b75f5d854f8c489e87de6c3c25b30bebe76d46ddab688a0b4a57d003efa64c16"
+      },
+      {
+        "path": "D:\\CodexWork\\A3_Manual_Inspection_20261123_1_CellClick\\ui\\sync-levels\\ui-sync-levels-results.json",
+        "passed": true,
+        "count": 34,
+        "sha256": "302f5b36b833b78b52a43f33799054e353f0f37dfaf9392e6766e3b3c817d79e"
+      },
+      {
+        "path": "D:\\CodexWork\\A3_Manual_Inspection_20261123_1_CellClick\\ui\\visual-usability\\ui-visual-usability-results.json",
+        "passed": true,
+        "count": 105,
+        "sha256": "a8d39a5251fef8ca2b076e3c4acfc3f263387b6402490c0333391069c8b2c26d"
+      }
+    ],
+    "uiEmbeddedSourceHashReports": [
+      "D:\\CodexWork\\A3_Manual_Inspection_20261123_1_CellClick\\ui\\bulk-history\\ui-bulk-history-results.json",
+      "D:\\CodexWork\\A3_Manual_Inspection_20261123_1_CellClick\\ui\\cell-overview\\ui-cell-overview-results.json",
+      "D:\\CodexWork\\A3_Manual_Inspection_20261123_1_CellClick\\ui\\measurement-workflow\\ui-measurement-workflow-results.json",
+      "D:\\CodexWork\\A3_Manual_Inspection_20261123_1_CellClick\\ui\\offset-init\\ui-offset-init-results.json"
+    ],
+    "uiProvenanceNote": "Four final UI reports embed five source SHA fields each, all current. Other seven legacy reports omit embedded SHA; all eleven were reexecuted by parent from the same final source-linked harness build.",
+    "actualAssemblies": {
+      "Drilling.UI": {
+        "path": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BackendReadHarness\\bin\\Release\\net8.0-windows\\Drilling.UI.dll",
+        "sha256": "d655ac5c929b4cc996efcc109816b6fbdfbf4100113e39a7b9202564815c1316"
+      },
+      "Drilling.Common": {
+        "path": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BackendReadHarness\\bin\\Release\\net8.0-windows\\Drilling.Common.dll",
+        "sha256": "5b44428deb65f6ea2ebe58faa5bc069155884df7886849f649c8d8bb36c05b88"
+      }
+    },
+    "consistencyChecks": [
+      {
+        "name": "report:core-results.json",
+        "passed": true
+      },
+      {
+        "name": "report:controller-production.json",
+        "passed": true
+      },
+      {
+        "name": "report:backend-read.json",
+        "passed": true
+      },
+      {
+        "name": "report:scope-results.json",
+        "passed": true
+      },
+      {
+        "name": "11_UI_modes",
+        "passed": true
+      },
+      {
+        "name": "ui:bulk-history",
+        "passed": true
+      },
+      {
+        "name": "five_sources:bulk-history",
+        "passed": true
+      },
+      {
+        "name": "ui_source:bulk-history:Views/CManualInspectionUiContract.cs",
+        "passed": true
+      },
+      {
+        "name": "ui_source:bulk-history:Views/CManualInspectionMapControl.cs",
+        "passed": true
+      },
+      {
+        "name": "ui_source:bulk-history:Views/CManualInspectionScatterControl.cs",
+        "passed": true
+      },
+      {
+        "name": "ui_source:bulk-history:Views/CManualInspectionView.xaml",
+        "passed": true
+      },
+      {
+        "name": "ui_source:bulk-history:Views/CManualInspectionView.xaml.cs",
+        "passed": true
+      },
+      {
+        "name": "ui:cell-overview",
+        "passed": true
+      },
+      {
+        "name": "five_sources:cell-overview",
+        "passed": true
+      },
+      {
+        "name": "ui_source:cell-overview:Views/CManualInspectionUiContract.cs",
+        "passed": true
+      },
+      {
+        "name": "ui_source:cell-overview:Views/CManualInspectionMapControl.cs",
+        "passed": true
+      },
+      {
+        "name": "ui_source:cell-overview:Views/CManualInspectionScatterControl.cs",
+        "passed": true
+      },
+      {
+        "name": "ui_source:cell-overview:Views/CManualInspectionView.xaml",
+        "passed": true
+      },
+      {
+        "name": "ui_source:cell-overview:Views/CManualInspectionView.xaml.cs",
+        "passed": true
+      },
+      {
+        "name": "ui:coverage-compact",
+        "passed": true
+      },
+      {
+        "name": "ui:hardening",
+        "passed": true
+      },
+      {
+        "name": "ui:integration-impact",
+        "passed": true
+      },
+      {
+        "name": "ui:map-first",
+        "passed": true
+      },
+      {
+        "name": "ui:measurement-workflow",
+        "passed": true
+      },
+      {
+        "name": "five_sources:measurement-workflow",
+        "passed": true
+      },
+      {
+        "name": "ui_source:measurement-workflow:Views/CManualInspectionUiContract.cs",
+        "passed": true
+      },
+      {
+        "name": "ui_source:measurement-workflow:Views/CManualInspectionMapControl.cs",
+        "passed": true
+      },
+      {
+        "name": "ui_source:measurement-workflow:Views/CManualInspectionScatterControl.cs",
+        "passed": true
+      },
+      {
+        "name": "ui_source:measurement-workflow:Views/CManualInspectionView.xaml",
+        "passed": true
+      },
+      {
+        "name": "ui_source:measurement-workflow:Views/CManualInspectionView.xaml.cs",
+        "passed": true
+      },
+      {
+        "name": "ui:native",
+        "passed": true
+      },
+      {
+        "name": "ui:offset-init",
+        "passed": true
+      },
+      {
+        "name": "five_sources:offset-init",
+        "passed": true
+      },
+      {
+        "name": "ui_source:offset-init:Views/CManualInspectionUiContract.cs",
+        "passed": true
+      },
+      {
+        "name": "ui_source:offset-init:Views/CManualInspectionMapControl.cs",
+        "passed": true
+      },
+      {
+        "name": "ui_source:offset-init:Views/CManualInspectionScatterControl.cs",
+        "passed": true
+      },
+      {
+        "name": "ui_source:offset-init:Views/CManualInspectionView.xaml",
+        "passed": true
+      },
+      {
+        "name": "ui_source:offset-init:Views/CManualInspectionView.xaml.cs",
+        "passed": true
+      },
+      {
+        "name": "ui:sync-levels",
+        "passed": true
+      },
+      {
+        "name": "ui:visual-usability",
+        "passed": true
+      },
+      {
+        "name": "UI_total640",
+        "passed": true
+      },
+      {
+        "name": "actual_controller_no_vendor",
+        "passed": true
+      },
+      {
+        "name": "controller_backend_UI_same",
+        "passed": true
+      },
+      {
+        "name": "DLL:backend:Drilling.UI",
+        "passed": true
+      },
+      {
+        "name": "DLL:controller:Drilling.UI",
+        "passed": true
+      },
+      {
+        "name": "DLL:solution:Drilling.UI",
+        "passed": true
+      },
+      {
+        "name": "DLL:backend:Drilling.Common",
+        "passed": true
+      },
+      {
+        "name": "DLL:controller:Drilling.Common",
+        "passed": true
+      },
+      {
+        "name": "DLL:solution:Drilling.Common",
+        "passed": true
+      },
+      {
+        "name": "scope_source:Drilling.Common/Review/CManualInspectionCoordinateBridge.cs",
+        "passed": true
+      },
+      {
+        "name": "scope_source:Drilling.Common/Review/CManualInspectionResultProjection.cs",
+        "passed": true
+      },
+      {
+        "name": "scope_source:Drilling.Common/Review/CReviewManager.cs",
+        "passed": true
+      },
+      {
+        "name": "scope_source:Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs",
+        "passed": true
+      },
+      {
+        "name": "scope_source:Drilling.Common/Station/CStageReviewSequences.cs",
+        "passed": true
+      },
+      {
+        "name": "scope_source:Drilling.File/ReviewOffset/CReviewOffsetFile.cs",
+        "passed": true
+      },
+      {
+        "name": "scope_source:Drilling.File/ReviewResult/CReviewResultFile.cs",
+        "passed": true
+      },
+      {
+        "name": "scope_source:Drilling.UI/CRootView.cs",
+        "passed": true
+      },
+      {
+        "name": "scope_source:Drilling.UI/Drilling.UI.csproj",
+        "passed": true
+      },
+      {
+        "name": "scope_source:Drilling.UI/Menu/Menus/CManualInspectionController.cs",
+        "passed": true
+      },
+      {
+        "name": "scope_source:Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs",
+        "passed": true
+      },
+      {
+        "name": "scope_source:Drilling.UI/Menu/Menus/CManualInspectionUpdateMonitor.cs",
+        "passed": true
+      },
+      {
+        "name": "scope_source:Drilling.UI/Menu/Menus/CMenuCorrection.ManualInspection.cs",
+        "passed": true
+      },
+      {
+        "name": "scope_source:Drilling.UI/Menu/Menus/CMenuMonitor.cs",
+        "passed": true
+      },
+      {
+        "name": "scope_source:Drilling.UI/Menu/Menus/CMenuRecipe.cs",
+        "passed": true
+      },
+      {
+        "name": "scope_source:Drilling.UI/Menu/Menus/CReviewOffsetDisplaySnapshot.cs",
+        "passed": true
+      },
+      {
+        "name": "scope_source:Drilling.UI/Views/CCorrectionView.xaml",
+        "passed": true
+      },
+      {
+        "name": "scope_source:Drilling.UI/Views/CCorrectionView.xaml.cs",
+        "passed": true
+      },
+      {
+        "name": "scope_source:Drilling.UI/Views/CManualInspectionMapControl.cs",
+        "passed": true
+      },
+      {
+        "name": "scope_source:Drilling.UI/Views/CManualInspectionScatterControl.cs",
+        "passed": true
+      },
+      {
+        "name": "scope_source:Drilling.UI/Views/CManualInspectionUiContract.cs",
+        "passed": true
+      },
+      {
+        "name": "scope_source:Drilling.UI/Views/CManualInspectionView.xaml",
+        "passed": true
+      },
+      {
+        "name": "scope_source:Drilling.UI/Views/CManualInspectionView.xaml.cs",
+        "passed": true
+      },
+      {
+        "name": "core_source:Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs",
+        "passed": true
+      },
+      {
+        "name": "core_source:Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs",
+        "passed": true
+      },
+      {
+        "name": "core_source:Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
+        "passed": true
+      },
+      {
+        "name": "solution-build.log0/0",
+        "passed": true
+      },
+      {
+        "name": "ui-build.log0/0",
+        "passed": true
+      },
+      {
+        "name": "clean_text:docs/ManualInspection/README.md",
+        "passed": true
+      },
+      {
+        "name": "fences:docs/ManualInspection/README.md",
+        "passed": true
+      },
+      {
+        "name": "link:docs/ManualInspection/README.md:CELL_CLICK_OFFSET_SYNC_11.23.1.md",
+        "passed": true
+      },
+      {
+        "name": "link:docs/ManualInspection/README.md:../../tests/ManualInspection/CELL_CLICK_OFFSET_SYNC_QA.md",
+        "passed": true
+      },
+      {
+        "name": "link:docs/ManualInspection/README.md:BULK_HISTORY_11.23.0.md",
+        "passed": true
+      },
+      {
+        "name": "link:docs/ManualInspection/README.md:validation.json",
+        "passed": true
+      },
+      {
+        "name": "link:docs/ManualInspection/README.md:../../tests/ManualInspection/BULK_HISTORY_QA.md",
+        "passed": true
+      },
+      {
+        "name": "link:docs/ManualInspection/README.md:images/manual-11.23.1-overview-dark.png",
+        "passed": true
+      },
+      {
+        "name": "link:docs/ManualInspection/README.md:images/manual-11.23.1-selected-light.png",
+        "passed": true
+      },
+      {
+        "name": "link:docs/ManualInspection/README.md:validation.json",
+        "passed": true
+      },
+      {
+        "name": "link:docs/ManualInspection/README.md:MEASUREMENT_WORKFLOW_11.21.2.md",
+        "passed": true
+      },
+      {
+        "name": "link:docs/ManualInspection/README.md:history/validation-61578db.json",
+        "passed": true
+      },
+      {
+        "name": "link:docs/ManualInspection/README.md:../../tests/ManualInspection/README.md",
+        "passed": true
+      },
+      {
+        "name": "link:docs/ManualInspection/README.md:Reference/A3_Review_Workspace.html",
+        "passed": true
+      },
+      {
+        "name": "link:docs/ManualInspection/README.md:BULK_HISTORY_11.23.0.md",
+        "passed": true
+      },
+      {
+        "name": "link:docs/ManualInspection/README.md:history/validation-367a727.json",
+        "passed": true
+      },
+      {
+        "name": "clean_text:docs/ManualInspection/CELL_CLICK_OFFSET_SYNC_11.23.1.md",
+        "passed": true
+      },
+      {
+        "name": "fences:docs/ManualInspection/CELL_CLICK_OFFSET_SYNC_11.23.1.md",
+        "passed": true
+      },
+      {
+        "name": "link:docs/ManualInspection/CELL_CLICK_OFFSET_SYNC_11.23.1.md:validation.json",
+        "passed": true
+      },
+      {
+        "name": "link:docs/ManualInspection/CELL_CLICK_OFFSET_SYNC_11.23.1.md:../../tests/ManualInspection/CELL_CLICK_OFFSET_SYNC_QA.md",
+        "passed": true
+      },
+      {
+        "name": "clean_text:tests/ManualInspection/CELL_CLICK_OFFSET_SYNC_QA.md",
+        "passed": true
+      },
+      {
+        "name": "fences:tests/ManualInspection/CELL_CLICK_OFFSET_SYNC_QA.md",
+        "passed": true
+      },
+      {
+        "name": "link:tests/ManualInspection/CELL_CLICK_OFFSET_SYNC_QA.md:../../docs/ManualInspection/validation.json",
+        "passed": true
+      },
+      {
+        "name": "git_diff_check",
+        "passed": true
+      }
+    ],
+    "documentInternalLinks": [
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "CELL_CLICK_OFFSET_SYNC_11.23.1.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\CELL_CLICK_OFFSET_SYNC_11.23.1.md",
+        "status": "exists"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "../../tests/ManualInspection/CELL_CLICK_OFFSET_SYNC_QA.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\CELL_CLICK_OFFSET_SYNC_QA.md",
+        "status": "exists"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "BULK_HISTORY_11.23.0.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\BULK_HISTORY_11.23.0.md",
+        "status": "exists"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "validation.json",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\validation.json",
+        "status": "exists"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "../../tests/ManualInspection/BULK_HISTORY_QA.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BULK_HISTORY_QA.md",
+        "status": "exists"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "images/manual-11.23.1-overview-dark.png",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\images\\manual-11.23.1-overview-dark.png",
+        "status": "exists"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "images/manual-11.23.1-selected-light.png",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\images\\manual-11.23.1-selected-light.png",
+        "status": "exists"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "validation.json",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\validation.json",
+        "status": "exists"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "MEASUREMENT_WORKFLOW_11.21.2.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\MEASUREMENT_WORKFLOW_11.21.2.md",
+        "status": "exists"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "history/validation-61578db.json",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\history\\validation-61578db.json",
+        "status": "exists"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "../../tests/ManualInspection/README.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\README.md",
+        "status": "exists"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "Reference/A3_Review_Workspace.html",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\Reference\\A3_Review_Workspace.html",
+        "status": "exists"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "BULK_HISTORY_11.23.0.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\BULK_HISTORY_11.23.0.md",
+        "status": "exists"
+      },
+      {
+        "document": "docs/ManualInspection/README.md",
+        "target": "history/validation-367a727.json",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\history\\validation-367a727.json",
+        "status": "exists"
+      },
+      {
+        "document": "docs/ManualInspection/CELL_CLICK_OFFSET_SYNC_11.23.1.md",
+        "target": "validation.json",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\validation.json",
+        "status": "exists"
+      },
+      {
+        "document": "docs/ManualInspection/CELL_CLICK_OFFSET_SYNC_11.23.1.md",
+        "target": "../../tests/ManualInspection/CELL_CLICK_OFFSET_SYNC_QA.md",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\CELL_CLICK_OFFSET_SYNC_QA.md",
+        "status": "exists"
+      },
+      {
+        "document": "tests/ManualInspection/CELL_CLICK_OFFSET_SYNC_QA.md",
+        "target": "../../docs/ManualInspection/validation.json",
+        "resolved": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\docs\\ManualInspection\\validation.json",
+        "status": "exists"
+      }
+    ],
+    "deferredArtifactLinks": [],
+    "summaryNote": "Use direct final reports. Parent finalizer regenerates ui-final-summary as640 from eleven current reports; previous617 summary is not used.",
+    "documentNote": "README images were copied by parent during final verification; all17 current internal links exist, with no deferred links."
+  },
+  "keyboardReview": {
+    "status": "source_and_final_map133_regression_verified",
+    "notes": [
+      "Only visual point selection and view pan/reveal; no direct equipment operation",
+      "Latest point Masking/disabled/filtered checks override stale Slot objects",
+      "Space repeat/menu arrows/Escape/capture/Alt-pan distinctions inspected"
+    ]
+  }
+}

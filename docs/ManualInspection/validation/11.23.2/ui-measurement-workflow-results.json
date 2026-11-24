@@ -1,0 +1,288 @@
+{
+  "passed": true,
+  "tests": 39,
+  "failures": 0,
+  "checks": [
+    {
+      "name": "workflow_visible_color_modes_are_only_deviation_and_judgement",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_scatter_defaults_to_measurement_working_data_and_all_heads",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_ng_always_red_Light_0",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_ng_always_red_Light_7",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_ng_always_red_Light_15",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_ng_always_red_Light_25",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_ng_red_in_judge_mode_Light",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_initialized_zero_is_gray_level_and_judge_Light",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_actual_zero_measurement_retains_normal_level_Light",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_initialized_old_raw_does_not_reenable_history_Light",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_ng_always_red_Dark_0",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_ng_always_red_Dark_7",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_ng_always_red_Dark_15",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_ng_always_red_Dark_25",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_ng_red_in_judge_mode_Dark",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_initialized_zero_is_gray_level_and_judge_Dark",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_actual_zero_measurement_retains_normal_level_Dark",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_initialized_old_raw_does_not_reenable_history_Dark",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_measurement_table_is_compact",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_scatter_plot_is_compact",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_filter_and_legend_are_in_right_inspector",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_source_markers_have_plain_language_explanation",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_removed_applied_columns_are_not_visible",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_current_position_measure_button_dispatches_one_point_without_popup",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_new_measurement_opens_inspector_and_focuses_measured_point",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_right_side_shows_fresh_measurement_result_without_correction",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_refresh_with_same_measurement_sequence_does_not_reopen_inspector",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_next_ng_measurement_reopens_inspector_and_updates_right_result",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_cell_init_dispatches_explicit_scope_without_popup",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_head_init_dispatches_explicit_scope_without_popup",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_all_init_keeps_all_scope_without_popup",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_motion_still_requires_confirmation_and_cancel_prevents_dispatch",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_selected_correction_requires_confirmation_and_cancel_is_inert",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_selected_correction_accept_dispatches_integrated_action",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_level_settings_open_inline_without_popup",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_map_keeps_scroll_free_priority_1490x900",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_expanded_scatter_shows_plot_before_optional_axis_settings_1490x900",
+      "passed": true,
+      "details": {
+        "chartBounds": {
+          "IsEmpty": false,
+          "Location": {
+            "X": 0,
+            "Y": 46
+          },
+          "Size": {
+            "IsEmpty": false,
+            "Width": 1252.8400000000001,
+            "Height": 180
+          },
+          "X": 0,
+          "Y": 46,
+          "Width": 1252.8400000000001,
+          "Height": 180,
+          "Left": 0,
+          "Top": 46,
+          "Right": 1252.8400000000001,
+          "Bottom": 226,
+          "TopLeft": {
+            "X": 0,
+            "Y": 46
+          },
+          "TopRight": {
+            "X": 1252.8400000000001,
+            "Y": 46
+          },
+          "BottomLeft": {
+            "X": 0,
+            "Y": 226
+          },
+          "BottomRight": {
+            "X": 1252.8400000000001,
+            "Y": 226
+          }
+        },
+        "visibleHeight": 180,
+        "ViewportHeight": 260
+      }
+    },
+    {
+      "name": "workflow_map_keeps_scroll_free_priority_1120x560",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "workflow_expanded_scatter_shows_plot_before_optional_axis_settings_1120x560",
+      "passed": true,
+      "details": {
+        "chartBounds": {
+          "IsEmpty": false,
+          "Location": {
+            "X": 0,
+            "Y": 46
+          },
+          "Size": {
+            "IsEmpty": false,
+            "Width": 865.6400000000001,
+            "Height": 180
+          },
+          "X": 0,
+          "Y": 46,
+          "Width": 865.6400000000001,
+          "Height": 180,
+          "Left": 0,
+          "Top": 46,
+          "Right": 865.6400000000001,
+          "Bottom": 226,
+          "TopLeft": {
+            "X": 0,
+            "Y": 46
+          },
+          "TopRight": {
+            "X": 865.6400000000001,
+            "Y": 46
+          },
+          "BottomLeft": {
+            "X": 0,
+            "Y": 226
+          },
+          "BottomRight": {
+            "X": 865.6400000000001,
+            "Y": 226
+          }
+        },
+        "visibleHeight": 180,
+        "ViewportHeight": 260
+      }
+    }
+  ],
+  "sourceHashes": {
+    "Views/CManualInspectionUiContract.cs": "0e66cbf6f241125473771218ee812b135a79365ac4577d65a880b851ba7cd475",
+    "Views/CManualInspectionMapControl.cs": "1ba5879799346cb66a4100bc2800a9f4f3e3e05b23ae4ee10b6f225e5f72dc6e",
+    "Views/CManualInspectionScatterControl.cs": "df7e0a29296a9197cede3accb3da2eb2c2ececec28081f7786abe76ccfbfa451",
+    "Views/CManualInspectionView.xaml": "33727e38d5ecd4d52fc737355ae68230c2b563ee44441f12712cb5e3218b65c4",
+    "Views/CManualInspectionView.xaml.cs": "d7e8386ca69bca1c3982b7a8bb53b5da0b7abcd71c2227b0f5a016ef1171f9b6"
+  },
+  "scope": "Source-linked native WPF, synthetic immutable snapshots and fake controller only. No equipment App/Root/Manager/SDK, motion/Vision/PLC or scripts executed."
+}
