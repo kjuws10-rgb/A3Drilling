@@ -1,0 +1,76 @@
+{
+  "round": 1,
+  "status": "independent_firstload_and_panel_contract_review_complete",
+  "passed": true,
+  "baseCommit": "301ff172660d32fb6fb59b190e4025945b1ef4c9",
+  "reviewedAt": "2026-11-24T01:00:38.834007+00:00",
+  "baseSourceSha256": {
+    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs": "5331aeefbb1adcff63ad5ba982316b634a7fa67afdc4a39f9357815f017a064f",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs": "817f4e22b0d4751ff87a7bdca6ef1bae2a917846b346987f8d4454c3085d5768",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "a30840215dc7dce675347a49674f2bdde76ec1ea67a9ff2ccc4f1ffb82a71b8e",
+    "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs": "0dbab53437f3a43cf3b955b5b98cc77e6329ab6613b070b2127901ad47326821",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.ManualInspection.cs": "12af934e028a18f1b714d7be9a3e777434f6b21e66b16184e294b5acccbe17df",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "6f1810a3abfdc35891f7aeaf562b0db8b84e530f4e735dc7b373b9db5c25a303",
+    "Drilling.UI/Views/CManualInspectionView.xaml": "62cc2dc54dfb7660a49ba422e730203fdb9a04add835d66c74d3818c9cd928b8",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "6c80b499bd2bb9e376cac1eb94777dbefe0660efbee1b6b1def44a8e2d1a80ab",
+    "Drilling.UI/Views/CCorrectionView.xaml": "ae9f6bbd40970212f2788a06d6e8fb5499496a153bb0d8e05a07f8b6850ae4f6",
+    "Drilling.UI/Views/CManualInspectionMapControl.cs": "5b6cc72cedd966186fae81dd825986e498018a06dd4b373192f762cbe274fbb3",
+    "Drilling.UI/Views/CManualInspectionScatterControl.cs": "df7e0a29296a9197cede3accb3da2eb2c2ececec28081f7786abe76ccfbfa451"
+  },
+  "sourceFindings": [
+    {
+      "id": "FIRSTLOAD-CORE-EMPTY",
+      "evidence": "Workspace.PreviewBulkCorrection231-257 requires real current OK+finite, provenance, nonconsumed; Controller.CanBulkApply1190 reflects eligible count.",
+      "interpretation": "A clean model with no measured data has zero eligible correction points by design; enabling the UI must not fabricate real zero/OK or bypass save guard."
+    },
+    {
+      "id": "FIRSTLOAD-COPY",
+      "evidence": "View.ReferenceButton524-526 requires representative, selectable other target, CanCopyAsReference; Core.ResolveReferenceValue374/420 rejects Init or no measured/savedB evidence.",
+      "interpretation": "Representative designation is unrestricted, but copying a missing state requires an explicitly separate contract. First-load disabled Copy by itself does not prove initialization failed."
+    },
+    {
+      "id": "FIRSTLOAD-INIT",
+      "evidence": "View.RefreshButtons486-503 has idle+nonempty points+valid scope+!HasIncomplete; constructor default scopeALL. Whole Manual tab has no parent IsEnabled binding.",
+      "interpretation": "Clean native first load should already allow Init; actual common block must be reproduced from restored incomplete session, Busy/request lease, no geometry or pending state instead of indiscriminately relaxing validation."
+    },
+    {
+      "id": "FIRSTLOAD-SESSION",
+      "evidence": "Controller.LoadSource342-375 automatically RestoreSession of sameRun checkpoint; Workspace.HasIncompleteMeasurements remains true after restored Running->Stopped. Init/Bulk/Copy share that guard.",
+      "interpretation": "A plausible common blocker is automatically restored interrupted work. Read-only source trace establishes the guard path; it does not establish the user exact runtime cause without controlled state reproduction."
+    },
+    {
+      "id": "EMPTY-STATE-INVARIANT",
+      "evidence": "Workspace.Load95 rejects IsMeasurementOffsetInitialized with nonzero activeB. Original/raw, working nullable error and actual correctionB are separate.",
+      "interpretation": "Do not mark copied-missing target initialized while nonzero savedB remains, or use neutralB0 as an actual measurement. Missing-state copy must keep liveB/protected settings unchanged and cannot acquire correction eligibility."
+    },
+    {
+      "id": "PANELS-ADAPTIVE",
+      "evidence": "View_LayoutUpdated uses ResultsSection||ScatterSection to set central autoheight/map floor; oldXAML bottom panes and single InspectorScroll.",
+      "interpretation": "Moving scatter to left requires removing old central-layout/outer-scroll triggers and appropriate bounded inner layout; otherwise new placement can still cause unwanted global scrolling."
+    },
+    {
+      "id": "PANELS-STATE",
+      "evidence": "Ctrl+F/history/fresh-measure auto-open, WorkspaceViewBookmark, file-return restoration and point-selection semantics all currently target right Inspector/old nested sections.",
+      "interpretation": "New Left panel state, shortcut routing and restoration must be explicitly connected without altering physical map/selection/zoom."
+    }
+  ],
+  "reviewContracts": [
+    "No measured0/OK is invented from missing first-load state. NG/unmeasured actual selected/bulk correction restrictions, provenance/field/unit/ledger/Undo guards stay unchanged.",
+    "Explicit Init changes only measurement offsets as a screen draft; model save is separately validated/confirmed. Hardware/default/firstbeam/distortion and prior files/raw remain.",
+    "If missing-state copy is introduced, it must be tagged separately from finite correction value proof, preserve target OriginalMeasurement/liveB and roundtrip/undo honestly; actual save remains invalid.",
+    "No automatic work reexecution or source-state overwrite merely from first tab load; restored failed work must be preserved/audited if intentionally deferred.",
+    "Left: filters/legend/work-info/filter-notice/settings/history/scatter. Right: point/representative/copy/correction. Bottom: table. Map remains main surface; no global vertical scrollbar in minimal closed state.",
+    "Visual panels/shortcuts/expand state are UI state only; do not fire motion, offset write or change candidate/source frame merely by opening.",
+    "Keep existing theme resources, typed P2P/Flying500ms blink, navigation/keyboard selection, imported-file workspaces and return bookmark behavior."
+  ],
+  "regressionMatrix": [
+    "First load nativeNoCSV/no raw, real0 saved row, B-onlyunknown, currentOK/NG/error, consumedOK, importedunadopted/mismatchedSIM, explicitInit, pendingInit/import, automatically-restoredstoppedqueue, Busy/STOPcleanup.",
+    "Copy representativeunset/targetsnone/masked/unassignedhead; missing source to nonzeroB target; reverse/long proxy chain; stored real0 distinct from initialized; source truth proof and no actual correction for empty/NG.",
+    "First-load Init available with geometry and saved/unsaved cancel/scopeCellHead behavior; failure no writer; correction noeligible button description/cancel no model write.",
+    "1120x560 and wide,125/150% equivalent DIP layouts: bothfolded/leftopen/rightopen/bothopen/tableopen/scatteropen; centerMap remains usable, global scroll0, internal controls reachable and no clipped action.",
+    "Ctrl+F opens left filters/search; history opens left; newmeasure opens right; sameframe file-return restores left/right/inner expansion, selection and map/scatter view. Differentframe clears reference/selection correctly.",
+    "Every named control exists once, routed events/bindings unchanged, core old regression retained, other Correction/Recipe/Monitor/filewriter/coordinate source scope preserved."
+  ],
+  "sourceTraceLimits": "No user exact runtime session was supplied in this subtask. Findings distinguish source-confirmed guards from plausible interrupted-checkpoint reproduction. No equipment/vendor execution, UI code edit, Git mutation or external publishing by this QA agent. Parent owns production fixes, actual execution and shared knowledge updates.",
+  "next": "Round2 reviews parent-approved missing-state semantics and frozen Core/Controller/View/XAML diff with actual WPF/behavior reports; Round3 final source/assembly/report/doc provenance."
+}

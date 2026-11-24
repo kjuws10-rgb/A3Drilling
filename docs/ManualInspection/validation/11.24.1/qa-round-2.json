@@ -1,0 +1,176 @@
+{
+  "round": 2,
+  "status": "independent_diff_focused_behavior_and_layout_review_complete",
+  "passed": true,
+  "baseCommit": "301ff172660d32fb6fb59b190e4025945b1ef4c9",
+  "reviewedAt": "2026-11-24T01:28:51.217192+00:00",
+  "reports": {
+    "core-results.json": {
+      "count": 221,
+      "sha256": "7b47f2a7b09014745451e46343c22462839ecffe18ab18b61a4cdaba7810d4f8",
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_1_FirstLoadPanels\\core-results.json"
+    },
+    "controller-round3.json": {
+      "count": 211,
+      "sha256": "0214c1b6816e897299e7e41575e1aca3bf8424350e35f35c11e2ddabb9a74fca",
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_1_FirstLoadPanels\\controller-round3.json"
+    },
+    "ui-panels/ui/ui-side-panels-results.json": {
+      "count": 96,
+      "sha256": "d8520c4c659dbf095984f77853f69b71ed3238945461f01996272644f5cf7792",
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_1_FirstLoadPanels\\ui-panels\\ui\\ui-side-panels-results.json"
+    }
+  },
+  "checks": [
+    {
+      "name": "passed:core-results.json",
+      "passed": true
+    },
+    {
+      "name": "passed:controller-round3.json",
+      "passed": true
+    },
+    {
+      "name": "passed:ui-panels/ui/ui-side-panels-results.json",
+      "passed": true
+    },
+    {
+      "name": "current_Core:Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs",
+      "passed": true
+    },
+    {
+      "name": "current_Core:Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs",
+      "passed": true
+    },
+    {
+      "name": "current_Core:Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
+      "passed": true
+    },
+    {
+      "name": "linked_Controller_scope_only",
+      "passed": true
+    },
+    {
+      "name": "current_WPF:Views/CManualInspectionView.xaml",
+      "passed": true
+    },
+    {
+      "name": "current_WPF:Views/CManualInspectionView.xaml.cs",
+      "passed": true
+    },
+    {
+      "name": "current_WPF:Views/CManualInspectionUiContract.cs",
+      "passed": true
+    },
+    {
+      "name": "disk_XML_all_base_names_preserved",
+      "passed": true
+    },
+    {
+      "name": "disk_XML_no_new_name_duplicates",
+      "passed": true
+    },
+    {
+      "name": "all_XML_handlers_in_View",
+      "passed": true
+    },
+    {
+      "name": "git_diff_check",
+      "passed": true
+    }
+  ],
+  "sourceSha256AtReview": {
+    "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs": "7c3690af616470734f94df3e0b57d8c8ab0ee44caa4b6b9eee421ec5cc548612",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs": "5c9e0296b79f55d9bc87b64d7e928e942b2b3efb157c821fd2f268088e4fa290",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "c6c1b38a452aac2803dc5fe199407bcf0c50713cfa7c4679ed636a706cb066e0",
+    "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs": "0dbab53437f3a43cf3b955b5b98cc77e6329ab6613b070b2127901ad47326821",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "dc56c89a107c544f38c498382c095bd5c8e91c148d88936d93414aa223b5d955",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "e6223934280240bf4c88acaae20c0135ba736c85549d29935a4da5056fc02598",
+    "Drilling.UI/Views/CManualInspectionView.xaml": "bc4c4aea45be471ceda11af051f1703d0a2e9db36954ed59b23ef0471dbab69c",
+    "Drilling.UI/Views/CManualInspectionMapControl.cs": "5b6cc72cedd966186fae81dd825986e498018a06dd4b373192f762cbe274fbb3",
+    "Drilling.UI/Views/CManualInspectionScatterControl.cs": "696f69435b79a1cc8322f960e1d95e9f58fe2f149878c62b7e9e9fe163d7635e"
+  },
+  "markupInventory": {
+    "baseDistinctNames": 122,
+    "baseOccurrences": 123,
+    "currentDistinctNames": 153,
+    "currentOccurrences": 154,
+    "missingBaseNames": [],
+    "newDuplicates": [],
+    "note": "Existing Shell template name occurs twice in separate template name scopes, unchanged from base."
+  },
+  "contractsReviewed": [
+    "Missing state is MANUAL_STATE with nullable StateCopySource and logical ordering epoch, separate from activeB/physicalInit/finite proxy. No offset0/OK/raw/correction candidate is fabricated; protected offsets/native original/ledger/files remain.",
+    "Empty state can be copied onto a target with real nonzeroB. Working display remains null; Original and accumulatedB scatter remain separately viewable. Fresh actual measurement/finite copy clears metadata; a source later measurement does not rewrite a captured target.",
+    "WorkingStateAt uses maximum raw/import/proxy/copied/logical time, including futureclock and equal-time barriers. Backward JSON fields remain optional. Recipe/Run/frame/key/reason/state shape are validated before use.",
+    "Automatic disk startup restores and verifies the complete session before exact-byte backup and idle deferral. Explicit/in-memory interrupted workspace is retained. Backup failure preserves checkpoint and no equipment action occurs.",
+    "Explicit Copy/Init first preflights a post-retirement sandbox; invalid request cannot destroy the live interrupted queue. Unreturned old measurement eligibility is cleared while raw/B/ledger/audit remain.",
+    "Sibling Beam correction changes sharedShotB/evidence but retains captured blank/ERROR/NG state. Only actual point measurement/finite copy or explicit Init/offset replacement/Undo handling changes that working state; real NG raw is retained.",
+    "Left6pages/right3pages/bottomtable, compact subpages, both-pane bookmarks/shortcuts and map data preserved. All actual file names/events tested from disk, not generator memory. No panel action dispatches movement or offset write.",
+    "Actual WPF96 cases cover4viewportscales, active filter notice, compact dynamic7input Level/save bounds, eight long history rows/fulltooltip, source fields, initial empty buttons, only-state copy and noeligible bulk explanation."
+  ],
+  "findingsResolved": [
+    {
+      "id": "XAML-BODY",
+      "finding": "Intermediate XML generator detached EditorBody by selecting a whitespace firstChild.",
+      "resolution": "Agent regenerated from preserved original; actual diskXML now parses and preserves every base named element/event; intermediate in-memory claim excluded."
+    },
+    {
+      "id": "PANEL-HISTORY",
+      "finding": "Long history within unbounded nested measurement could clip.",
+      "resolution": "Existing last8 policy retained with NoWrap/Ellipsis/fulltooltips and all8row bounds checked."
+    },
+    {
+      "id": "PANEL-LEVEL",
+      "finding": "Long dynamic Level form could hide save at notebook height.",
+      "resolution": "Root compact3column grid; all7inputs and actual generated save button fit at4scales."
+    },
+    {
+      "id": "EMPTY-CANDIDATE-FIXTURE",
+      "finding": "Synthetic test demanded visible candidate grid with no candidate rows.",
+      "resolution": "Corrected test to provide candidate data; product empty-grid behavior not relaxed."
+    },
+    {
+      "id": "STATE-RETIRE",
+      "finding": "Failed no-response retirement removed captured missing state and could reactivate B-based display/reference.",
+      "resolution": "Retain existing StateCopySource/Judge/flag; advance logical epoch only; focused regression."
+    },
+    {
+      "id": "IMPORTED-RAW",
+      "finding": "Init/absolute replacement/Undo could lose imported origin once state/proxy metadata was cleared.",
+      "resolution": "HistoricalObservationSource retains imported provenance without promoting it to native/adopted correction evidence; focused regression."
+    },
+    {
+      "id": "SIBLING-POLICY",
+      "finding": "SharedShotB write is not a new measurement of a cleared sibling.",
+      "resolution": "Root explicitly decided captured blank/ERROR/NG metadata remains while B/evidence updates. Real measured NG untouched;3state loop covered."
+    }
+  ],
+  "visualReview": {
+    "images": [
+      {
+        "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_1_FirstLoadPanels\\ui-panels\\ui\\side-panels-notebook-dark.png",
+        "sha256": "2ea56b7a4b88b41acf9c01fdf14b16501dd769fdd63e261dba1717c758f51e0e"
+      },
+      {
+        "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_1_FirstLoadPanels\\ui-panels\\ui\\side-panels-level-settings-dark.png",
+        "sha256": "01531e031b60a0f0a75ba3e289125935b5e1dbc3b0e1b697768f261d63d5c864"
+      },
+      {
+        "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_1_FirstLoadPanels\\ui-panels\\ui\\side-panels-map-scatter-correction-dark.png",
+        "sha256": "9d3b31380f86f66b9d57ea8fe5c0b66942e843abdbd41a1d4c82ecc2ffb66708"
+      }
+    ],
+    "directlyViewed": true,
+    "observed": "Existing dark theme and tile colors preserved, map central, no global scrollbar, dynamic Level inputs/save visible, scatter left and correction right. Synthetic WPF, not equipment capture."
+  },
+  "duplicateCountsNotAdded": "Current Root Core221 report source hashes match. Peer core-round3.json had older Workspace a098 hash and is intentionally not used; current5c9e source is verified by core-results.json. Linked Controller211 and focused SidePanels96 are preflight evidence only; do not add them to final actual Controller/Backend/fullUI totals.",
+  "notExecuted": [
+    "Equipment App/Root/device Manager",
+    "Vendor SDK/AeroScript",
+    "Physical motion/PLC/Vision/laser",
+    "Production/test edits by QA",
+    "Git commit/push by QA"
+  ],
+  "next": "Verify final solution/actualController/Backend/all13WPF/scope/docs and final manifest provenance in Round3."
+}

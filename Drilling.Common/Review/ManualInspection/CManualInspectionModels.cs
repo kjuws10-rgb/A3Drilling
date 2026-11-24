@@ -49,6 +49,14 @@ public sealed record ST_MANUAL_PROXY(
     public string ReferenceValueProof { get; init; } = "";
 }
 
+/// <summary>A captured missing/error state only; contains no offset, precision value or raw packet.</summary>
+public sealed record ST_MANUAL_STATE_COPY(string ReferenceKey,string Judge,string Reason,string RunId,
+    string CoordinateSignature,DateTimeOffset CopiedAt)
+{
+    public string RecipeId { get; init; } = "";
+    public string OriginalSource { get; init; } = "";
+}
+
 /// <summary>
 /// A displayed location is beam-specific; OffsetKey deliberately is not. The production CSV stores one
 /// correction per Cell/Shot. Applying a selected Beam therefore updates the displayed base of its siblings.
@@ -64,6 +72,14 @@ public sealed record ST_MANUAL_POINT(
     /// <summary>True only when the host confirms a persisted, non-Init Review offset row.</summary>
     [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
     public bool HasAppliedOffsetEvidence { get; init; }
+    /// <summary>Captured absence in the working result only; active B and the physical Init state stay unchanged.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public bool IsMeasurementStateCleared { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public ST_MANUAL_STATE_COPY? StateCopySource { get; init; }
+    /// <summary>Logical working-state ordering boundary, not a camera measurement timestamp.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public DateTimeOffset? MeasurementStateChangedAt { get; init; }
     public string Judge { get; init; } = "UNMEASURED";
     public string Source { get; init; } = "KEPT";
     public double? ErrorXUm { get; init; }
@@ -83,7 +99,7 @@ public sealed record ST_MANUAL_POINT(
     public string OffsetKey => $"C{CellNo}/S{ShotNo}";
     public bool HasFiniteError => ErrorXUm is double x && ErrorYUm is double y && double.IsFinite(x) && double.IsFinite(y);
     /// <summary>Correction eligibility includes an explicit file receipt; this does not relabel camera originals.</summary>
-    public bool IsDirectMeasurement => !IsMeasurementOffsetInitialized && ProxySource is null && (Source == "MEASURED" || Source == "IMPORTED" && AdoptedFileMeasurement is not null);
+    public bool IsDirectMeasurement => !IsMeasurementOffsetInitialized && !IsMeasurementStateCleared && ProxySource is null && (Source == "MEASURED" || Source == "IMPORTED" && AdoptedFileMeasurement is not null);
     [System.Text.Json.Serialization.JsonIgnore]
     public ST_MANUAL_MEASUREMENT? CorrectionMeasurement => Source == "IMPORTED" ? AdoptedFileMeasurement : OriginalMeasurement ?? AdoptedFileMeasurement;
 }
@@ -136,6 +152,9 @@ public sealed record ST_MANUAL_COPY_PREVIEW(
 public sealed record ST_MANUAL_REFERENCE_VALUE(string OriginReferenceKey, string Judge,
     double? ErrorXUm, double? ErrorYUm, ST_MANUAL_OFFSET Final, string Token, string Kind,
     string Source, string BasisRevisionId);
+
+public sealed record ST_MANUAL_STATE_COPY_PREVIEW(string ReferenceKey,IReadOnlyList<string> SelectionKeys,
+    IReadOnlyList<string> Targets,IReadOnlyList<string> ExcludedMaskedKeys,string Judge,string Fingerprint);
 
 /// <summary>All values are immutable copies; the host writes its real offset file before CommitApplied.</summary>
 public sealed record ST_MANUAL_APPLY_SNAPSHOT(

@@ -93,7 +93,9 @@ internal static partial class Program
             Test("bulk_ui_busy_disables_bulk_and_history_edits",!Find<Button>("BulkApplyButton").IsEnabled&&!Find<Button>("RollbackButton").IsEnabled&&!Find<Button>("RedoOffsetsButton").IsEnabled);
             fake.Replace(state with{Version=10,IsOffsetEditPending=true,OffsetInitPending=true});Pump();
             Test("bulk_ui_pending_init_disables_bulk_and_history_edits",!Find<Button>("BulkApplyButton").IsEnabled&&!Find<Button>("RollbackButton").IsEnabled&&!Find<Button>("RedoOffsetsButton").IsEnabled);
-            fake.Replace(state with{Version=11,CanBulkApply=false,BulkEligibleCount=0});Pump();Test("bulk_ui_no_eligible_results_disables_bulk_apply",!Find<Button>("BulkApplyButton").IsEnabled);
+            fake.Replace(state with{Version=11,CanBulkApply=false,BulkEligibleCount=0});Pump();Test("bulk_ui_no_eligible_results_keeps_explanation_available",Find<Button>("BulkApplyButton").IsEnabled);
+            var noEligibleCalls=fake.Calls.Count;var noEligibleConfirms=confirms;Click("BulkApplyButton");
+            Test("bulk_ui_no_eligible_results_never_dispatch_or_open_apply_confirmation",fake.Calls.Count==noEligibleCalls&&confirms==noEligibleConfirms&&Find<TextBlock>("MessageText").Text.Contains("새 OK"));
             foreach(var theme in new[]{"Light","Dark"})
             {
                 LoadResources(theme);fake.Replace(state with{Version=12,CanUndoOffsets=true,CanRedoOffsets=true,UndoOffsetCount=7,RedoOffsetCount=3,OffsetHistoryText="되돌리기 7 / 다시 적용 3"});Pump();

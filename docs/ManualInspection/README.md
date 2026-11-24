@@ -1,12 +1,20 @@
-# MANUAL INSPECTION · 11.24.0
+# MANUAL INSPECTION · 11.24.1
 
-브랜치: `feature/manual-inspection-retry-visibility-20261124.0`
+브랜치: `feature/manual-inspection-firstload-panels-20261124.1`
 
-기준 Commit: `3a2526dacf988cf303a102dc432a6eaa9394e9d4`
+기준 Commit: `301ff172660d32fb6fb59b190e4025945b1ef4c9`
 
 **master에는 병합하지 않는다.** 기존 테마와 지도 중심 구성을 유지한다.
 
-## 11.24.0 · 비례 라벨·재측정·진행 표시·Monitor
+## 11.24.1 · 최초 상태 복사와 좌우 패널
+
+최초 로딩의 빈 대표점은 값 없음 상태를 복사할 수 있다. 실제 모델 B와 원측정은 보존하고 0/OK를 만들지 않는다. Init은 명시적으로 요청할 수 있고 일괄 보정은 대상이 없으면 제외 이유를 안내한다. NG·미측정의 실제 보정 제한은 유지한다.
+
+왼쪽에는 필터·범례·작업정보·산포·설정·이력, 오른쪽에는 공통 선택점 요약·대표 복사·보정을 배치했다. 하단 측정 표를 유지하고 중앙/좌우 외부 스크롤 없이 페이지로 조작한다.
+
+[현재 설명·화면](FIRST_LOAD_PANELS_11.24.1.md) · [3회 검증](../../tests/ManualInspection/FIRST_LOAD_PANELS_QA.md) · [manifest](validation.json)
+
+## 11.24.0에서 유지한 비례 라벨·재측정·진행 표시·Monitor
 
 셀 번호는 셀 크기와 확대율에 비례해 조절한다. 실패 후 남은 위치를 다시 측정하거나 새 선택으로 진행할 수 있고, 현재 P2P 대상/Flying 행은 0.5초마다 점멸한다. Monitor Shot Detail은 최신 저장 Review Offset을 좌표계·스케일에 맞춰 표시하고 값 없음과 실제 0을 구분한다. NG·미측정 보정 제한은 유지한다.
 
@@ -77,12 +85,12 @@
 
 ## 미리보기와 검증
 
-[축소한 48셀 · Light](images/manual-11.24.0-48cells-light.png) · [측정 점멸 ON · Dark](images/manual-11.24.0-blink-on-dark.png) · [측정 점멸 OFF · Dark](images/manual-11.24.0-blink-off-dark.png)
+[좌우 패널 · Dark](images/manual-11.24.1-notebook-dark.png) · [왼쪽 산포 / 오른쪽 보정](images/manual-11.24.1-scatter-correction-dark.png) · [짧은 Level 설정](images/manual-11.24.1-level-settings-dark.png)
 
 그림은 합성값으로 실제 WPF를 렌더한 미리보기이며 실장비 캡처가 아니다. 최종 시험 수치·소스/Assembly/그림 SHA는 [validation.json](validation.json)에 기록한다. 실제 장비 App·벤더 SDK·PLC·Vision·모션·AeroScript·레이저와 물리 보정 정밀도는 실행 검증하지 않았다.
 
-이전 [11.21.2 설명](MEASUREMENT_WORKFLOW_11.21.2.md)과 [그 시점 manifest](history/validation-61578db.json)는 당시 기록으로 보존한다. 현재 측정/일괄 보정·이력·값 없음 정책은 위 11.24.0를 따른다. [전체 시험 안내](../../tests/ManualInspection/README.md) · [첨부 HTML 원본](Reference/A3_Review_Workspace.html)
+이전 [11.21.2 설명](MEASUREMENT_WORKFLOW_11.21.2.md)과 [그 시점 manifest](history/validation-61578db.json)는 당시 기록으로 보존한다. 현재 측정/일괄 보정·이력·값 없음 정책은 위 11.24.1를 따른다. [전체 시험 안내](../../tests/ManualInspection/README.md) · [첨부 HTML 원본](Reference/A3_Review_Workspace.html)
 
 이전 11.23.0의 [동작 설명](BULK_HISTORY_11.23.0.md)과 [검증 manifest](history/validation-367a727.json)는 당시 기록으로 보존한다. 새 조작·통합 저장·표시 갱신은 현재 설명을 따른다.
 
-이전11.23.1의 [변경 설명](CELL_CLICK_OFFSET_SYNC_11.23.1.md)과 [검증 manifest](history/validation-89e92a0.json)는 당시 기록이다. 대표 지정과 단축키는 현재11.24.0를 따른다.
+이전11.23.1의 [변경 설명](CELL_CLICK_OFFSET_SYNC_11.23.1.md)과 [검증 manifest](history/validation-89e92a0.json)는 당시 기록이다. 대표 지정과 단축키는 현재11.24.1를 따른다.

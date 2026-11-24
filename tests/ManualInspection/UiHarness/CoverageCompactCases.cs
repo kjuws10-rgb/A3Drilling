@@ -145,7 +145,7 @@ internal static partial class Program
                     {
                         // Map-first deliberately moves the complete legend into folded work information.
                         // Preserve the check's meaning: the information is retained and costs no map area.
-                        Test($"default_map_legend_not_clipped_{theme}_{size.Item1}_{size.Item2}", view.FindName("WorkInfoSection") is Expander { IsExpanded: false }
+                        Test($"default_map_legend_not_clipped_{theme}_{size.Item1}_{size.Item2}", view.FindName("LeftInspectorSection") is Expander { IsExpanded: false }
                             && legend is TextBlock { Text.Length: > 0 }, "Legend retained in folded work information.");
                     }
                     Render(view, $"coverage-{theme.ToLowerInvariant()}-{size.Item1}x{size.Item2}.png");

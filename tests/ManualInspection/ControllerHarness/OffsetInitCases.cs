@@ -50,9 +50,9 @@ internal static partial class Program
             await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ReturnToPreviousWorkspace));True(c.Snapshot.IsOffsetEditPending&&c.Snapshot.CanReturnToPreviousWorkspace&&f.Saves==0);
             await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CancelOffsetEdit);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ReturnToPreviousWorkspace);True(!c.Snapshot.CanReturnToPreviousWorkspace);
         });
-        await Check("offset_init_rejects_incomplete_measurement_but_can_reconnect_current_source",async()=>
+        await Check("offset_init_explicitly_retires_incomplete_measurement_but_can_reconnect_current_source",async()=>
         {
-            var(f,c)=await Loaded();f.FailKey="P2";await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1","P2"]));await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets));True(c.Snapshot.HasIncomplete&&!c.Snapshot.IsOffsetEditPending&&f.Saves==0);
+            var(f,c)=await Loaded();f.FailKey="P2";await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1","P2"]));await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets);True(!c.Snapshot.HasIncomplete&&c.Snapshot.IsOffsetEditPending&&f.Saves==0);
             var(readonlyBackend,readonlyController)=Fixture(readOnly:true);await Do(readonlyController,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);await Do(readonlyController,EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets);True(readonlyBackend.Saves==0&&readonlyController.Snapshot.IsOffsetEditPending&&!readonlyController.Snapshot.IsReadOnly);
         });
         await Check("offset_bundle_export_of_init_is_draft_zero_and_never_saves_model",async()=>

@@ -72,6 +72,19 @@ internal static partial class Program
                 Invoke(view,"SetReference_Click",view,new RoutedEventArgs());Pump();
                 Render(view,"representative-any-point-"+theme.ToLowerInvariant()+".png");
             }
+            var cleared=seed with{Source="MANUAL_STATE",WorkingJudge="UNMEASURED",WorkingXUm=null,WorkingYUm=null,
+                OriginalJudge="OK",OriginalXUm=2,OriginalYUm=-3,BaseXUm=7,BaseYUm=-9,HasAppliedOffset=true,
+                IsProxy=false,IsMeasurementOffsetInitialized=false,IsMeasurementStateCleared=true,CanCopyReferenceState=true,
+                ReferenceFinalXUm=null,ReferenceFinalYUm=null,ReferenceValueUnavailableReason="빈 상태"};
+            fake.Replace(basis with{Version=++version,Points=[cleared]});Pump();
+            Set(view,"_scatterScope","HEAD");Set(view,"_scatterHead",0);Set(view,"_scatterOriginal",false);Set(view,"_scatterOffsets",false);Invoke(view,"Refresh");Pump();
+            var scatter=Find<CManualInspectionScatterControl>("ScatterPlot");
+            Test("state_copy_working_scatter_has_no_fabricated_zero_or_old_B_sample",scatter.Metrics.Count==0&&cleared.MeasurementXUm is null&&cleared.MeasurementYUm is null);
+            Set(view,"_scatterOriginal",true);Invoke(view,"Refresh");Pump();
+            Test("state_copy_original_scatter_keeps_preserved_raw",scatter.Metrics.Count==1&&scatter.Metrics.MeanX==2&&scatter.Metrics.MeanY==-3);
+            Set(view,"_scatterOriginal",false);Set(view,"_scatterOffsets",true);Invoke(view,"Refresh");Pump();
+            Test("state_copy_offset_scatter_keeps_actual_saved_B",scatter.Metrics.Count==1&&scatter.Metrics.MeanX==7&&scatter.Metrics.MeanY==-9);
+            Test("state_copy_scatter_projections_do_not_modify_source_state_or_model_values",fake.Snapshot.Points.Single()==cleared&&fake.Calls.Count==0);
             window.Close();
         }
         catch(Exception error){Test("representative_unexpected_exception",false,error.ToString());}

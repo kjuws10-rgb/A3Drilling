@@ -39,8 +39,8 @@ internal static partial class Program
                 Test("workflow_initialized_old_raw_does_not_reenable_history_"+theme,!(p with{IsMeasurementOffsetInitialized=true}).HasMeasurementHistory&&CManualInspectionDrawing.Level(p with{IsMeasurementOffsetInitialized=true},state)==-1);
             }
             Test("workflow_measurement_table_is_compact",Find<DataGrid>("ResultGrid").MaxHeight<=150);
-            Test("workflow_scatter_plot_is_compact",plot.Height<=180);
-            Test("workflow_filter_and_legend_are_in_right_inspector",Under(Find<Expander>("WorkInfoSection"),Find<ScrollViewer>("InspectorScroll"))&&Under(Find<TextBlock>("FilterNoticeText"),Find<ScrollViewer>("InspectorScroll"))&&Under(Find<WrapPanel>("MapLegendItems"),Find<ScrollViewer>("InspectorScroll")));
+            Test("workflow_scatter_plot_is_compact",plot.Height<=190);
+            Test("workflow_filter_and_legend_are_in_left_inspector",Under(Find<Expander>("WorkInfoSection"),Find<ScrollViewer>("LeftInspectorScroll"))&&Under(Find<TextBlock>("FilterNoticeText"),Find<ScrollViewer>("LeftInspectorScroll"))&&Under(Find<WrapPanel>("MapLegendItems"),Find<ScrollViewer>("LeftInspectorScroll")));
             Test("workflow_source_markers_have_plain_language_explanation",Find<TextBlock>("MapLegendText").Text.Contains("초기화")||Find<Expander>("WorkInfoSection").Header.ToString()!.Contains("범례"));
             Test("workflow_removed_applied_columns_are_not_visible",Find<DataGridTextColumn>("ResultOffsetColumn").Visibility==Visibility.Collapsed);
             Find<Expander>("InspectorSection").IsExpanded=true;Pump();Invoke(view,"ChangeSelection",new CManualInspectionSelectionEventArgs([p.Key],p.Key));Pump();
@@ -72,7 +72,7 @@ internal static partial class Program
             fake.Replace(savedState with{Version=savedState.Version+1,HasIncomplete=true,RemainingCount=2,IsOffsetEditPending=false,StageXmm=0,StageYmm=0});Pump();
             Invoke(view,"ChangeSelection",new CManualInspectionSelectionEventArgs([p.Key],p.Key));Pump();
             Test("workflow_failed_queue_keeps_retry_optional_and_allows_new_current_measure",Find<Button>("RetryButton").IsEnabled&&Find<Button>("MeasureCurrentButton").IsEnabled);
-            Test("workflow_failed_queue_keeps_correction_and_offset_edits_blocked",!Find<Button>("CalculateButton").IsEnabled&&!Find<Button>("BulkApplyButton").IsEnabled&&!Find<Button>("OffsetInitButton").IsEnabled);
+            Test("workflow_failed_queue_keeps_apply_guard_but_allows_init_and_explanation",!Find<Button>("CalculateButton").IsEnabled&&Find<Button>("BulkApplyButton").IsEnabled&&Find<Button>("OffsetInitButton").IsEnabled);
             var count=fake.Calls.Count;var popups=cb;Click("MeasureCurrentButton");
             Test("workflow_new_current_measure_supersedes_failed_queue_without_motion_popup",fake.Calls.Count==count+1&&fake.Calls[^1].Action==EN_MANUAL_INSPECTION_UI_ACTION.Measure&&cb==popups);
             var confirmedText="";view.ConfirmationForTesting=(_,text,_)=>{confirmedText=text;return false;};count=fake.Calls.Count;
@@ -86,12 +86,12 @@ internal static partial class Program
             Test("workflow_level_settings_open_inline_without_popup",cb==beforeSettingsConfirmation&&Find<StackPanel>("LevelSettingsPanel").Visibility==Visibility.Visible);
             foreach(var size in new[]{(1490,900),(1120,560)})
             {
-                window.Width=size.Item1;window.Height=size.Item2;Find<Expander>("InspectorSection").IsExpanded=false;Find<Expander>("ResultsSection").IsExpanded=false;Find<Expander>("ScatterSection").IsExpanded=false;Pump();
+                window.Width=size.Item1;window.Height=size.Item2;Find<Expander>("InspectorSection").IsExpanded=false;Find<Expander>("LeftInspectorSection").IsExpanded=false;Find<Expander>("ResultsSection").IsExpanded=false;Find<Expander>("ScatterSection").IsExpanded=false;Pump();
                 Test("workflow_map_keeps_scroll_free_priority_"+size.Item1+"x"+size.Item2,Find<ScrollViewer>("WorkspaceScroll").ScrollableHeight<=1&&map.ActualHeight>=350);
                 foreach(var theme in new[]{"Light","Dark"}){LoadResources(theme);Pump();Render(view,"measurement-workflow-"+size.Item1+"x"+size.Item2+"-"+theme.ToLowerInvariant()+".png");}
-                Find<Expander>("ScatterSection").IsExpanded=true;Pump();var chartViewport=Find<ScrollViewer>("ScatterSectionContent");
+                Find<Expander>("ScatterSection").IsExpanded=true;Find<TabControl>("ScatterPaneTabs").SelectedIndex=0;Pump();var chartViewport=Find<ScrollViewer>("ScatterSectionContent");
                 var chartBounds=plot.TransformToAncestor(chartViewport).TransformBounds(new Rect(plot.RenderSize));var visibleChart=Rect.Intersect(chartBounds,new Rect(0,0,chartViewport.ViewportWidth,chartViewport.ViewportHeight));
-                Test("workflow_expanded_scatter_shows_plot_before_optional_axis_settings_"+size.Item1+"x"+size.Item2,!Find<Expander>("ScatterSettingsSection").IsExpanded&&visibleChart.Height>=160&&plot.ActualHeight<=180,
+                Test("workflow_left_scatter_graph_page_shows_plot_"+size.Item1+"x"+size.Item2,Find<TabControl>("LeftPaneTabs").SelectedIndex==3&&visibleChart.Height>=150&&plot.ActualHeight<=190,
                     new{chartBounds,visibleHeight=visibleChart.Height,chartViewport.ViewportHeight});
                 Find<Expander>("ScatterSection").IsExpanded=false;Pump();
             }

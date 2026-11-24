@@ -44,6 +44,8 @@ public sealed record CManualInspectionUiPoint
     public int Column { get; init; }
     public bool IsMasked { get; init; }
     public bool IsMeasurementOffsetInitialized { get; init; }
+    public bool IsMeasurementStateCleared { get; init; }
+    public bool CanCopyReferenceState { get; init; }
     public double DesignXmm { get; init; }
     public double DesignYmm { get; init; }
     public string WorkingJudge { get; init; } = "UNMEASURED";
@@ -79,20 +81,20 @@ public sealed record CManualInspectionUiPoint
     /// measurement-derived history, including interpolated/copied values and explicitly saved zero.
     /// These properties never change native raw, judge, correction eligibility or consumed tokens.
     /// </summary>
-    public bool HasWorkingMeasurement => !IsMeasurementOffsetInitialized && WorkingJudge is "OK" or "NG" && Finite(WorkingXUm) && Finite(WorkingYUm);
-    public bool HasMeasurementHistory => !IsMasked && !IsMeasurementOffsetInitialized && (HasWorkingMeasurement || HasAppliedOffset);
-    public bool UsesAppliedMeasurement => !IsMasked && !IsMeasurementOffsetInitialized && HasAppliedOffset && !HasWorkingMeasurement;
+    public bool HasWorkingMeasurement => !IsMeasurementOffsetInitialized && !IsMeasurementStateCleared && WorkingJudge is "OK" or "NG" && Finite(WorkingXUm) && Finite(WorkingYUm);
+    public bool HasMeasurementHistory => !IsMasked && !IsMeasurementOffsetInitialized && !IsMeasurementStateCleared && (HasWorkingMeasurement || HasAppliedOffset);
+    public bool UsesAppliedMeasurement => !IsMasked && !IsMeasurementOffsetInitialized && !IsMeasurementStateCleared && HasAppliedOffset && !HasWorkingMeasurement;
     public double? MeasurementXUm => UsesAppliedMeasurement ? BaseXUm : HasWorkingMeasurement ? WorkingXUm : null;
     public double? MeasurementYUm => UsesAppliedMeasurement ? BaseYUm : HasWorkingMeasurement ? WorkingYUm : null;
     public string MeasurementErrorText => Pair(MeasurementXUm, MeasurementYUm);
-    public string MeasurementStatusText => IsMasked ? "Masking" : IsMeasurementOffsetInitialized ? "초기화 · 미측정" : UsesAppliedMeasurement
+    public string MeasurementStatusText => IsMasked ? "Masking" : IsMeasurementStateCleared ? (WorkingJudge=="ERROR"?"오류 상태 복사":WorkingJudge=="NG"?"NG · 값 없음":"미측정 상태 복사") : IsMeasurementOffsetInitialized ? "초기화 · 미측정" : UsesAppliedMeasurement
         ? "측정됨 · 보정기반" + (WorkingJudge == "ERROR" ? " · 최근 수신 오류" : "")
         : WorkingJudge switch { "OK" => "OK · 측정됨", "NG" => "NG · 측정됨", "ERROR" => "수신 오류", "UNMEASURED" => "미측정", _ => WorkingJudge };
-    public string MeasurementBasisText => IsMeasurementOffsetInitialized ? "측정 Offset 초기화" : UsesAppliedMeasurement ? "보정기반 편차 · 기존 적용 Review Offset"
+    public string MeasurementBasisText => IsMeasurementStateCleared ? "대표의 빈 상태 · 실제 모델 Offset은 유지" : IsMeasurementOffsetInitialized ? "측정 Offset 초기화" : UsesAppliedMeasurement ? "보정기반 편차 · 기존 적용 Review Offset"
         : HasWorkingMeasurement ? IsProxy ? "대표값 복사 편차" : "측정 결과 편차" : "유효 편차 없음";
-    public string MeasurementSourceCode => UsesAppliedMeasurement ? "CORRECTION_BASED" : IsProxy ? "MANUAL" : Source;
+    public string MeasurementSourceCode => IsMeasurementStateCleared ? "MANUAL" : UsesAppliedMeasurement ? "CORRECTION_BASED" : IsProxy ? "MANUAL" : Source;
     public bool CanBeReference => !string.IsNullOrWhiteSpace(Key);
-    public bool CanCopyAsReference => !IsMeasurementOffsetInitialized && string.IsNullOrEmpty(ReferenceValueUnavailableReason)
+    public bool CanCopyAsReference => !IsMeasurementOffsetInitialized && !IsMeasurementStateCleared && string.IsNullOrEmpty(ReferenceValueUnavailableReason)
         && (ReferenceFinalXUm.HasValue || ReferenceFinalYUm.HasValue
             ? Finite(ReferenceFinalXUm) && Finite(ReferenceFinalYUm)
             : HeadNo is >= 1 and <= 8 && !IsProxy && (Source == "MEASURED" || CanUseImportedForCorrection) && HasWorkingMeasurement
@@ -103,7 +105,7 @@ public sealed record CManualInspectionUiPoint
     public string BaseOffsetText => Pair(BaseXUm, BaseYUm);
     public string CandidateOffsetText => CandidateXUm.HasValue && CandidateYUm.HasValue
         ? Pair(CandidateXUm, CandidateYUm) : "—";
-    public string SourceText => IsMeasurementOffsetInitialized ? "초기화" : UsesAppliedMeasurement ? "보정기반 측정 · 적용 이력"
+    public string SourceText => IsMeasurementStateCleared ? "빈 상태 복사" : IsMeasurementOffsetInitialized ? "초기화" : UsesAppliedMeasurement ? "보정기반 측정 · 적용 이력"
         : IsProxy ? "대표값 복사" : Source == "MEASURED" ? "직접 측정" : Source == "IMPORTED" ? "불러온 측정" : Source;
     public string ReferenceText => string.IsNullOrEmpty(ReferenceKey) ? "—" : ReferenceKey;
     public static bool Finite(double? value) => value.HasValue && double.IsFinite(value.Value);

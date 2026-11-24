@@ -84,6 +84,7 @@ internal static partial class Program
             ((Expander)view.FindName("ScatterSection")).IsExpanded = true; Pump();
             Test("mapfirst_scatter_still_available", ((CManualInspectionScatterControl)view.FindName("ScatterPlot")).IsVisible && ((CManualInspectionScatterControl)view.FindName("ScatterPlot")).Metrics.Count > 0);
             ((Expander)view.FindName("ScatterSection")).IsExpanded = false; Pump();
+            ((Expander)view.FindName("LeftInspectorSection")).IsExpanded = false; Pump();
             Test("mapfirst_closing_secondary_panels_restores_large_map", map.ActualWidth >= view.ActualWidth * .89 && map.ActualHeight >= view.ActualHeight * .64 && workspace.ScrollableHeight <= 1);
 
             var geometryBefore = Slots(map); var selectionBefore = Field<HashSet<string>>(view, "_selected").ToHashSet();

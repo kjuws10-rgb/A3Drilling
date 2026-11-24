@@ -18,6 +18,7 @@
     <Compile Include="BulkHistoryCases.cs" />
     <Compile Include="RepresentativeCases.cs" />
     <Compile Include="RetryVisibilityCases.cs" />
+    <Compile Include="FirstLoadStateCases.cs" />
   </ItemGroup>
   <ItemGroup Condition="'$(UseActualAssemblies)' != 'true'">
     <Compile Include="Contracts.cs" />

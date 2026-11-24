@@ -276,6 +276,7 @@ internal static partial class Program
         await RunMeasurementStateChecks();
         await RunBulkHistoryChecks();
         await RunRepresentativeChecks();
+        await RunNativeFirstLoadChecks();
         await RunMonitorDisplayChecks();
         await RunMonitorShotDetailChecks();
         await RunRecipeDisplayChecks();

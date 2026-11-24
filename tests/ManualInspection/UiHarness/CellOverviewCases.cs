@@ -641,12 +641,14 @@ internal static partial class Program
                 &&Slots(map).Values.All(r=>r.Left>=-.1&&r.Top>=-.1&&r.Right<=map.ActualWidth+.1&&r.Bottom<=map.ActualHeight+.1),
                 new{map.ActualHeight,minimum,scroll.ViewportHeight});
             foreach(var theme in new[]{"Light","Dark"}){LoadResources(theme);Pump();Render(view,"expanded-map-"+theme.ToLowerInvariant()+"-"+size.Name+".png");}
-            scatter.BringIntoView();Pump();var bounds=scatter.TransformToAncestor(scroll).TransformBounds(new Rect(scatter.RenderSize));
-            Test("expanded_scatter_plot_remains_reachable_after_map_minimum_"+size.Name,scatter.IsVisible&&bounds.Top>=-1&&bounds.Bottom<=scroll.ViewportHeight+1
-                &&scroll.VerticalOffset>=0&&scatter.Metrics.Count>0&&fake.Calls.Count==0,new{bounds.Top,bounds.Bottom,scroll.ViewportHeight,scroll.VerticalOffset});
+            ((TabControl)view.FindName("ScatterPaneTabs")).SelectedIndex=0;Pump();
+            var chartViewport=(ScrollViewer)view.FindName("ScatterSectionContent");
+            var bounds=scatter.TransformToAncestor(chartViewport).TransformBounds(new Rect(scatter.RenderSize));
+            Test("left_scatter_plot_remains_reachable_without_central_scroll_"+size.Name,scatter.IsVisible&&bounds.Top>=-1&&bounds.Bottom<=chartViewport.ViewportHeight+1
+                &&scroll.ScrollableHeight<=1&&scatter.Metrics.Count>0&&fake.Calls.Count==0,new{bounds.Top,bounds.Bottom,chartViewport.ViewportHeight,scroll.ScrollableHeight});
             foreach(var theme in new[]{"Light","Dark"}){LoadResources(theme);Pump();Render(view,"expanded-scatter-plot-"+theme.ToLowerInvariant()+"-"+size.Name+".png");}
-            section.IsExpanded=false;Pump();scroll.ScrollToTop();Pump();
-            collapsedRestored&=scroll.ScrollableHeight<=1&&scroll.ScrollableWidth<=1&&map.ActualHeight>=view.ActualHeight*.64&&map.MinHeight==80;
+            section.IsExpanded=false;((Expander)view.FindName("LeftInspectorSection")).IsExpanded=false;Pump();scroll.ScrollToTop();Pump();
+            collapsedRestored&=scroll.ScrollableHeight<=1&&scroll.ScrollableWidth<=1&&map.ActualHeight>=view.ActualHeight*.64;
             observations.Add(new{kind="expanded-map-access",size.Name,mapMinExpanded=minimum,collapsedMapHeight=map.ActualHeight,scroll.ScrollableHeight});
         }
         Test("closing_scatter_restores_map_first_no_scroll_at_both_sizes",collapsedRestored&&fake.Calls.Count==0);

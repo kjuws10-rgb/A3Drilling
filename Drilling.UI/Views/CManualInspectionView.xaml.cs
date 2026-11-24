@@ -50,6 +50,12 @@ public partial class CManualInspectionView : UserControl
         public string ScatterHalfRangeInput { get; init; } = "20";
         public string MeasurementMode { get; init; } = "P2P";
         public bool InspectorOpen { get; init; }
+        public bool LeftInspectorOpen { get; init; }
+        public int LeftPaneIndex { get; init; }
+        public int RightPaneIndex { get; init; }
+        public int CorrectionPaneIndex { get; init; }
+        public int ScatterPaneIndex { get; init; }
+        public int SettingsPaneIndex { get; init; }
         public bool ResultsOpen { get; init; }
         public bool ScatterOpen { get; init; }
         public bool WorkInfoOpen { get; init; }
@@ -174,19 +180,76 @@ public partial class CManualInspectionView : UserControl
             PointErrorText.FontSize = wide ? 13 : 11;
             SelectionSummaryText.Visibility = SelectionLevelsText.Visibility = wide ? Visibility.Visible : Visibility.Collapsed;
         }
-        // An expanded bottom pane is scrollable, but the board must remain readable for comparison.
-        // Folded mode keeps the previous small floor so the map fills the viewport without scrolling.
-        var expanded = ResultsSection.IsExpanded || ScatterSection.IsExpanded;
+        // Side pages never grow the central surface. The bottom table takes a bounded share;
+        // the remaining height belongs to the map, including on a short notebook viewport.
         var viewport = WorkspaceScroll.ViewportHeight;
-        var mapMinimum = expanded ? Math.Max(240, double.IsFinite(viewport) ? Math.Ceiling(viewport * .45) : 240) : 80;
-        if (Math.Abs(PositionMap.MinHeight - mapMinimum) > .5) PositionMap.MinHeight = mapMinimum;
-        var minimum = expanded ? 0
-            : PositionMap.MinHeight + MapPanel.Padding.Top + MapPanel.Padding.Bottom
-                + MapPanel.BorderThickness.Top + MapPanel.BorderThickness.Bottom
-                + MapPanel.Margin.Top + MapPanel.Margin.Bottom
-                + WorkspaceBody.RowDefinitions.Skip(1).Sum(row => row.ActualHeight);
-        if (double.IsFinite(minimum) && Math.Abs(WorkspaceBody.MinHeight - Math.Ceiling(minimum)) > .5)
-            WorkspaceBody.MinHeight = Math.Ceiling(minimum);
+        if (PositionMap.MinHeight != 1) PositionMap.MinHeight = 1;
+        if (WorkspaceBody.MinHeight != 0) WorkspaceBody.MinHeight = 0;
+        var tableHeight = Math.Clamp(double.IsFinite(viewport) ? viewport * .28 : 120, 88, 150);
+        if (Math.Abs(ResultsSectionContent.MaxHeight-tableHeight)>.5) ResultsSectionContent.MaxHeight=tableHeight;
+        var compact = ActualWidth < 1300;
+        var leftWidth = compact ? 230d : 250d; var rightWidth = compact ? 260d : 280d;
+        if (Math.Abs(LeftInspectorScroll.Width-leftWidth)>.5) LeftInspectorScroll.Width=leftWidth;
+        if (Math.Abs(InspectorScroll.Width-rightWidth)>.5) InspectorScroll.Width=rightWidth;
+    }
+    private bool _sidePaneTransition;
+    private void LeftPane_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    { if (ReferenceEquals(e.OriginalSource,sender)) ActivateSidePane(true); }
+    private void RightPane_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    { if (ReferenceEquals(e.OriginalSource,sender)) ActivateSidePane(false); }
+    private void CorrectionPane_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    { if (ReferenceEquals(e.OriginalSource,sender) && IsInitialized && !_updating) RefreshButtons(); }
+    private void ScatterPane_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!ReferenceEquals(e.OriginalSource,sender) || !IsInitialized || _updating || _sidePaneTransition) return;
+        if (ScatterPaneTabs.SelectedIndex==2) ScatterSettingsSection.IsExpanded=true;
+        ScatterPlot.InvalidateVisual();
+    }
+    private void SettingsPane_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!ReferenceEquals(e.OriginalSource,sender) || !IsInitialized || _updating || _sidePaneTransition) return;
+        if (SettingsPaneTabs.SelectedIndex==2 && LevelSettingsPanel.Children.Count==0) Levels_Click(this,new RoutedEventArgs());
+    }
+    private void ActivateSidePane(bool left)
+    {
+        if (!IsInitialized || _updating || _sidePaneTransition || LeftPaneTabs is null || RightPaneTabs is null) return;
+        _sidePaneTransition=true;
+        try
+        {
+            if (left)
+            {
+                LeftInspectorSection.IsExpanded=true;
+                if (LeftPaneTabs.SelectedIndex==0) WorkInfoSection.IsExpanded=true;
+                else if (LeftPaneTabs.SelectedIndex==3) ScatterSection.IsExpanded=true;
+                else if (LeftPaneTabs.SelectedIndex==4) SettingsSection.IsExpanded=true;
+            }
+            else
+            {
+                InspectorSection.IsExpanded=true;
+                if (RightPaneTabs.SelectedIndex==0) PointDetailsSection.IsExpanded=true;
+                else if (RightPaneTabs.SelectedIndex==1) ReferenceSection.IsExpanded=true;
+                else if (RightPaneTabs.SelectedIndex==2) CorrectionSection.IsExpanded=true;
+            }
+        }
+        finally { _sidePaneTransition=false; }
+    }
+    private void SideSection_Expanded(object sender, RoutedEventArgs e)
+    {
+        if (!ReferenceEquals(e.OriginalSource,sender) || !IsInitialized || _updating || _sidePaneTransition
+            || LeftPaneTabs is null || RightPaneTabs is null) return;
+        _sidePaneTransition=true;
+        try
+        {
+            var name=(sender as FrameworkElement)?.Name;
+            int? left=name switch { "WorkInfoSection" or "SearchSection"=>0,"ScatterSection" or "ScatterSettingsSection"=>3,"SettingsSection"=>4,_=>null };
+            int? right=name switch { "PointDetailsSection"=>0,"ReferenceSection"=>1,"CorrectionSection"=>2,_=>null };
+            if (left is int li) { LeftInspectorSection.IsExpanded=true;LeftPaneTabs.SelectedIndex=li; }
+            if (right is int ri) { InspectorSection.IsExpanded=true;RightPaneTabs.SelectedIndex=ri; }
+            if(name=="ScatterSettingsSection") ScatterPaneTabs.SelectedIndex=2;
+        }
+        finally { _sidePaneTransition=false; }
+        if (ReferenceEquals(sender,LeftInspectorSection)) ActivateSidePane(true);
+        else if (ReferenceEquals(sender,InspectorSection)) ActivateSidePane(false);
     }
     private void View_Unloaded(object sender, RoutedEventArgs e) { DetachController(); }
     private void View_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -371,16 +434,19 @@ public partial class CManualInspectionView : UserControl
         else
         {
             var (x, y) = ReferenceValues(reference);
-            var source = reference.IsProxy ? "복사값" : reference.ReferenceValueKind == "APPLIED_OFFSET" ? "기존 보정"
+            var source = !reference.CanCopyAsReference && reference.CanCopyReferenceState ? "빈 측정 상태"
+                : reference.IsProxy ? "복사값" : reference.ReferenceValueKind == "APPLIED_OFFSET" ? "기존 보정"
                 : reference.IsMeasurementOffsetInitialized || !reference.CanCopyAsReference ? "미측정·근거 확인 필요" : "측정값";
             ReferenceText.Text = $"★ {reference.Key} · {(string.IsNullOrEmpty(reference.ReferenceValueJudge)?reference.WorkingJudge:reference.ReferenceValueJudge)} · {source}\n" + (reference.CanCopyAsReference
                 ? $"대표 Offset {CManualInspectionUiPoint.Pair(x, y)} µm"
-                : "대표점 지정됨 · 현재 복사할 값 없음");
+                : reference.CanCopyReferenceState ? "빈 측정 상태 복사 가능 · 기존 모델 보정값은 유지"
+                : "대표점 지정됨 · 복사할 상태를 확인하세요.");
         }
         ReferenceText.SetResourceReference(TextBlock.ForegroundProperty, reference?.WorkingJudge == "NG" ? "ButtonDangerBrush" : "AccentTextBrush");
         var count = _selected.Count(k => k != _representativeKey && _points.TryGetValue(k, out var q) && !q.IsMasked);
         CopyReferenceButton.Content = $"같은 오프셋 · 상태 적용 · {count}점";
         CopyReferenceButton.ToolTip = reference?.CanCopyAsReference == true ? "대표 Offset과 현재 판정을 복사합니다. 모델 저장 검증은 별도입니다."
+            : reference?.CanCopyReferenceState == true ? "대표점의 빈 측정 상태를 복사합니다. 기존 모델 보정값과 원측정은 유지하며, 실제 보정 대상으로 만들지 않습니다."
             : reference?.ReferenceValueUnavailableReason ?? "대표점의 복사할 값이 필요합니다.";
     }
     private (double? X, double? Y) ReferenceValues(CManualInspectionUiPoint point)
@@ -494,7 +560,7 @@ public partial class CManualInspectionView : UserControl
         var initScope = Value(InitScopeCombo, "ALL");
         var validInitScope = initScope == "ALL" || initScope == "CELL" && int.TryParse(Value(InitCellCombo), out var initCell) && _cellChoices.Contains(initCell)
             || initScope == "HEAD" && int.TryParse(Value(InitHeadCombo), out var initHead) && _headChoices.Contains(initHead);
-        OffsetInitButton.IsEnabled = idle && (_snapshot.IsOffsetEditPending || writable && !_snapshot.HasIncomplete && validInitScope);
+        OffsetInitButton.IsEnabled = idle && (_snapshot.IsOffsetEditPending || writable && validInitScope);
         InitScopeCombo.IsEnabled = InitCellCombo.IsEnabled = InitHeadCombo.IsEnabled = idle && !_snapshot.IsOffsetEditPending;
         OffsetInitButton.Content = _snapshot.IsOffsetEditPending ? "Offset 편집 취소" : "Offset Init";
         OffsetInitButton.Tag = _snapshot.IsOffsetEditPending ? "CancelOffsetEdit" : "InitializeOffsets";
@@ -512,7 +578,9 @@ public partial class CManualInspectionView : UserControl
             : Busy ? "현재 동작 정리 후 사용할 수 있습니다."
             : _snapshot.HasIncomplete ? "남은 측정을 완료한 뒤 계산·검증하세요."
             : "저장할 초기화 또는 가져온 Offset 작업이 없습니다.";
-        BulkApplyButton.IsEnabled=operate && !_snapshot.HasIncomplete && _snapshot.CanBulkApply;
+        BulkApplyButton.IsEnabled=operate;
+        BulkApplyButton.ToolTip=_snapshot.CanBulkApply ? "현재 모델의 새 OK 결과를 확인·검증한 뒤 보정합니다."
+            : "현재 보정 가능 여부와 제외 이유를 확인합니다. NG·미측정 결과는 보정하지 않습니다.";
         BulkSummaryText.Text=_snapshot.BulkSummaryText;
         RollbackButton.IsEnabled = operate && _snapshot.CanUndoOffsets;
         RollbackButton.Content=$"되돌리기 ({_snapshot.UndoOffsetCount})";
@@ -521,8 +589,8 @@ public partial class CManualInspectionView : UserControl
         OffsetHistoryText.Text=_snapshot.OffsetHistoryText;
         SetReferenceButton.IsEnabled = idle && FocusPoint?.CanBeReference == true;
         ClearReferenceButton.IsEnabled = idle && _representativeKey is not null;
-        CopyReferenceButton.IsEnabled = operate && !_snapshot.HasIncomplete && _representativeKey is not null
-            && _points.TryGetValue(_representativeKey, out var reference) && reference.CanCopyAsReference
+        CopyReferenceButton.IsEnabled = operate && _representativeKey is not null
+            && _points.TryGetValue(_representativeKey, out var reference) && (reference.CanCopyAsReference || reference.CanCopyReferenceState)
             && _selected.Any(k => k != _representativeKey && _points.TryGetValue(k, out var p) && !p.IsMasked);
         UndoCopyButton.IsEnabled = operate && !_snapshot.HasIncomplete && _snapshot.CanUndoCopy;
         UndoCopyButton.Visibility = _snapshot.CanUndoCopy ? Visibility.Visible : Visibility.Collapsed;
@@ -594,9 +662,9 @@ public partial class CManualInspectionView : UserControl
         // the accumulated model offset, and a missing offset row must never become a zero sample.
         // These immutable clones cannot authorize correction or replace the source measurement.
         var display = offsets ? range.Select(p => p with { WorkingJudge = "UNMEASURED", WorkingXUm = null, WorkingYUm = null,
-                IsProxy = false, IsMeasurementOffsetInitialized = false, CanUseImportedForCorrection = false }).ToArray()
+                IsProxy = false, IsMeasurementOffsetInitialized = false, IsMeasurementStateCleared=false, CanUseImportedForCorrection = false }).ToArray()
             : _scatterOriginal ? range.Select(p => p with { WorkingJudge = p.OriginalJudge, WorkingXUm = p.OriginalXUm, WorkingYUm = p.OriginalYUm,
-                IsProxy = false, HasAppliedOffset = false, IsMeasurementOffsetInitialized = false, CanUseImportedForCorrection = false }).ToArray() : range;
+                IsProxy = false, HasAppliedOffset = false, IsMeasurementOffsetInitialized = false, IsMeasurementStateCleared=false, CanUseImportedForCorrection = false }).ToArray() : range;
         ScatterPlot.Configure(display, _selected, _scatterScope == "HEAD", _snapshot.ToleranceXUm, _snapshot.ToleranceYUm,
             _scatterScope == "CELLS" && _scatterCells.Count == 0 ? "산포도를 볼 Cell을 위에서 선택하세요."
                 : offsets ? "이 범위에 저장된 통합 Offset 행이 없습니다. 전체 셀·Head별 또는 다른 범위를 확인하세요." : "이 범위에 유효한 측정값이 없습니다.",
@@ -817,7 +885,10 @@ public partial class CManualInspectionView : UserControl
         ScatterFollowSelection = _scatterFollowSelection, ScatterCells = _scatterCells.ToArray(),
         ScatterAuto = ScatterPlot.IsAutoScale, ScatterZoom = ScatterPlot.Zoom, ScatterRange = (ScatterPlot.MinXUm, ScatterPlot.MaxXUm, ScatterPlot.MinYUm, ScatterPlot.MaxYUm),
         ScatterHalfRangeInput = ScatterRangeInput.Text, MeasurementMode = Value(MeasurementModeCombo, "P2P"),
-        InspectorOpen = InspectorSection.IsExpanded, ResultsOpen = ResultsSection.IsExpanded, ScatterOpen = ScatterSection.IsExpanded,
+        InspectorOpen = InspectorSection.IsExpanded, LeftInspectorOpen=LeftInspectorSection.IsExpanded,
+        LeftPaneIndex=LeftPaneTabs.SelectedIndex,RightPaneIndex=RightPaneTabs.SelectedIndex,
+        CorrectionPaneIndex=CorrectionPaneTabs.SelectedIndex,ScatterPaneIndex=ScatterPaneTabs.SelectedIndex,SettingsPaneIndex=SettingsPaneTabs.SelectedIndex,
+        ResultsOpen = ResultsSection.IsExpanded, ScatterOpen = ScatterSection.IsExpanded,
         WorkInfoOpen = WorkInfoSection.IsExpanded, SearchOpen = SearchSection.IsExpanded,
         ReferenceOpen = ReferenceSection.IsExpanded, CorrectionOpen = CorrectionSection.IsExpanded,
         SettingsOpen = SettingsSection.IsExpanded, PointDetailsOpen = PointDetailsSection.IsExpanded,
@@ -849,6 +920,10 @@ public partial class CManualInspectionView : UserControl
             ScatterSection.IsExpanded = bookmark.ScatterOpen; WorkInfoSection.IsExpanded = bookmark.WorkInfoOpen; SearchSection.IsExpanded = bookmark.SearchOpen;
             ReferenceSection.IsExpanded = bookmark.ReferenceOpen; CorrectionSection.IsExpanded = bookmark.CorrectionOpen;
             SettingsSection.IsExpanded = bookmark.SettingsOpen; PointDetailsSection.IsExpanded = bookmark.PointDetailsOpen;
+            LeftInspectorSection.IsExpanded=bookmark.LeftInspectorOpen;
+            LeftPaneTabs.SelectedIndex=bookmark.LeftPaneIndex;RightPaneTabs.SelectedIndex=bookmark.RightPaneIndex;
+            CorrectionPaneTabs.SelectedIndex=bookmark.CorrectionPaneIndex;ScatterPaneTabs.SelectedIndex=bookmark.ScatterPaneIndex;
+            SettingsPaneTabs.SelectedIndex=bookmark.SettingsPaneIndex;
         }
         finally { _updating = false; }
         Refresh(); UpdateLayout();
@@ -878,6 +953,14 @@ public partial class CManualInspectionView : UserControl
         if (action is EN_MANUAL_INSPECTION_UI_ACTION.BulkApply or EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets or EN_MANUAL_INSPECTION_UI_ACTION.Calculate
             or EN_MANUAL_INSPECTION_UI_ACTION.Validate or EN_MANUAL_INSPECTION_UI_ACTION.Apply)
         {
+            if(action==EN_MANUAL_INSPECTION_UI_ACTION.BulkApply && (!current.CanBulkApply || current.BulkEligibleCount==0))
+            {
+                InspectorSection.IsExpanded=true;RightPaneTabs.SelectedIndex=2;CorrectionSection.IsExpanded=true;CorrectionPaneTabs.SelectedIndex=0;
+                ShowMessage(current.HasIncomplete ? "미완료 측정이 있습니다. 남은 위치를 측정하거나 새 측정·Offset Init으로 작업을 정리하세요."
+                    : current.BulkEligibleCount>0 ? "현재 모델·좌표 기준을 확인할 수 없어 적용할 수 없습니다. 모델을 확인한 뒤 다시 시도하세요."
+                    : "적용할 새 OK 측정값이 없습니다. NG·미측정·빈 상태·이미 적용한 결과는 제외합니다.\n"+current.BulkSummaryText);
+                return;
+            }
             bool CanConfirm(CManualInspectionUiSnapshot snapshot) => !snapshot.HasIncomplete && (action switch
             {
                 EN_MANUAL_INSPECTION_UI_ACTION.BulkApply => !snapshot.IsOffsetEditPending && snapshot.CanBulkApply && snapshot.BulkEligibleCount > 0,
@@ -1043,7 +1126,7 @@ public partial class CManualInspectionView : UserControl
 
     private async void CopyReference_Click(object sender,RoutedEventArgs e)
     {
-        if (Busy || _snapshot.HasIncomplete || _representativeKey is null || !_points.TryGetValue(_representativeKey,out var reference) || !reference.CanCopyAsReference) return;
+        if (Busy || _representativeKey is null || !_points.TryGetValue(_representativeKey,out var reference) || !(reference.CanCopyAsReference || reference.CanCopyReferenceState)) return;
         var keys=_selected.Where(k=>k!=reference.Key && _points.TryGetValue(k,out var p) && !p.IsMasked).ToArray();
         if (keys.Length==0) { ShowMessage("대표점 이외의 대상을 선택하세요.");return; }
         var reason=string.IsNullOrWhiteSpace(CopyReasonInput.Text)?"대표값 동일 반영":CopyReasonInput.Text.Trim();
@@ -1070,16 +1153,24 @@ public partial class CManualInspectionView : UserControl
 
     private void Levels_Click(object sender,RoutedEventArgs e)
     {
-        if (LevelSettingsPanel.Visibility==Visibility.Visible) {LevelSettingsPanel.Visibility=Visibility.Collapsed;return;}
+        LeftInspectorSection.IsExpanded=true;LeftPaneTabs.SelectedIndex=4;SettingsSection.IsExpanded=true;SettingsPaneTabs.SelectedIndex=2;
         LevelSettingsPanel.Children.Clear();LevelSettingsPanel.Visibility=Visibility.Visible;
         var metric=new ComboBox {Style=(Style)FindResource("ManualComboBox")};
         SetChoices(metric,[new("MAX_AXIS","max(|X|, |Y|)"),new("RADIAL","벡터 크기")],_snapshot.LevelMetric);LevelSettingsPanel.Children.Add(metric);
+        var grid=new Grid{Margin=new Thickness(0,4,0,4)};
+        grid.ColumnDefinitions.Add(new(){Width=new GridLength(24)});grid.ColumnDefinitions.Add(new(){Width=new GridLength(1,GridUnitType.Star)});grid.ColumnDefinitions.Add(new(){Width=new GridLength(64)});
+        grid.RowDefinitions.Add(new(){Height=GridLength.Auto});
+        void Add(UIElement element,int row,int column){Grid.SetRow(element,row);Grid.SetColumn(element,column);grid.Children.Add(element);}
+        Add(Label("L"),0,0);Add(Label("이름"),0,1);Add(Label("상한 µm"),0,2);
         var names=new List<TextBox>();var bounds=new List<TextBox>();
         for(var i=0;i<4;i++)
         {
-            LevelSettingsPanel.Children.Add(Label($"L{i+1} 이름"));var name=new TextBox {Text=_snapshot.LevelNames.ElementAtOrDefault(i)??$"L{i+1}",Style=(Style)FindResource("ManualInput")};names.Add(name);LevelSettingsPanel.Children.Add(name);
-            if(i<3) {LevelSettingsPanel.Children.Add(Label("상한 µm"));var bound=new TextBox {Text=_snapshot.LevelBoundsUm.ElementAtOrDefault(i).ToString(CultureInfo.InvariantCulture),Style=(Style)FindResource("ManualInput")};bounds.Add(bound);LevelSettingsPanel.Children.Add(bound);}
+            grid.RowDefinitions.Add(new(){Height=GridLength.Auto});Add(Label((i+1).ToString()),i+1,0);
+            var name=new TextBox {Text=_snapshot.LevelNames.ElementAtOrDefault(i)??$"L{i+1}",Style=(Style)FindResource("ManualInput"),Margin=new Thickness(0,2,4,2)};names.Add(name);Add(name,i+1,1);
+            if(i<3) {var bound=new TextBox {Text=_snapshot.LevelBoundsUm.ElementAtOrDefault(i).ToString(CultureInfo.InvariantCulture),Style=(Style)FindResource("ManualInput"),Margin=new Thickness(0,2,0,2)};bounds.Add(bound);Add(bound,i+1,2);}
+            else Add(Label("초과"),i+1,2);
         }
+        LevelSettingsPanel.Children.Add(grid);
         var save=Button("Level 적용",async()=>
         {
             try
@@ -1184,7 +1275,7 @@ public partial class CManualInspectionView : UserControl
         var key = e.Key == Key.System ? e.SystemKey : e.Key;
         if (key == Key.Escape && PositionMap.TryCancelGesture()) { e.Handled = true; return; }
         if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && key == Key.F)
-        { InspectorSection.IsExpanded = true; WorkInfoSection.IsExpanded = true; SearchSection.IsExpanded = true; SearchBox.Focus(); SearchBox.SelectAll(); e.Handled = true; return; }
+        { LeftInspectorSection.IsExpanded = true; LeftPaneTabs.SelectedIndex=0; WorkInfoSection.IsExpanded = true; SearchSection.IsExpanded = true; SearchBox.Focus(); SearchBox.SelectAll(); e.Handled = true; return; }
         if (Keyboard.Modifiers.HasFlag(ModifierKeys.Alt) && key is Key.Left or Key.Right or Key.Up or Key.Down
             && Ancestor<TextBox>(e.OriginalSource as DependencyObject) is null && Ancestor<ComboBox>(e.OriginalSource as DependencyObject) is null)
         {

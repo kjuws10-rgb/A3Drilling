@@ -329,7 +329,9 @@ public sealed class CManualInspectionScatterControl : Control
             }
         }
         dc.Pop();
-        var legend = IsOffsetData ? $"통합 Offset · + 평균 · {_hits.Count:N0}/{Metrics.Count:N0}점"
+        var legend = ActualWidth < 350
+            ? $"{(IsOffsetData ? "Offset" : "NG 빨강")} · + 평균 · {_hits.Count:N0}/{Metrics.Count:N0}점"
+            : IsOffsetData ? $"통합 Offset · + 평균 · {_hits.Count:N0}/{Metrics.Count:N0}점"
             : $"NG 빨강 · 출처는 점 위에서 확인 · + 평균 · {_hits.Count:N0}/{Metrics.Count:N0}점";
         CManualInspectionDrawing.Text(dc, this, legend, new Point(8, ActualHeight - 16), 9, Foreground, false, Math.Max(1, ActualWidth - 16));
         if (ActualWidth > 470)

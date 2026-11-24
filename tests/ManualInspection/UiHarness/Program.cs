@@ -34,10 +34,10 @@ internal static partial class Program
     [STAThread]
     private static int Main(string[] args)
     {
-        if (args.Length is < 2 or > 3 || args.Length == 3 && args[2] is not ("--integration-impact" or "--sync-levels" or "--coverage-compact" or "--hardening" or "--visual-usability" or "--map-first" or "--cell-overview" or "--offset-init" or "--measurement-workflow" or "--bulk-history" or "--representative")) { Console.Error.WriteLine("Usage: UiHarness <repository/Drilling.UI> <private-output> [--integration-impact|--sync-levels|--coverage-compact|--hardening|--visual-usability|--map-first|--cell-overview|--offset-init|--measurement-workflow|--bulk-history|--representative]"); return 2; }
+        if (args.Length is < 2 or > 3 || args.Length == 3 && args[2] is not ("--integration-impact" or "--sync-levels" or "--coverage-compact" or "--hardening" or "--visual-usability" or "--map-first" or "--cell-overview" or "--offset-init" or "--measurement-workflow" or "--bulk-history" or "--representative" or "--side-panels")) { Console.Error.WriteLine("Usage: UiHarness <repository/Drilling.UI> <private-output> [--integration-impact|--sync-levels|--coverage-compact|--hardening|--visual-usability|--map-first|--cell-overview|--offset-init|--measurement-workflow|--bulk-history|--representative|--side-panels]"); return 2; }
         _uiSource = Path.GetFullPath(args[0]); _output = Path.GetFullPath(args[1]); Directory.CreateDirectory(_output);
         _application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-        if (args.Length == 3) return args[2] switch { "--sync-levels" => SyncLevels(), "--coverage-compact" => CoverageCompact(), "--hardening" => Hardening(), "--visual-usability" => VisualUsability(), "--map-first" => MapFirst(), "--cell-overview" => CellOverview(), "--offset-init" => OffsetInit(), "--measurement-workflow" => MeasurementWorkflow(), "--bulk-history" => BulkHistory(), "--representative" => Representative(), _ => IntegrationImpact() };
+        if (args.Length == 3) return args[2] switch { "--sync-levels" => SyncLevels(), "--coverage-compact" => CoverageCompact(), "--hardening" => Hardening(), "--visual-usability" => VisualUsability(), "--map-first" => MapFirst(), "--cell-overview" => CellOverview(), "--offset-init" => OffsetInit(), "--measurement-workflow" => MeasurementWorkflow(), "--bulk-history" => BulkHistory(), "--representative" => Representative(), "--side-panels" => SidePanels(), _ => IntegrationImpact() };
         try
         {
             LoadResources("Light");
@@ -251,7 +251,7 @@ internal static partial class Program
             var map=(CManualInspectionMapControl)view.FindName("PositionMap");
             Test("default_color_is_measurement_deviation_level",Field<string>(view,"_color")=="level");
             Test("only_level_and_judge_color_concepts",((ComboBox)view.FindName("ColorFilter")).Items.Count==2);
-            Test("advanced_sections_initially_closed",new[]{"ReferenceSection","CorrectionSection","SettingsSection","ScatterSection","ResultsSection","PointDetailsSection"}.All(n=>!((Expander)view.FindName(n)).IsExpanded));
+            Test("advanced_sections_initially_closed",new[]{"InspectorSection","LeftInspectorSection","ReferenceSection","CorrectionSection","SettingsSection","ScatterSection","ResultsSection"}.All(n=>!((Expander)view.FindName(n)).IsExpanded));
             Test("simulation_and_duplicate_motion_controls_removed",new[]{"SimulationOptions","SimulationDemoButton","MoveButton","MoveMeasureCorrectButton","SideStopButton","PanToolButton","LoadResultButton"}.All(n=>view.FindName(n)is null));
             Test("automatic_synchronization_description_reachable",((TextBlock)view.FindName("StatusText")).ToolTip?.ToString()?.Contains(initial.SynchronizationText)==true);
             fake.Replace(initial with{Version=101,SyncPending=true});Pump();

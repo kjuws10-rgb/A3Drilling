@@ -26,7 +26,7 @@ internal static partial class Program
             Test("offset_ui_default_folded_workspace_still_has_no_scroll",Find<ScrollViewer>("WorkspaceScroll").ScrollableHeight<=1&&map.ActualHeight>=360);
             Invoke(view,"SetMapCellScope",0);Pump();Test("offset_ui_overview_does_not_draw_duplicate_whole_cell_button",AllCellButtons()==0);
             Invoke(view,"SetMapCellScope",1);Pump();
-            Find<Expander>("InspectorSection").IsExpanded=true;Find<Expander>("CorrectionSection").IsExpanded=true;Pump();
+            Find<Expander>("InspectorSection").IsExpanded=true;Find<Expander>("CorrectionSection").IsExpanded=true;Find<TabControl>("CorrectionPaneTabs").SelectedIndex=1;Pump();
             Test("offset_init_button_is_in_manual_correction_panel_and_initially_ready",init.Content.ToString()=="Offset Init"&&init.IsEnabled&&init.IsVisible);
             Click("OffsetInitButton");Test("offset_init_dispatches_without_confirmation",fake.Calls.Count==1&&descriptions.Count==0);
             var explain=CManualInspectionView.DescribeAction(EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets,state,0);
@@ -55,7 +55,7 @@ internal static partial class Program
             window.Width=1120;window.Height=560;Pump();
             fake.Replace(state with{Version=draft.Version+1});Pump();Test("offset_init_cancel_projection_restores_original_labels_and_enabled_operations",!Find<TextBlock>("ContextText").Text.Contains("미저장")&&init.Content.ToString()=="Offset Init"&&Find<Button>("CalculateButton").IsEnabled);
             Find<Expander>("InspectorSection").IsExpanded=false;Pump();Test("offset_init_after_fold_returns_to_scroll_free_map",Find<ScrollViewer>("WorkspaceScroll").ScrollableHeight<=1);
-            fake.Replace(state with{Version=draft.Version+2,HasIncomplete=true});Pump();Test("offset_init_button_is_disabled_for_incomplete_measurement",!init.IsEnabled);
+            fake.Replace(state with{Version=draft.Version+2,HasIncomplete=true});Pump();Test("offset_init_button_allows_explicit_idle_reset_after_incomplete_measurement",init.IsEnabled);
             fake.Replace(state with{Version=draft.Version+3,IsReadOnly=true});Pump();Test("offset_init_button_has_no_legacy_readonly_gate",init.IsEnabled&&!Find<TextBlock>("ContextText").Text.Contains("조회 전용"));
             window.Close();
             RunCumulativeScatterChecks();
