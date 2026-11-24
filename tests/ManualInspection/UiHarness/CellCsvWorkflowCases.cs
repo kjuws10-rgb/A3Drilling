@@ -30,7 +30,7 @@ internal static partial class Program
                 WorkingJudge = i == 3 ? "NG" : "OK", OriginalJudge = i == 3 ? "NG" : "OK", WorkingXUm = 2, WorkingYUm = 1, OriginalXUm = 2, OriginalYUm = 1,
                 IsMasked = false, IsProxy = false, IsOperatorResult = false, IsMeasurementOffsetInitialized = false, IsMeasurementStateCleared = false,
                 HasAppliedOffset = true, BaseXUm = i == 0 ? 7 : 100 + i, BaseYUm = i == 0 ? -4 : 200 + i,
-                ReferenceFinalXUm = i == 0 ? 9 : 102 + i, ReferenceFinalYUm = i == 0 ? -3 : 201 + i,
+                ReferenceFinalXUm = 2, ReferenceFinalYUm = 1,
                 ReferenceValueKind = "MEASURED", ReferenceValueJudge = i == 3 ? "NG" : "OK", ReferenceValueUnavailableReason = "", Source = "MEASURED", CandidateXUm = null, CandidateYUm = null
             }).ToArray();
         return source with
@@ -64,7 +64,7 @@ internal static partial class Program
                 Test("cell_csv_export_delegates_current_saved_csv_picker_without_motion_confirmation_" + theme, fake.Calls.Count == 1 && fake.Calls[0].Action == EN_MANUAL_INSPECTION_UI_ACTION.ExportCurrentOffsetCsv && fake.Calls[0].Request.ExpectedVersion == 700 && confirmations == 0);
                 Test("cell_csv_cancelled_fake_export_does_not_change_working_or_final_state_" + theme, fake.Snapshot == state && fake.Snapshot.FinalOffsetRevisionId == "CSV-BEFORE");
                 ((Button)view.FindName("FilesButton")).ContextMenu!.IsOpen = false;
-                items = CellCsvMenu(view); items.Single(item => item.Header.ToString()!.Contains("가져오기")).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent)); Pump();
+                Invoke(view,"SetMapCellScope",1); items = CellCsvMenu(view); items.Single(item => item.Header.ToString()!.Contains("가져오기")).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent)); Pump();
                 Test("cell_csv_import_delegates_single_json_or_csv_import_action_" + theme, fake.Calls.Count == 2 && fake.Calls[1].Action == EN_MANUAL_INSPECTION_UI_ACTION.ImportOffsetBundle && confirmations == 0);
                 ((Button)view.FindName("FilesButton")).ContextMenu!.IsOpen = false;
                 fake.Replace(state with { Version = 701, IsOffsetEditPending = true, OffsetInitPending = true }); Pump(); items = CellCsvMenu(view);
@@ -121,17 +121,13 @@ internal static partial class Program
             var seen = ""; view.ConfirmationForTesting = (_, text, _) => { seen = text; return false; };
             void Copy() { ((Button)view.FindName("CopyReferenceButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Pump(); }
             Copy(); Test("cell_csv_reference_cancel_never_changes_offset_or_dispatches", fake.Calls.Count == 0 && fake.Snapshot.FinalOffsetPoints[target.Key].XUm == 101);
-            Test("cell_csv_reference_confirmation_explains_absolute_replacement", seen.Contains("교체") && seen.Contains("기존") && seen.Contains("더하지"));
-            var saved = state with
-            {
-                Version = 706, LastSaveVerificationCode = "VERIFIED", LastSavedRevisionId = "CSV-COPY", FinalOffsetRevisionId = "CSV-COPY",
-                FinalOffsetPoints = new Dictionary<string, CManualInspectionUiOffset>(state.FinalOffsetPoints) { [target.Key] = new(9, -3) }
-            };
+            Test("cell_csv_reference_confirmation_explains_absolute_replacement", seen.Contains("대체") && seen.Contains("기존") && seen.Contains("더하지"));
+            var saved = state with {Version=706,Points=state.Points.Select(point=>point.Key==target.Key?point with{WorkingXUm=2,WorkingYUm=1,IsProxy=true,ReferenceKey=reference.Key}:point).ToArray()};
             view.ConfirmationForTesting = (_, _, _) => true; fake.OnExecute = (action, _) => { if (action == EN_MANUAL_INSPECTION_UI_ACTION.CopyReference) fake.Replace(saved); }; Copy();
             Test("cell_csv_reference_dispatch_identifies_source_target_and_version", fake.Calls.Count == 1 && fake.Calls[0].Action == EN_MANUAL_INSPECTION_UI_ACTION.CopyReference && fake.Calls[0].Request.ReferenceKey == reference.Key && fake.Calls[0].Request.Keys.SequenceEqual([target.Key]) && fake.Calls[0].Request.ExpectedVersion == 700);
             var finalTarget = Field<IReadOnlyList<CManualInspectionUiPoint>>((CManualInspectionMapControl)view.FindName("PositionMap"), "_all").Single(point => point.Key == target.Key);
-            Test("cell_csv_reference_saved_projection_does_not_add_target_B_again", finalTarget.BaseXUm == 9 && finalTarget.BaseYUm == -3 && finalTarget.BaseXUm != target.BaseXUm + 9);
-            Test("cell_csv_reference_reply_keeps_other_cell_offsets_and_original_measurements", state.Points.Where(point => point.CellNo == 2).All(point => saved.FinalOffsetPoints[point.Key] == state.FinalOffsetPoints[point.Key]) && JsonSerializer.Serialize(saved.Points) == JsonSerializer.Serialize(state.Points));
+            Test("cell_csv_reference_stage_does_not_add_target_B_or_save_csv",finalTarget.MeasurementXUm==2&&finalTarget.MeasurementYUm==1&&finalTarget.BaseXUm==target.BaseXUm&&saved.FinalOffsetRevisionId==state.FinalOffsetRevisionId);
+            Test("cell_csv_reference_reply_keeps_other_cell_offsets_and_original_measurements",state.Points.Where(point=>point.CellNo==2).All(point=>saved.FinalOffsetPoints[point.Key]==state.FinalOffsetPoints[point.Key])&&saved.Points.Zip(state.Points).All(pair=>pair.First.OriginalXUm==pair.Second.OriginalXUm&&pair.First.OriginalJudge==pair.Second.OriginalJudge));
             observations.Add(new { sourceFinalX = reference.ReferenceFinalXUm, targetBeforeX = target.BaseXUm, targetAfterX = finalTarget.BaseXUm });
         }
         finally { window.Close(); Pump(); }

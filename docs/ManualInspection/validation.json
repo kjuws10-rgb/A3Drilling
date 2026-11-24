@@ -1,57 +1,65 @@
 {
-  "schemaVersion": "a3-manual-inspection-validation/20",
-  "programVersion": "11.24.7",
-  "baseCommit": "d05aec5f4d966232a25580c25ff453aedbfccb20",
-  "featureBranch": "feature/manual-inspection-cell-csv-workflow-20261124.7",
+  "schemaVersion": "a3-manual-inspection-validation/21",
+  "programVersion": "11.24.8",
+  "baseCommit": "35ef09b13dddb2d581582689e34978b9ac285d39",
+  "featureBranch": "feature/manual-inspection-replacement-workflow-20261124.8",
   "verifiedDate": "2026-11-24",
   "passed": true,
   "checks": {
     "core-results.json": {
       "passed": true,
-      "count": 254,
-      "path": "validation/11.24.7/core-results.json",
-      "sha256": "d457c18d6571604d781238ee22ae7664dec16f9cb851c8225fef396ae22fe276"
+      "count": 271,
+      "path": "validation/11.24.8/core-results.json",
+      "sha256": "9273f68aa908fff99afe48faf3ddfab8bfd98e1c409892e76e91285fc8f12ac3"
     },
     "controller-production.json": {
       "passed": true,
-      "count": 277,
-      "path": "validation/11.24.7/controller-production.json",
-      "sha256": "058371f6415cb650d1f775e9b94a28c741518bc4588713255f5c8b03f1c462ab"
+      "count": 285,
+      "path": "validation/11.24.8/controller-production.json",
+      "sha256": "6d263ff6cd84342e960b1d8a7d06f0375f2102c7bc6239fac8387d8b01f86df5"
     },
     "backend-read.json": {
       "passed": true,
-      "count": 174,
-      "path": "validation/11.24.7/backend-read.json",
-      "sha256": "ee12146e041ab553cefef1d3441700490565c2c0c26703ba36a28c52c9a71f83"
+      "count": 183,
+      "path": "validation/11.24.8/backend-read.json",
+      "sha256": "140b8f083e03dd7f71bad06f63ba9849948c761f152c1252065d537da4c968cc"
     },
     "bridge-writer.json": {
       "passed": true,
       "count": 35,
-      "path": "validation/11.24.7/bridge-writer.json",
+      "path": "validation/11.24.8/bridge-writer.json",
       "sha256": "f8c343ec6c890b66c14d779a32dff80ee9719abf5e959e584375e585a1302e1e"
     },
     "scope-results.json": {
       "passed": true,
-      "count": 33,
-      "path": "validation/11.24.7/scope-results.json",
-      "sha256": "9c37a999439eb956ec816daff547f139c69daad49ca68df7b9f5be82e2236624"
+      "count": 48,
+      "path": "validation/11.24.8/scope-results.json",
+      "sha256": "58769ebf9200998aa1df38068991ebbbcb22f9987deae061029a66706cdf2ecf"
+    },
+    "legacy-serialization.json": {
+      "passed": true,
+      "count": 32,
+      "path": "validation/11.24.8/legacy-serialization.json",
+      "sha256": "a5a1e18b32c2759bfc061c3ee3087031dd23ded65b82e777f089f5b8b008eec5"
     }
   },
-  "sourceHashPolicy": "Raw bytes of the tested Windows checkout. Git publication is additionally compared with line-ending/BOM normalization.",
+  "sourceHashPolicy": "Raw bytes of the tested Windows checkout; published Git blobs additionally compared after BOM/line-ending normalization.",
   "productionSourcesSha256": {
     "Drilling.Common/Recipe/CShotCoordinatePlanBuilder.cs": "142fd432b5de1af2fc70c6e1ecccd3b4d42b85253ecda3e3c0342ae6fec6fa5a",
     "Drilling.Common/Review/CManualInspectionCoordinateBridge.cs": "4d1753b71ff3fb62b022b362e94f95c9832452841d3c81f21b38ee3b1c21640c",
     "Drilling.Common/Review/CReviewManager.cs": "32bb509070f077f16b22059cb7c2ed815a351b8a7876c4fdd1da75649de255cd",
-    "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs": "b95a5cba1b0c86490a3b19e0f4d6232f91752d679cc6b636b677ec2fd6445048",
-    "Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs": "0bb2acfa72a24ba63c94e95101afddcdbd3ee80adfa59733ea335ecda300e926",
-    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs": "e90fd6983e29485d634750560c2b0aa7dd0447689fdb9e9ca2619dd1fedfebe4",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs": "45db1cc07c12d1829cb4705541a6c8c73e93160d439e4c393913cec34031a049",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs": "14e0150f97e65dc7e13b1564e574274c5616c8916b6d3ac4b7bb3c9508e9179a",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs": "5e6c2beda1c547a4dd0c1a9037e6a8494bab214043978a496562eddc02b53804",
     "Drilling.Common/Station/CStageReviewSequences.cs": "49e1a43341978bc8ae28013cebce4827cb99e933b04df32aab4ad74d5a9402a7",
+    "Drilling.Common/Station/CStationProcess.cs": "7e5b1fd549370e222890c0882624bd116e1375ae160cb55e0d94cf3513f8b917",
     "Drilling.File/ReviewOffset/CReviewOffsetFile.cs": "56ebca90c0cd29ded87d6a41f9e6bacf7077baabbfd9371fbcad1f112aa7c1db",
+    "Drilling.File/Script/CAutomation1ScriptFile.cs": "1681351dcfa412fcae7313a2ff470b23be816cad1047ee586e3fb79f35850ac4",
     "Drilling.UI/CAppStartup.cs": "98e8716b093e6970d73233f8488d538acf7fa02f5d140ab1baebd9e8abdcd9b9",
-    "Drilling.UI/CRootView.cs": "d1b229746ae3fa204af774a5718970be70abc2ea8da8f1e5be4a534ec4cabe1d",
-    "Drilling.UI/Drilling.UI.csproj": "384d3665aeea253461721a1540cda1263502e306b447212b1a0f3707ba91d58e",
+    "Drilling.UI/CRootView.cs": "d6834c39b212da80a085576fea93b68d310e0bb0713331396309126af101e154",
+    "Drilling.UI/Drilling.UI.csproj": "bde7764c6eaa6ac4871cbf335509cd926098d553ec7658ca8826a9e58a50af0b",
     "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs": "94152605882eacf13b3a8c04d7ae93e77bf20c83413df60918be1b335e03b9c2",
-    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "a3e4a8628aa6b491521462889e835267bbf9fdcaae0ea2f4df8cfbd8a0bde999",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "6bea6ed001f2c92365de20e2020a42663facb2e81669549e7874fb339e4c58d8",
     "Drilling.UI/Menu/Menus/CMenuCorrection.ManualInspection.cs": "eca5d22d7496210c5ad853cc010059a070eefce716da33227c5c4d8c43293047",
     "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Display.cs": "d8d2bcf72b26adb6ef00ec04f3dc0b1e4cae885c706852e0f9cc98eaf219f6a5",
     "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Edit.cs": "2b07373e13aa12a83477f7ef7708a6a5c790b19e45ec55a0938b8701526be6b3",
@@ -64,228 +72,239 @@
     "Drilling.UI/Views/CCorrectionView.xaml": "850404c76dda72d2d741b74f07a8161966f6cd55d173697bebaf619ee79e296c",
     "Drilling.UI/Views/CManualInspectionMapControl.cs": "72964a4fef45bcd344d403af945a1f5a091d100745549d3caeaaddfb0af2f806",
     "Drilling.UI/Views/CManualInspectionScatterControl.cs": "1cc3fb7be94547c2e714d8809906f2df6018e5805b6ed44ecc9fd2c398e6a0bb",
-    "Drilling.UI/Views/CManualInspectionUiContract.cs": "9cc1cecf1eaf9bd4bbb0223039f966527128a4f95111eebaf6e0cbb71b7f7416",
-    "Drilling.UI/Views/CManualInspectionView.xaml": "ef91082cb49b40c3ffc67098ee36a6adda7e7f215d5369807b8d41a5a0308d67",
-    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "20d5a05eff63af7a08e001947b8aaf53614f16fdce75bf0ccb9154793d84a5eb",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "94c07c0d7faed65042d47c209dae457386e4df7611a221fb935807aaa0beafd8",
+    "Drilling.UI/Views/CManualInspectionView.xaml": "de85a569823fcadf344ce1a8d7840e5c49f4982bed9910b712f3c8d79cbb43f3",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "5f0cae5516a5fa11911bd9c8edd960b6a2163573eb009e725c8b084980e1e4b3",
     "Drilling.UI/Views/CMonitorView.xaml": "1d96067d63dae8d1cf6f1436cb772e78ff7aa5e68d949b35e1ecac706db0ce12"
   },
   "build": {
     "configuration": "Release",
     "warnings": 0,
     "errors": 0,
-    "logSha256": "02bc0b2ca5443cb64814f86386d002fe07b40206d8cfdcd2197a5251d646d79d",
+    "logSha256": "575806b24ea727a272d2f23be7563d542d68894606f305cf5354ee4ff7c96e74",
     "productionAssembliesSha256": {
-      "Drilling.UI": "755a4bbf4cc4a7717399eb1731adebe3e1c6346a851224c772441f2ed63c6d99",
-      "Drilling.Common": "e245fe3643e9ba1e712763b0a133e3554e5a351e2a575a0813df38680a7846d8",
-      "Drilling.File": "8c3598e32069e13ecf482e69301e96ef9f9497a7d01e586516fdbbbf40a50dee"
+      "Drilling.UI": "b721053c2ea4b09c799161a6738edb6607886e36e164426e06fde70cced32eb7",
+      "Drilling.Common": "bc178146d77237e12a78eb26abf566d04a8f830fd08dd5e6862880c4d3099c66",
+      "Drilling.File": "bc16e1344663452fb5bd68a71f57323f856c8ca01fad4b36091149be6f6aaf1b"
     }
   },
   "wpf": {
     "passed": true,
-    "modeCount": 18,
-    "totalChecks": 1052,
+    "modeCount": 19,
+    "totalChecks": 1031,
     "modes": [
-      {
-        "mode": "default",
-        "passed": true,
-        "count": 49,
-        "path": "validation/11.24.7/ui-results.json",
-        "sha256": "428ae0c53cef8b1ee7c3ea4ae888fd4b422e49b0ad26b903ba7b8cf8c9cd9507"
-      },
-      {
-        "mode": "integration-impact",
-        "passed": true,
-        "count": 23,
-        "path": "validation/11.24.7/ui-integration-impact-results.json",
-        "sha256": "e371fced562983b3ec0800d69aa8765abfbae0f4cd4e67c80fe3ebedd730e4f2"
-      },
-      {
-        "mode": "sync-levels",
-        "passed": true,
-        "count": 34,
-        "path": "validation/11.24.7/ui-sync-levels-results.json",
-        "sha256": "cdb9ee29d3537672816c949709b14fba5fb5a060752a7c1aa8d02374f16bf1a6"
-      },
-      {
-        "mode": "coverage-compact",
-        "passed": true,
-        "count": 71,
-        "path": "validation/11.24.7/ui-coverage-compact-results.json",
-        "sha256": "c3b5bbd7b147375e3758fa22c184a97c525c018b875877e7b00c4505dfba08a5"
-      },
-      {
-        "mode": "hardening",
-        "passed": true,
-        "count": 30,
-        "path": "validation/11.24.7/ui-hardening-results.json",
-        "sha256": "86a90388a3b98a45807f732e481ff43faf3d6e23dd4c52ab53e2c3032b06e9ad"
-      },
-      {
-        "mode": "visual-usability",
-        "passed": true,
-        "count": 105,
-        "path": "validation/11.24.7/ui-visual-usability-results.json",
-        "sha256": "7a2d2a424c228995ffe3869574a490c5951205af9868ba75b1da849cf52835ce"
-      },
-      {
-        "mode": "map-first",
-        "passed": true,
-        "count": 73,
-        "path": "validation/11.24.7/ui-map-first-results.json",
-        "sha256": "498824bbc9d2e121acc5a9e33eca3151cca28799b95d13896b1d5701e97dba7c"
-      },
-      {
-        "mode": "cell-overview",
-        "passed": true,
-        "count": 181,
-        "path": "validation/11.24.7/ui-cell-overview-results.json",
-        "sha256": "8b271ea72cb4e82bd9d27d09b5b68d76510cfedd89f484ef7e81bae83faa8b5e"
-      },
-      {
-        "mode": "offset-init",
-        "passed": true,
-        "count": 37,
-        "path": "validation/11.24.7/ui-offset-init-results.json",
-        "sha256": "b831d534731ce22d584039ce102deb25a2352891a7804156d33f347922f4bee4"
-      },
-      {
-        "mode": "measurement-workflow",
-        "passed": true,
-        "count": 44,
-        "path": "validation/11.24.7/ui-measurement-workflow-results.json",
-        "sha256": "c1b321b25bf47812d74d05e86ed6ad7340d51f314388bee7ceb1411905e1a30d"
-      },
-      {
-        "mode": "bulk-history",
-        "passed": true,
-        "count": 47,
-        "path": "validation/11.24.7/ui-bulk-history-results.json",
-        "sha256": "5c4532138dfeccf4de3bc4c4a9b81910ae9ce5467827d857e2aee0af6ced8fea"
-      },
-      {
-        "mode": "representative",
-        "passed": true,
-        "count": 53,
-        "path": "validation/11.24.7/ui-representative-results.json",
-        "sha256": "b1209c9293cbe995d680f4a3cab3092cc29d50554d496fd68748b46181183cc5"
-      },
-      {
-        "mode": "side-panels",
-        "passed": true,
-        "count": 97,
-        "path": "validation/11.24.7/ui-side-panels-results.json",
-        "sha256": "b6e6c274996ca62b8eac9274fef821c8bc55eb2a2aa4219f1597db64bfd302ac"
-      },
-      {
-        "mode": "final-offsets",
-        "passed": true,
-        "count": 35,
-        "path": "validation/11.24.7/ui-final-offsets-results.json",
-        "sha256": "a83c7d84bf8d3702d5812a04a9f1a545287c2374742cbdb3fe4ed55c36f0f2b2"
-      },
-      {
-        "mode": "existing-final-csv",
-        "passed": true,
-        "count": 39,
-        "path": "validation/11.24.7/ui-existing-final-csv-results.json",
-        "sha256": "60784403edfc2393973b25a2d652d5bc3b31ff04e67145c7f8f35233486dab83"
-      },
-      {
-        "mode": "representative-apply",
-        "passed": true,
-        "count": 58,
-        "path": "validation/11.24.7/ui-representative-apply-results.json",
-        "sha256": "2f6972996b04e22a2658681099b7eff27beb8d556eb9f09e18fa5a4ec9636390"
-      },
       {
         "mode": "bulk-final-consistency",
         "passed": true,
         "count": 49,
-        "path": "validation/11.24.7/ui-bulk-final-consistency-results.json",
-        "sha256": "9dc0ee3a84d9329a2d3351682640af4c577206665168b20e4ae34b662aa90f60"
+        "path": "validation/11.24.8/ui-bulk-final-consistency-results.json",
+        "sha256": "f44cc0d596a49bdacb42659442fa60c22ed074fa4e5eb62bd2994bfb2cda01d2"
+      },
+      {
+        "mode": "bulk-history",
+        "passed": true,
+        "count": 35,
+        "path": "validation/11.24.8/ui-bulk-history-results.json",
+        "sha256": "3a004ea9c71679f20645247b351f572c492a8ee875f11c11074dd8d391fdf9ae"
       },
       {
         "mode": "cell-csv-workflow",
         "passed": true,
         "count": 27,
-        "path": "validation/11.24.7/ui-cell-csv-workflow-results.json",
-        "sha256": "5e90db0e335f89b787d19875c6d92408dbb892c684d427f63784e0ef0fffdbeb"
+        "path": "validation/11.24.8/ui-cell-csv-workflow-results.json",
+        "sha256": "a8a280e2cff752cbeab68c92607439aa7f2809cbb60151b5f8dcb2a8b768daad"
+      },
+      {
+        "mode": "cell-overview",
+        "passed": true,
+        "count": 181,
+        "path": "validation/11.24.8/ui-cell-overview-results.json",
+        "sha256": "60f8a532860898e18d27d763f56f1b20940d2af0a2b9f04ddb86e4962f200a7c"
+      },
+      {
+        "mode": "coverage-compact",
+        "passed": true,
+        "count": 71,
+        "path": "validation/11.24.8/ui-coverage-compact-results.json",
+        "sha256": "9eca9189749cef2a966d1d01b59c32096c81b2c61e826c36a5efb48c6ff2efa1"
+      },
+      {
+        "mode": "default",
+        "passed": true,
+        "count": 49,
+        "path": "validation/11.24.8/ui-results.json",
+        "sha256": "602164d76b51aeaefaf39ebe1c0b680e7c556e605d31028b09247d8ac0031639"
+      },
+      {
+        "mode": "existing-final-csv",
+        "passed": true,
+        "count": 20,
+        "path": "validation/11.24.8/ui-existing-final-csv-results.json",
+        "sha256": "b254e737c1bae5162d002492ec61977f302e7aafc98ce0a8a94da81d84f77242"
+      },
+      {
+        "mode": "final-offsets",
+        "passed": true,
+        "count": 16,
+        "path": "validation/11.24.8/ui-final-offsets-results.json",
+        "sha256": "2b76c78698dfccb47eeabaf5aabaa4077361140897a2b02d8ee0182caae60467"
+      },
+      {
+        "mode": "hardening",
+        "passed": true,
+        "count": 30,
+        "path": "validation/11.24.8/ui-hardening-results.json",
+        "sha256": "e9d5eb815c775ae4f806faf63b3a1dbfe685a11f2372869bed8a2d082325b048"
+      },
+      {
+        "mode": "integration-impact",
+        "passed": true,
+        "count": 23,
+        "path": "validation/11.24.8/ui-integration-impact-results.json",
+        "sha256": "e371fced562983b3ec0800d69aa8765abfbae0f4cd4e67c80fe3ebedd730e4f2"
+      },
+      {
+        "mode": "map-first",
+        "passed": true,
+        "count": 73,
+        "path": "validation/11.24.8/ui-map-first-results.json",
+        "sha256": "835d45495bf7c43e4aea7184687e4b442e7c35c6e78ba8c1022e19f498dc23f4"
+      },
+      {
+        "mode": "measurement-workflow",
+        "passed": true,
+        "count": 42,
+        "path": "validation/11.24.8/ui-measurement-workflow-results.json",
+        "sha256": "bb9fc9669c3847e410e2a4584f281672240bf9aa93f88c2e1abeed205faa8bb1"
+      },
+      {
+        "mode": "offset-init",
+        "passed": true,
+        "count": 19,
+        "path": "validation/11.24.8/ui-offset-init-results.json",
+        "sha256": "f0c70c6bde19b968a2eba766777e096ac40b54f2a4281e90f0de7618e6fafd5e"
+      },
+      {
+        "mode": "replacement-workflow",
+        "passed": true,
+        "count": 48,
+        "path": "validation/11.24.8/ui-replacement-workflow-results.json",
+        "sha256": "3efe20bdedd47db96d10ffa655c7f536eb7eb39f6f5625f5c2656eae2c964c47"
+      },
+      {
+        "mode": "representative",
+        "passed": true,
+        "count": 54,
+        "path": "validation/11.24.8/ui-representative-results.json",
+        "sha256": "fab1c140b081e726c27cec042e339ae6e6a55ad1654e0e7a8775e4ec0452bd8a"
+      },
+      {
+        "mode": "representative-apply",
+        "passed": true,
+        "count": 58,
+        "path": "validation/11.24.8/ui-representative-apply-results.json",
+        "sha256": "742c1091f5aa220a5381aadcef550b08427f15962d5e95fdd6fe06bc27e45394"
+      },
+      {
+        "mode": "side-panels",
+        "passed": true,
+        "count": 97,
+        "path": "validation/11.24.8/ui-side-panels-results.json",
+        "sha256": "6fa6c331d3fb5388020dfbf61b05fff032df5e0062437c7a2242c4f68ed4a472"
+      },
+      {
+        "mode": "sync-levels",
+        "passed": true,
+        "count": 34,
+        "path": "validation/11.24.8/ui-sync-levels-results.json",
+        "sha256": "4ab280e0f9f412eb7e0f495abb759f908e57fe7f0c8ff9280a10e6e19d761ffa"
+      },
+      {
+        "mode": "visual-usability",
+        "passed": true,
+        "count": 105,
+        "path": "validation/11.24.8/ui-visual-usability-results.json",
+        "sha256": "99ca28635c0a88af43f266d80596150e7dee1722755e51be37264a1a05b253ad"
       }
     ],
-    "summaryPath": "validation/11.24.7/ui-summary.json",
-    "summarySha256": "0f7a607d8fad68304ab6c55172c2252edad6470d9df6245c09ecb0e11ad9313a",
-    "scope": "Source-linked actual WPF controls/keypad and unchanged Light/Dark resources; synthetic fake Controller; no equipment App."
+    "summaryPath": "validation/11.24.8/ui-summary.json",
+    "summarySha256": "ec2725ab691fe2c50271bb41c6554e6ffceda9c278ac1a13d3c3741a550a90db",
+    "scope": "Actual source-linked WPF/keypad with synthetic Controller and original Light/Dark resources; equipment App not started."
   },
-  "independentReview": [
+  "independentReviews": [
     {
-      "path": "validation/11.24.7/root-integration-review.json",
-      "sha256": "273d9024500b7673eb9994dc018938f030736c479c0ab5ab8f2d1aec4702eaed"
+      "path": "validation/11.24.8/root-integration-review.json",
+      "sha256": "f751def295f36b3dbb9893c1aad61cd9bd25cce1eb72764d48521caed6b4bc3c"
     },
     {
-      "path": "validation/11.24.7/core-controller-round2.json",
-      "sha256": "8480f56414e433af5cda66f5762524983fa5d7f6b0177a57e75658058624fd9a"
+      "path": "validation/11.24.8/core-controller-round2.json",
+      "sha256": "ca228d0b7ca0ac88d9dd3b68c86b4119b4ace742a3374ce2233659c7aca6fbd2"
     },
     {
-      "path": "validation/11.24.7/core-controller-round3.json",
-      "sha256": "af13dd9fa4b4e52f38f53199fc6be4052b668709b9266c9ec0930f86b85da9a6"
+      "path": "validation/11.24.8/core-controller-round3.json",
+      "sha256": "1d894f308775cdfd5c51d3e461c0368ad5e09688e0ce9318187d71e6763721f2"
     },
     {
-      "path": "validation/11.24.7/ui-backend-independent-review.json",
-      "sha256": "80b5d20279b2087ffc89af8c285912898c29dd09464f6c0dc6d3149afda46785"
+      "path": "validation/11.24.8/qa-round-1.json",
+      "sha256": "568c78e18db629a81e117a985d625131a3c8fe7444df544a808b6ffeece1eceb"
     },
     {
-      "path": "validation/11.24.7/qa-round-2.json",
-      "sha256": "87faec0214748b5c39ce688eb2c1b6b165d368853ebd32436fef7515733b6e91"
+      "path": "validation/11.24.8/qa-round-2.json",
+      "sha256": "b789b2e508592f1ef51ef0be21239cc059d79eb34f846a240824ce3db09c1500"
     },
     {
-      "path": "validation/11.24.7/csv-transfer-design.json",
-      "sha256": "77311199f4670910f98f3fb74ddf28de7742068654fb47552d8eb2dc464d9871"
+      "path": "validation/11.24.8/qa-round-3.json",
+      "sha256": "f1c7a7f71cd1a1bf74e66fa5423b75ae67cf6d8509231cb2de60264531b91a57"
+    },
+    {
+      "path": "validation/11.24.8/ui-cross-review.json",
+      "sha256": "f07b89e1ce3291d01898b7c614dd861846202981b1088e916db575a9dc6e0f7c"
     }
   ],
-  "syntheticTrace": {
-    "path": "validation/11.24.7/cell-csv-trace.json",
-    "sha256": "33fbb6c8b91d6964d5a2458a8ee33c3d71f14f46ad3d4d8071b4c102b075394b"
+  "policy": {
+    "manualCorrection": "F = current validated measurement XY, not B + XY",
+    "copy": "Stage current deviation/judge only; no CSV save",
+    "save": "Explicit current Cell Bulk; other Cells retained",
+    "legacy": "Unapplied captured Final is not reused as deviation; already-applied legacy manual needs explicit new Copy/Force",
+    "otherReviewMethods": "Unchanged existing accumulation/calculation",
+    "fileAndInit": "Current Cell draft followed by the same Bulk CSV save"
   },
   "verificationScope": {
-    "core": "Actual source-linked pure engine; explicit Cell scopes and preview equivalence.",
-    "controller": "Actual production Drilling.UI DLL, synthetic async backend; source-linked 274 preflight not added to actual 277.",
-    "backend": "Actual read/plan/parser/writer/export/import and actual Monitor projection; synthetic temp data. Twelve CSV correction seam cases use real conversion/CAS writer but replace only equipment-owned SaveCoreAsync boundary.",
-    "csvTransfer": "18 new native export/import checks include actual byte identity, metadata/sparse rows, overwrite lock, junction, copy-stage cancellation/model change and cleanup.",
+    "core": "Actual pure source; generic compatibility and Manual policy tests are distinguished.",
+    "controller": "Actual production UI DLL with async synthetic backend; linked preflight not added twice.",
+    "backend": "Actual read/parser/planner/CAS writer, UI projections and A1 text generator on synthetic temp files. Device-owned SaveCore guard replaced only at the existing test seam.",
+    "a1": "4 output modes x 7 before/copy/save/init/undo/redo states; PROCESS_COORDINATES and MoveRapid numerics compared; no upload/run.",
+    "legacy": "Real .7 git-show pure source serializer -> current source restorer: 5 synthetic JSON states.",
+    "stationGuard": "Source trace only: save invalidates prepared model; DoReady reloads latest CSV, Start checks current identity.",
     "notExecuted": [
       "equipment App/Root/Manager",
-      "production SaveCoreAsync equipment guard",
-      "vendor runtime",
+      "production SaveCore device guard",
       "PLC/Vision",
       "motion",
-      "AeroScript",
+      "vendor runtime",
+      "AeroScript execution/upload",
       "laser",
-      "substrate processing"
+      "physical substrate precision"
     ]
-  },
-  "retainedEvidence": {
-    "externalProjection": {
-      "sourceUnchanged": true,
-      "rerun": false,
-      "path": "validation/11.24.6/external-results.json",
-      "note": "Previous source-linked 53 tests; not included in this run counts."
-    }
   },
   "images": [
     {
-      "path": "images/manual-11.24.7-file-menu-dark.png",
-      "sha256": "087a71c594d18d5f6307ab5c9f6fc8a42c5ca74967547b237c4c7ae7f3118a19",
-      "scope": "Synthetic no-device WPF context menu; actual unchanged theme"
+      "path": "images/manual-11.24.8-replacement-dark.png",
+      "sha256": "92ac6d0620771f103380be574c14f18c46a5fbe6de45e88555d76263125ef20f",
+      "scope": "Synthetic WPF 1120px notebook layout; no real equipment connection."
     },
     {
-      "path": "images/manual-11.24.7-file-menu-light.png",
-      "sha256": "6a21374ae10dc46aa470ba2a253f3e5b3134d64b28a8f8270c1c2ec588302ea3",
-      "scope": "Synthetic no-device WPF context menu; actual unchanged theme"
+      "path": "images/manual-11.24.8-replacement-light.png",
+      "sha256": "caabe03efaa8ca161cf837d7271e1c23414aac6fd0da27b14fa0b806e1b24588",
+      "scope": "Synthetic WPF 1120px notebook layout; no real equipment connection."
     }
   ],
   "remainingChecks": [
-    "Device interlocks and physical precision need field verification.",
-    "Legacy CSV has no Recipe ID or coordinate signature; current-model validation/confirmation cannot prove an anonymous file origin.",
-    "Unassigned-Head SCANNER rows and changed unknown rows are rejected rather than guessed.",
-    "Named CSV copies do not replace the active offset selection. Current-cell correction still saves the full model map with other Cells preserved."
+    "Physical accuracy/interlocks require field verification.",
+    "CSV lacks model ID/signature; anonymous origin cannot be proven from values alone.",
+    "Map Level is current deviation; saved Review B alone does not fabricate a deviation.",
+    "File draft previews have file provenance; after save without deviation history, map can be gray although CSV is saved.",
+    "After correction save, rerun DoReady to regenerate the processing model/scripts.",
+    "Shift preview uses latest input overlay; its nominal Glass/Head check is not complete physical Field validation."
   ]
 }

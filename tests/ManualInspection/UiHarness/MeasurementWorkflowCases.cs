@@ -17,17 +17,13 @@ internal static partial class Program
             var window=new Window{Width=1490,Height=900,Content=view,Left=-20000,Top=-20000,ShowInTaskbar=false,ShowActivated=false,WindowStyle=WindowStyle.None};window.Show();Pump();
             T Find<T>(string name)=>(T)view.FindName(name);
             void Click(string name){Find<Button>(name).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();}
-            void SelectCombo(string name,string value)
-            {
-                var c=Find<ComboBox>(name);c.SelectedItem=c.Items.Cast<object>().Single(x=>x.GetType().GetProperty("Value")?.GetValue(x)?.ToString()==value);Pump();
-            }
             bool Under(DependencyObject child,DependencyObject ancestor)
             { for(DependencyObject? p=child;p is not null;p=VisualTreeHelper.GetParent(p)??LogicalTreeHelper.GetParent(p))if(ReferenceEquals(p,ancestor))return true;return false; }
             var map=Find<CManualInspectionMapControl>("PositionMap");var plot=Find<CManualInspectionScatterControl>("ScatterPlot");
             var p=state.Points[1] with{WorkingJudge="OK",WorkingXUm=0,WorkingYUm=0,BaseXUm=0,BaseYUm=0,HasAppliedOffset=true,IsProxy=false,Source="MEASURED"};
             string Color(CManualInspectionUiPoint point,string mode="level")=>((SolidColorBrush)CManualInspectionDrawing.PointBrush(view,point,mode,state)).Color.ToString();
-            Test("workflow_visible_color_modes_include_default_final_csv",Find<ComboBox>("ColorFilter").Items.Count==3&&Field<string>(view,"_color")=="applied");
-            Test("workflow_scatter_defaults_to_final_saved_csv_and_all_heads",Field<bool>(view,"_scatterFinalOffsets")&&!Field<bool>(view,"_scatterOffsets")&&!Field<bool>(view,"_scatterOriginal")&&Field<string>(view,"_scatterScope")=="HEAD"&&Field<int>(view,"_scatterHead")==0&&plot.DataKind=="OFFSETS");
+            Test("workflow_color_mode_is_fixed_measurement_level",view.FindName("ColorFilter") is null&&MeasurementMapMode(view)=="level");
+            Test("workflow_scatter_defaults_to_current_measurement_and_all_heads",!Field<bool>(view,"_scatterOriginal")&&Field<string>(view,"_scatterScope")=="HEAD"&&Field<int>(view,"_scatterHead")==0&&plot.DataKind=="WORKING");
             SelectMeasurementView(view); // The remaining workflow assertions exercise the retained raw/measurement view.
             foreach(var theme in new[]{"Light","Dark"})
             {
@@ -43,7 +39,7 @@ internal static partial class Program
             Test("workflow_scatter_plot_is_compact",plot.Height<=190);
             Test("workflow_filter_and_legend_are_in_left_inspector",Under(Find<Expander>("WorkInfoSection"),Find<ScrollViewer>("LeftInspectorScroll"))&&Under(Find<TextBlock>("FilterNoticeText"),Find<ScrollViewer>("LeftInspectorScroll"))&&Under(Find<WrapPanel>("MapLegendItems"),Find<ScrollViewer>("LeftInspectorScroll")));
             Test("workflow_source_markers_have_plain_language_explanation",Find<TextBlock>("MapLegendText").Text.Contains("초기화")||Find<Expander>("WorkInfoSection").Header.ToString()!.Contains("범례"));
-            Test("workflow_removed_applied_columns_are_not_visible",Find<DataGridTextColumn>("ResultOffsetColumn").Visibility==Visibility.Collapsed);
+            Test("workflow_removed_applied_columns_are_not_visible",view.FindName("ResultOffsetColumn") is null);
             Find<Expander>("InspectorSection").IsExpanded=true;Pump();Invoke(view,"ChangeSelection",new CManualInspectionSelectionEventArgs([p.Key],p.Key));Pump();
             var before=fake.Calls.Count;Click("MeasureCurrentButton");
             Test("workflow_current_position_measure_button_dispatches_one_point_without_popup",fake.Calls.Count==before+1&&fake.Calls[^1].Action==EN_MANUAL_INSPECTION_UI_ACTION.Measure&&fake.Calls[^1].Request.Keys.SequenceEqual([p.Key])&&confirmations==0);
@@ -56,24 +52,21 @@ internal static partial class Program
             fake.Replace(fake.Snapshot with{Version=10,MeasurementSequence=2,LastMeasurementText="Cell 1 / Head 2 · NG · X +25 / Y -8 µm",Points=fake.Snapshot.Points.Select(x=>x.Key==p.Key?x with{WorkingJudge="NG",WorkingXUm=25,WorkingYUm=-8}:x).ToArray()});Pump();
             Test("workflow_next_ng_measurement_reopens_inspector_and_updates_right_result",Find<Expander>("InspectorSection").IsExpanded&&Find<TextBlock>("LastMeasurementText").Text.Contains("NG"));
             Find<Expander>("CorrectionSection").IsExpanded=true;Pump();
-            SelectCombo("InitScopeCombo","CELL");SelectCombo("InitCellCombo","2");before=fake.Calls.Count;Click("OffsetInitButton");
-            Test("workflow_cell_init_dispatches_explicit_scope_without_popup",fake.Calls.Count==before+1&&fake.Calls[^1].Request.OffsetInitScope=="CELL"&&fake.Calls[^1].Request.OffsetInitCellNo==2&&confirmations==0);
-            SelectCombo("InitScopeCombo","HEAD");SelectCombo("InitHeadCombo","2");before=fake.Calls.Count;Click("OffsetInitButton");
-            Test("workflow_head_init_dispatches_explicit_scope_without_popup",fake.Calls.Count==before+1&&fake.Calls[^1].Request.OffsetInitScope=="HEAD"&&fake.Calls[^1].Request.OffsetInitHeadNo==2&&confirmations==0);
-            SelectCombo("InitScopeCombo","ALL");before=fake.Calls.Count;Click("OffsetInitButton");
-            Test("workflow_all_init_keeps_all_scope_without_popup",fake.Calls.Count==before+1&&fake.Calls[^1].Request.OffsetInitScope=="ALL"&&confirmations==0);
+            Invoke(view,"SetMapCellScope",2);before=fake.Calls.Count;Click("OffsetInitButton");
+            Test("workflow_cell_init_dispatches_current_cell_without_popup",fake.Calls.Count==before+1&&fake.Calls[^1].Request.CurrentCellNo==2&&fake.Calls[^1].Request.OffsetInitScope=="CELL"&&fake.Calls[^1].Request.OffsetInitCellNo==2&&confirmations==0);
+            Test("workflow_init_has_no_ambiguous_model_or_head_controls",new[]{"InitScopeCombo","InitCellCombo","InitHeadCombo"}.All(name=>view.FindName(name)is null));
+            Invoke(view,"SetMapCellScope",1);
             var movingBefore=fake.Calls.Count;((Task)Invoke(view,"ConfirmOperation",EN_MANUAL_INSPECTION_UI_ACTION.Move,new[]{p.Key},fake.Snapshot.Version,"P2P")!).GetAwaiter().GetResult();Pump();
             Test("workflow_motion_still_requires_confirmation_and_cancel_prevents_dispatch",confirmations==1&&fake.Calls.Count==movingBefore);
             fake.Replace(fake.Snapshot with{CandidateRows=[new CManualInspectionUiCandidateRow{Key=p.Key,Source="MEASURED"}],CandidateStatus="DRAFT"});Pump();
-            var cb=0;var beforeValidation=fake.Calls.Count;view.ConfirmationForTesting=(_,_,_)=>{cb++;return false;};Click("CalculateButton");
-            Test("workflow_selected_correction_requires_confirmation_and_cancel_is_inert",cb==1&&fake.Calls.Count==beforeValidation);
-            view.ConfirmationForTesting=(_,_,_)=>{cb++;return true;};Click("CalculateButton");
-            Test("workflow_selected_correction_accept_dispatches_integrated_action",cb==2&&fake.Calls.Count==beforeValidation+1&&fake.Calls[^1].Action==EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets);
+            var cb=0;var beforeValidation=fake.Calls.Count;view.ConfirmationForTesting=(_,_,_)=>{cb++;return true;};
+            ((Task)Invoke(view,"Execute",EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,new CManualInspectionUiRequest{ExpectedVersion=fake.Snapshot.Version,CurrentCellNo=1,Keys=[p.Key]})!).GetAwaiter().GetResult();
+            Test("workflow_removed_selected_correction_cannot_bypass_cell_save",fake.Calls.Count==beforeValidation&&cb==0&&view.FindName("CalculateButton") is null);
             var savedState=fake.Snapshot;
             fake.Replace(savedState with{Version=savedState.Version+1,HasIncomplete=true,RemainingCount=2,IsOffsetEditPending=false,StageXmm=0,StageYmm=0});Pump();
             Invoke(view,"ChangeSelection",new CManualInspectionSelectionEventArgs([p.Key],p.Key));Pump();
             Test("workflow_failed_queue_keeps_retry_optional_and_allows_new_current_measure",Find<Button>("RetryButton").IsEnabled&&Find<Button>("MeasureCurrentButton").IsEnabled);
-            Test("workflow_failed_queue_keeps_apply_guard_but_allows_init_and_explanation",!Find<Button>("CalculateButton").IsEnabled&&Find<Button>("BulkApplyButton").IsEnabled&&Find<Button>("OffsetInitButton").IsEnabled);
+            Test("workflow_failed_queue_keeps_apply_guard_but_allows_init_and_explanation",view.FindName("CalculateButton") is null&&Find<Button>("BulkApplyButton").IsEnabled&&Find<Button>("OffsetInitButton").IsEnabled);
             var count=fake.Calls.Count;var popups=cb;Click("MeasureCurrentButton");
             Test("workflow_new_current_measure_supersedes_failed_queue_without_motion_popup",fake.Calls.Count==count+1&&fake.Calls[^1].Action==EN_MANUAL_INSPECTION_UI_ACTION.Measure&&cb==popups);
             var confirmedText="";view.ConfirmationForTesting=(_,text,_)=>{confirmedText=text;return false;};count=fake.Calls.Count;

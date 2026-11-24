@@ -9,17 +9,15 @@ internal static partial class Program
 {
     private static async Task RunCoverageChecks()
     {
-        await Check("existing_corrections_are_displayed_measured_without_fabricating_raw", async () =>
+        await Check("existing_corrections_without_residual_are_not_displayed_as_current_measurements", async () =>
         {
             var (f, c) = CorrectionFixture();
             await Do(c, EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);
-            True(c.Snapshot.Points.All(p => p.HasMeasurementHistory && p.UsesAppliedMeasurement
-                && p.MeasurementStatusText.Contains("측정") && p.MeasurementBasisText.Contains("보정")
-                && p.MeasurementSourceCode == "CORRECTION_BASED"));
+            True(c.Snapshot.Points.All(p => !p.HasMeasurementHistory && !p.UsesAppliedMeasurement&&p.MeasurementXUm is null));
             True(c.Snapshot.Points.All(p => p.WorkingJudge == "UNMEASURED" && p.WorkingXUm is null
-                && p.OriginalXUm is null && p.MeasurementToken == "" && p.CanBeReference&&p.CanCopyAsReference));
-            Near(c.Snapshot.Points[0].MeasurementXUm!.Value, 7);
-            True(c.Snapshot.Points[1].MeasurementXUm == 0 && c.Snapshot.Points[1].AppliedLevel == 0
+                && p.OriginalXUm is null && p.MeasurementToken == "" && p.CanBeReference&&!p.CanCopyAsReference));
+            Near(c.Snapshot.Points[0].BaseXUm,7);
+            True(c.Snapshot.Points[1].MeasurementXUm is null && c.Snapshot.Points[1].AppliedLevel == 0
                 && f.Saves == 0 && f.Executed.Count == 0);
         });
         await Check("displayed_history_cannot_reapply_its_stored_offset_as_new_raw", async () =>
@@ -49,16 +47,16 @@ internal static partial class Program
                 && row.ContainsKey("DISPLAY_DX_DESIGN_UM") && row.ContainsKey("DISPLAY_DY_DESIGN_UM") && row.ContainsKey("MEASUREMENT_LEVEL"));
             True(row["WORK_JUDGE"] == "UNMEASURED" && row["WORK_DX_DESIGN_UM"] == ""
                 && row["ORIGINAL_DX_DESIGN_UM"] == "" && row["ORIGINAL_RAW"] == "");
-            Near(double.Parse(row["DISPLAY_DX_DESIGN_UM"], CultureInfo.InvariantCulture), 7);
+            True(row["DISPLAY_DX_DESIGN_UM"]=="");
             Near(double.Parse(row["BASE_X_DESIGN_UM"], CultureInfo.InvariantCulture), 7);
-            True(row["MEASUREMENT_BASIS"].Contains("보정") && row["MEASUREMENT_LEVEL"].Length > 0 && f.Saves == 0);
+            True(row["MEASUREMENT_BASIS"].Contains("유효 편차 없음") && row["MEASUREMENT_LEVEL"]=="" && f.Saves == 0);
         });
         await Check("point_history_explains_correction_coverage_and_keeps_null_original", async () =>
         {
             var (f, c) = CorrectionFixture(); await Do(c, EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);
             string detail = ""; c.ShowDetails = (_, text) => detail = text;
             await Do(c, EN_MANUAL_INSPECTION_UI_ACTION.ShowPoint, ["P1"]);
-            True(detail.Contains("보정기반") && detail.Contains("L2") && detail.Contains("7.000"));
+            True(detail.Contains("Level 없음") && detail.Contains("유효 편차 없음"));
             True(c.Snapshot.Points[0].OriginalXUm is null && c.Snapshot.Points[0].WorkingXUm is null && f.Saves == 0 && f.Executed.Count == 0);
         });
         await Check("masked_stored_offset_is_excluded_from_measured_coverage", async () =>

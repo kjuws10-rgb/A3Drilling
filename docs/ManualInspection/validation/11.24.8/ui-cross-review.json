@@ -1,0 +1,58 @@
+{
+  "schema": "a3-manual-ui-cross-review/1",
+  "version": "11.24.8",
+  "passed": true,
+  "tests": 1031,
+  "modeCount": 19,
+  "sourceHashes": {
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "94c07c0d7faed65042d47c209dae457386e4df7611a221fb935807aaa0beafd8",
+    "Drilling.UI/Views/CManualInspectionMapControl.cs": "72964a4fef45bcd344d403af945a1f5a091d100745549d3caeaaddfb0af2f806",
+    "Drilling.UI/Views/CManualInspectionScatterControl.cs": "1cc3fb7be94547c2e714d8809906f2df6018e5805b6ed44ecc9fd2c398e6a0bb",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "5f0cae5516a5fa11911bd9c8edd960b6a2163573eb009e725c8b084980e1e4b3",
+    "Drilling.UI/Views/CManualInspectionView.xaml": "de85a569823fcadf344ce1a8d7840e5c49f4982bed9910b712f3c8d79cbb43f3"
+  },
+  "validatedInputCount": 29,
+  "sourceHashMismatchCount": 0,
+  "dllSha256": "0756929892cb8d6776118c721d583946e1a77b20a36ec02a28e17a71434bc445",
+  "validationPath": "D:\\CodexWork\\A3_Manual_Inspection_20261124_8_ReplacementWorkflow\\ui-final\\validation.json",
+  "validationSha256": "83dc05b21c5124065e00664dc496b8e706dfea5ba52f5372d3728e76e9bb8014",
+  "rounds": [
+    {
+      "round": 1,
+      "reviewer": "UI owner + parent",
+      "scope": "Removed obsolete color/final-scatter/candidate/multi-stage controls compared with replacement policy; preserved native theme/map/raw/selection/motion guards."
+    },
+    {
+      "round": 2,
+      "reviewer": "UI owner",
+      "scope": "Actual source-linked WPF private build and 19-mode execution; new Replacement 48 cases; old raw/keyboard/map/keypad/selection/compact/theme regressions retained."
+    },
+    {
+      "round": 3,
+      "reviewer": "parent + independent Backend/QA agent",
+      "scope": "Independent frozen XAML/View/Contract read and Dark/notebook/Light screenshots; no confirmed remaining UI defect. Source mapping checked against final report."
+    }
+  ],
+  "intentionalTestMigrations": [
+    "Deprecated final color and saved-B scatter UI assertions replaced with fixed measurement Level and WORKING/ORIGINAL population assertions.",
+    "Removed candidate/selected calculation/validation/separate Apply controls tested for actual absence and direct UI bypass rejection; current Cell Bulk is sole save.",
+    "Old saved-B-only zero/nonzero is no longer asserted as a fresh measured deviation; actual finite measured zero still has a measurement Level.",
+    "Representative UI fake replies now stage current delta and retain final CSV identity, rather than imitating immediate save/B+delta.",
+    "Init/import UI requests explicit current Cell and matching pending Cell; generic Core/Controller/Backend legacy tests were not removed by the UI migration."
+  ],
+  "boundaryFix": {
+    "problem": "A point with WorkingJudge OK but no XY had unmeasured text while remaining in the OK filter and disappearing from the UNMEASURED filter.",
+    "fix": "OK filter requires current HasMeasurementHistory. UNMEASURED includes nonmasked points without current measurement except NG/ERROR, preserving copied NG/error status.",
+    "proof": "replacement_no_xy_OK_marker_is_unmeasured_and_never_in_OK_filter + representative pending-old-F population checks"
+  },
+  "rawAndZero": {
+    "raw": "OriginalJudge/OriginalX/Y immutable in display/copy-stage/scatter toggles; no raw records fabricated.",
+    "realZero": "Finite XY (0,0) with valid measurement remains Level1; no stored B-only or initialized value is promoted to measured zero."
+  },
+  "visualPaths": [
+    "D:\\CodexWork\\A3_Manual_Inspection_20261124_8_ReplacementWorkflow\\ui-final\\replacement-workflow\\replacement-notebook-dark.png",
+    "D:\\CodexWork\\A3_Manual_Inspection_20261124_8_ReplacementWorkflow\\ui-final\\replacement-workflow\\replacement-notebook-light.png",
+    "D:\\CodexWork\\A3_Manual_Inspection_20261124_8_ReplacementWorkflow\\ui-final\\replacement-workflow\\replacement-wide-light.png"
+  ],
+  "limitations": "Synthetic WPF/fake Controller only; actual production App/Manager/SDK/motion/Vision/operating CSV and other PC were not run. No Git mutation/commit/push/master merge."
+}

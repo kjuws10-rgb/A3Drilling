@@ -54,7 +54,7 @@ internal static partial class Program
             var map=Named<CManualInspectionMapControl>("PositionMap");
             Test("side_panels_both_open_keep_central_map_readable_"+size.Name,map.ActualWidth>=350&&map.ActualHeight>=250&&NoOuterScroll());
             Test("side_panels_common_point_summary_stays_visible_"+size.Name,Fits("PointSummaryPanel","InspectorScroll")&&Fits("PointTitleText","InspectorScroll")&&Fits("MeasureCurrentButton","InspectorScroll"));
-            Test("side_panels_filter_controls_fit_without_outer_scroll_"+size.Name,new[]{"CellFilter","ColorFilter","JudgeFilter","HeadFilter","SourceFilter","SearchBox","SortFilter"}.All(name=>Fits(name,"LeftInspectorScroll"))&&NoOuterScroll());
+            Test("side_panels_filter_controls_fit_without_outer_scroll_"+size.Name,new[]{"CellFilter","MeasurementLevelLabel","JudgeFilter","HeadFilter","SourceFilter","SearchBox","SortFilter"}.All(name=>Fits(name,"LeftInspectorScroll"))&&NoOuterScroll());
             Named<ComboBox>("JudgeFilter").SelectedIndex=3;Named<TextBox>("SearchBox").Text="C1";Pump();
             var filterReset=Descendants(Named<ScrollViewer>("LeftInspectorScroll")).OfType<Button>().Single(button=>Equals(button.Content,"필터 초기화"));
             var resetBounds=filterReset.TransformToAncestor(Named<ScrollViewer>("LeftInspectorScroll")).TransformBounds(new Rect(filterReset.RenderSize));
@@ -78,10 +78,10 @@ internal static partial class Program
                 &&levelSaveBounds is{} box&&box.Top>=-1&&box.Bottom<=Named<ScrollViewer>("LeftInspectorScroll").ActualHeight+1);
             Choose("LeftPaneTabs",5);Test("side_panels_revision_history_is_on_left_"+size.Name,Named<ItemsControl>("RevisionItems").IsVisible&&Named<TextBlock>("OffsetHistoryText").IsVisible);
             Choose("RightPaneTabs",1);Test("side_panels_reference_copy_controls_fit_and_summary_remains_"+size.Name,new[]{"SetReferenceButton","CopyReasonInput","CopyReferenceButton","ClearReferenceButton","PointSummaryPanel"}.All(name=>Fits(name,"InspectorScroll"))&&NoOuterScroll());
-            Choose("RightPaneTabs",2);Choose("CorrectionPaneTabs",0);
-            Test("side_panels_correction_actions_fit_right_page_"+size.Name,new[]{"BulkApplyButton","CalculateButton","RollbackButton","RedoOffsetsButton","PointSummaryPanel"}.All(name=>Fits(name,"InspectorScroll"))&&NoOuterScroll());
-            Choose("CorrectionPaneTabs",1);Test("side_panels_offset_init_controls_fit_right_page_"+size.Name,new[]{"InitScopeCombo","OffsetInitButton"}.All(name=>Fits(name,"InspectorScroll"))&&NoOuterScroll());
-            Choose("CorrectionPaneTabs",2);Test("side_panels_candidate_page_preserves_grid_and_validation_controls_"+size.Name,Named<DataGrid>("CandidateGrid").IsVisible&&Named<TextBlock>("ValidationText").IsVisible&&NoOuterScroll());
+            Choose("RightPaneTabs",2);
+            Test("side_panels_correction_actions_fit_right_page_"+size.Name,new[]{"BulkApplyButton","OffsetInitButton","RollbackButton","RedoOffsetsButton","PointSummaryPanel"}.All(name=>Fits(name,"InspectorScroll"))&&NoOuterScroll());
+            Test("side_panels_offset_init_controls_fit_right_page_"+size.Name,new[]{"OffsetInitButton"}.All(name=>Fits(name,"InspectorScroll"))&&NoOuterScroll());
+            Test("side_panels_candidate_page_preserves_grid_and_validation_controls_"+size.Name,view.FindName("CandidateGrid") is null&&view.FindName("ValidationText") is null&&NoOuterScroll());
             Named<Expander>("ResultsSection").IsExpanded=true;Pump();
             Test("side_panels_bottom_table_expansion_never_scrolls_entire_workspace_"+size.Name,Named<DataGrid>("ResultGrid").IsVisible&&NoOuterScroll()&&map.ActualWidth>=350&&map.ActualHeight>=150);
             Named<Expander>("ResultsSection").IsExpanded=false;Choose("LeftPaneTabs",0);Choose("RightPaneTabs",1);
@@ -97,7 +97,7 @@ internal static partial class Program
         Test("side_panels_long_eight_revision_rows_fit_without_scroll_and_keep_full_tooltip",history.ScrollableHeight<=1&&history.ViewportHeight>0&&NoOuterScroll()
             &&lastBounds is{} last&&last.Bottom<=history.ActualHeight+1&&lastRevisionText is{TextWrapping:TextWrapping.NoWrap,TextTrimming:TextTrimming.CharacterEllipsis}
             &&lastRevisionText.Text.Length>100&&Equals(lastRevisionText.ToolTip,lastRevisionText.Text));
-        fake.Replace(state);Choose("LeftPaneTabs",3);Choose("ScatterPaneTabs",0);Choose("RightPaneTabs",2);Choose("CorrectionPaneTabs",0);LoadResources("Dark");Pump();Render(view,"side-panels-map-scatter-correction-dark.png");
+        fake.Replace(state);Choose("LeftPaneTabs",3);Choose("ScatterPaneTabs",0);Choose("RightPaneTabs",2);LoadResources("Dark");Pump();Render(view,"side-panels-map-scatter-correction-dark.png");
         Choose("LeftPaneTabs",4);Choose("SettingsPaneTabs",2);Pump();Render(view,"side-panels-level-settings-dark.png");
         Choose("LeftPaneTabs",3);Named<Expander>("SearchSection").IsExpanded=false;Named<Expander>("SearchSection").IsExpanded=true;Pump();
         Test("side_panels_legacy_search_expansion_opens_left_filter_page",Named<Expander>("LeftInspectorSection").IsExpanded&&Named<TabControl>("LeftPaneTabs").SelectedIndex==0);
@@ -107,13 +107,13 @@ internal static partial class Program
         Test("side_panels_legacy_reference_expansion_opens_right_reference_page",Named<TabControl>("RightPaneTabs").SelectedIndex==1);
         Named<Expander>("CorrectionSection").IsExpanded=false;Named<Expander>("CorrectionSection").IsExpanded=true;Pump();
         Test("side_panels_legacy_correction_expansion_opens_right_correction_page",Named<TabControl>("RightPaneTabs").SelectedIndex==2);
-        Choose("SettingsPaneTabs",2);Choose("LeftPaneTabs",3);Choose("ScatterPaneTabs",2);Choose("RightPaneTabs",2);Choose("CorrectionPaneTabs",1);
+        Choose("SettingsPaneTabs",2);Choose("LeftPaneTabs",3);Choose("ScatterPaneTabs",2);Choose("RightPaneTabs",2);
         var bookmark=Invoke(view,"CaptureWorkspaceView")!;
-        Choose("ScatterPaneTabs",0);Choose("CorrectionPaneTabs",0);Choose("SettingsPaneTabs",0);Choose("LeftPaneTabs",0);Choose("RightPaneTabs",1);
+        Choose("ScatterPaneTabs",0);Choose("SettingsPaneTabs",0);Choose("LeftPaneTabs",0);Choose("RightPaneTabs",1);
         Named<Expander>("LeftInspectorSection").IsExpanded=false;Named<Expander>("InspectorSection").IsExpanded=false;Pump();
         Invoke(view,"RestoreWorkspaceView",bookmark);Pump();
         Test("side_panels_file_return_restores_both_panes_and_active_pages",Named<Expander>("LeftInspectorSection").IsExpanded&&Named<Expander>("InspectorSection").IsExpanded
-            &&Named<TabControl>("LeftPaneTabs").SelectedIndex==3&&Named<TabControl>("RightPaneTabs").SelectedIndex==2&&Named<TabControl>("CorrectionPaneTabs").SelectedIndex==1
+            &&Named<TabControl>("LeftPaneTabs").SelectedIndex==3&&Named<TabControl>("RightPaneTabs").SelectedIndex==2
             &&Named<TabControl>("ScatterPaneTabs").SelectedIndex==2&&Named<TabControl>("SettingsPaneTabs").SelectedIndex==2);
         Test("side_panels_navigation_and_layout_never_mutate_measurements_or_dispatch_equipment",fake.Calls.Count==0&&JsonSerializer.Serialize(state.Points)==original);
         host.Close();
@@ -137,11 +137,11 @@ internal static partial class Program
         view.ConfirmationForTesting=(_,_,_)=>{confirmations++;return true;};
         ((Button)view.FindName("CopyReferenceButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();
         Test("side_panels_empty_state_copy_accept_requests_only_copy_not_motion_or_apply",fake.Calls.Count==1&&fake.Calls[0].Action==EN_MANUAL_INSPECTION_UI_ACTION.CopyReference&&fake.Calls[0].Request.ReferenceKey==points[0].Key&&confirmations==2);
-        ((TabControl)view.FindName("RightPaneTabs")).SelectedIndex=2;((TabControl)view.FindName("CorrectionPaneTabs")).SelectedIndex=0;Pump();
+        ((TabControl)view.FindName("RightPaneTabs")).SelectedIndex=2;Pump();
         var bulk=(Button)view.FindName("BulkApplyButton");Test("side_panels_first_empty_model_keeps_bulk_explanation_button_enabled",bulk.IsEnabled&&!fake.Snapshot.CanBulkApply);
         var before=fake.Calls.Count;bulk.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();
         Test("side_panels_empty_bulk_explains_without_extra_backend_or_confirmation",fake.Calls.Count==before&&confirmations==2&&!string.IsNullOrWhiteSpace(((TextBlock)view.FindName("MessageText")).Text));
-        ((TabControl)view.FindName("CorrectionPaneTabs")).SelectedIndex=1;Pump();
+        Pump();
         Test("side_panels_first_empty_model_offset_init_is_available",((Button)view.FindName("OffsetInitButton")).IsEnabled);
         Test("side_panels_initial_empty_values_do_not_become_measured_zero",fake.Snapshot.Points.All(p=>!p.HasWorkingMeasurement&&p.MeasurementXUm is null&&p.MeasurementYUm is null));
         host.Close();
@@ -154,6 +154,6 @@ internal static partial class Program
         var names=root.Descendants().Select(element=>(string?)element.Attribute(x+"Name")).Where(name=>name is not null).ToArray();
         var required=new[]{"LeftInspectorSection","LeftInspectorScroll","LeftPaneTabs","InspectorSection","InspectorScroll","RightPaneTabs","PointSummaryPanel","WorkspaceScroll","PositionMap","ResultGrid","ScatterPlot","ReferenceSection","CorrectionSection","SettingsSection"};
         Test("side_panels_named_controls_remain_unique_for_real_codebehind",required.All(name=>names.Count(value=>value==name)==1));
-        Test("side_panels_all_required_selection_handlers_are_connected",root.Descendants().Count(element=>((string?)element.Attribute("SelectionChanged")) is "LeftPane_SelectionChanged" or "RightPane_SelectionChanged" or "CorrectionPane_SelectionChanged" or "ScatterPane_SelectionChanged" or "SettingsPane_SelectionChanged")==5);
+        Test("side_panels_all_required_selection_handlers_are_connected",root.Descendants().Count(element=>((string?)element.Attribute("SelectionChanged")) is "LeftPane_SelectionChanged" or "RightPane_SelectionChanged" or "ScatterPane_SelectionChanged" or "SettingsPane_SelectionChanged")==4);
     }
 }

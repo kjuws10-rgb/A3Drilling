@@ -1,4 +1,4 @@
-namespace Drilling.UI
+﻿namespace Drilling.UI
 {
     using System.Windows;
     using System.Windows.Threading;
@@ -1813,6 +1813,14 @@ namespace Drilling.UI
                 }
             }
 
+            // Use the same saved Review overlay as Station preparation. Recipe/Setting may
+            // contain old per-Shot keys; none may survive when the active CSV changes or is empty.
+            CReviewOffsetData.RemoveFromParameters(parameters);
+            if (recipe is not null && !string.IsNullOrWhiteSpace(recipe.Id))
+            {
+                var saved = _manager.ReviewOffsetFile().LoadLatest(recipe.Id).GetAwaiter().GetResult();
+                CReviewOffsetData.ApplyToParameters(parameters, saved);
+            }
             parameters.TryAdd("HEAD_COUNT", "8");
             return parameters;
         }

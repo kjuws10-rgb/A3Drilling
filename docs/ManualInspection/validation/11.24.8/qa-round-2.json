@@ -1,0 +1,360 @@
+{
+  "round": 2,
+  "status": "passed",
+  "passed": true,
+  "observedAt": "2026-11-24T11:45:16.744444+00:00",
+  "checks": [
+    {
+      "name": "31 production source bytes match final scope",
+      "passed": true,
+      "detail": {}
+    },
+    {
+      "name": "core-results.json pass/count",
+      "passed": true,
+      "detail": {
+        "count": 271,
+        "expected": 271
+      }
+    },
+    {
+      "name": "controller-production.json pass/count",
+      "passed": true,
+      "detail": {
+        "count": 285,
+        "expected": 285
+      }
+    },
+    {
+      "name": "backend-read.json pass/count",
+      "passed": true,
+      "detail": {
+        "count": 183,
+        "expected": 183
+      }
+    },
+    {
+      "name": "bridge-writer.json pass/count",
+      "passed": true,
+      "detail": {
+        "count": 35,
+        "expected": 35
+      }
+    },
+    {
+      "name": "scope-results.json pass/count",
+      "passed": true,
+      "detail": {
+        "count": 48,
+        "expected": 48
+      }
+    },
+    {
+      "name": "nine new actual CSV Monitor A1 cases all pass",
+      "passed": true,
+      "detail": [
+        "replacement_csv_copy_only_stages_original_delta_then_current_cell_bulk_writes_delta_not_B_plus_delta",
+        "replacement_csv_operator_delta_replaces_legacy_B500_with_5_without_increment_limit_false_rejection",
+        "replacement_csv_ng_missing_and_saved_B_only_do_not_become_fake_raw_or_new_corrections",
+        "replacement_csv_import_stages_current_cell_only_and_bulk_preserves_other_cell_measured_zero_raw_ledger_and_hidden_rows",
+        "replacement_csv_current_cell_init_bulk_never_resets_other_cell_measured_zero_or_hidden_history",
+        "replacement_csv_legacy_generic_measured_session_uses_captured_error_not_old_final_or_other_cell_candidate",
+        "replacement_csv_legacy_generic_operator_session_uses_captured_error_not_old_final_or_other_cell_candidate",
+        "replacement_csv_saved_bulk_init_undo_redo_feed_actual_station_model_and_all_four_A1_text_modes_without_execution",
+        "replacement_csv_ng_reference_copy_is_working_state_only_and_never_writes_correction"
+      ]
+    },
+    {
+      "name": "all old backend cases retained with intentional policy migrations",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "actual Controller no vendor assemblies loaded",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "Drilling.UI actual DLL matches final Release",
+      "passed": true,
+      "detail": [
+        "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\Drilling.UI\\bin\\Release\\net8.0-windows\\Drilling.UI.dll"
+      ]
+    },
+    {
+      "name": "Drilling.Common actual DLL matches final Release",
+      "passed": true,
+      "detail": [
+        "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\Drilling.Common\\bin\\Release\\net8.0\\Drilling.Common.dll"
+      ]
+    },
+    {
+      "name": "actual Controller UI DLL matches BackendRead UI",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "WPF 19 modes 1031 PASS",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "29 WPF input SHA remain current",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "WPF bulk-final-consistency",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "WPF bulk-history",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "WPF cell-csv-workflow",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "WPF cell-overview",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "WPF coverage-compact",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "WPF default",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "WPF existing-final-csv",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "WPF final-offsets",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "WPF hardening",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "WPF integration-impact",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "WPF map-first",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "WPF measurement-workflow",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "WPF offset-init",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "WPF replacement-workflow",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "WPF representative",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "WPF representative-apply",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "WPF side-panels",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "WPF sync-levels",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "WPF visual-usability",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "actual .7 serializer fixtures 32 checks PASS",
+      "passed": true,
+      "detail": "Actual git-show .7 pure source serializer -> current pure source restorer; synthetic data only; no production device App/SDK/driver."
+    },
+    {
+      "name": "legacy binary proof distinguished from generic capture tests",
+      "passed": true,
+      "detail": "35ef09b13dddb2d581582689e34978b9ac285d39"
+    },
+    {
+      "name": "resolver returns validated ErrorXY as Manual final",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "legacy applied guard used in preview and validation",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "hidden save routes require current Cell Bulk",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "scoped import cannot initialize all cells",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "replacement flags carried in candidate and snapshot digests",
+      "passed": true,
+      "detail": "Exact candidate fingerprint fields, immutable snapshot assignment and full snapshot digest reservation verified; no substring-count heuristic."
+    }
+  ],
+  "productionSourceSha256": {
+    "Drilling.Common/Recipe/CShotCoordinatePlanBuilder.cs": "142fd432b5de1af2fc70c6e1ecccd3b4d42b85253ecda3e3c0342ae6fec6fa5a",
+    "Drilling.Common/Review/CManualInspectionCoordinateBridge.cs": "4d1753b71ff3fb62b022b362e94f95c9832452841d3c81f21b38ee3b1c21640c",
+    "Drilling.Common/Review/CReviewManager.cs": "32bb509070f077f16b22059cb7c2ed815a351b8a7876c4fdd1da75649de255cd",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs": "45db1cc07c12d1829cb4705541a6c8c73e93160d439e4c393913cec34031a049",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs": "14e0150f97e65dc7e13b1564e574274c5616c8916b6d3ac4b7bb3c9508e9179a",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs": "5e6c2beda1c547a4dd0c1a9037e6a8494bab214043978a496562eddc02b53804",
+    "Drilling.Common/Station/CStageReviewSequences.cs": "49e1a43341978bc8ae28013cebce4827cb99e933b04df32aab4ad74d5a9402a7",
+    "Drilling.Common/Station/CStationProcess.cs": "7e5b1fd549370e222890c0882624bd116e1375ae160cb55e0d94cf3513f8b917",
+    "Drilling.File/ReviewOffset/CReviewOffsetFile.cs": "56ebca90c0cd29ded87d6a41f9e6bacf7077baabbfd9371fbcad1f112aa7c1db",
+    "Drilling.File/Script/CAutomation1ScriptFile.cs": "1681351dcfa412fcae7313a2ff470b23be816cad1047ee586e3fb79f35850ac4",
+    "Drilling.UI/CAppStartup.cs": "98e8716b093e6970d73233f8488d538acf7fa02f5d140ab1baebd9e8abdcd9b9",
+    "Drilling.UI/CRootView.cs": "d6834c39b212da80a085576fea93b68d310e0bb0713331396309126af101e154",
+    "Drilling.UI/Drilling.UI.csproj": "bde7764c6eaa6ac4871cbf335509cd926098d553ec7658ca8826a9e58a50af0b",
+    "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs": "94152605882eacf13b3a8c04d7ae93e77bf20c83413df60918be1b335e03b9c2",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "6bea6ed001f2c92365de20e2020a42663facb2e81669549e7874fb339e4c58d8",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.ManualInspection.cs": "eca5d22d7496210c5ad853cc010059a070eefce716da33227c5c4d8c43293047",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Display.cs": "d8d2bcf72b26adb6ef00ec04f3dc0b1e4cae885c706852e0f9cc98eaf219f6a5",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Edit.cs": "2b07373e13aa12a83477f7ef7708a6a5c790b19e45ec55a0938b8701526be6b3",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Offset.cs": "0ec33aefb0847d2886301be4fb5db0d73db47dd45c45342d71d8678a14f6b0ea",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Reinspection.cs": "f5ba162be1fb07f05954469f04a5cb959a3f47734f6ec0babd36e170762b91ff",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.cs": "47cf020a2a387c2e5e5de3cd210df897a852675eb600dc7041b456b9c6398907",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.cs": "388dda336057dbf57eff598d5c3648491ae9972ec387db25498f0cf4f4bbdb52",
+    "Drilling.UI/Menu/Menus/CMenuMonitor.cs": "14ba9cc6682157c3b7a72bc8e6b57c1830a4618bceb10b45f33911dc2a7399f5",
+    "Drilling.UI/Menu/Menus/CReviewOffsetDisplaySnapshot.cs": "7ddb55f332e36f7ce3b3b597f9ba3bba5415cd19e538b2dc958e9a6fe1f27b83",
+    "Drilling.UI/Views/CCorrectionView.xaml": "850404c76dda72d2d741b74f07a8161966f6cd55d173697bebaf619ee79e296c",
+    "Drilling.UI/Views/CManualInspectionMapControl.cs": "72964a4fef45bcd344d403af945a1f5a091d100745549d3caeaaddfb0af2f806",
+    "Drilling.UI/Views/CManualInspectionScatterControl.cs": "1cc3fb7be94547c2e714d8809906f2df6018e5805b6ed44ecc9fd2c398e6a0bb",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "94c07c0d7faed65042d47c209dae457386e4df7611a221fb935807aaa0beafd8",
+    "Drilling.UI/Views/CManualInspectionView.xaml": "de85a569823fcadf344ce1a8d7840e5c49f4982bed9910b712f3c8d79cbb43f3",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "5f0cae5516a5fa11911bd9c8edd960b6a2163573eb009e725c8b084980e1e4b3",
+    "Drilling.UI/Views/CMonitorView.xaml": "1d96067d63dae8d1cf6f1436cb772e78ff7aa5e68d949b35e1ecac706db0ce12"
+  },
+  "reports": {
+    "core-results.json": {
+      "sha256": "9273f68aa908fff99afe48faf3ddfab8bfd98e1c409892e76e91285fc8f12ac3",
+      "passed": true,
+      "count": 271
+    },
+    "controller-production.json": {
+      "sha256": "6d263ff6cd84342e960b1d8a7d06f0375f2102c7bc6239fac8387d8b01f86df5",
+      "passed": true,
+      "count": 285
+    },
+    "backend-read.json": {
+      "sha256": "140b8f083e03dd7f71bad06f63ba9849948c761f152c1252065d537da4c968cc",
+      "passed": true,
+      "count": 183
+    },
+    "bridge-writer.json": {
+      "sha256": "f8c343ec6c890b66c14d779a32dff80ee9719abf5e959e584375e585a1302e1e",
+      "passed": true,
+      "count": 35
+    },
+    "scope-results.json": {
+      "sha256": "58769ebf9200998aa1df38068991ebbbcb22f9987deae061029a66706cdf2ecf",
+      "passed": true,
+      "count": 48
+    }
+  },
+  "uiReport": {
+    "sha256": "83dc05b21c5124065e00664dc496b8e706dfea5ba52f5372d3728e76e9bb8014",
+    "modes": 19,
+    "tests": 1031,
+    "inputCount": 29
+  },
+  "productionDlls": {
+    "Drilling.UI": {
+      "sha256": "b721053c2ea4b09c799161a6738edb6607886e36e164426e06fde70cced32eb7",
+      "harnessPath": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BackendReadHarness\\bin\\Release\\net8.0-windows\\Drilling.UI.dll",
+      "matchingProductionCopies": [
+        "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\Drilling.UI\\bin\\Release\\net8.0-windows\\Drilling.UI.dll"
+      ]
+    },
+    "Drilling.Common": {
+      "sha256": "bc178146d77237e12a78eb26abf566d04a8f830fd08dd5e6862880c4d3099c66",
+      "harnessPath": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BackendReadHarness\\bin\\Release\\net8.0-windows\\Drilling.Common.dll",
+      "matchingProductionCopies": [
+        "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\Drilling.Common\\bin\\Release\\net8.0\\Drilling.Common.dll"
+      ]
+    }
+  },
+  "testSourceSha256": {
+    "tests/ManualInspection/BackendReadHarness/ReplacementWorkflowCsvCases.cs": "0f42b0e4a128f8319c6c4b46ccbc3172930dcf034f4a2e7d44671fd4b329f0be",
+    "tests/ManualInspection/BackendReadHarness/RepresentativeApplyCsvCases.cs": "87dc58346d9cac83f6620245ebedf33bc993c38448cea2884d157d1094969435",
+    "tests/ManualInspection/BackendReadHarness/BulkFinalConsistencyCases.cs": "1ce8f772fb4fb821943031dda700324b6ffee357624d9b30a625703683631a16",
+    "tests/ManualInspection/BackendReadHarness/CellCsvWorkflowCases.cs": "86d149bd325ce1b07f9de9aa837ec252f64ac4d14f3f469aa350d3c26a1d5827"
+  },
+  "policyRegressions": {
+    "previousBackendCount": 174,
+    "newCases": 9,
+    "finalBackendCount": 183,
+    "migratedOldCaseExpectations": 11,
+    "oldCasesDeleted": 0,
+    "preservedGuards": [
+      "actual writer CAS race",
+      "stale active revision",
+      "readback failure no duplicate save",
+      "superseded current CSV honesty",
+      "old CSV bytes retained",
+      "NG/missing/B-only no deviation fabrication",
+      "31/201 numeric inputs excluded",
+      "outside B222/measured-zero/hidden/raw/eligibility retained"
+    ],
+    "a1TextScope": "Actual pure Station model builder and actual A1 file generator. Four modes x seven staged/committed states; no upload, compiler or execution.",
+    "legacyScope": "Our generic legacy pending sessions are not old-binary compatibility fixtures. Separate actual .7 serializer32 evidence is linked."
+  },
+  "sourceReview": [
+    "Manual F equals validated ErrorXY. Generic accumulation remains unchanged; audit Delta is F-B, limit tests Manual input F.",
+    "ReplacementCellNo and Init metadata are in candidate fingerprint/write snapshot. Outside KEEP requires same B and Init identity.",
+    "CSV scope preserves current-Cell hidden rows. Only Cell Init passes InitializationCellNos, so only it resets those rows.",
+    "Copy stages only; all new save routes forward to explicit current-Cell Bulk, freezing immutable map before CAS.",
+    "Imported file values are stage Level input only. Commit clears old residual eligibility; saved B-only remains gray.",
+    "Old proxy/operator proof digest stays compatible. Applied captured13/Error3 requires prior revision transition, blocking silent rewrite; new Copy/Force can restage.",
+    "Parent Shift patch aligns latest Review overlay input only; nominal Design/Glass/Head check is not a guarantee of every corrected Scanner field."
+  ],
+  "limits": {
+    "hardwareManagerSaveCoreExecuted": false,
+    "deviceOrVendorApiExecuted": false,
+    "a1UploadedCompiledOrExecuted": false,
+    "actualOperationalCsvCopied": false,
+    "gitMutationByQa": false
+  }
+}

@@ -1,0 +1,201 @@
+{
+  "schema": "a3-manual-inspection-ui-replacement-workflow/1",
+  "version": "11.24.8",
+  "passed": true,
+  "modeCount": 19,
+  "tests": 1031,
+  "failures": 0,
+  "build": {
+    "configuration": "Release",
+    "warnings": 0,
+    "errors": 0,
+    "kind": "source-linked WPF harness; BuildProjectReferences=false; private output only",
+    "dll": "source-linked test harness only (private build output)",
+    "sha256": "0756929892cb8d6776118c721d583946e1a77b20a36ec02a28e17a71434bc445"
+  },
+  "sourceHashMismatches": [],
+  "sourceInputs": {
+    "tests/ManualInspection/UiHarness/ManualInspection.UiHarness.csproj": "f8031e831f1a3cd7d6a2cc5b2c8c6b6a60ba1dbd9de1a5db8b582c3d686af673",
+    "tests/ManualInspection/UiHarness/Program.cs": "26f34d471a41fdd97f60261f15db7f6439928ed3092a8372e280985a1da38f93",
+    "tests/ManualInspection/UiHarness/CoverageCompactCases.cs": "b944b33cac29d8c1891efe07365ddf3d0accb252cb74a2fd8ac67cd0e36022da",
+    "tests/ManualInspection/UiHarness/HardeningCases.cs": "9a339a0c2820bad73fdd4188af73578d39be9d12fbe89d8ec726b057bef7a1d9",
+    "tests/ManualInspection/UiHarness/VisualUsabilityCases.cs": "03e285e85020a4ab161390c7c5c64a8e49408b2bc7828a1db3c068152a41e3fa",
+    "tests/ManualInspection/UiHarness/MapFirstCases.cs": "0b37b1a1cfde8052373ec077ba17b570fe3d8e6d93317eae1d003c2188b714b2",
+    "tests/ManualInspection/UiHarness/CellOverviewCases.cs": "726f9f2f980c2f48d737d421efc16a1b5a5fc4f4c8428577b36239bd92592a86",
+    "tests/ManualInspection/UiHarness/OffsetInitCases.cs": "a0c9c09338abe75404ff3b53f224721aa89e3f67c74fd18837f61c4eaaa5df99",
+    "tests/ManualInspection/UiHarness/MeasurementWorkflowCases.cs": "fc8fdb96013ccad6eb09d458b3c25590d66c206fe1f9a2ec8185de9934e5f7bd",
+    "tests/ManualInspection/UiHarness/BulkHistoryCases.cs": "2272ee078eb66b1c7795d96d8cee246b22ddc41fa848e4b4e783b646d16a2c1d",
+    "tests/ManualInspection/UiHarness/RepresentativeCases.cs": "70d503ccf1503b3cde946bf0a2b4f5207d1cce240fe558fa7aa7212b8b225046",
+    "tests/ManualInspection/UiHarness/SidePanelsCases.cs": "7ee454661d0a5fd8db65ae8b34cb2b38f0dd5ffa7ecb1e31c9d2932a32e0cf66",
+    "tests/ManualInspection/UiHarness/FinalOffsetCases.cs": "e2ef6cefdc7bac061970b2ee54bcf478559d70926d20a1b0eac6668bbceded12",
+    "tests/ManualInspection/UiHarness/ExistingFinalCsvCases.cs": "8f89d10564765ab9d2ab03dbb4e62275aedb27e97baa84b5d714959b3cfd0b11",
+    "tests/ManualInspection/UiHarness/RepresentativeApplyCases.cs": "b20896375dabe3736da95359c1b0f283c38b1c21f1a251734bbe3c29d017d223",
+    "tests/ManualInspection/UiHarness/BulkFinalConsistencyCases.cs": "7cb24f017238455efac429e43d37dfa898f1b42c6dc59ec9bf6738ac1e8e4604",
+    "tests/ManualInspection/UiHarness/CellCsvWorkflowCases.cs": "4fd934dc843d1ef49585ca738019ffeb16c054b6ac9cf040884691adf47d9e3c",
+    "tests/ManualInspection/UiHarness/ReplacementWorkflowCases.cs": "712cda3f72085a41aacaef69869fc5832dd524200663a2cc2890c97063fec1d4",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "94c07c0d7faed65042d47c209dae457386e4df7611a221fb935807aaa0beafd8",
+    "Drilling.UI/Views/CManualInspectionMapControl.cs": "72964a4fef45bcd344d403af945a1f5a091d100745549d3caeaaddfb0af2f806",
+    "Drilling.UI/Views/CManualInspectionScatterControl.cs": "1cc3fb7be94547c2e714d8809906f2df6018e5805b6ed44ecc9fd2c398e6a0bb",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "5f0cae5516a5fa11911bd9c8edd960b6a2163573eb009e725c8b084980e1e4b3",
+    "Drilling.UI/Views/CManualInspectionView.xaml": "de85a569823fcadf344ce1a8d7840e5c49f4982bed9910b712f3c8d79cbb43f3",
+    "Drilling.UI/Popup/CValueInputDialog.xaml.cs": "2b05f6cf626e622daefee01b894f4aba1909dbcd11b77da23e4cda5caf502166",
+    "Drilling.UI/Popup/CValueInputDialog.xaml": "304abe666aab54bd6d5618650ab78176bb7e67f32cde9cba4b36bb1116df67a5",
+    "Drilling.UI/Themes/ThemeDark.xaml": "08bc81877f8766d2198e515f869e6b06f74f4b4c6eb7a1a9d8093234f11b2e4c",
+    "Drilling.UI/Themes/ThemeLight.xaml": "2a3d9bc68816fd0c25360ae10c3d344354ac494c5ec03fc7f7077adaff99ea87",
+    "Drilling.UI/App.xaml": "34b55a666684d02ffc18dcb66313415e72629a7f027e5a5d42ecb0357df82357",
+    "Drilling.Common/Managers/CRecipeManager.cs": "b8d208d8945081e6a6d500f40d51e3f4fca414124329325c36c7fffedb86c9b9"
+  },
+  "inputCount": 29,
+  "results": [
+    {
+      "mode": "bulk-final-consistency",
+      "passed": true,
+      "count": 49,
+      "path": "validation/11.24.8/ui-bulk-final-consistency-results.json",
+      "sha256": "f44cc0d596a49bdacb42659442fa60c22ed074fa4e5eb62bd2994bfb2cda01d2"
+    },
+    {
+      "mode": "bulk-history",
+      "passed": true,
+      "count": 35,
+      "path": "validation/11.24.8/ui-bulk-history-results.json",
+      "sha256": "3a004ea9c71679f20645247b351f572c492a8ee875f11c11074dd8d391fdf9ae"
+    },
+    {
+      "mode": "cell-csv-workflow",
+      "passed": true,
+      "count": 27,
+      "path": "validation/11.24.8/ui-cell-csv-workflow-results.json",
+      "sha256": "a8a280e2cff752cbeab68c92607439aa7f2809cbb60151b5f8dcb2a8b768daad"
+    },
+    {
+      "mode": "cell-overview",
+      "passed": true,
+      "count": 181,
+      "path": "validation/11.24.8/ui-cell-overview-results.json",
+      "sha256": "60f8a532860898e18d27d763f56f1b20940d2af0a2b9f04ddb86e4962f200a7c"
+    },
+    {
+      "mode": "coverage-compact",
+      "passed": true,
+      "count": 71,
+      "path": "validation/11.24.8/ui-coverage-compact-results.json",
+      "sha256": "9eca9189749cef2a966d1d01b59c32096c81b2c61e826c36a5efb48c6ff2efa1"
+    },
+    {
+      "mode": "default",
+      "passed": true,
+      "count": 49,
+      "path": "validation/11.24.8/ui-results.json",
+      "sha256": "602164d76b51aeaefaf39ebe1c0b680e7c556e605d31028b09247d8ac0031639"
+    },
+    {
+      "mode": "existing-final-csv",
+      "passed": true,
+      "count": 20,
+      "path": "validation/11.24.8/ui-existing-final-csv-results.json",
+      "sha256": "b254e737c1bae5162d002492ec61977f302e7aafc98ce0a8a94da81d84f77242"
+    },
+    {
+      "mode": "final-offsets",
+      "passed": true,
+      "count": 16,
+      "path": "validation/11.24.8/ui-final-offsets-results.json",
+      "sha256": "2b76c78698dfccb47eeabaf5aabaa4077361140897a2b02d8ee0182caae60467"
+    },
+    {
+      "mode": "hardening",
+      "passed": true,
+      "count": 30,
+      "path": "validation/11.24.8/ui-hardening-results.json",
+      "sha256": "e9d5eb815c775ae4f806faf63b3a1dbfe685a11f2372869bed8a2d082325b048"
+    },
+    {
+      "mode": "integration-impact",
+      "passed": true,
+      "count": 23,
+      "path": "validation/11.24.8/ui-integration-impact-results.json",
+      "sha256": "e371fced562983b3ec0800d69aa8765abfbae0f4cd4e67c80fe3ebedd730e4f2"
+    },
+    {
+      "mode": "map-first",
+      "passed": true,
+      "count": 73,
+      "path": "validation/11.24.8/ui-map-first-results.json",
+      "sha256": "835d45495bf7c43e4aea7184687e4b442e7c35c6e78ba8c1022e19f498dc23f4"
+    },
+    {
+      "mode": "measurement-workflow",
+      "passed": true,
+      "count": 42,
+      "path": "validation/11.24.8/ui-measurement-workflow-results.json",
+      "sha256": "bb9fc9669c3847e410e2a4584f281672240bf9aa93f88c2e1abeed205faa8bb1"
+    },
+    {
+      "mode": "offset-init",
+      "passed": true,
+      "count": 19,
+      "path": "validation/11.24.8/ui-offset-init-results.json",
+      "sha256": "f0c70c6bde19b968a2eba766777e096ac40b54f2a4281e90f0de7618e6fafd5e"
+    },
+    {
+      "mode": "replacement-workflow",
+      "passed": true,
+      "count": 48,
+      "path": "validation/11.24.8/ui-replacement-workflow-results.json",
+      "sha256": "3efe20bdedd47db96d10ffa655c7f536eb7eb39f6f5625f5c2656eae2c964c47"
+    },
+    {
+      "mode": "representative",
+      "passed": true,
+      "count": 54,
+      "path": "validation/11.24.8/ui-representative-results.json",
+      "sha256": "fab1c140b081e726c27cec042e339ae6e6a55ad1654e0e7a8775e4ec0452bd8a"
+    },
+    {
+      "mode": "representative-apply",
+      "passed": true,
+      "count": 58,
+      "path": "validation/11.24.8/ui-representative-apply-results.json",
+      "sha256": "742c1091f5aa220a5381aadcef550b08427f15962d5e95fdd6fe06bc27e45394"
+    },
+    {
+      "mode": "side-panels",
+      "passed": true,
+      "count": 97,
+      "path": "validation/11.24.8/ui-side-panels-results.json",
+      "sha256": "6fa6c331d3fb5388020dfbf61b05fff032df5e0062437c7a2242c4f68ed4a472"
+    },
+    {
+      "mode": "sync-levels",
+      "passed": true,
+      "count": 34,
+      "path": "validation/11.24.8/ui-sync-levels-results.json",
+      "sha256": "4ab280e0f9f412eb7e0f495abb759f908e57fe7f0c8ff9280a10e6e19d761ffa"
+    },
+    {
+      "mode": "visual-usability",
+      "passed": true,
+      "count": 105,
+      "path": "validation/11.24.8/ui-visual-usability-results.json",
+      "sha256": "99ca28635c0a88af43f266d80596150e7dee1722755e51be37264a1a05b253ad"
+    }
+  ],
+  "visualReview": [
+    {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_8_ReplacementWorkflow\\ui-final\\replacement-workflow\\replacement-notebook-dark.png",
+      "sha256": "92ac6d0620771f103380be574c14f18c46a5fbe6de45e88555d76263125ef20f",
+      "review": "directly opened with image viewer; theme/map/controls/scroll inspected"
+    },
+    {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_8_ReplacementWorkflow\\ui-final\\replacement-workflow\\replacement-wide-light.png",
+      "sha256": "83a7f6692aad6d2732639bcddd266c7173d580605b7db179c22c2497dcfaa813",
+      "review": "directly opened with image viewer; theme/map/controls/scroll inspected"
+    }
+  ],
+  "productionScope": [
+    "Drilling.UI/Views/CManualInspectionView.xaml",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs"
+  ],
+  "limits": "Synthetic immutable records/fake controller; no live equipment application, Manager, vendor SDK, motion, Vision or production CSV execution. Actual persistence/arithmetic belongs to separate Core/Controller/Backend runs. Historical obsolete final-color/candidate/scope UI checks migrated to requested measurement-only/current-Cell-stage policy; they are not reported as unchanged legacy behavior."
+}

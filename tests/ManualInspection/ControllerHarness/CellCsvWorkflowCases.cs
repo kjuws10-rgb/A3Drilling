@@ -35,10 +35,11 @@ internal static partial class Program
         await Check("representative_measured_review_f_replaces_nonzero_target_and_repeated_copy_does_not_save_twice",async()=>
         {
             var(f,c)=Fixture();f.Source=f.Source with{Values=new Dictionary<string,ST_MANUAL_OFFSET>{{"P1",new(10,-2)},{"P2",new(20,5)},{"P3",new(0,0)}}};await c.EnsureLoaded();
-            var reference=c.Snapshot.Points.Single(p=>p.Key=="P1");True(reference.ReferenceFinalXUm==13&&reference.ReferenceFinalYUm==-3);
+            var reference=c.Snapshot.Points.Single(p=>p.Key=="P1");True(reference.ReferenceFinalXUm==3&&reference.ReferenceFinalYUm==-1);
             await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,["P2"],r=>r with{ReferenceKey="P1",Reason="absolute target replacement"});
-            Near(c.Snapshot.Points.Single(p=>p.Key=="P2").BaseXUm,reference.ReferenceFinalXUm!.Value);Near(f.Source.Values["P2"].YUm,-3);
-            True(f.Saves==1&&f.Source.Values["P2"].XUm==13&&f.Source.Values["P2"].XUm!=33);
+            True(f.Saves==0&&f.Source.Values["P2"].XUm==20);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply);
+            Near(c.Snapshot.Points.Single(p=>p.Key=="P2").BaseXUm,reference.ReferenceFinalXUm!.Value);Near(f.Source.Values["P2"].YUm,-1);
+            True(f.Saves==1&&f.Source.Values["P2"].XUm==3&&f.Source.Values["P2"].XUm!=33);
             await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,["P2"],r=>r with{ReferenceKey="P1",Reason="same absolute final"});True(f.Saves==1);
         });
         await Check("current_offset_csv_export_uses_latest_saved_api_and_preserves_pending_init_draft",async()=>

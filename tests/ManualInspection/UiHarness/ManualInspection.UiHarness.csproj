@@ -21,6 +21,7 @@
     <Compile Include="RepresentativeApplyCases.cs" />
     <Compile Include="BulkFinalConsistencyCases.cs" />
     <Compile Include="CellCsvWorkflowCases.cs" />
+    <Compile Include="ReplacementWorkflowCases.cs" />
     <Compile Include="../../../Drilling.UI/Views/CManualInspectionUiContract.cs" Link="CManualInspectionUiContract.cs" />
     <Compile Include="../../../Drilling.UI/Views/CManualInspectionMapControl.cs" Link="CManualInspectionMapControl.cs" />
     <Compile Include="../../../Drilling.UI/Views/CManualInspectionScatterControl.cs" Link="CManualInspectionScatterControl.cs" />

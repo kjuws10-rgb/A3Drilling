@@ -51,7 +51,7 @@ internal static partial class Program
             var(f,c)=await Loaded();await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P1"]);var b=c.Snapshot.Points.Single(p=>p.Key=="P1").BaseXUm;
             f.FailKey="P3";await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P2","P3"]));var reopened=new CManualInspectionController(f);await Do(reopened,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);
             True(!reopened.Snapshot.HasIncomplete&&reopened.Snapshot.UndoOffsetCount==1&&reopened.Snapshot.Points.Single(p=>p.Key=="P1").BaseXUm==b&&reopened.Snapshot.Points.Single(p=>p.Key=="P2").WorkingXUm==f.NewX&&f.Saves==1);
-            await Throws(()=>Do(reopened,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P1"]));True(f.Saves==1);
+            await Do(reopened,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P1"]);True(f.Saves==2&&reopened.Snapshot.Points.Single(p=>p.Key=="P1").BaseXUm==b);
         });
         await Check("first_load_explicit_session_and_same_workspace_reload_keep_incomplete_queue",async()=>
         {
@@ -82,7 +82,7 @@ internal static partial class Program
             var(f,c)=await Loaded();f.FailKey="P2";await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1","P2"]));var checkpoint=Checkpoint(f);
             foreach(var request in new[]{new CManualInspectionUiRequest{ReferenceKey="MISSING",Keys=["P3"],Reason="bad"},new(){ReferenceKey="P1",Keys=["MISSING"],Reason="bad"},new(){ReferenceKey="P1",Keys=["P3"],Reason=" "}})
                 {await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,request.Keys,r=>request with{ExpectedVersion=r.ExpectedVersion}));True(c.Snapshot.HasIncomplete&&c.Snapshot.RemainingCount==1);}
-            await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets,null,r=>r with{OffsetInitScope="HEAD",OffsetInitHeadNo=8}));True(c.Snapshot.HasIncomplete&&!c.Snapshot.IsOffsetEditPending&&!File.ReadAllText(checkpoint).Contains("OP_RECOVERED_IDLE"));
+            await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets,null,r=>r with{CurrentCellNo=99}));True(c.Snapshot.HasIncomplete&&!c.Snapshot.IsOffsetEditPending&&!File.ReadAllText(checkpoint).Contains("OP_RECOVERED_IDLE"));
         });
         await Check("first_load_explicit_copy_preflights_post_retirement_reference_and_never_uses_old_raw",async()=>
         {

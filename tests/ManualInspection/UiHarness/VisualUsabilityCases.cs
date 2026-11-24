@@ -25,7 +25,7 @@ internal static partial class Program
             var dataBefore = JsonSerializer.Serialize(baseline.Points);
             var fake = new FakeController(baseline);
             var view = new CManualInspectionView { DataContext = fake, ConfirmationForTesting = (_, _, _) => false };
-            Set(view, "_scatterOffsets", false); Set(view, "_scatterScope", "CELL"); // Explicit legacy working-data scope.
+            Set(view, "_scatterScope", "CELL"); // Explicit legacy working-data scope.
             var window = new Window { Width = 1120, Height = 560, Content = view, Left = -20000, Top = -20000,
                 ShowInTaskbar = false, ShowActivated = false, WindowStyle = WindowStyle.None };
             window.Show(); Pump(); SelectMeasurementView(view);
@@ -276,7 +276,7 @@ internal static partial class Program
                 CandidateRows = heroPoints.Skip(1).Take(3).Select(point => new CManualInspectionUiCandidateRow { Key = point.Key, Source = "MEASURED",
                     BaseXUm = point.BaseXUm, BaseYUm = point.BaseYUm, DeltaXUm = point.WorkingXUm!.Value, DeltaYUm = point.WorkingYUm!.Value,
                     FinalXUm = point.BaseXUm + point.WorkingXUm.Value, FinalYUm = point.BaseYUm + point.WorkingYUm.Value }).ToArray(), CandidateStatus = "DRAFT" };
-            fake.Replace(hero); Set(view, "_cell", 1); Set(view, "_head", 0); Set(view, "_color", "level"); Refresh();
+            fake.Replace(hero); Set(view, "_cell", 1); Set(view, "_head", 0); Refresh();
             var heroSelection = heroPoints.Skip(1).Take(3).Select(point => point.Key).ToArray();
             Invoke(view, "ChangeSelection", new CManualInspectionSelectionEventArgs(heroSelection, heroSelection[0]));
             Set(view, "_representativeKey", heroPoints[5].Key); Refresh();

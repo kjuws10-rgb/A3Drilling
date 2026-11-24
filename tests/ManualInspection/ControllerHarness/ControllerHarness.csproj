@@ -25,6 +25,7 @@
     <Compile Include="RepresentativeApplyCases.cs" />
     <Compile Include="BulkFinalVerificationCases.cs" />
     <Compile Include="CellCsvWorkflowCases.cs" />
+    <Compile Include="ReplacementWorkflowCases.cs" />
   </ItemGroup>
   <ItemGroup Condition="'$(UseActualAssemblies)' != 'true'">
     <Compile Include="Contracts.cs" />

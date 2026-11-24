@@ -66,23 +66,11 @@ internal static partial class Program
             fake.Replace(state with{CanBulkApply=false,BulkEligibleCount=0,CellBulkEligibleCounts=new Dictionary<int,int>(),CellBulkSummaryTexts=new Dictionary<int,string>()});Pump();before=fake.Calls.Count;confirmsBefore=confirms;Click("BulkApplyButton");
             Test("bulk_ui_consumed_snapshot_rejects_second_click_without_confirmation",fake.Calls.Count==before&&confirms==confirmsBefore);
             fake.Replace(state);Pump();
-            Test("correction_surface_has_single_selected_apply_without_three_step_controls",Find<Button>("CalculateButton").Content.ToString()=="선택점 보정"&&Find<Button>("ValidateButton").Visibility==Visibility.Collapsed&&Find<Button>("ApplyButton").Visibility==Visibility.Collapsed);
-            foreach(var (button,action) in new[]{("CalculateButton",EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets),("",EN_MANUAL_INSPECTION_UI_ACTION.Validate),("",EN_MANUAL_INSPECTION_UI_ACTION.Apply)})
+            Test("correction_surface_removes_selected_apply_and_candidate_steps",new[]{"CalculateButton","ValidateButton","ApplyButton","CandidateGrid"}.All(name=>view.FindName(name)is null));
+            foreach(var action in new[]{EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,EN_MANUAL_INSPECTION_UI_ACTION.Validate,EN_MANUAL_INSPECTION_UI_ACTION.Apply})
             {
-                var actionState=state with{CanApply=true,ValidationPassed=true,CandidateStatus="DRAFT",CandidateRows=[new CManualInspectionUiCandidateRow{Key=p.Key,Source="MEASURED",FinalXUm=3,FinalYUm=-2}]};
-                fake.Replace(actionState);Pump();before=fake.Calls.Count;
-                void RunAction(){if(button.Length>0)Click(button);else{((Task)Invoke(view,"Execute",action,new CManualInspectionUiRequest{ExpectedVersion=fake.Snapshot.Version,Keys=[p.Key]})!).GetAwaiter().GetResult();Pump();}}
-                view.ConfirmationForTesting=(_,_,_)=>{confirms++;return false;};RunAction();
-                Test("correction_confirmation_cancel_has_no_dispatch_"+action,fake.Calls.Count==before);
-                var seen="";var startConfirms=confirms;
-                view.ConfirmationForTesting=(title,text,_)=>{confirms++;seen=title+text;RunAction();return true;};RunAction();
-                Test("correction_confirmation_reentrant_dispatches_once_"+action,fake.Calls.Count==before+1&&fake.Calls[^1].Action==action&&confirms==startConfirms+1);
-                Test("correction_confirmation_explains_effect_"+action,seen.Contains("저장")&&(action!=EN_MANUAL_INSPECTION_UI_ACTION.Apply||seen.Contains("최대 10회")));
-                before=fake.Calls.Count;
-                view.ConfirmationForTesting=(_,_,_)=>{fake.Replace(actionState with{Version=state.Version+1});Pump();return true;};RunAction();
-                Test("correction_confirmation_version_change_rejects_"+action,fake.Calls.Count==before);
-                fake.Replace(actionState);Pump();view.ConfirmationForTesting=(_,_,_)=>throw new InvalidOperationException("synthetic modal failure");RunAction();
-                Test("correction_confirmation_exception_unlocks_without_dispatch_"+action,fake.Calls.Count==before&&!Field<bool>(view,"_actionConfirmationPending"));
+                var countBefore=fake.Calls.Count;((Task)Invoke(view,"Execute",action,new CManualInspectionUiRequest{ExpectedVersion=fake.Snapshot.Version,CurrentCellNo=1,Keys=[p.Key]})!).GetAwaiter().GetResult();
+                Test("removed_correction_step_cannot_bypass_cell_bulk_"+action,fake.Calls.Count==countBefore);
             }
             fake.Replace(state);Pump();var confirmationsAfterBulk=confirms;
             fake.Replace(state with{Version=8,CanUndoOffsets=true,CanRedoOffsets=true,UndoOffsetCount=8,RedoOffsetCount=2,OffsetHistoryText="되돌리기 8 / 다시 적용 2"});Pump();
@@ -104,7 +92,7 @@ internal static partial class Program
                 var empty=state.Points.Select(x=>x with{IsMeasurementOffsetInitialized=true,WorkingJudge="UNMEASURED",WorkingXUm=null,WorkingYUm=null,HasAppliedOffset=true,BaseXUm=0,BaseYUm=0,Source="OFFSET_INIT"}).ToArray();
                 fake.Replace(state with{Version=13,Points=empty,CanBulkApply=false,BulkEligibleCount=0,CellBulkEligibleCounts=new Dictionary<int,int>(),CellBulkSummaryTexts=new Dictionary<int,string>(),BulkSummaryText="측정된 보정 대상 없음"});Pump();
                 Test("bulk_ui_init_has_no_numeric_deviation_or_precision_level_"+theme,empty.All(x=>!x.HasMeasurementHistory&&x.MeasurementXUm is null&&CManualInspectionDrawing.Level(x,fake.Snapshot)==-1));
-                Test("bulk_ui_init_right_result_is_absent_instead_of_zero_"+theme,Find<TextBlock>("PointErrorText").Text.Contains("—")&&!Find<TextBlock>("PointErrorText").Text.Contains("0.000"));
+                Test("bulk_ui_init_right_result_is_absent_instead_of_zero_"+theme,Find<TextBlock>("PointErrorText").Text.Contains("없음")&&!Find<TextBlock>("PointErrorText").Text.Contains("0.000"));
                 Render(view,"bulk-history-empty-"+theme.ToLowerInvariant()+".png");
             }
             LoadResources("Dark");var endPoints=state.Points.Select(x=>x with{IsMeasurementOffsetInitialized=true,WorkingJudge="UNMEASURED",WorkingXUm=null,WorkingYUm=null,HasAppliedOffset=true,BaseXUm=0,BaseYUm=0,Source="OFFSET_INIT"}).ToArray();

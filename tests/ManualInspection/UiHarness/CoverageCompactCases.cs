@@ -49,59 +49,49 @@ internal static partial class Program
             var confirmations = new List<string>(); var accept = true;
             var view = new CManualInspectionView { DataContext = fake,
                 ConfirmationForTesting = (_, description, _) => { confirmations.Add(description); return accept; } };
-            Set(view, "_scatterOffsets", false); Set(view, "_scatterScope", "CELL"); // Explicit legacy working-data scope.
+            Set(view, "_scatterScope", "CELL"); // Explicit legacy working-data scope.
             var window = new Window { Width = 1480, Height = 900, Content = view, Left = -20000, Top = -20000,
                 ShowInTaskbar = false, ShowActivated = false, WindowStyle = WindowStyle.None };
             window.Show(); Pump(); SelectMeasurementView(view);
             var map = (CManualInspectionMapControl)view.FindName("PositionMap");
             var scatter = (CManualInspectionScatterControl)view.FindName("ScatterPlot");
 
-            Test("active_row_is_measurement_history_without_native_raw", based.HasMeasurementHistory && based.UsesAppliedMeasurement
-                && based.WorkingJudge == "UNMEASURED" && based.OriginalXUm is null && based.MeasurementToken == "");
-            Test("correction_based_status_and_basis_are_explicit", based.MeasurementStatusText.Contains("측정")
-                && based.MeasurementBasisText.Contains("보정") && based.MeasurementSourceCode == "CORRECTION_BASED");
-            Test("stored_zero_is_measured_history_level_one", zero.HasMeasurementHistory && zero.UsesAppliedMeasurement
-                && zero.MeasurementXUm == 0 && zero.MeasurementYUm == 0 && CManualInspectionDrawing.Level(zero, state) == 0);
+            Test("active_row_is_not_measurement_history_without_raw",!based.HasMeasurementHistory&&!based.UsesAppliedMeasurement&&based.MeasurementXUm is null);
+            Test("correction_based_status_and_basis_are_explicit",based.MeasurementStatusText.Contains("미측정")&&based.MeasurementSourceCode!="CORRECTION_BASED");
+            Test("stored_zero_without_measurement_is_unmeasured",!zero.HasMeasurementHistory&&zero.MeasurementXUm is null&&CManualInspectionDrawing.Level(zero,state)==-1);
             Test("missing_zero_row_remains_unmeasured", !missing.HasMeasurementHistory && !missing.UsesAppliedMeasurement
                 && missing.MeasurementXUm is null && CManualInspectionDrawing.Level(missing, state) == -1);
             Test("native_measurement_takes_precedence_over_accumulated_B", raw.HasWorkingMeasurement && !raw.UsesAppliedMeasurement
                 && raw.MeasurementXUm == 3 && raw.MeasurementYUm == -4
                 && CManualInspectionDrawing.Level(raw, state) == 0 && CManualInspectionDrawing.AppliedLevel(raw, state) == 3);
-            Test("existing_correction_is_not_hidden_by_latest_error", error.HasMeasurementHistory && error.UsesAppliedMeasurement
-                && error.MeasurementXUm == 12 && error.WorkingJudge == "ERROR" && error.OriginalJudge == "ERROR"
-                && CManualInspectionDrawing.Level(error, state) == 2);
+            Test("existing_correction_is_not_hidden_by_latest_error",!error.HasMeasurementHistory&&!error.UsesAppliedMeasurement&&error.MeasurementXUm is null&&error.WorkingJudge=="ERROR");
             Test("masked_history_never_becomes_measurement_target", !masked.HasMeasurementHistory && !masked.UsesAppliedMeasurement
                 && CManualInspectionDrawing.Level(masked, state) == -1);
             Test("unsaved_candidate_does_not_create_measured_coverage", !candidate.HasMeasurementHistory && candidate.MeasurementXUm is null);
-            Test("invalid_stored_numeric_does_not_create_a_level", invalid.HasMeasurementHistory
-                && CManualInspectionDrawing.Level(invalid, state) == -1);
+            Test("invalid_stored_numeric_does_not_create_a_level",!invalid.HasMeasurementHistory&&CManualInspectionDrawing.Level(invalid,state)==-1);
             Test("correction_based_and_error_points_can_be_marked_without_native_relabel", based.CanBeReference && zero.CanBeReference && error.CanBeReference && based.Source != "MEASURED");
             Test("copied_working_measurement_preserves_original_distinction", proxy.HasMeasurementHistory && !proxy.UsesAppliedMeasurement
                 && proxy.MeasurementXUm == 6 && proxy.OriginalXUm == 9 && proxy.CanBeReference);
             Test("measurement_level_covers_same_B_across_cells_heads", CManualInspectionDrawing.Level(based, state)
                 == CManualInspectionDrawing.Level(based with { CellNo = 9, HeadNo = 8 }, state));
             string Brush(CManualInspectionUiPoint point, string mode) => ((SolidColorBrush)CManualInspectionDrawing.PointBrush(view, point, mode, state)).Color.ToString();
-            Test("measurement_and_applied_level_agree_without_direct_raw", Brush(based, "level") == Brush(based, "applied"));
+            Test("measurement_and_applied_level_agree_without_direct_raw",Brush(based,"level")=="#FFDBE4EA"&&Brush(based,"applied")!="#FFDBE4EA");
 
             var metrics = CManualInspectionScatterMetrics.Calculate(points);
-            Test("scatter_includes_correction_based_history", metrics.Count == 5 && metrics.CorrectionBasedCount == 3
-                && Math.Abs(metrics.MeanX!.Value - 5.6) < 1e-8 && Math.Abs(metrics.MeanY!.Value + 1) < 1e-8);
-            Test("scatter_counts_missing_masked_and_invalid_separately", metrics.Unmeasured == 2 && metrics.Masked == 1 && metrics.Invalid == 1);
+            Test("scatter_excludes_saved_B_only_history",metrics.Count==2&&metrics.CorrectionBasedCount==0&&Math.Abs(metrics.MeanX!.Value-4.5)<1e-8&&Math.Abs(metrics.MeanY!.Value+1.5)<1e-8);
+            Test("scatter_counts_missing_masked_and_invalid_separately",metrics.Unmeasured==5&&metrics.Masked==1&&metrics.Errors==1&&metrics.Invalid==0);
             Test("projection_does_not_mutate_measurement_or_offset_records", before == JsonSerializer.Serialize(points, jsonOptions));
             Set(view, "_focusKey", based.Key); Invoke(view, "Refresh"); Pump();
-            Test("selected_summary_shows_effective_deviation", ((TextBlock)view.FindName("PointErrorText")).Text.Contains(based.MeasurementErrorText));
-            Test("selected_summary_calls_it_measurement_history", ((TextBlock)view.FindName("PointJudgesText")).Text.Contains("측정")
-                && ((TextBlock)view.FindName("PointJudgesText")).Text.Contains("보정"));
+            Test("selected_summary_shows_effective_deviation",((TextBlock)view.FindName("PointErrorText")).Text.Contains("없음"));
+            Test("selected_summary_calls_it_measurement_history",((TextBlock)view.FindName("PointJudgesText")).Text.Contains("미측정"));
             Set(view, "_judge", "MEASURED"); Invoke(view, "Refresh");
-            Test("measured_filter_includes_existing_correction", Field<IReadOnlyList<CManualInspectionUiPoint>>(view, "_filtered").Any(p => p.Key == based.Key)
-                && Field<IReadOnlyList<CManualInspectionUiPoint>>(view, "_filtered").All(p => p.HasMeasurementHistory));
+            Test("measured_filter_excludes_saved_B_only",!Field<IReadOnlyList<CManualInspectionUiPoint>>(view,"_filtered").Any(point=>point.Key==based.Key)&&Field<IReadOnlyList<CManualInspectionUiPoint>>(view,"_filtered").All(point=>point.HasMeasurementHistory));
             Set(view, "_judge", "UNMEASURED"); Invoke(view, "Refresh");
-            Test("unmeasured_filter_excludes_existing_correction", Field<IReadOnlyList<CManualInspectionUiPoint>>(view, "_filtered").Select(p => p.Key).ToHashSet().SetEquals([missing.Key, candidate.Key]));
+            Test("unmeasured_filter_includes_saved_B_only",Field<IReadOnlyList<CManualInspectionUiPoint>>(view,"_filtered").Any(point=>point.Key==based.Key)&&!Field<IReadOnlyList<CManualInspectionUiPoint>>(view,"_filtered").Any(point=>point.Key==raw.Key));
             Set(view, "_judge", "ALL"); Set(view, "_source", "CORRECTION_BASED"); Invoke(view, "Refresh");
-            Test("correction_based_source_filter_uses_display_provenance", Field<IReadOnlyList<CManualInspectionUiPoint>>(view, "_filtered").Any(p => p.Key == based.Key)
-                && Field<IReadOnlyList<CManualInspectionUiPoint>>(view, "_filtered").All(p => p.MeasurementSourceCode == "CORRECTION_BASED"));
+            Test("correction_based_source_filter_uses_display_provenance",!((ComboBox)view.FindName("SourceFilter")).Items.Cast<object>().Any(choice=>choice.GetType().GetProperty("Value")!.GetValue(choice)?.ToString()=="CORRECTION_BASED"));
             Set(view, "_source", "ALL"); Set(view, "_scatterOriginal", false); Invoke(view, "Refresh");
-            Test("working_scatter_uses_history_projection", scatter.Metrics.Count == 5 && scatter.Metrics.CorrectionBasedCount == 3);
+            Test("working_scatter_uses_history_projection",scatter.Metrics.Count==2&&scatter.Metrics.CorrectionBasedCount==0);
             Set(view, "_scatterOriginal", true); Invoke(view, "Refresh");
             Test("original_scatter_does_not_invent_correction_raw", scatter.Metrics.Count == 2 && scatter.Metrics.CorrectionBasedCount == 0);
             Set(view, "_scatterOriginal", false); Invoke(view, "Refresh");

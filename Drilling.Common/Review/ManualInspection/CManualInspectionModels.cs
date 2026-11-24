@@ -142,6 +142,12 @@ public sealed record ST_MANUAL_CANDIDATE(
 {
     [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
     public bool IsOffsetReplacement { get; init; }
+    /// <summary>Manual-only policy: validated measurement XY is the absolute Review F, never B + XY.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public bool IsMeasurementReplacement { get; init; }
+    /// <summary>A staged file/Init edit affects this Cell only; every outside row is exact OFFSET_KEEP.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public int? ReplacementCellNo { get; init; }
     /// <summary>Explicit zero initialization. Imported absolute maps are replacements but are not Init.</summary>
     [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
     public bool InitializeAllReviewRows { get; init; }
@@ -160,6 +166,7 @@ public sealed record ST_MANUAL_COPY_PREVIEW(
     IReadOnlyList<string> ExcludedMaskedKeys, string Judge, double? ErrorXUm, double? ErrorYUm,
     ST_MANUAL_OFFSET Final, string Fingerprint)
 {
+    public bool IsMeasurementReplacement { get; init; }
     public string OriginReferenceKey { get; init; } = "";
     public string ReferenceValueToken { get; init; } = "";
     public string ReferenceValueKind { get; init; } = "";
@@ -172,7 +179,8 @@ public sealed record ST_MANUAL_REFERENCE_VALUE(string OriginReferenceKey, string
     string Source, string BasisRevisionId);
 
 public sealed record ST_MANUAL_STATE_COPY_PREVIEW(string ReferenceKey,IReadOnlyList<string> SelectionKeys,
-    IReadOnlyList<string> Targets,IReadOnlyList<string> ExcludedMaskedKeys,string Judge,string Fingerprint);
+    IReadOnlyList<string> Targets,IReadOnlyList<string> ExcludedMaskedKeys,string Judge,string Fingerprint)
+{ public bool IsMeasurementReplacement { get; init; } }
 
 /// <summary>All values are immutable copies; the host writes its real offset file before CommitApplied.</summary>
 public sealed record ST_MANUAL_APPLY_SNAPSHOT(
@@ -182,6 +190,10 @@ public sealed record ST_MANUAL_APPLY_SNAPSHOT(
     IReadOnlyList<ST_MANUAL_CANDIDATE_ROW> Rows)
 {
     public bool IsOffsetReplacement { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public bool IsMeasurementReplacement { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public int? ReplacementCellNo { get; init; }
     public bool InitializeAllReviewRows { get; init; }
     public IReadOnlyList<string> InitializationOffsetKeys { get; init; } = [];
     public IReadOnlyList<string> InitializedOffsetKeys { get; init; } = [];

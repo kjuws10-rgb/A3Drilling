@@ -20,10 +20,10 @@ internal static partial class Program
             True(c.Snapshot.CandidateRows.Where(r=>f.Source.Points.Single(p=>p.Key==r.Key).CellNo==2).All(r=>r.FinalXUm==8&&r.FinalYUm==-5)&&f.Saves==0&&f.Executed.Count==0);
             True(f.Source.Points.All(p=>!p.IsMeasurementOffsetInitialized)&&f.Source.Values.Values.All(v=>v==new ST_MANUAL_OFFSET(8,-5)));
         });
-        await Check("head_init_expands_shared_cell_shot_without_changing_unrelated_head_rows",async()=>
+        await Check("manual_init_uses_current_cell_including_all_heads_and_shared_beams",async()=>
         {
             var(f,c)=ScopedFixture();await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets,null,r=>r with{OffsetInitScope="HEAD",OffsetInitHeadNo=1});
-            var affected=new HashSet<string>{"P1","P1B","P4"};True(c.Snapshot.CandidateRows.All(r=>affected.Contains(r.Key)?r.FinalXUm==0:r.FinalXUm==8)&&f.Saves==0);
+            var affected=new HashSet<string>{"P1","P1B","P2"};True(c.Snapshot.CandidateRows.All(r=>affected.Contains(r.Key)?r.FinalXUm==0:r.FinalXUm==8)&&f.Saves==0);
         });
         await Check("scoped_init_missing_unknown_or_unsupported_scope_rejects_without_draft",async()=>
         {

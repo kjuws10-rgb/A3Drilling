@@ -34,18 +34,18 @@ internal static partial class Program
     [STAThread]
     private static int Main(string[] args)
     {
-        if (args.Length is < 2 or > 3 || args.Length == 3 && args[2] is not ("--integration-impact" or "--sync-levels" or "--coverage-compact" or "--hardening" or "--visual-usability" or "--map-first" or "--cell-overview" or "--offset-init" or "--measurement-workflow" or "--bulk-history" or "--representative" or "--side-panels" or "--final-offsets" or "--existing-final-csv" or "--representative-apply" or "--bulk-final-consistency" or "--cell-csv-workflow")) { Console.Error.WriteLine("Usage: UiHarness <repository/Drilling.UI> <private-output> [--integration-impact|--sync-levels|--coverage-compact|--hardening|--visual-usability|--map-first|--cell-overview|--offset-init|--measurement-workflow|--bulk-history|--representative|--side-panels|--final-offsets|--existing-final-csv|--representative-apply|--bulk-final-consistency|--cell-csv-workflow]"); return 2; }
+        if (args.Length is < 2 or > 3 || args.Length == 3 && args[2] is not ("--integration-impact" or "--sync-levels" or "--coverage-compact" or "--hardening" or "--visual-usability" or "--map-first" or "--cell-overview" or "--offset-init" or "--measurement-workflow" or "--bulk-history" or "--representative" or "--side-panels" or "--final-offsets" or "--existing-final-csv" or "--representative-apply" or "--bulk-final-consistency" or "--cell-csv-workflow" or "--replacement-workflow")) { Console.Error.WriteLine("Usage: UiHarness <repository/Drilling.UI> <private-output> [--integration-impact|--sync-levels|--coverage-compact|--hardening|--visual-usability|--map-first|--cell-overview|--offset-init|--measurement-workflow|--bulk-history|--representative|--side-panels|--final-offsets|--existing-final-csv|--representative-apply|--bulk-final-consistency|--cell-csv-workflow]"); return 2; }
         _uiSource = Path.GetFullPath(args[0]); _output = Path.GetFullPath(args[1]); Directory.CreateDirectory(_output);
         _application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
         // Match the real WPF message loop when a fake operation intentionally completes later.
         SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(_application.Dispatcher));
-        if (args.Length == 3) return args[2] switch { "--sync-levels" => SyncLevels(), "--coverage-compact" => CoverageCompact(), "--hardening" => Hardening(), "--visual-usability" => VisualUsability(), "--map-first" => MapFirst(), "--cell-overview" => CellOverview(), "--offset-init" => OffsetInit(), "--measurement-workflow" => MeasurementWorkflow(), "--bulk-history" => BulkHistory(), "--representative" => Representative(), "--side-panels" => SidePanels(), "--final-offsets" => FinalOffsetCases(), "--existing-final-csv" => ExistingFinalCsv(), "--representative-apply" => RepresentativeApply(), "--bulk-final-consistency" => BulkFinalConsistency(), "--cell-csv-workflow" => CellCsvWorkflow(), _ => IntegrationImpact() };
+        if (args.Length == 3) return args[2] switch { "--sync-levels" => SyncLevels(), "--coverage-compact" => CoverageCompact(), "--hardening" => Hardening(), "--visual-usability" => VisualUsability(), "--map-first" => MapFirst(), "--cell-overview" => CellOverview(), "--offset-init" => OffsetInit(), "--measurement-workflow" => MeasurementWorkflow(), "--bulk-history" => BulkHistory(), "--representative" => Representative(), "--side-panels" => SidePanels(), "--final-offsets" => FinalOffsetCases(), "--existing-final-csv" => ExistingFinalCsv(), "--representative-apply" => RepresentativeApply(), "--bulk-final-consistency" => BulkFinalConsistency(), "--cell-csv-workflow" => CellCsvWorkflow(), "--replacement-workflow" => ReplacementWorkflow(), _ => IntegrationImpact() };
         try
         {
             LoadResources("Light");
             var fake = new FakeController(Snapshot(240));
             var view = new CManualInspectionView { DataContext = fake, ConfirmationForTesting = (_,_,_) => true };
-            Set(view, "_scatterOffsets", false); Set(view, "_scatterScope", "CELL"); // Explicit legacy working-data scope.
+            Set(view, "_scatterScope", "CELL"); // Explicit legacy working-data scope.
             var window = new Window { Width = 1490, Height = 1060, Content = view, Left = -20000, Top = -20000, ShowInTaskbar = false, ShowActivated = false, WindowStyle = WindowStyle.None };
             window.Show(); Pump(); SelectMeasurementView(view); view.UpdateLayout();
             // This legacy per-Cell regression deliberately enters Cell 1. The new all-Cell
@@ -136,10 +136,10 @@ internal static partial class Program
             var reference = fake.Snapshot.Points[11] with { BaseXUm = 4, BaseYUm = 5, WorkingXUm = 2, WorkingYUm = 3, CandidateXUm = 70, CandidateYUm = 80 };
             fake.Replace(fake.Snapshot with { Version = 12, CandidateStatus = "DRAFT" });
             var candidateF = ((double?, double?))Invoke(view, "ReferenceValues", reference)!;
-            Test("legacy_reference_fallback_ignores_unresolved_candidate_fields", candidateF == (6.0, 8.0));
+            Test("legacy_reference_fallback_ignores_unresolved_candidate_fields", candidateF == (2.0, 3.0));
             fake.Replace(fake.Snapshot with { Version = 13, CandidateStatus = "APPLIED" });
             var appliedF = ((double?, double?))Invoke(view, "ReferenceValues", reference)!;
-            Test("applied_candidate_not_reused_as_reference_F", appliedF == (6.0, 8.0));
+            Test("applied_candidate_not_reused_as_reference_F", appliedF == (2.0, 3.0));
             var originalChange = fake.Snapshot.Points.Select((p, index) => index == 1 ? p with { OriginalXUm = 100 } : p).ToArray();
             fake.Replace(fake.Snapshot with { Version = 14, Points = originalChange });
             Set(view, "_scatterScope", "CELL"); Set(view, "_scatterOriginal", false); Invoke(view, "Refresh"); var workingMean = scatter.Metrics.MeanX;
@@ -147,7 +147,7 @@ internal static partial class Program
             Test("original_scatter_uses_preserved_values", scatter.Metrics.MeanX > workingMean + 1);
             Test("masked_scatter_exclusion_count", scatter.Metrics.Masked == 1 && scatter.Metrics.Count == 79);
             fake.Replace(Snapshot(10000) with { Version = 20, RunId = "large", IsSimulation = true });
-            Test("new_run_resets_final_scatter_reference_selection", Field<string>(view, "_color")=="applied" && Field<bool>(view,"_scatterFinalOffsets") && Field<string>(view, "_scatterScope") == "HEAD" && !Field<bool>(view, "_scatterOffsets") && !Field<bool>(view, "_scatterOriginal") && Field<string?>(view, "_representativeKey") is null && Field<HashSet<string>>(view, "_selected").Count == 0);
+            Test("new_run_resets_final_scatter_reference_selection", MeasurementMapMode(view)=="level" && ((CManualInspectionScatterControl)view.FindName("ScatterPlot")).DataKind=="WORKING" && Field<string>(view, "_scatterScope") == "HEAD" && !(((CManualInspectionScatterControl)view.FindName("ScatterPlot")).DataKind=="OFFSETS") && !Field<bool>(view, "_scatterOriginal") && Field<string?>(view, "_representativeKey") is null && Field<HashSet<string>>(view, "_selected").Count == 0);
             var watch = Stopwatch.StartNew(); Pump(); Set(view, "_cell", 0); Invoke(view, "Refresh"); view.UpdateLayout(); Render(view, "native-10000-dark.png"); watch.Stop();
             Test("ten_thousand_points_retained", fake.Snapshot.Points.Count == 10000 && Field<Dictionary<string, CManualInspectionUiPoint>>(view, "_points").Count == 10000);
             Test("ten_thousand_fit_does_not_crop_groups", ((IList)Private(map, "_hits")).Count == 10000, new { hits = ((IList)Private(map, "_hits")).Count });
@@ -172,7 +172,7 @@ internal static partial class Program
             var points = initial.Points.Select((p, i) => i == 1 ? p with { Source = "IMPORTED", IsProxy = false } : p).ToArray();
             var fake = new FakeController(initial with { Version = 41, Points = points });
             var view = new CManualInspectionView { DataContext = fake, ConfirmationForTesting = (_,_,_) => true };
-            Set(view, "_scatterOffsets", false); Set(view, "_scatterScope", "CELL"); // Explicit legacy working-data scope.
+            Set(view, "_scatterScope", "CELL"); // Explicit legacy working-data scope.
             var window = new Window { Width = 1490, Height = 900, Content = view, Left = -20000, Top = -20000, ShowInTaskbar = false, ShowActivated = false, WindowStyle = WindowStyle.None };
             window.Show(); Pump(); SelectMeasurementView(view);
             Test("arrival_label_not_live_motor_feedback", ((TextBlock)view.FindName("StagePositionText")).Text.Contains("마지막 도착 확인"));
@@ -183,8 +183,6 @@ internal static partial class Program
             filter.SelectedItem = importedChoice; Pump();
             Test("imported_filter_exact_source", Field<IReadOnlyList<CManualInspectionUiPoint>>(view, "_filtered").Select(p => p.Key).SequenceEqual([points[1].Key]));
             Test("imported_reference_marker_keeps_imported_source_label", points[1].CanBeReference && points[1].Source=="IMPORTED"&&points[1].SourceText.Contains("불러온"));
-            var color = (ComboBox)view.FindName("ColorFilter");
-            color.SelectedItem = color.Items.Cast<object>().Single(x => (string?)x.GetType().GetProperty("Value")!.GetValue(x) == "level"); Pump();
             Test("imported_result_does_not_invent_active_offset", ((SolidColorBrush)CManualInspectionDrawing.PointBrush(view, points[1] with { HasAppliedOffset = false }, "applied", fake.Snapshot)).Color.ToString() == "#FFDBE4EA");
             var legend = (WrapPanel)view.FindName("MapLegendItems");
             Test("measurement_legend_marks_unmeasured_and_initialized", legend.Children.OfType<StackPanel>().SelectMany(p => p.Children.OfType<TextBlock>()).Any(t => t.Text.Contains("유효 측정 없음")||t.Text.Contains("초기화")));
@@ -204,10 +202,10 @@ internal static partial class Program
             var resolved = ((double?, double?))Invoke(view, "ReferenceValues", reference)!;
             Test("consumed_raw_uses_engine_resolved_F", resolved == (13.0, 4.0));
             var partial = ((double?, double?))Invoke(view, "ReferenceValues", reference with { ReferenceFinalYUm = null })!;
-            Test("partial_resolved_F_does_not_guess_other_axis", partial == (13.0, null));
+            Test("partial_resolved_F_does_not_guess_other_axis", partial == (null, null));
             fake.Replace(fake.Snapshot with { Version = 44, CandidateStatus = "Applied" });
             var legacy = ((double?, double?))Invoke(view, "ReferenceValues", reference with { ReferenceFinalXUm = null, ReferenceFinalYUm = null })!;
-            Test("candidate_status_case_insensitive", legacy == (16.0, 6.0));
+            Test("candidate_status_case_insensitive", legacy == (3.0, 2.0));
             var extraBeam = points[1] with { Key = "IMPORTED-B12", BeamNo = 12 };
             var mixed = points.Select((p, i) => i == 3 ? p with { IsMasked = true } : p).Append(extraBeam).ToArray();
             fake.Replace(fake.Snapshot with { Version = 45, Points = mixed });
@@ -247,12 +245,12 @@ internal static partial class Program
             var confirmations=new List<(string Title,string Description,string Button)>();
             var accept=false;
             var view=new CManualInspectionView{DataContext=fake,ConfirmationForTesting=(title,description,button)=>{confirmations.Add((title,description,button));return accept;}};
-            Set(view, "_scatterOffsets", false); Set(view, "_scatterScope", "CELL"); // Explicit legacy working-data scope.
+            Set(view, "_scatterScope", "CELL"); // Explicit legacy working-data scope.
             var window=new Window{Width=1490,Height=1060,Content=view,Left=-20000,Top=-20000,ShowInTaskbar=false,ShowActivated=false,WindowStyle=WindowStyle.None};
             window.Show();Pump(); SelectMeasurementView(view);
             var map=(CManualInspectionMapControl)view.FindName("PositionMap");
-            Test("explicit_measurement_view_is_deviation_level",Field<string>(view,"_color")=="level");
-            Test("three_color_concepts_include_saved_final_offsets",((ComboBox)view.FindName("ColorFilter")).Items.Count==3);
+            Test("explicit_measurement_view_is_deviation_level",MeasurementMapMode(view)=="level");
+            Test("measurement_color_is_fixed_without_color_combo",view.FindName("ColorFilter") is null);
             Test("advanced_sections_initially_closed",new[]{"InspectorSection","LeftInspectorSection","ReferenceSection","CorrectionSection","SettingsSection","ScatterSection","ResultsSection"}.All(n=>!((Expander)view.FindName(n)).IsExpanded));
             Test("simulation_and_duplicate_motion_controls_removed",new[]{"SimulationOptions","SimulationDemoButton","MoveButton","MoveMeasureCorrectButton","SideStopButton","PanToolButton","LoadResultButton"}.All(n=>view.FindName(n)is null));
             Test("automatic_synchronization_description_reachable",((TextBlock)view.FindName("StatusText")).ToolTip?.ToString()?.Contains(initial.SynchronizationText)==true);
@@ -276,8 +274,8 @@ internal static partial class Program
             var snapshot=initial with{Version=102,Points=initial.Points.Select((p,i)=>i==0?p with{DisplayedMeasurementOrigin="FINE · 기타 메뉴",MeasurementSourcePath="synthetic/Fine.csv",HasAppliedOffset=true,AppliedLevel=1,BaseXUm=7}:p).ToArray()};
             fake.Replace(snapshot);Pump();Set(view,"_focusKey",snapshot.Points[0].Key);Invoke(view,"Refresh");
             Test("point_details_show_external_measurement_origin",((TextBlock)view.FindName("PointDetailsText")).Text.Contains("FINE · 기타 메뉴")&&((TextBlock)view.FindName("PointDetailsText")).Text.Contains("synthetic/Fine.csv"));
-            var appliedDetails = (TextBlock)view.FindName("PointAppliedText");
-            Test("point_details_prioritize_measurement_deviation_and_judge",((TextBlock)view.FindName("PointJudgesText")).Text.Contains("NG")&&((TextBlock)view.FindName("PointErrorText")).Text.Contains(snapshot.Points[0].MeasurementErrorText)&&appliedDetails.Visibility==Visibility.Collapsed);
+
+            Test("point_details_prioritize_measurement_deviation_and_judge",((TextBlock)view.FindName("PointJudgesText")).Text.Contains("NG")&&((TextBlock)view.FindName("PointErrorText")).Text.Contains(snapshot.Points[0].MeasurementErrorText)&&view.FindName("PointAppliedText") is null);
             var before=fake.Calls.Count;
             ((Button)view.FindName("LoadRecipeButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();
             Test("refresh_dispatches_immediately_without_confirmation",fake.Calls.Count==before+1&&confirmations.Count==0);
@@ -292,7 +290,7 @@ internal static partial class Program
             Test("context_measurement_uses_selected_keys",fake.Calls.Last().Action==EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure&&fake.Calls.Last().Request.Keys.SequenceEqual([key]));
             var callCount=fake.Calls.Count;((Button)view.FindName("StopButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();
             Test("stop_is_immediate_without_confirmation",fake.Calls.Count==callCount+1&&fake.Calls.Last().Action==EN_MANUAL_INSPECTION_UI_ACTION.Stop);
-            Test("calculate_description_does_not_claim_saved",CManualInspectionView.DescribeAction(EN_MANUAL_INSPECTION_UI_ACTION.Calculate,snapshot,3).Contains("저장하지"));
+            Test("calculate_description_does_not_claim_saved",CManualInspectionView.DescribeAction(EN_MANUAL_INSPECTION_UI_ACTION.Calculate,snapshot,3).Contains("현재 Cell"));
             Test("retry_description_no_implicit_correction",CManualInspectionView.DescribeAction(EN_MANUAL_INSPECTION_UI_ACTION.RetryRemaining,snapshot with{RemainingCount=3},0).Contains("재개하지"));
             var recent=new CManualInspectionUiResultFile("synthetic/other-fine.csv","Fine · synthetic", "G",DateTimeOffset.UtcNow,"FINE");
             fake.Replace(snapshot with{Version=103,RecentResults=[recent]});accept=true;
@@ -305,7 +303,7 @@ internal static partial class Program
             Test("new_common_bounds_recolor_existing_offsets",oldLevel==1&&CManualInspectionDrawing.AppliedLevel(sample,changed)==0);
             fake.Replace(snapshot with{Version=104,LevelBoundsUm=[10,20,30]});Pump();Set(view,"_focusKey",snapshot.Points[0].Key);Invoke(view,"Refresh");
             var firstRow=((IEnumerable)((DataGrid)view.FindName("ResultGrid")).ItemsSource).Cast<object>().First();
-            Test("table_and_detail_use_same_current_level_scale",firstRow.GetType().GetProperty("AppliedLevelText")!.GetValue(firstRow)?.ToString()=="L1"&&((TextBlock)view.FindName("PointJudgesText")).Text.Contains("NG"));
+            Test("table_and_detail_use_same_current_level_scale",firstRow.GetType().GetProperty("MeasurementLevelText")!.GetValue(firstRow)?.ToString()=="L1"&&((TextBlock)view.FindName("PointJudgesText")).Text.Contains("NG"));
             Set(view,"_focusKey",snapshot.Points[1].Key);Invoke(view,"Refresh");
             var confirmsBeforeReference=confirmations.Count;view.ConfirmationForTesting=(_,_,_)=>throw new InvalidOperationException("Representative selection must not open confirmation");
             Invoke(view,"SetReference_Click",view,new RoutedEventArgs());

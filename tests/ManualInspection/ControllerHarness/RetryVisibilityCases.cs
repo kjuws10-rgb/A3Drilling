@@ -44,7 +44,7 @@ internal static partial class Program
         {
             var(f,c)=await Loaded();await FailSecond(f,c);f.NewJudge="NG";await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P3"]);
             True(c.Snapshot.Points[2].WorkingJudge=="NG"&&!c.Snapshot.HasIncomplete);
-            await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P3"]));True(f.Saves==0);
+            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P3"]);True(f.Saves==1&&c.Snapshot.Points[2].WorkingJudge=="NG"&&c.Snapshot.Points[2].BaseXUm==0);
         });
         await Check("active_p2p_target_is_published_before_response_and_is_separate_from_last_measured",async()=>
         {

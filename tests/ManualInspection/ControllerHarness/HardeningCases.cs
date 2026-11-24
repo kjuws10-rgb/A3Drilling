@@ -24,7 +24,7 @@ internal static partial class Program
             await Do(c, EN_MANUAL_INSPECTION_UI_ACTION.Refresh);
             True(c.Snapshot.RunId == "RUN-2" && c.Snapshot.CandidateRows.Count == 0 && !c.Snapshot.HasIncomplete);
             True(c.Snapshot.Points.All(p => !p.IsProxy && p.ReferenceKey.Length == 0 && p.MeasurementToken.StartsWith("RUN-2:", StringComparison.Ordinal)));
-            True(!c.Snapshot.IsReadOnly && f.Executed.Count == 0 && f.Saves == 1);
+            True(!c.Snapshot.IsReadOnly && f.Executed.Count == 0 && f.Saves == 0);
         });
         await Check("hardening_new_run_can_replace_old_interrupted_run_without_resuming_motion", async () =>
         {
@@ -154,11 +154,10 @@ internal static partial class Program
         {
             var (f, c) = await Loaded(); await Prepared(c); using var cancel = new CancellationTokenSource();
             f.SaveHook = token => { cancel.Cancel(); token.ThrowIfCancellationRequested(); return Task.CompletedTask; };
-            await c.ExecuteAsync(EN_MANUAL_INSPECTION_UI_ACTION.Apply, new() { ExpectedVersion = c.Snapshot.Version }, cancel.Token);
+            await c.ExecuteAsync(EN_MANUAL_INSPECTION_UI_ACTION.Apply, new() { ExpectedVersion = c.Snapshot.Version,CurrentCellNo=1 }, cancel.Token);
             True(f.Saves == 0 && c.Snapshot.ActiveRevisionId == "INITIAL" && !c.IsBusy && !c.Snapshot.CanApply);
-            await Throws(() => Do(c, EN_MANUAL_INSPECTION_UI_ACTION.Apply));
-            f.SaveHook = null; await Do(c, EN_MANUAL_INSPECTION_UI_ACTION.Validate);
-            await Do(c, EN_MANUAL_INSPECTION_UI_ACTION.Apply); True(f.Saves == 1);
+            f.SaveHook = null;await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply);True(f.Saves==1);
+            await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Apply));True(f.Saves==1);
             await Throws(() => Do(c, EN_MANUAL_INSPECTION_UI_ACTION.Apply)); True(f.Saves == 1);
         });
         await Check("hardening_geometry_shrink_requires_current_target_reconfirmation_instead_of_erasing_saved_point", async () =>
@@ -214,10 +213,12 @@ internal static partial class Program
                 .GetProperty("ProxySource").GetProperty("ReferenceMeasurementToken").GetString();
             True(!string.IsNullOrEmpty(oldReferenceRaw));
             f.NewX = 8; await Do(c, EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure, ["P1"]);
+            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P2"]);
             using var appliedCopy = System.Text.Json.JsonDocument.Parse(f.SourceIds.Single());
-            var manualRow = appliedCopy.RootElement.GetProperty("Tokens").EnumerateArray().Single();
+            var manualRow = appliedCopy.RootElement.GetProperty("Tokens").EnumerateArray().Single(r=>r.GetProperty("Key").GetString()=="P2");
             True(manualRow.GetProperty("Source").GetString() == "MANUAL" && manualRow.GetProperty("ReferenceKey").GetString() == "P1");
             True(manualRow.GetProperty("ReferenceRaw").GetString() == oldReferenceRaw && c.Snapshot.Points.Single(p => p.Key == "P2").BaseXUm == 3);
+            f.NewX=9;await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1"]);
             await Do(c, EN_MANUAL_INSPECTION_UI_ACTION.Calculate, ["P1"]);
             await Do(c, EN_MANUAL_INSPECTION_UI_ACTION.Validate);
             await Do(c, EN_MANUAL_INSPECTION_UI_ACTION.Apply);

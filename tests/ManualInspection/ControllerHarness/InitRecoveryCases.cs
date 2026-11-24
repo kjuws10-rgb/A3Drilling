@@ -31,7 +31,7 @@ internal static partial class Program
         await Check("init_recovery_controller_all_init_saves_large_negative_base_without_raising_limits",async()=>
         {
             var(f,c)=Fixture();Large(f);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Apply);
-            True(c.Snapshot.Points.All(p=>p.BaseXUm==0&&p.BaseYUm==0&&p.IsMeasurementOffsetInitialized)&&c.Snapshot.TotalLimitUm==200&&f.Saves==1);
+            True(c.Snapshot.Points.Where(p=>p.CellNo==1).All(p=>p.BaseXUm==0&&p.BaseYUm==0&&p.IsMeasurementOffsetInitialized)&&c.Snapshot.Points.Single(p=>p.CellNo==2).BaseXUm==250&&c.Snapshot.TotalLimitUm==200&&f.Saves==1);
             f.NewX=f.NewY=0;await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1"]);True(c.Snapshot.Points.Single(p=>p.Key=="P1").HasWorkingMeasurement&&f.Saves==1);
         });
         await Check("init_recovery_controller_failed_field_preflight_preserves_previous_candidate_and_measurement_access",async()=>
@@ -45,7 +45,7 @@ internal static partial class Program
         {
             var(f,c)=Fixture();f.Source=f.Source with{FieldEvaluator=(_,_,_)=>new(false,"protected target field")};await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);
             f.FailKey="P2";await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1","P2"]));var before=c.Snapshot.Points.Select(p=>p.OriginalXUm).ToArray();
-            foreach(var edit in new Func<CManualInspectionUiRequest,CManualInspectionUiRequest>[] {r=>r with{OffsetInitScope="CELL",OffsetInitCellNo=99},r=>r})
+            foreach(var edit in new Func<CManualInspectionUiRequest,CManualInspectionUiRequest>[] {r=>r with{OffsetInitScope="CELL",OffsetInitCellNo=99,CurrentCellNo=99},r=>r})
                 {await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets,null,edit));True(c.Snapshot.HasIncomplete&&c.Snapshot.CompletedCount==1&&c.Snapshot.RemainingCount==1&&!c.Snapshot.IsOffsetEditPending);}
             True(before.SequenceEqual(c.Snapshot.Points.Select(p=>p.OriginalXUm))&&f.Saves==0&&f.Executed.Count==2);
             f.FailKey=null;await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P3"]);True(!c.Snapshot.HasIncomplete&&f.Executed.Last()=="P3");
@@ -62,13 +62,13 @@ internal static partial class Program
         {
             var(f,c)=Fixture();Large(f);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets,null,r=>r with{OffsetInitScope="CELL",OffsetInitCellNo=1});
             await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.UpdateLimits,null,r=>r with{DeltaLimitUm=1,TotalLimitUm=50,ScannerFieldMm=5});await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Apply);True(f.Saves==1);
-            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P3"]);await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P3"]));True(f.Saves==1&&!c.Snapshot.IsOffsetEditPending);
+            f.NewX=2;await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P3"]);await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P3"]));True(f.Saves==1&&!c.Snapshot.IsOffsetEditPending);
         });
         await Check("init_recovery_controller_known_large_history_undo_redo_is_exact_not_a_new_measurement",async()=>
         {
             var(f,c)=Fixture();Large(f);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Apply);
             await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.UndoOffsets);True(f.Saves==2&&c.Snapshot.Points.Single(p=>p.Key=="P1").BaseXUm==400&&c.Snapshot.Points.Single(p=>p.Key=="P1").BaseYUm==-700);
-            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.RedoOffsets);True(f.Saves==3&&c.Snapshot.Points.All(p=>p.IsMeasurementOffsetInitialized));
+            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.RedoOffsets);True(f.Saves==3&&c.Snapshot.Points.Where(p=>p.CellNo==1).All(p=>p.IsMeasurementOffsetInitialized)&&!c.Snapshot.Points.Single(p=>p.CellNo==2).IsMeasurementOffsetInitialized);
             await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.RedoOffsets));True(f.Saves==3&&f.Executed.Count==0);
         });
         await Check("init_recovery_controller_same_frame_ensureloaded_preserves_verified_large_undo_redo",async()=>
@@ -82,7 +82,7 @@ internal static partial class Program
             await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.UndoOffsets);True(f.Saves==2&&c.Snapshot.Points.Single(p=>p.Key=="P1").BaseXUm==400);
             f.Source=f.Source with{ObservationFingerprint="fresh-native-observation-after-undo"};
             await c.SynchronizeExternalAsync();await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.RedoOffsets);
-            True(f.Saves==3&&c.Snapshot.Points.All(p=>p.IsMeasurementOffsetInitialized)&&f.Executed.Count==0);
+            True(f.Saves==3&&c.Snapshot.Points.Where(p=>p.CellNo==1).All(p=>p.IsMeasurementOffsetInitialized)&&!c.Snapshot.Points.Single(p=>p.CellNo==2).IsMeasurementOffsetInitialized&&f.Executed.Count==0);
         });
         await Check("init_recovery_controller_old_scoped_draft_startup_archives_but_explicit_import_can_save_after_revalidation",async()=>
         {

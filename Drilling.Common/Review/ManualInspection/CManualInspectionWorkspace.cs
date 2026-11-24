@@ -314,11 +314,40 @@ public sealed class CManualInspectionWorkspace
         Changed();Log("OPERATOR_COMPLETE",$"{selected.Length}점 수동 OK 완료 · 원측정/활성 B/파일 보존 · 보정 저장은 별도 검증");
     }
 
+    /// <summary>Explicit Manual acknowledgement captures the input XY itself as the replacement F.</summary>
+    public void RecordMeasurementOperatorResults(IEnumerable<string> keys,double? x,double? y,string reason)
+    {
+        var selected=keys.Distinct(StringComparer.Ordinal).ToArray();
+        if(x is null&&y is null&&selected.Select(GetPoint).Any(p=>!p.HasFiniteError||p.IsMeasurementStateCleared||p.IsMeasurementOffsetInitialized))
+            throw new InvalidOperationException("현재 측정편차가 없습니다. 편차 X/Y를 직접 입력하세요.");
+        RecordOperatorResults(selected,x,y,reason);
+        foreach(var key in selected)
+        {
+            var point=GetPoint(key);var value=point.OperatorResult!;
+            var captured=value with{FinalOffset=new(value.ErrorXUm!.Value,value.ErrorYUm!.Value)};
+            captured=captured with{ValueProof=OperatorValueProof(captured)};
+            _points[key]=point with{OperatorResult=captured};AddHistory(point,_points[key],"OPERATOR_MEASUREMENT_VALUE",reason);
+        }
+        Changed();Log("OPERATOR_MEASUREMENT_VALUE","입력/승인한 편차 자체를 Manual 교체값으로 캡처 · 원측정/B 불변");
+    }
+
     public ST_MANUAL_BULK_PREVIEW PreviewBulkCorrection(IEnumerable<string>? selectedKeys=null)
     {
         RequireLoaded();
         var population=selectedKeys is null?_points.Values.ToArray():Select(selectedKeys,false).Select(GetPoint).ToArray();
         return PreviewBulkCorrectionCore(population,ActiveInitializedOffsetKeys.ToHashSet(StringComparer.Ordinal));
+    }
+
+    public ST_MANUAL_BULK_PREVIEW PreviewMeasurementReplacement(IEnumerable<string>? keys=null)
+    {
+        RequireLoaded();var population=keys is null?_points.Values.ToArray():Select(keys,false).Select(GetPoint).ToArray();
+        return PreviewBulkCorrectionCore(population,ActiveInitializedOffsetKeys.ToHashSet(StringComparer.Ordinal),true);
+    }
+
+    public IReadOnlyDictionary<int,ST_MANUAL_BULK_PREVIEW> PreviewMeasurementReplacementByCell()
+    {
+        RequireLoaded();var initialized=ActiveInitializedOffsetKeys.ToHashSet(StringComparer.Ordinal);
+        return _points.Values.GroupBy(p=>p.CellNo).ToDictionary(g=>g.Key,g=>PreviewBulkCorrectionCore(g.ToArray(),initialized,true));
     }
 
     /// <summary>All cell summaries in one population pass, sharing the immutable initialization lookup.</summary>
@@ -330,7 +359,7 @@ public sealed class CManualInspectionWorkspace
             group=>PreviewBulkCorrectionCore(group.ToArray(),initialized));
     }
 
-    private ST_MANUAL_BULK_PREVIEW PreviewBulkCorrectionCore(IReadOnlyList<ST_MANUAL_POINT> population,IReadOnlySet<string> initialized)
+    private ST_MANUAL_BULK_PREVIEW PreviewBulkCorrectionCore(IReadOnlyList<ST_MANUAL_POINT> population,IReadOnlySet<string> initialized,bool measurementReplacement=false)
     {
         var keys=new List<string>();
         var masked=0;var ng=0;var missing=0;var consumed=0;var unchanged=0;var invalid=0;var manual=0;var numeric=0;
@@ -344,8 +373,9 @@ public sealed class CManualInspectionWorkspace
             var isManual=point.ProxySource is not null || point.OperatorResult is not null;
             if(isManual)
             {
-                try { final=ResolveReferenceValue(point.Key).Final; }
+                try { final=(measurementReplacement?ResolveMeasurementReferenceValue(point.Key):ResolveReferenceValue(point.Key)).Final; }
                 catch(InvalidOperationException) { invalid++;continue; }
+                if(measurementReplacement&&WasLegacyManualValueApplied(point,final)){consumed++;continue;}
                 if(point.HasAppliedOffsetEvidence && !initialized.Contains(point.OffsetKey) && Equal(QuantizeForOffsetFile(final),QuantizeForOffsetFile(_active[point.Key]))) { unchanged++;continue; }
             }
             else
@@ -354,11 +384,12 @@ public sealed class CManualInspectionWorkspace
                 try { RequireMeasurementLineage(point); }
                 catch(InvalidOperationException) { invalid++;continue; }
                 if(WasConsumed(point.Key,MeasurementToken(point))) { consumed++;continue; }
-                final=Add(_active[point.Key],new(point.ErrorXUm!.Value,point.ErrorYUm!.Value));
+                var error=new ST_MANUAL_OFFSET(point.ErrorXUm!.Value,point.ErrorYUm!.Value);
+                final=measurementReplacement?error:Add(_active[point.Key],error);
             }
             var stored=final.IsFinite?QuantizeForOffsetFile(final):final;
-            if(!stored.IsFinite || Magnitude(Subtract(final,_active[point.Key]))>Limits!.MaxDeltaUm || Magnitude(final)>Limits.MaxTotalUm
-                || Magnitude(Subtract(stored,_active[point.Key]))>Limits.MaxDeltaUm || Magnitude(stored)>Limits.MaxTotalUm) {numeric++;continue;}
+            if(!stored.IsFinite || Magnitude(measurementReplacement?final:Subtract(final,_active[point.Key]))>Limits!.MaxDeltaUm || Magnitude(final)>Limits.MaxTotalUm
+                || Magnitude(measurementReplacement?stored:Subtract(stored,_active[point.Key]))>Limits.MaxDeltaUm || Magnitude(stored)>Limits.MaxTotalUm) {numeric++;continue;}
             keys.Add(point.Key);if(isManual)manual++;
         }
         return new(ReadOnly(keys.ToArray()),population.Count,masked,ng,missing,consumed,unchanged,invalid,manual){ExcludedNumeric=numeric};
@@ -412,6 +443,25 @@ public sealed class CManualInspectionWorkspace
         return Candidate;
     }
 
+    /// <summary>Manual-only replacement. Delta remains F-B for audit; F is the captured measurement XY.</summary>
+    public ST_MANUAL_CANDIDATE BuildMeasurementReplacementCandidate(IEnumerable<string> keys)
+    {
+        GuardCorrection();GuardNoOffsetEdit();var selected=Select(keys,true);
+        if(selected.Length==0)throw new InvalidOperationException("보정할 측정 위치를 선택하세요.");
+        var rows=new List<ST_MANUAL_CANDIDATE_ROW>();
+        foreach(var key in selected)
+        {
+            var point=GetPoint(key);var value=ResolveMeasurementReferenceValue(key);var before=_active[key];
+            var manual=point.ProxySource is not null||point.OperatorResult is not null;
+            rows.Add(new(key,point.OffsetKey,point.CellNo,point.HeadNo,point.ShotNo,point.BeamNo,before,Subtract(value.Final,before),value.Final,
+                manual?"MANUAL":"MEASURED",manual?point.OperatorResult is not null?key:point.ProxySource!.ReferenceKey:key,
+                manual?point.OperatorResult?.Reason??point.ProxySource!.Reason:"현재 측정편차로 Review Offset 교체",manual?"":MeasurementToken(point)));
+        }
+        if(Candidate is {State:not EN_MANUAL_CANDIDATE_STATE.Applied})_candidateBackups.Add(Candidate);
+        Candidate=NewCandidate(rows) with{IsMeasurementReplacement=true};_generation++;_copyUndo=null;
+        Log("MEASUREMENT_REPLACEMENT","현재 측정편차를 절대 Review Offset으로 교체 · 기존 B를 더하지 않음");return Candidate;
+    }
+
     /// <summary>Prepare a whole-model absolute Review map; no active value, raw packet or file is changed.</summary>
     public ST_MANUAL_CANDIDATE BuildOffsetReplacementCandidate(
         IReadOnlyDictionary<string, ST_MANUAL_OFFSET> values, string reason, bool initializeAllReviewRows,
@@ -442,6 +492,23 @@ public sealed class CManualInspectionWorkspace
             InitializationOffsetKeys=initializeAllReviewRows?byShot.Keys.ToArray():[],InitializedOffsetKeys=initialized };
         _generation++; _copyUndo=null;
         Log("OFFSET_EDIT", "모델 전체 측정 보정의 저장 전 작업값입니다. 보호 설정과 활성 파일은 유지합니다.");
+        return Candidate;
+    }
+
+    /// <summary>Stage only one Cell from a complete imported map or a Cell Init; all other states are retained.</summary>
+    public ST_MANUAL_CANDIDATE BuildScopedOffsetReplacementCandidate(int cellNo,IReadOnlyDictionary<string,ST_MANUAL_OFFSET> imported,
+        IReadOnlySet<string> importedInitialized,string reason,bool initialize=false)
+    {
+        GuardCorrection();GuardNoOffsetEdit();
+        var inside=_points.Values.Where(p=>p.CellNo==cellNo).Select(p=>p.OffsetKey).ToHashSet(StringComparer.Ordinal);
+        if(cellNo<=0||inside.Count==0)throw new InvalidOperationException("작업할 현재 Cell 하나를 먼저 선택하세요.");
+        if(imported.Count!=_points.Count||_points.Keys.Any(key=>!imported.ContainsKey(key)))throw new InvalidOperationException("가져온 Offset의 전체 위치를 확인할 수 없습니다.");
+        var values=_points.Values.ToDictionary(p=>p.Key,p=>p.CellNo==cellNo?initialize?ST_MANUAL_OFFSET.Zero:imported[p.Key]:_active[p.Key],StringComparer.Ordinal);
+        var initialized=ActiveInitializedOffsetKeys.Where(key=>!inside.Contains(key)).ToHashSet(StringComparer.Ordinal);
+        initialized.UnionWith(initialize?inside:importedInitialized.Where(inside.Contains));
+        var candidate=BuildOffsetReplacementCandidate(values,reason,false,initialized);
+        Candidate=candidate with{ReplacementCellNo=cellNo,InitializationOffsetKeys=initialize?inside.ToArray():[],InitializationCellNos=initialize?[cellNo]:[],
+            Rows=ReadOnly(candidate.Rows.Select(r=>r with{Source=r.CellNo!=cellNo?"OFFSET_KEEP":initialize?"OFFSET_INIT":"OFFSET_FILE"}).ToArray())};
         return Candidate;
     }
 
@@ -554,10 +621,25 @@ public sealed class CManualInspectionWorkspace
                 Context.RevisionId, Final=final }), "APPLIED_OFFSET", reference.Source, Context.RevisionId);
     }
 
+    /// <summary>Validated current/captured XY only. Stored B or a legacy B+XY final is never a measurement.</summary>
+    public ST_MANUAL_REFERENCE_VALUE ResolveMeasurementReferenceValue(string referenceKey)
+    {
+        var value=ResolveReferenceValue(referenceKey);
+        if(value.ErrorXUm is not double x||value.ErrorYUm is not double y||!double.IsFinite(x)||!double.IsFinite(y))
+            throw new InvalidOperationException("현재 측정편차가 없습니다. 새로 측정하거나 편차 X/Y를 입력하세요.");
+        return value with{Final=new(x,y)};
+    }
+
     public ST_MANUAL_COPY_PREVIEW PreviewReferenceCopy(string referenceKey, IEnumerable<string> selectedKeys,bool allowIncomplete=false)
+        => PreviewReferenceCopyCore(referenceKey,selectedKeys,allowIncomplete,false);
+
+    public ST_MANUAL_COPY_PREVIEW PreviewMeasurementReferenceCopy(string referenceKey,IEnumerable<string> selectedKeys,bool allowIncomplete=false)
+        => PreviewReferenceCopyCore(referenceKey,selectedKeys,allowIncomplete,true);
+
+    private ST_MANUAL_COPY_PREVIEW PreviewReferenceCopyCore(string referenceKey,IEnumerable<string> selectedKeys,bool allowIncomplete,bool measurementReplacement)
     {
         GuardCorrection(allowIncomplete); GuardNoOffsetEdit(); var reference = GetPoint(referenceKey);
-        var value = ResolveReferenceValue(referenceKey); var final = value.Final;
+        var value = measurementReplacement?ResolveMeasurementReferenceValue(referenceKey):ResolveReferenceValue(referenceKey); var final = value.Final;
         if (Candidate is { State: not EN_MANUAL_CANDIDATE_STATE.Applied }) GuardCandidateBase(Candidate);
         var selection = Select(selectedKeys, excludeMasked: false);
         var requested = selection.Where(key => key != referenceKey).ToArray();
@@ -574,14 +656,14 @@ public sealed class CManualInspectionWorkspace
         return new(referenceKey, ReadOnly(selection), ReadOnly(rows), ReadOnly(excluded), value.Judge,
             value.ErrorXUm, value.ErrorYUm, final, CopyFingerprint(referenceKey, selection))
         { OriginReferenceKey=value.OriginReferenceKey,ReferenceValueToken=value.Token,ReferenceValueKind=value.Kind,
-            ReferenceValueSource=value.Source,BasisRevisionId=value.BasisRevisionId };
+            ReferenceValueSource=value.Source,BasisRevisionId=value.BasisRevisionId,IsMeasurementReplacement=measurementReplacement };
     }
 
     public ST_MANUAL_CANDIDATE ConfirmReferenceCopy(ST_MANUAL_COPY_PREVIEW preview, IEnumerable<string> selectedKeys, string reason)
     {
         GuardCorrection();
         if (string.IsNullOrWhiteSpace(reason)) throw new InvalidOperationException("대표 복사 사유를 입력하세요.");
-        var current = PreviewReferenceCopy(preview.ReferenceKey, selectedKeys);
+        var current = PreviewReferenceCopyCore(preview.ReferenceKey,selectedKeys,false,preview.IsMeasurementReplacement);
         if (preview.Fingerprint != current.Fingerprint || Digest(preview) != Digest(current))
             throw new InvalidOperationException("검토 뒤 측정·선택·후보·보정 기준이 바뀌었습니다. 다시 미리보기 하세요.");
         var beforeCandidate = Candidate;
@@ -612,9 +694,18 @@ public sealed class CManualInspectionWorkspace
             rows[target.Key] = new(target.Key, point.OffsetKey, point.CellNo, point.HeadNo, point.ShotNo, point.BeamNo,
                 target.Base, target.Delta, current.Final, "MANUAL", current.OriginReferenceKey, reason.Trim(), "");
         }
-        _generation++; Candidate = NewCandidate(rows.Values); _copyUndo = new(beforeCandidate, beforePoints, Fingerprint());
+        _generation++; Candidate = NewCandidate(rows.Values) with{IsMeasurementReplacement=preview.IsMeasurementReplacement}; _copyUndo = new(beforeCandidate, beforePoints, Fingerprint());
         Log("REFERENCE_COPY", $"{current.ReferenceKey} → {current.Targets.Count}점; 작업판정·편차·최종 F 복사, 원측정 보존");
         return Candidate;
+    }
+
+    /// <summary>Only stage copied measurement values; the common Cell Bulk command owns the later CSV write.</summary>
+    public void ConfirmMeasurementReferenceCopy(ST_MANUAL_COPY_PREVIEW preview,IEnumerable<string> selectedKeys,string reason)
+    {
+        if(!preview.IsMeasurementReplacement)throw new InvalidOperationException("측정편차 복사 미리보기를 다시 확인하세요.");
+        ConfirmReferenceCopy(preview,selectedKeys,reason);var undo=_copyUndo!;
+        Candidate=null;_copyUndo=undo with{AfterFingerprint=Fingerprint()};
+        Log("MEASUREMENT_COPY_STAGED","측정편차/판정만 작업화면에 복사 · 현재 Cell 일괄 보정 전 CSV 변경 없음");
     }
 
     public void UndoReferenceCopy()
@@ -640,23 +731,36 @@ public sealed class CManualInspectionWorkspace
             && point.ProxySource is null && !point.HasAppliedOffsetEvidence;
     }
 
+    public bool CanCopyMeasurementReferenceState(string key)
+    {
+        if(CanCopyReferenceState(key))return true;var point=GetPoint(key);
+        return !point.HasFiniteError&&(point.HasAppliedOffsetEvidence||point.OperatorResult is not null||point.ProxySource is not null);
+    }
+
     public ST_MANUAL_STATE_COPY_PREVIEW PreviewReferenceStateCopy(string referenceKey,IEnumerable<string> selectedKeys,bool allowIncomplete=false)
+        => PreviewReferenceStateCopyCore(referenceKey,selectedKeys,allowIncomplete,false);
+
+    public ST_MANUAL_STATE_COPY_PREVIEW PreviewMeasurementReferenceStateCopy(string referenceKey,IEnumerable<string> selectedKeys,bool allowIncomplete=false)
+        => PreviewReferenceStateCopyCore(referenceKey,selectedKeys,allowIncomplete,true);
+
+    private ST_MANUAL_STATE_COPY_PREVIEW PreviewReferenceStateCopyCore(string referenceKey,IEnumerable<string> selectedKeys,bool allowIncomplete,bool measurementReplacement)
     {
         GuardCorrection(allowIncomplete);GuardNoOffsetEdit();var reference=GetPoint(referenceKey);
-        if(!CanCopyReferenceState(referenceKey)) throw new InvalidOperationException("이 대표점은 빈 상태 복사 대상이 아닙니다. 현재 값의 근거를 확인하세요.");
+        if(!(measurementReplacement?CanCopyMeasurementReferenceState(referenceKey):CanCopyReferenceState(referenceKey))) throw new InvalidOperationException("이 대표점은 빈 상태 복사 대상이 아닙니다. 현재 값의 근거를 확인하세요.");
         var selection=Select(selectedKeys,excludeMasked:false);var requested=selection.Where(key=>key!=referenceKey).ToArray();
         var excluded=requested.Where(key=>GetPoint(key).Masked).ToArray();var targets=requested.Where(key=>!GetPoint(key).Masked).ToArray();
         if(targets.Length==0) throw new InvalidOperationException("대표점 이외의 유효한 상태 복사 대상을 선택하세요.");
         var judge=reference.IsMeasurementStateCleared?reference.Judge:reference.IsMeasurementOffsetInitialized?"UNMEASURED":reference.Judge;
+        if(measurementReplacement&&judge=="OK"&&!reference.HasFiniteError)judge="UNMEASURED";
         if(judge=="OK") throw new InvalidOperationException("숫자 근거가 없는 상태를 OK로 복사할 수 없습니다.");
-        return new(referenceKey,ReadOnly(selection),ReadOnly(targets),ReadOnly(excluded),judge,CopyFingerprint(referenceKey,selection));
+        return new(referenceKey,ReadOnly(selection),ReadOnly(targets),ReadOnly(excluded),judge,CopyFingerprint(referenceKey,selection)){IsMeasurementReplacement=measurementReplacement};
     }
 
     public void ConfirmReferenceStateCopy(ST_MANUAL_STATE_COPY_PREVIEW preview,IEnumerable<string> selectedKeys,string reason)
     {
         GuardCorrection();
         if(string.IsNullOrWhiteSpace(reason)) throw new InvalidOperationException("대표 상태 복사 사유를 입력하세요.");
-        var current=PreviewReferenceStateCopy(preview.ReferenceKey,selectedKeys);
+        var current=PreviewReferenceStateCopyCore(preview.ReferenceKey,selectedKeys,false,preview.IsMeasurementReplacement);
         if(preview.Fingerprint!=current.Fingerprint || Digest(preview)!=Digest(current))
             throw new InvalidOperationException("검토 뒤 대표 상태·선택·모델 기준이 바뀌었습니다. 다시 확인하세요.");
         var beforeCandidate=Candidate;var before=current.Targets.ToDictionary(key=>key,GetPoint,StringComparer.Ordinal);
@@ -714,6 +818,9 @@ public sealed class CManualInspectionWorkspace
         if (candidate.SourceFingerprint != SourceFingerprint()) errors.Add("계산 뒤 측정·상태·설정·활성 보정이 바뀌었습니다. 다시 계산하세요.");
         if (_fieldEvaluator is null) errors.Add("실제 Head 좌표변환/Scanner Field 검증기가 연결되지 않아 적용할 수 없습니다.");
         var maxDelta = 0d; var maxTotal = 0d;
+        if(candidate.IsMeasurementReplacement&&candidate.IsOffsetReplacement
+            ||candidate.ReplacementCellNo is int scope&&(scope<=0||!candidate.IsOffsetReplacement||!_points.Values.Any(p=>p.CellNo==scope)))
+            errors.Add("측정 교체 정책 또는 현재 Cell 범위가 잘못됐습니다.");
         var finals = new Dictionary<string, ST_MANUAL_OFFSET>(StringComparer.Ordinal);
         var seen = new HashSet<string>(StringComparer.Ordinal);
         if (candidate.IsOffsetReplacement && (candidate.Rows.Count!=_points.Count || !candidate.Rows.Select(r=>r.Key).ToHashSet(StringComparer.Ordinal).SetEquals(_points.Keys)))
@@ -739,10 +846,12 @@ public sealed class CManualInspectionWorkspace
             if (candidate.IsOffsetReplacement)
             {
                 var init=initialization.Contains(row.OffsetKey);
-                var expected=candidate.IsMeasurementOffsetInitialization?init?"OFFSET_INIT":"OFFSET_KEEP":"OFFSET_FILE";
+                var outside=candidate.ReplacementCellNo is int cell&&row.CellNo!=cell;
+                var expected=outside?"OFFSET_KEEP":candidate.IsMeasurementOffsetInitialization?init?"OFFSET_INIT":"OFFSET_KEEP":"OFFSET_FILE";
                 if (row.Source!=expected || string.IsNullOrWhiteSpace(row.Reason) || row.MeasurementToken.Length>0
                     || init && row.Final!=ST_MANUAL_OFFSET.Zero || candidate.IsMeasurementOffsetInitialization && !init && row.Final!=row.Base
                     || candidate.IsMeasurementOffsetInitialization && !init && initialized.Contains(row.OffsetKey)!=activeInitialized.Contains(row.OffsetKey)
+                    || outside&&(row.Final!=row.Base||row.Delta!=ST_MANUAL_OFFSET.Zero||initialized.Contains(row.OffsetKey)!=activeInitialized.Contains(row.OffsetKey))
                     || initialized.Contains(row.OffsetKey) && row.Final!=ST_MANUAL_OFFSET.Zero)
                     errors.Add($"{row.Key}: 통합 Offset 교체/초기화 출처가 일치하지 않습니다.");
             }
@@ -752,37 +861,45 @@ public sealed class CManualInspectionWorkspace
                 if(point.OperatorResult is { } manual)
                 {
                     try {RequireOperatorResult(point);}catch(InvalidOperationException error){errors.Add(error.Message);}
-                    if(row.ReferenceKey!=point.Key || !Equal(manual.FinalOffset,row.Final) || row.Reason!=manual.Reason)
+                    var expected=candidate.IsMeasurementReplacement&&point.HasFiniteError?new ST_MANUAL_OFFSET(point.ErrorXUm!.Value,point.ErrorYUm!.Value):manual.FinalOffset;
+                    if(candidate.IsMeasurementReplacement&&!point.HasFiniteError||row.ReferenceKey!=point.Key || !Equal(expected,row.Final) || row.Reason!=manual.Reason)
                         errors.Add($"{row.Key}: 수동 완료한 값과 후보가 일치하지 않습니다.");
                 }
-                else if (point.ProxySource is null || point.ProxySource.ReferenceKey != row.ReferenceKey || !Equal(point.ProxySource.FinalOffset, row.Final))
+                else if (point.ProxySource is null || point.ProxySource.ReferenceKey != row.ReferenceKey
+                    || candidate.IsMeasurementReplacement&&(!point.HasFiniteError||!Equal(new(point.ErrorXUm!.Value,point.ErrorYUm!.Value),row.Final))
+                    || !candidate.IsMeasurementReplacement&&!Equal(point.ProxySource.FinalOffset,row.Final))
                     errors.Add($"{row.Key}: 대표 복사 출처와 후보가 일치하지 않습니다.");
                 if (point.ProxySource is { } proxy && (proxy.RunId != Context!.RunId || proxy.CoordinateSignature != Context.CoordinateSignature || string.IsNullOrWhiteSpace(proxy.ReferenceMeasurementToken)))
                     errors.Add($"{row.Key}: 대표 복사 후 좌표 기준/Run이 바뀌었거나 원측정 계보가 없습니다. 새 기준으로 복사하세요.");
                 if (point.ProxySource is { } proof && (!KnownReferenceKind(proof.ReferenceValueKind) || !ValidProxyValueProof(proof)))
                     errors.Add($"{row.Key}: 대표 복사값의 저장된 근거가 변경되었습니다. 다시 복사하세요.");
+                if(candidate.IsMeasurementReplacement&&WasLegacyManualValueApplied(point,row.Final))
+                    errors.Add($"{row.Key}: 이전 방식에서 이미 적용한 수동/복사 결과입니다. 새로 복사하거나 편차를 명시적으로 확정하세요.");
             }
             else if (row.Source == "MEASURED")
             {
                 if (!point.IsDirectMeasurement || !point.HasFiniteError || row.MeasurementToken != MeasurementToken(point)) errors.Add($"{row.Key}: 직접 원측정이 바뀌었습니다.");
-                if (point.HasFiniteError && !Equal(row.Delta, new(point.ErrorXUm!.Value, point.ErrorYUm!.Value)))
+                if (point.HasFiniteError && !Equal(candidate.IsMeasurementReplacement?row.Final:row.Delta, new(point.ErrorXUm!.Value, point.ErrorYUm!.Value)))
                     errors.Add($"{row.Key}: 직접 측정 후보의 증감이 현재 원측정 편차와 다릅니다.");
                 try { RequireMeasurementLineage(point); } catch (InvalidOperationException error) { errors.Add(error.Message); }
-                if (WasConsumed(point.Key, row.MeasurementToken) && Magnitude(row.Delta) > 1e-9)
+                if (WasConsumed(point.Key, row.MeasurementToken) && (candidate.IsMeasurementReplacement||Magnitude(row.Delta) > 1e-9))
                     errors.Add($"{row.Key}: 같은 기판/Run의 동일 원측정은 재누적할 수 없습니다. 새 가공 결과/Run을 사용하세요.");
             }
             else errors.Add($"{row.Key}: 지원하지 않는 후보 출처입니다.");
             // A scoped Init must retain legacy B outside its scope exactly. Retaining that
             // value is not a new >limit correction; ordinary candidates/file replacement still
             // use every existing delta/total/field guard.
-            var keptByInit=candidate.IsOffsetReplacement && candidate.IsMeasurementOffsetInitialization
-                && !initialization.Contains(row.OffsetKey) && row.Source=="OFFSET_KEEP"
+            var retained=candidate.IsOffsetReplacement&&(candidate.IsMeasurementOffsetInitialization&&!initialization.Contains(row.OffsetKey)
+                    ||candidate.ReplacementCellNo is int retainedCell&&row.CellNo!=retainedCell);
+            var keptByInit=retained && row.Source=="OFFSET_KEEP"
                 && row.Final==row.Base && row.Delta==ST_MANUAL_OFFSET.Zero
                 && initialized.Contains(row.OffsetKey)==activeInitialized.Contains(row.OffsetKey);
             if(!keptByInit)
             {
-                maxDelta = Math.Max(maxDelta, Magnitude(row.Delta)); maxTotal = Math.Max(maxTotal, Magnitude(row.Final));
-                if (!(candidate.IsOffsetReplacement && initialization.Contains(row.OffsetKey)) && Magnitude(row.Delta) > Limits!.MaxDeltaUm) errors.Add($"{row.Key}: 이번 증감이 {Limits.MaxDeltaUm:G} µm 제한을 초과했습니다.");
+                var limitedInput=candidate.IsMeasurementReplacement?row.Final:row.Delta;
+                maxDelta = Math.Max(maxDelta, Magnitude(limitedInput)); maxTotal = Math.Max(maxTotal, Magnitude(row.Final));
+                if (!(candidate.IsOffsetReplacement && (initialization.Contains(row.OffsetKey)||candidate.ReplacementCellNo.HasValue))
+                    && Magnitude(limitedInput) > Limits!.MaxDeltaUm) errors.Add($"{row.Key}: {(candidate.IsMeasurementReplacement?"입력 측정편차":"이번 증감")}가 {Limits.MaxDeltaUm:G} µm 제한을 초과했습니다.");
                 if (Magnitude(row.Final) > Limits!.MaxTotalUm) errors.Add($"{row.Key}: 누적 총량이 {Limits.MaxTotalUm:G} µm 제한을 초과했습니다.");
             }
             if (finals.TryGetValue(row.OffsetKey, out var other) && !Equal(other, row.Final)) errors.Add($"{row.OffsetKey}: 기존 CSV는 Cell/Shot별 한 값입니다. Beam별 서로 다른 F를 저장할 수 없습니다.");
@@ -796,6 +913,8 @@ public sealed class CManualInspectionWorkspace
             foreach (var point in _points.Values.Where(point => !point.Masked))
             {
                 if(candidate.IsOffsetReplacement && candidate.IsMeasurementOffsetInitialization && !initialization.Contains(point.OffsetKey)) continue;
+                if(candidate.ReplacementCellNo is int cell&&point.CellNo!=cell
+                    ||candidate.IsMeasurementReplacement&&!finals.ContainsKey(point.OffsetKey))continue;
                 var final = finals.TryGetValue(point.OffsetKey, out var changed) ? changed : _active[point.Key];
                 try
                 {
@@ -828,8 +947,9 @@ public sealed class CManualInspectionWorkspace
         var values = _points.Values.ToDictionary(point => point.Key,
             point => QuantizeForOffsetFile(finals.TryGetValue(point.OffsetKey, out var final) ? final : _active[point.Key]), StringComparer.Ordinal);
         var initializing=candidate.IsOffsetReplacement && candidate.IsMeasurementOffsetInitialization;
-        ValidateStoredValues(values, candidate.Rows.Where(row=>!initializing || row.Source!="OFFSET_KEEP").Select(row => row.OffsetKey).ToHashSet(StringComparer.Ordinal),
-            checkDelta: !initializing,checkAllFields:!initializing);
+        var scoped=initializing||candidate.ReplacementCellNo.HasValue||candidate.IsMeasurementReplacement;
+        ValidateStoredValues(values, candidate.Rows.Where(row=>!scoped || row.Source!="OFFSET_KEEP").Select(row => row.OffsetKey).ToHashSet(StringComparer.Ordinal),
+            checkDelta: !initializing&&!candidate.IsMeasurementReplacement&&!candidate.ReplacementCellNo.HasValue,checkAllFields:!scoped,measurementReplacement:candidate.IsMeasurementReplacement);
         var offsets = _points.Values.GroupBy(point => point.OffsetKey).ToDictionary(group => group.Key, group => values[group.First().Key], StringComparer.Ordinal);
         var consumed = candidate.Rows.Where(row => row.Source == "MEASURED" && row.MeasurementToken.Length > 0)
             .ToDictionary(row => row.Key, row => row.MeasurementToken, StringComparer.Ordinal);
@@ -850,6 +970,7 @@ public sealed class CManualInspectionWorkspace
         var snapshot = new ST_MANUAL_APPLY_SNAPSHOT(NewId("WRITE"), candidate.Id, Context!.RecipeId, Context.RunId, Context.RevisionId,
             Freeze(values), Freeze(offsets), ReadOnly(candidate.Rows.ToArray()))
         { ConsumedMeasurements = Freeze(consumed), IsOffsetReplacement=candidate.IsOffsetReplacement, InitializeAllReviewRows=candidate.InitializeAllReviewRows,
+            IsMeasurementReplacement=candidate.IsMeasurementReplacement,ReplacementCellNo=candidate.ReplacementCellNo,
             InitializationOffsetKeys=ReadOnly(candidate.InitializationOffsetKeys.ToArray()),InitializedOffsetKeys=ReadOnly(initializedAfter.ToArray()),
             InitializationCellNos=ReadOnly(candidate.InitializationCellNos.ToArray()) };
         _pendingWriteToken = snapshot.Token; _pendingApply = snapshot; _pendingWriteFingerprint = Digest(snapshot);
@@ -864,7 +985,8 @@ public sealed class CManualInspectionWorkspace
         RequireWrite(snapshot.Token, Digest(snapshot), applying: true); RequireNewRevision(newRevisionId);
         var candidate = Candidate!; var oldRevision = Context!.RevisionId;
         var actual = VerifyWrittenValues(actualValuesByPointKey ?? snapshot.ValuesByPointKey, snapshot.ValuesByPointKey, snapshot.Rows,
-            snapshot.IsOffsetReplacement && snapshot.IsMeasurementOffsetInitialization);
+            snapshot.IsOffsetReplacement && snapshot.IsMeasurementOffsetInitialization,measurementReplacement:snapshot.IsMeasurementReplacement,
+            scopedReplacement:snapshot.ReplacementCellNo.HasValue);
         ValidateInitializedKeys(snapshot.InitializedOffsetKeys, _points, actual, "저장 스냅샷");
         _active.Clear(); foreach (var pair in actual) _active.Add(pair.Key, pair.Value);
         // Driving and companion tokens were reserved together. Commit never rebuilds the opaque set
@@ -874,7 +996,7 @@ public sealed class CManualInspectionWorkspace
         {
             var affected=snapshot.IsMeasurementOffsetInitialization
                 ?snapshot.InitializeAllReviewRows?_points.Values.Select(p=>p.OffsetKey).ToHashSet(StringComparer.Ordinal):snapshot.InitializationOffsetKeys.ToHashSet(StringComparer.Ordinal)
-                :_points.Values.Select(p=>p.OffsetKey).ToHashSet(StringComparer.Ordinal);
+                :_points.Values.Where(p=>snapshot.ReplacementCellNo is not int cell||p.CellNo==cell).Select(p=>p.OffsetKey).ToHashSet(StringComparer.Ordinal);
             var initialized=snapshot.InitializeAllReviewRows?_points.Values.Select(p=>p.OffsetKey).ToHashSet(StringComparer.Ordinal):snapshot.InitializedOffsetKeys.ToHashSet(StringComparer.Ordinal);
             foreach (var before in _points.Values.ToArray())
             {
@@ -1433,7 +1555,7 @@ public sealed class CManualInspectionWorkspace
     private bool IsVerifiedStoredRevision(ST_MANUAL_REVISION revision)
         => _verifiedStoredRevisions.TryGetValue(revision.Id,out var proof) && VerifiedRevisionMatches(revision,proof);
 
-    private void ValidateStoredValues(IReadOnlyDictionary<string, ST_MANUAL_OFFSET> values, IReadOnlySet<string> changedOffsets, bool checkDelta,bool checkAllFields=true,bool enforceTotal=true)
+    private void ValidateStoredValues(IReadOnlyDictionary<string, ST_MANUAL_OFFSET> values, IReadOnlySet<string> changedOffsets, bool checkDelta,bool checkAllFields=true,bool enforceTotal=true,bool measurementReplacement=false)
     {
         if (_fieldEvaluator is null) throw new InvalidOperationException("실제 Scanner Field 검증기가 없어 보정 파일을 저장할 수 없습니다.");
         foreach (var point in _points.Values)
@@ -1448,6 +1570,8 @@ public sealed class CManualInspectionWorkspace
                 if (enforceTotal && Magnitude(value) > Limits!.MaxTotalUm) throw new InvalidOperationException($"{point.Key}: 실제 저장 반올림 후 총량 한계를 넘습니다.");
                 if (checkDelta && Magnitude(Subtract(value, _active[point.Key])) > Limits!.MaxDeltaUm)
                     throw new InvalidOperationException($"{point.Key}: 실제 저장 반올림 후 증감 한계를 넘습니다.");
+                if(measurementReplacement&&Magnitude(value)>Limits!.MaxDeltaUm)
+                    throw new InvalidOperationException($"{point.Key}: 실제 저장 반올림 후 입력 측정편차 한계를 넘습니다.");
             }
             if (!point.Masked && (checkAllFields || changedOffsets.Contains(point.OffsetKey)))
             {
@@ -1460,7 +1584,8 @@ public sealed class CManualInspectionWorkspace
     private IReadOnlyDictionary<string, ST_MANUAL_OFFSET> VerifyWrittenValues(
         IReadOnlyDictionary<string, ST_MANUAL_OFFSET> actual,
         IReadOnlyDictionary<string, ST_MANUAL_OFFSET> snapshotValues,
-        IReadOnlyList<ST_MANUAL_CANDIDATE_ROW>? requestedRows, bool initialization = false,bool restoringVerifiedRevision=false)
+        IReadOnlyList<ST_MANUAL_CANDIDATE_ROW>? requestedRows, bool initialization = false,bool restoringVerifiedRevision=false,
+        bool measurementReplacement=false,bool scopedReplacement=false)
     {
         if (actual.Count != _points.Count || actual.Keys.Any(key => !_points.ContainsKey(key)))
             throw new InvalidOperationException("실제 저장된 Offset의 위치 집합이 예약 스냅샷과 다릅니다.");
@@ -1476,10 +1601,11 @@ public sealed class CManualInspectionWorkspace
                 throw new InvalidOperationException($"{point.OffsetKey}: 실제 저장된 같은 Shot의 Beam별 값이 다릅니다.");
             byOffset[point.OffsetKey] = value;
         }
-        var checkedOffsets=initialization && requestedRows is not null
+        var checkedOffsets=(initialization||scopedReplacement) && requestedRows is not null
             ?requestedRows.Where(row=>row.Source!="OFFSET_KEEP").Select(row=>row.OffsetKey).ToHashSet(StringComparer.Ordinal)
             :requestedByOffset?.Keys.ToHashSet(StringComparer.Ordinal) ?? byOffset.Keys.ToHashSet(StringComparer.Ordinal);
-        ValidateStoredValues(actual, checkedOffsets, checkDelta: requestedRows is not null && !initialization,checkAllFields:!initialization,enforceTotal:!restoringVerifiedRevision);
+        ValidateStoredValues(actual, checkedOffsets, checkDelta: requestedRows is not null && !initialization&&!measurementReplacement&&!scopedReplacement,
+            checkAllFields:!initialization&&!scopedReplacement&&!measurementReplacement,enforceTotal:!restoringVerifiedRevision,measurementReplacement:measurementReplacement);
         return Freeze(actual);
     }
     private void InvalidateCandidate()
@@ -1523,6 +1649,28 @@ public sealed class CManualInspectionWorkspace
         // The host's stable semantic RawToken deliberately excludes those transport-only changes.
         ? MeasurementToken(point.Key,measurement) : "";
     private static bool KnownReferenceKind(string? kind) => kind is "" or "MEASURED" or "APPLIED_MEASUREMENT" or "APPLIED_OFFSET" or "OPERATOR";
+
+    private bool WasLegacyManualValueApplied(ST_MANUAL_POINT point,ST_MANUAL_OFFSET measurementValue)
+    {
+        var final=point.OperatorResult?.FinalOffset??point.ProxySource?.FinalOffset;
+        var capturedAt=point.OperatorResult?.AcceptedAt??point.ProxySource?.CopiedAt;
+        if(final is null||capturedAt is null||Equal(final.Value,measurementValue)||!point.HasAppliedOffsetEvidence
+            ||!Equal(QuantizeForOffsetFile(final.Value),QuantizeForOffsetFile(_active[point.Key])))return false;
+        foreach(var revision in _revisions.Where(r=>r.Kind=="MANUAL_INSPECTION"&&r.CreatedAt>=capturedAt.Value
+            &&!r.InitializedOffsetKeys.Contains(point.OffsetKey)&&r.ValuesByPointKey.TryGetValue(point.Key,out var saved)
+            &&Equal(QuantizeForOffsetFile(saved),QuantizeForOffsetFile(final.Value))))
+        {
+            var before=_revisions.FirstOrDefault(r=>r.Id==revision.ParentId);
+            // A captured value matching today's B alone is insufficient. Require a real
+            // recorded revision transition after the capture (or its applied candidate).
+            if(before is not null&&(before.InitializedOffsetKeys.Contains(point.OffsetKey)
+                ||!Equal(QuantizeForOffsetFile(before.ValuesByPointKey[point.Key]),QuantizeForOffsetFile(final.Value))))return true;
+            if(Candidate is {State:EN_MANUAL_CANDIDATE_STATE.Applied} applied&&_appliedCandidates.Contains(applied.Id)
+                &&applied.BaseRevisionId==revision.ParentId&&applied.Rows.Any(r=>r.Key==point.Key&&r.Source=="MANUAL"
+                    &&Equal(QuantizeForOffsetFile(r.Final),QuantizeForOffsetFile(final.Value))))return true;
+        }
+        return false;
+    }
     private static string HistoricalObservationSource(ST_MANUAL_POINT point) => point.Source=="IMPORTED"
         || point.ProxySource?.OriginalSource=="IMPORTED" || point.StateCopySource?.OriginalSource=="IMPORTED" || point.OperatorResult?.OriginalSource=="IMPORTED"?"IMPORTED":"KEPT";
     private static DateTimeOffset WorkingStateAt(ST_MANUAL_POINT point)
@@ -1600,7 +1748,8 @@ public sealed class CManualInspectionWorkspace
     {
         Generation = _generation, Source = SourceFingerprint(),
         Candidate = Candidate is null ? null : new { Candidate.Id, Candidate.SourceFingerprint, Candidate.BaseRevisionId, Candidate.Rows,
-            Candidate.IsOffsetReplacement,Candidate.InitializeAllReviewRows,Candidate.InitializationOffsetKeys,Candidate.InitializedOffsetKeys,Candidate.InitializationCellNos }
+            Candidate.IsOffsetReplacement,Candidate.IsMeasurementReplacement,Candidate.ReplacementCellNo,
+            Candidate.InitializeAllReviewRows,Candidate.InitializationOffsetKeys,Candidate.InitializedOffsetKeys,Candidate.InitializationCellNos }
     });
     private string CopyFingerprint(string referenceKey, IEnumerable<string> selection) => Digest(new
     { State = Fingerprint(), ReferenceKey = referenceKey, Selection = selection.OrderBy(key => key, StringComparer.Ordinal).ToArray() });
@@ -1666,6 +1815,9 @@ public sealed class CManualInspectionWorkspace
                 || candidate.InitializedOffsetKeys.Count > 0 || candidate.InitializationCellNos.Count > 0)
             || candidate.IsOffsetReplacement && !seen.SetEquals(geometry.Keys))
             throw new InvalidOperationException("세션 후보의 초기화 범위가 현재 모델과 다릅니다.");
+        if(candidate.IsMeasurementReplacement&&candidate.IsOffsetReplacement
+            ||candidate.ReplacementCellNo is int cell&&(cell<=0||!candidate.IsOffsetReplacement||!geometry.Values.Any(p=>p.CellNo==cell)))
+            throw new InvalidOperationException("세션 후보의 측정 교체 정책 또는 Cell 범위가 잘못됐습니다.");
         ValidateInitializedKeys(candidate.InitializedOffsetKeys, geometry, values, "세션 후보");
         if (initialization.Any(key => geometry.Values.Where(point => point.OffsetKey == key).Any(point => !values.TryGetValue(point.Key, out var value) || value != ST_MANUAL_OFFSET.Zero)))
             throw new InvalidOperationException("세션 초기화 후보는 해당 Shot을 모두 0으로 설정해야 합니다.");

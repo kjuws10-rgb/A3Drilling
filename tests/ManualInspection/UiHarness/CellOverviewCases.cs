@@ -85,7 +85,7 @@ internal static partial class Program
         var state=OverviewSnapshot();var serialized=JsonSerializer.Serialize(state.Points);
         var fake=new FakeController(state);var descriptions=new List<string>();
         var view=new CManualInspectionView{DataContext=fake,ConfirmationForTesting=(_,text,_)=>{descriptions.Add(text);return true;}};
-        Set(view, "_scatterOffsets", false); Set(view, "_scatterScope", "CELL"); // Explicit legacy working-data scope.
+        Set(view, "_scatterScope", "CELL"); // Explicit legacy working-data scope.
         var window=new Window{Width=1120,Height=560,Content=view,Left=-20000,Top=-20000,ShowInTaskbar=false,ShowActivated=false,WindowStyle=WindowStyle.None};
         window.Show();Pump();SelectMeasurementView(view);var map=(CManualInspectionMapControl)view.FindName("PositionMap");var scatter=(CManualInspectionScatterControl)view.FindName("ScatterPlot");
         void Refresh(){Invoke(view,"Refresh");Pump();}
@@ -198,7 +198,7 @@ internal static partial class Program
         foreach(var theme in new[]{"Light","Dark"}){LoadResources(theme);Pump();Render(view,"cell-selected-scatter-"+theme.ToLowerInvariant()+".png");}
         ((Expander)view.FindName("ScatterSection")).IsExpanded=false;Choose(3);
         Invoke(view,"ChangeSelection",new CManualInspectionSelectionEventArgs([first.Key],first.Key));Pump();map.RestoreView(1.7,new Vector(31,-19));
-        Set(view,"_query","C3");Set(view,"_sort","error");Set(view,"_color","level");Refresh();
+        Set(view,"_query","C3");Set(view,"_sort","error");Refresh();
         ((Expander)view.FindName("WorkInfoSection")).IsExpanded=true;((Expander)view.FindName("InspectorSection")).IsExpanded=true;Pump();
         ((Expander)view.FindName("CorrectionSection")).IsExpanded=true;((Expander)view.FindName("PointDetailsSection")).IsExpanded=true;Pump();
         scatter.SetFixedHalfRange(.0007);scatter.ZoomAt(1.25,new Point(scatter.ActualWidth/2,scatter.ActualHeight/2));var nativeRange=(scatter.MinXUm,scatter.MaxXUm,scatter.MinYUm,scatter.MaxYUm);
@@ -208,7 +208,7 @@ internal static partial class Program
             else if(action==EN_MANUAL_INSPECTION_UI_ACTION.ReturnToPreviousWorkspace)fake.Replace(state with{Version=state.Version+2});
         };
         ((Task)Invoke(view,"Execute",EN_MANUAL_INSPECTION_UI_ACTION.LoadResultFile,new CManualInspectionUiRequest{ExpectedVersion=fake.Snapshot.Version})!).GetAwaiter().GetResult();Pump();
-        Choose(10);Invoke(view,"ClearSelection_Click",view,new RoutedEventArgs());map.RestoreView(3,new Vector(-22,43));Set(view,"_query","");Set(view,"_color","applied");Set(view,"_sort","shot");scatter.ResetView();
+        Choose(10);Invoke(view,"ClearSelection_Click",view,new RoutedEventArgs());map.RestoreView(3,new Vector(-22,43));Set(view,"_query","");Set(view,"_sort","shot");scatter.ResetView();
         ((Expander)view.FindName("WorkInfoSection")).IsExpanded=false;((Expander)view.FindName("InspectorSection")).IsExpanded=false;Refresh();
         ((Expander)view.FindName("CorrectionSection")).IsExpanded=false;((Expander)view.FindName("PointDetailsSection")).IsExpanded=false;Pump();
         Invoke(view,"Files_Click",view,new RoutedEventArgs());var menu=((Button)view.FindName("FilesButton")).ContextMenu!;
@@ -220,7 +220,7 @@ internal static partial class Program
         Test("file_return_is_immediate_without_confirmation",fake.Calls.Count==2&&!fake.Snapshot.CanReturnToPreviousWorkspace&&Field<int>(view,"_cell")==3&&descriptions.Count==0);
         view.ConfirmationForTesting=(_,text,_)=>{descriptions.Add(text);return true;};
         menu.IsOpen=false; // The first click already restored the native workspace; no second return is dispatched.
-        Test("return_restores_native_cell_selection_filters_and_color",Field<int>(view,"_cell")==3&&Field<HashSet<string>>(view,"_selected").SetEquals([first.Key])&&Field<string>(view,"_query")=="C3"&&Field<string>(view,"_sort")=="error"&&Field<string>(view,"_color")=="level");
+        Test("return_restores_native_cell_selection_filters_and_color",Field<int>(view,"_cell")==3&&Field<HashSet<string>>(view,"_selected").SetEquals([first.Key])&&Field<string>(view,"_query")=="C3"&&Field<string>(view,"_sort")=="error"&&MeasurementMapMode(view)=="level");
         Test("return_restores_native_map_zoom_pan_and_scatter_fixed_axes",Math.Abs(map.Zoom-1.7)<1e-12&&map.Pan==new Vector(31,-19)&&!scatter.IsAutoScale&&Math.Abs(scatter.Zoom-1.25)<1e-12&&nativeRange==(scatter.MinXUm,scatter.MaxXUm,scatter.MinYUm,scatter.MaxYUm));
         Test("return_restores_native_panel_fold_state",((Expander)view.FindName("WorkInfoSection")).IsExpanded&&((Expander)view.FindName("InspectorSection")).IsExpanded&&((Expander)view.FindName("CorrectionSection")).IsExpanded&&((Expander)view.FindName("PointDetailsSection")).IsExpanded);
         Test("file_return_dispatch_never_performs_implicit_move_measure_or_apply",fake.Calls.Select(c=>c.Action).SequenceEqual([EN_MANUAL_INSPECTION_UI_ACTION.LoadResultFile,EN_MANUAL_INSPECTION_UI_ACTION.ReturnToPreviousWorkspace])&&descriptions.Count==0&&JsonSerializer.Serialize(state.Points)==serialized);
@@ -627,7 +627,7 @@ internal static partial class Program
     {
         var state=OverviewSnapshot();var fake=new FakeController(state);
         var view=new CManualInspectionView{DataContext=fake,ConfirmationForTesting=(_,_,_)=>false};
-        Set(view, "_scatterOffsets", false); Set(view, "_scatterScope", "CELL"); // Explicit legacy working-data scope.
+        Set(view, "_scatterScope", "CELL"); // Explicit legacy working-data scope.
         var window=new Window{Width=1120,Height=560,Content=view,Left=-20000,Top=-20000,ShowInTaskbar=false,ShowActivated=false,WindowStyle=WindowStyle.None};
         window.Show();Pump();SelectMeasurementView(view);Invoke(view,"SetMapCellScope",0);Pump();
         var map=(CManualInspectionMapControl)view.FindName("PositionMap");var scatter=(CManualInspectionScatterControl)view.FindName("ScatterPlot");

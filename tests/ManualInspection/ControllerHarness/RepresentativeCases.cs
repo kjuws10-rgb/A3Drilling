@@ -34,11 +34,10 @@ internal static partial class Program
         await Check("reference_projection_stored_base_is_known_correction_without_fabricating_camera_raw",async()=>
         {
             var(f,c)=CorrectionFixture();await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);
-            var source=c.Snapshot.Points[0];True(source.CanBeReference&&source.CanCopyAsReference&&source.ReferenceValueKind=="APPLIED_OFFSET");
-            Near(source.ReferenceFinalXUm!.Value,7);
+            var source=c.Snapshot.Points[0];True(source.CanBeReference&&!source.CanCopyAsReference&&source.CanCopyReferenceState&&source.ReferenceFinalXUm is null);
             await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,["P2"],r=>r with { ReferenceKey="P1",Reason="stored base" });
-            var target=c.Snapshot.Points[1];True(target.WorkingJudge=="OK"&&target.WorkingXUm is null&&target.OriginalXUm is null&&target.IsProxy);
-            Near(target.BaseXUm,7);await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P2"]));True(f.Saves==1);
+            var target=c.Snapshot.Points[1];True(target.WorkingJudge=="UNMEASURED"&&target.WorkingXUm is null&&target.OriginalXUm is null&&target.IsMeasurementStateCleared);
+            Near(target.BaseXUm,0);await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P2"]));True(f.Saves==0);
         });
         await Check("reference_proxy_can_supply_another_copy_after_root_changes_and_only_selected_final_is_saved",async()=>
         {
@@ -46,9 +45,9 @@ internal static partial class Program
             var token=c.Snapshot.Points[1].ReferenceFinalXUm;f.NewX=9;await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1"]);
             True(c.Snapshot.Points[1].CanCopyAsReference&&c.Snapshot.Points[1].ReferenceFinalXUm==token);
             await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,["P3"],r=>r with { ReferenceKey="P2",Reason="frozen proxy" });
-            var target=c.Snapshot.Points[2];Near(target.CandidateXUm!.Value,3);True(target.ReferenceKey=="P1"&&target.OriginalXUm==1);
-            Near(c.Snapshot.Points[2].BaseXUm,3);Near(c.Snapshot.Points[1].BaseXUm,3);
-            True(f.Saves==2&&f.Executed.SequenceEqual(["P1"]));
+            var target=c.Snapshot.Points[2];Near(target.ReferenceFinalXUm!.Value,3);True(target.ReferenceKey=="P1"&&target.OriginalXUm==1&&f.Saves==0);
+            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P3"]);Near(c.Snapshot.Points[2].BaseXUm,3);Near(c.Snapshot.Points[1].BaseXUm,3);
+            True(f.Saves==1&&f.Executed.SequenceEqual(["P1"]));
         });
         await Check("reference_ng_proxy_reverse_copy_keeps_ng_and_remains_unsavable",async()=>
         {
@@ -63,6 +62,7 @@ internal static partial class Program
             var(f,c)=Fixture();f.Source=f.Source with { Points=f.Source.Points.Select(p=>p.Key=="P1"?p with { Masked=true }:p).ToArray() };
             await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);
             await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,["P2"],r=>r with { ReferenceKey="P1",Reason="value only, not motion" });
+            True(f.Saves==0);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P2"]);
             await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1"]));
             await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P1"]));True(f.Saves==1&&f.Executed.Count==0);
         });

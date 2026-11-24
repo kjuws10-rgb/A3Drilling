@@ -1,0 +1,65 @@
+{
+  "round": 1,
+  "status": "source_review_complete_runtime_pending",
+  "passed": true,
+  "observedAt": "2026-11-24T11:36:40.004420+00:00",
+  "scope": "Manual replacement policy and current-Cell writer/consumer boundaries; transient development source, final round will pin frozen source.",
+  "sourceHashesAtObservation": {
+    "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs": "45db1cc07c12d1829cb4705541a6c8c73e93160d439e4c393913cec34031a049",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs": "5e6c2beda1c547a4dd0c1a9037e6a8494bab214043978a496562eddc02b53804",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "6bea6ed001f2c92365de20e2020a42663facb2e81669549e7874fb339e4c58d8",
+    "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs": "94152605882eacf13b3a8c04d7ae93e77bf20c83413df60918be1b335e03b9c2",
+    "Drilling.Common/Station/CStationProcess.cs": "7e5b1fd549370e222890c0882624bd116e1375ae160cb55e0d94cf3513f8b917",
+    "Drilling.File/Script/CAutomation1ScriptFile.cs": "1681351dcfa412fcae7313a2ff470b23be816cad1047ee586e3fb79f35850ac4",
+    "tests/ManualInspection/BackendReadHarness/ReplacementWorkflowCsvCases.cs": "0f42b0e4a128f8319c6c4b46ccbc3172930dcf034f4a2e7d44671fd4b329f0be"
+  },
+  "policy": {
+    "manualFinal": "validated ErrorXY, never activeB + ErrorXY or old captured B+Error Final",
+    "copy": "working only; no file write",
+    "bulk": "explicit current Cell only",
+    "import": "validate full file, stage current Cell; other Cell and hidden rows kept",
+    "init": "only current Cell, including hidden saved rows in that Cell",
+    "display": "measurement-deviation Level only; old saved B-only is not a new measured zero; imported values visible only as a staged file input",
+    "otherReview": "existing generic accumulation unchanged"
+  },
+  "findings": [
+    {
+      "id": "R8-01",
+      "finding": "Scoped import must preserve outside MEASURED zero vs Init metadata, as well as values and raw/ledger. Same-Cell hidden rows must remain on CSV import but be reset on Cell Init.",
+      "resolution": "Core scope metadata and backend initAll=false added; actual writer regressions prepared.",
+      "runtime": "pending"
+    },
+    {
+      "id": "R8-02",
+      "finding": "Legacy hidden Apply/ApplySelected could bypass current-Cell Bulk-only write policy.",
+      "resolution": "Parent directed forwarding to explicit current-Cell Bulk; owner implementing.",
+      "runtime": "pending"
+    },
+    {
+      "id": "R8-03",
+      "finding": "Already applied old captured operator/proxy F13 with Error3 must not be silently replaced by3 without a fresh input/copy. Pending legacy source still needs Error3 interpretation.",
+      "resolution": "Owner added history/capture-aware legacy applied guard; actual old serializer fixtures being prepared by parent.",
+      "runtime": "pending"
+    },
+    {
+      "id": "R8-04",
+      "finding": "Import file stage Level differs from post-save B-only display.",
+      "resolution": "Parent confirmed stage-only OFFSET_FILE numeric Level; after save without residual data display gray, with raw preserved.",
+      "runtime": "pending"
+    }
+  ],
+  "consumerReview": {
+    "nativeSave": "SaveCore builds next plan, invalidates Station preparation, commits actual CSV by path+SHA CAS, then publishes next internal coordinate map. Actual equipment SaveCore guard is not invoked by the no-device CSV seam.",
+    "station": "BuildRuntimeParameters overlays latest CSV. Ready preparation guards invalidated state plus active path/SavedAt; new CSV requires fresh DoReady before execution.",
+    "script": "CAutomation1ScriptFile.Build is a text/file generator over supplied immutable model; new test covers actual static model builder and four text modes, never upload or execute.",
+    "shift": "Nominal Glass/Head Shift validation uses Design+Shift and does not itself prove all actual corrected Scanner field coordinates; parent only aligning latest CSV overlay input."
+  },
+  "testPreparation": {
+    "newBackendCases": 9,
+    "registered": true,
+    "executed": false,
+    "legacyFixtureLimit": "Two session cases use current generic legacy-capture APIs; they are not old .7-binary proof compatibility fixtures. Parent separately prepares actual old serializer evidence.",
+    "hardwareCalls": 0,
+    "actualOperationalRecordCopied": false
+  }
+}

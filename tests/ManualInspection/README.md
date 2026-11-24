@@ -1,6 +1,6 @@
-# Manual Inspection 독립 검증
+﻿# Manual Inspection 독립 검증
 
-현재 `11.24.7`의 현재 Cell 일괄보정·대표 Review 절대 교체·CSV 파일 전송 검증은 [동작·범위](../../docs/ManualInspection/CELL_CSV_WORKFLOW_11.24.7.md)와 [manifest](../../docs/ManualInspection/validation.json)를 따른다. `UiHarness --cell-csv-workflow`와 `verify_cell_csv_workflow.py`를 추가했다. 생산 저장 경로의 장비 Manager 가드는 실행하지 않는다.
+현재 `11.24.8`의 측정편차 대체·복사 stage-only·현재 Cell 일괄 CSV 저장 검증은 [동작·범위](../../docs/ManualInspection/REPLACEMENT_WORKFLOW_11.24.8.md)와 [manifest](../../docs/ManualInspection/validation.json)를 따른다. `UiHarness --replacement-workflow`와 `verify_replacement_workflow.py`를 사용한다. 기존 generic 엔진의 B+Δ 시험은 다른 메뉴 호환 검증이며 Manual 대체 정책과 구분한다. 생산 저장 경로의 장비 Manager 가드는 실행하지 않는다.
 
 이전 `11.24.6`의 일괄보정 → 최종 CSV → Manual 지도/Monitor 일치 검증은 [원인·범위·결과](../../docs/ManualInspection/BULK_FINAL_CONSISTENCY_11.24.6.md)에 보존한다.
 

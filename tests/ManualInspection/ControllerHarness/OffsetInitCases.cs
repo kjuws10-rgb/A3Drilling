@@ -17,7 +17,7 @@ internal static partial class Program
         await Check("offset_init_save_writes_whole_cumulative_replacement_and_clears_working_results",async()=>
         {
             var(f,c)=Fixture();WithBase(f);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Validate);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Apply);
-            True(f.Saves==1&&f.CumulativeInitializations.SequenceEqual([true])&&f.Source.Values.Values.All(v=>v==ST_MANUAL_OFFSET.Zero));
+            True(f.Saves==1&&f.CumulativeInitializations.SequenceEqual([false])&&f.Source.Values.Values.All(v=>v==ST_MANUAL_OFFSET.Zero));
             True(!c.Snapshot.IsOffsetEditPending&&c.Snapshot.Points.All(p=>p.WorkingXUm is null&&!p.IsProxy));
         });
         await Check("offset_init_cancel_restores_previous_candidate_and_no_backend_save",async()=>
@@ -58,7 +58,7 @@ internal static partial class Program
         await Check("offset_bundle_export_of_init_is_draft_zero_and_never_saves_model",async()=>
         {
             var(f,c)=Fixture();WithBase(f);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets);c.ChooseFile=(_,_)=>"synthetic-offset.a3offset.json";
-            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ExportOffsetBundle);var e=f.ExportedBundles.Single();True(e.Draft&&e.Initialize&&e.Values.Values.All(v=>v==ST_MANUAL_OFFSET.Zero)&&f.Saves==0&&c.Snapshot.IsOffsetEditPending);
+            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ExportOffsetBundle);var e=f.ExportedBundles.Single();True(e.Draft&&!e.Initialize&&e.Values.Values.All(v=>v==ST_MANUAL_OFFSET.Zero)&&f.Saves==0&&c.Snapshot.IsOffsetEditPending);
         });
         await Check("offset_bundle_export_of_active_values_does_not_readd_measurement_delta",async()=>
         {

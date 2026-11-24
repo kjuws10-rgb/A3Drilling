@@ -1,0 +1,40 @@
+{
+  "status": "owner-source-frozen-round2-complete",
+  "sourceHashes": [
+    {
+      "path": "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
+      "sha256": "5e6c2beda1c547a4dd0c1a9037e6a8494bab214043978a496562eddc02b53804"
+    },
+    {
+      "path": "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs",
+      "sha256": "45db1cc07c12d1829cb4705541a6c8c73e93160d439e4c393913cec34031a049"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CManualInspectionController.cs",
+      "sha256": "6bea6ed001f2c92365de20e2020a42663facb2e81669549e7874fb339e4c58d8"
+    },
+    {
+      "path": "tests/ManualInspection/ReplacementWorkflowCases.cs",
+      "sha256": "d81df8c7e4ab9f49d900204774a86284740900c1d3ab8e74db9433c6aa0c0015"
+    },
+    {
+      "path": "tests/ManualInspection/ControllerHarness/ReplacementWorkflowCases.cs",
+      "sha256": "c656f32b5cd6788e10759f5e5d308a8046074f95278d9165182c66fac7b1398c"
+    }
+  ],
+  "core": {
+    "passed": true,
+    "count": 271,
+    "report": "D:\\CodexWork\\A3_Manual_Inspection_20261124_8_ReplacementWorkflow\\core-results.json"
+  },
+  "controllerLinked": {
+    "passed": true,
+    "count": 282,
+    "report": "D:\\CodexWork\\A3_Manual_Inspection_20261124_8_ReplacementWorkflow\\controller-source.json"
+  },
+  "noVendorAssemblies": true,
+  "diffCheckExit": 0,
+  "sourceModificationScope": "Manual Core models/workspace and Controller only. Other Review formulas, hardware/protected offsets untouched.",
+  "testMigration": "Existing tests retained and expectations updated for intentional stage-only copy/current-Cell common save/replacement measurement policy. Source-linked and actual Controller tests must not be summed.",
+  "scope": "Synthetic geometry/raw/operator/file state; no device Manager, equipment App, SDK or actual motion/PLC/Vision calls. Actual native writer and A1 consumers validated separately by parent."
+}

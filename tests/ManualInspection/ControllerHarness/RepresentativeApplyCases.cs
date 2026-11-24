@@ -10,14 +10,15 @@ internal static partial class Program
         await Check("copy_confirmation_dispatch_saves_known_final_and_refreshes_final_snapshot_without_motion",async()=>
         {
             var(f,c)=await Loaded();await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,["P2"],r=>r with{ReferenceKey="P1",Reason="explicit confirmed representative"});
+            True(f.Saves==0&&c.Snapshot.Points.Single(p=>p.Key=="P2").WorkingXUm==3);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply);
             True(f.Saves==1&&f.Executed.Count==0&&c.Snapshot.Points.Single(p=>p.Key=="P2").BaseXUm==3&&c.Snapshot.UndoOffsetCount==1);
             await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,["P2"],r=>r with{ReferenceKey="P1",Reason="same F again"});True(f.Saves==1);
         });
         await Check("copy_saved_known_offset_with_no_residual_is_applied_as_absolute_f_not_fake_raw",async()=>
         {
             var(f,c)=CorrectionFixture();await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,["P2"],r=>r with{ReferenceKey="P1",Reason="known persisted F"});
-            var target=c.Snapshot.Points.Single(p=>p.Key=="P2");True(f.Saves==1&&target.WorkingJudge=="OK"&&target.OriginalXUm is null&&target.WorkingXUm is null&&target.BaseXUm==7&&target.ReferenceValueKind=="APPLIED_OFFSET");
-            await c.EnsureLoaded();True(c.Snapshot.Points.Single(p=>p.Key=="P2").ReferenceValueKind=="APPLIED_OFFSET"&&f.Saves==1);
+            var target=c.Snapshot.Points.Single(p=>p.Key=="P2");True(f.Saves==0&&target.WorkingJudge=="UNMEASURED"&&target.OriginalXUm is null&&target.WorkingXUm is null&&target.BaseXUm==0&&target.IsMeasurementStateCleared);
+            await c.EnsureLoaded();True(c.Snapshot.Points.Single(p=>p.Key=="P2").ReferenceFinalXUm is null&&f.Saves==0);
         });
         await Check("copy_ng_and_empty_states_never_save_until_a_separate_operator_acceptance",async()=>
         {
@@ -30,11 +31,12 @@ internal static partial class Program
         {
             var(f,c)=Fixture();f.Source=f.Source with{Values=new Dictionary<string,ST_MANUAL_OFFSET>{{"P1",new(0,0)},{"P2",new(-50,0)},{"P3",new(0,0)}}};await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);
             await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,["P2","P3"],r=>r with{ReferenceKey="P1",Reason="per-target numeric exclusion"});
-            True(f.Saves==1&&c.Snapshot.Points.Single(p=>p.Key=="P2").BaseXUm==-50&&c.Snapshot.Points.Single(p=>p.Key=="P3").BaseXUm==3&&c.Snapshot.StatusText.Contains("수치한계 1"));
+            True(f.Saves==0);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply);
+            True(f.Saves==1&&c.Snapshot.Points.Single(p=>p.Key=="P2").BaseXUm==3&&c.Snapshot.Points.Single(p=>p.Key=="P3").BaseXUm==3);
         });
         await Check("copy_write_failure_keeps_working_proxy_and_allows_one_explicit_retry_without_motion",async()=>
         {
-            var(f,c)=await Loaded();f.FailSave=true;await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,["P2"],r=>r with{ReferenceKey="P1",Reason="write failure"}));
+            var(f,c)=await Loaded();f.FailSave=true;await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,["P2"],r=>r with{ReferenceKey="P1",Reason="write failure"});await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply));
             True(f.Saves==0&&c.Snapshot.Points.Single(p=>p.Key=="P2").IsProxy&&c.Snapshot.Points.Single(p=>p.Key=="P2").BaseXUm==0&&!c.IsBusy);
             f.FailSave=false;await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P2"]);True(f.Saves==1&&f.Executed.Count==0);
         });
@@ -55,8 +57,8 @@ internal static partial class Program
         await Check("operator_unadopted_import_acceptance_keeps_foreign_raw_and_current_context_metadata",async()=>
         {
             var(f,c)=Fixture();f.Source=f.Source with{Points=f.Source.Points.Select(p=>p.Key=="P1"?p with{Source="IMPORTED",OriginalMeasurement=p.OriginalMeasurement! with{RunId="FOREIGN",CoordinateSignature="OLD"}}:p).ToArray()};await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);
-            await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P1"]));await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ForceMeasurement,["P1"],r=>r with{Reason="operator accepts current displayed values"});
-            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P1"]);True(f.Saves==1&&c.Snapshot.Points.Single(p=>p.Key=="P1").OriginalXUm==3);
+            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P1"]);True(f.Saves==1&&c.Snapshot.Points.Single(p=>p.Key=="P1").BaseXUm==0);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ForceMeasurement,["P1"],r=>r with{Reason="operator accepts current displayed values"});
+            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P1"]);True(f.Saves==2&&c.Snapshot.Points.Single(p=>p.Key=="P1").OriginalXUm==3);
             await c.EnsureLoaded();True(!c.Snapshot.IsReadOnly&&c.Snapshot.Points.Single(p=>p.Key=="P1").IsOperatorResult);
         });
         await Check("operator_initial_invalid_multi_request_preserves_remaining_queue_then_explicit_input_can_supersede",async()=>

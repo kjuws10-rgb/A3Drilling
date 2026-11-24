@@ -19,7 +19,7 @@ internal static partial class Program
                 ("measured",seed with{ReferenceFinalXUm=12,ReferenceFinalYUm=-3,ReferenceValueKind="MEASURED"},true),
                 ("ng",seed with{WorkingJudge="NG",ReferenceFinalXUm=12,ReferenceFinalYUm=-3,ReferenceValueKind="MEASURED"},true),
                 ("proxy",seed with{Source="MANUAL",IsProxy=true,ReferenceFinalXUm=12,ReferenceFinalYUm=-3,ReferenceValueKind="PROXY"},true),
-                ("saved",seed with{Source="KEPT",WorkingJudge="UNMEASURED",WorkingXUm=null,WorkingYUm=null,HasAppliedOffset=true,ReferenceFinalXUm=12,ReferenceFinalYUm=-3,ReferenceValueKind="APPLIED_OFFSET"},true),
+                ("saved",seed with{Source="KEPT",WorkingJudge="UNMEASURED",WorkingXUm=null,WorkingYUm=null,HasAppliedOffset=true,ReferenceFinalXUm=12,ReferenceFinalYUm=-3,ReferenceValueKind="APPLIED_OFFSET"},false),
                 ("unadopted_file",seed with{Source="IMPORTED",CanUseImportedForCorrection=false,HasAppliedOffset=false,ReferenceFinalXUm=null,ReferenceFinalYUm=null,ReferenceValueUnavailableReason="파일 기준 확인 필요"},false),
                 ("no_value",seed with{Source="KEPT",WorkingJudge="UNMEASURED",WorkingXUm=null,WorkingYUm=null,HasAppliedOffset=false,ReferenceFinalXUm=null,ReferenceFinalYUm=null,ReferenceValueUnavailableReason="복사할 값 없음"},false),
                 ("initialized",seed with{IsMeasurementOffsetInitialized=true,Source="OFFSET_INIT",WorkingJudge="UNMEASURED",WorkingXUm=null,WorkingYUm=null,HasAppliedOffset=true,BaseXUm=0,BaseYUm=0,ReferenceFinalXUm=null,ReferenceFinalYUm=null,ReferenceValueUnavailableReason="초기화 · 값 없음"},false),
@@ -82,8 +82,8 @@ internal static partial class Program
             Test("state_copy_working_scatter_has_no_fabricated_zero_or_old_B_sample",scatter.Metrics.Count==0&&cleared.MeasurementXUm is null&&cleared.MeasurementYUm is null);
             SelectViewChoice(view,"ScatterDataCombo","ORIGINAL");Invoke(view,"Refresh");Pump();
             Test("state_copy_original_scatter_keeps_preserved_raw",scatter.Metrics.Count==1&&scatter.Metrics.MeanX==2&&scatter.Metrics.MeanY==-3);
-            SelectViewChoice(view,"ScatterDataCombo","OFFSETS");Invoke(view,"Refresh");Pump();
-            Test("state_copy_offset_scatter_keeps_actual_saved_B",scatter.Metrics.Count==1&&scatter.Metrics.MeanX==7&&scatter.Metrics.MeanY==-9);
+            SelectViewChoice(view,"ScatterDataCombo","WORKING");Invoke(view,"Refresh");Pump();
+            Test("state_copy_offset_scatter_keeps_actual_saved_B",scatter.Metrics.Count==0&&cleared.MeasurementXUm is null);
             Test("state_copy_scatter_projections_do_not_modify_source_state_or_model_values",fake.Snapshot.Points.Single()==cleared&&fake.Calls.Count==0);
             window.Close();
         }

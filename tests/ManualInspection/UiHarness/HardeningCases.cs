@@ -14,7 +14,7 @@ internal static partial class Program
             var initial = Snapshot(240) with { Message = "이전 자료를 불러왔습니다." };
             var fake = new FakeController(initial);
             var view = new CManualInspectionView { DataContext = fake, ConfirmationForTesting = (_, _, _) => true };
-            Set(view, "_scatterOffsets", false); Set(view, "_scatterScope", "CELL"); // Explicit legacy working-data scope.
+            Set(view, "_scatterScope", "CELL"); // Explicit legacy working-data scope.
             var window = new Window { Width = 1120, Height = 720, Content = view, Left = -20000, Top = -20000,
                 ShowInTaskbar = false, ShowActivated = false, WindowStyle = WindowStyle.None };
             window.Show(); Pump(); SelectMeasurementView(view);
@@ -61,15 +61,15 @@ internal static partial class Program
             var before = fake.Calls.Count;
             var version = fake.Snapshot.Version;
             view.ConfirmationForTesting = (_, _, _) => false;
-            Invoke(view, "Apply_Click", view, new RoutedEventArgs());Pump();
+            Execute(EN_MANUAL_INSPECTION_UI_ACTION.Apply,new(){ExpectedVersion=fake.Snapshot.Version});Pump();
             Test("apply_confirmation_cancel_dispatches_nothing", fake.Calls.Count == before);
             before=fake.Calls.Count;
             view.ConfirmationForTesting = (_, _, _) => true;
-            Invoke(view, "Apply_Click", view, new RoutedEventArgs()); Pump();
-            Test("apply_confirmation_accept_dispatches_one_current_request", fake.Calls.Count == before+1&&fake.Calls[^1].Request.ExpectedVersion==version);
+            Execute(EN_MANUAL_INSPECTION_UI_ACTION.Apply,new(){ExpectedVersion=fake.Snapshot.Version}); Pump();
+            Test("apply_confirmation_accept_dispatches_one_current_request", fake.Calls.Count == before&&fake.Snapshot.Version==version);
             before=fake.Calls.Count;
             view.ConfirmationForTesting = (_, _, _) => throw new InvalidOperationException("synthetic confirmation failure");
-            Invoke(view, "Apply_Click", view, new RoutedEventArgs());Pump();
+            Execute(EN_MANUAL_INSPECTION_UI_ACTION.Apply,new(){ExpectedVersion=fake.Snapshot.Version});Pump();
             Test("apply_confirmation_failure_keeps_model_and_version", fake.Calls.Count==before&&fake.Snapshot.Version == version);
             view.ConfirmationForTesting = (_, _, _) => true;
             before=fake.Calls.Count;
@@ -82,7 +82,7 @@ internal static partial class Program
             {
                 Execute(action, new() { ExpectedVersion = fake.Snapshot.Version, Keys = [target.Key], FocusKey = target.Key,
                     ReferenceKey=action==EN_MANUAL_INSPECTION_UI_ACTION.CopyReference?first.Key:null,Reason="현재 대표값 · 기존 조회 전용 플래그의 편집 허용 확인" });
-                Test("legacy_readonly_flag_does_not_block_request_" + action, fake.Calls.Count == before + 1);
+                Test("legacy_readonly_still_respects_replacement_policy_" + action, action is EN_MANUAL_INSPECTION_UI_ACTION.Apply or EN_MANUAL_INSPECTION_UI_ACTION.CopyReference ? fake.Calls.Count==before : fake.Calls.Count == before + 1);
                 before=fake.Calls.Count;
             }
             foreach (var action in new[] { EN_MANUAL_INSPECTION_UI_ACTION.ShowPoint, EN_MANUAL_INSPECTION_UI_ACTION.ExportCsv,

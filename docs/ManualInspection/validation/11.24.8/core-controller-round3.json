@@ -1,0 +1,127 @@
+{
+  "status": "round3-complete",
+  "ownerSourceUnchanged": true,
+  "sourceComparisons": [
+    {
+      "path": "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
+      "expected": "5e6c2beda1c547a4dd0c1a9037e6a8494bab214043978a496562eddc02b53804",
+      "actual": "5e6c2beda1c547a4dd0c1a9037e6a8494bab214043978a496562eddc02b53804",
+      "equal": true
+    },
+    {
+      "path": "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs",
+      "expected": "45db1cc07c12d1829cb4705541a6c8c73e93160d439e4c393913cec34031a049",
+      "actual": "45db1cc07c12d1829cb4705541a6c8c73e93160d439e4c393913cec34031a049",
+      "equal": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CManualInspectionController.cs",
+      "expected": "6bea6ed001f2c92365de20e2020a42663facb2e81669549e7874fb339e4c58d8",
+      "actual": "6bea6ed001f2c92365de20e2020a42663facb2e81669549e7874fb339e4c58d8",
+      "equal": true
+    },
+    {
+      "path": "tests/ManualInspection/ReplacementWorkflowCases.cs",
+      "expected": "d81df8c7e4ab9f49d900204774a86284740900c1d3ab8e74db9433c6aa0c0015",
+      "actual": "d81df8c7e4ab9f49d900204774a86284740900c1d3ab8e74db9433c6aa0c0015",
+      "equal": true
+    },
+    {
+      "path": "tests/ManualInspection/ControllerHarness/ReplacementWorkflowCases.cs",
+      "expected": "c656f32b5cd6788e10759f5e5d308a8046074f95278d9165182c66fac7b1398c",
+      "actual": "c656f32b5cd6788e10759f5e5d308a8046074f95278d9165182c66fac7b1398c",
+      "equal": true
+    }
+  ],
+  "controllerActual": {
+    "reportSha256": "6d263ff6cd84342e960b1d8a7d06f0375f2102c7bc6239fac8387d8b01f86df5",
+    "report": "D:\\CodexWork\\A3_Manual_Inspection_20261124_8_ReplacementWorkflow\\controller-production.json",
+    "count": 285,
+    "passed": true
+  },
+  "coreSource": {
+    "report": "D:\\CodexWork\\A3_Manual_Inspection_20261124_8_ReplacementWorkflow\\core-results.json",
+    "count": 271,
+    "passed": true
+  },
+  "backendActual": {
+    "reportSha256": "140b8f083e03dd7f71bad06f63ba9849948c761f152c1252065d537da4c968cc",
+    "report": "D:\\CodexWork\\A3_Manual_Inspection_20261124_8_ReplacementWorkflow\\backend-read.json",
+    "count": 183,
+    "passed": true
+  },
+  "actualCsvReplacementCases": [
+    {
+      "name": "replacement_csv_copy_only_stages_original_delta_then_current_cell_bulk_writes_delta_not_B_plus_delta",
+      "passed": true
+    },
+    {
+      "name": "replacement_csv_operator_delta_replaces_legacy_B500_with_5_without_increment_limit_false_rejection",
+      "passed": true
+    },
+    {
+      "name": "replacement_csv_ng_missing_and_saved_B_only_do_not_become_fake_raw_or_new_corrections",
+      "passed": true
+    },
+    {
+      "name": "replacement_csv_import_stages_current_cell_only_and_bulk_preserves_other_cell_measured_zero_raw_ledger_and_hidden_rows",
+      "passed": true
+    },
+    {
+      "name": "replacement_csv_current_cell_init_bulk_never_resets_other_cell_measured_zero_or_hidden_history",
+      "passed": true
+    },
+    {
+      "name": "replacement_csv_legacy_generic_measured_session_uses_captured_error_not_old_final_or_other_cell_candidate",
+      "passed": true
+    },
+    {
+      "name": "replacement_csv_legacy_generic_operator_session_uses_captured_error_not_old_final_or_other_cell_candidate",
+      "passed": true
+    },
+    {
+      "name": "replacement_csv_saved_bulk_init_undo_redo_feed_actual_station_model_and_all_four_A1_text_modes_without_execution",
+      "passed": true
+    },
+    {
+      "name": "replacement_csv_ng_reference_copy_is_working_state_only_and_never_writes_correction",
+      "passed": true
+    }
+  ],
+  "ui": {
+    "sourceHashMismatches": [],
+    "report": "D:\\CodexWork\\A3_Manual_Inspection_20261124_8_ReplacementWorkflow\\ui-final\\validation.json",
+    "modes": 19,
+    "checks": 1031,
+    "passed": true
+  },
+  "legacyV7": {
+    "report": "D:\\CodexWork\\A3_Manual_Inspection_20261124_8_ReplacementWorkflow\\legacy-serialization.json",
+    "checks": 32,
+    "passed": true
+  },
+  "scope": {
+    "rootIndependentPassed": true,
+    "rootSourceChanges": "CRootView ShiftPreview latest-CSV overlay only; UTF-8 BOM is an encoding-only difference, normalized scope checked by parent.",
+    "checks": 48,
+    "passed": true
+  },
+  "assemblyComparisons": [
+    {
+      "name": "Drilling.UI",
+      "reported": "b721053c2ea4b09c799161a6738edb6607886e36e164426e06fde70cced32eb7",
+      "production": "b721053c2ea4b09c799161a6738edb6607886e36e164426e06fde70cced32eb7",
+      "equal": true
+    },
+    {
+      "name": "Drilling.Common",
+      "reported": "bc178146d77237e12a78eb26abf566d04a8f830fd08dd5e6862880c4d3099c66",
+      "production": "bc178146d77237e12a78eb26abf566d04a8f830fd08dd5e6862880c4d3099c66",
+      "equal": true
+    }
+  ],
+  "controllerAssemblyEqualsBackend": true,
+  "equipmentExecuted": false,
+  "productionSaveCoreExecuted": false,
+  "limits": "Actual Controller/native CSV read+conversion+CAS writer/A1 text generator use synthetic fixtures and an equipment save/response seam. No App/Root/Manager, SDK, PLC, motion or Vision execution. UI checks are WPF controls with fake controller. Source-linked Controller282 overlaps actual285 and is not added."
+}

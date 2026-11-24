@@ -47,11 +47,11 @@ internal static partial class Program
         await Check("return_keeps_copied_native_working_values_and_original_provenance", async () =>
         {
             var(f,c)=await Loaded(); await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,["P2"],r=>r with{ReferenceKey="P1",Reason="native copy before file"});
-            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Validate,null,r=>r with{AllowManual=true}); var old=c.Snapshot.Points.Single(p=>p.Key=="P2");
+            var old=c.Snapshot.Points.Single(p=>p.Key=="P2");True(f.Saves==0);
             var file=Archive(f,"copied-native",8);f.FileSources[file.SourcePath]=file;await OpenFile(c,file.SourcePath);
             await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ReturnToPreviousWorkspace);var actual=c.Snapshot.Points.Single(p=>p.Key=="P2");
             True(actual.IsProxy && actual.WorkingXUm==old.WorkingXUm && actual.OriginalXUm==old.OriginalXUm && actual.ReferenceKey==old.ReferenceKey);
-            True(c.Snapshot.AllowManual && !c.Snapshot.CanApply && f.Executed.Count==0 && f.Saves==1);
+            True(c.Snapshot.AllowManual && !c.Snapshot.CanApply && f.Executed.Count==0 && f.Saves==0);
         });
         await Check("file_open_cannot_replace_interrupted_native_measurement_without_cleanup", async () =>
         {

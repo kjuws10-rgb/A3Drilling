@@ -1,0 +1,182 @@
+{
+  "passed": true,
+  "count": 32,
+  "checks": [
+    {
+      "mode": "proxy",
+      "check": "legacy proof and raw lineage survived real old serializer",
+      "passed": true
+    },
+    {
+      "mode": "proxy",
+      "check": "original raw preserved",
+      "passed": true
+    },
+    {
+      "mode": "proxy",
+      "check": "old saved base preserved on restore",
+      "passed": true
+    },
+    {
+      "mode": "proxy",
+      "check": "old candidate not silently reclassified",
+      "passed": true
+    },
+    {
+      "mode": "proxy",
+      "check": "old captured final13 is not reused as deviation",
+      "passed": true
+    },
+    {
+      "mode": "proxy",
+      "check": "new replacement validates against restored provenance",
+      "passed": true
+    },
+    {
+      "mode": "proxy",
+      "check": "new final is raw3 not old13 or repeated23",
+      "passed": true
+    },
+    {
+      "mode": "operator",
+      "check": "legacy proof and raw lineage survived real old serializer",
+      "passed": true
+    },
+    {
+      "mode": "operator",
+      "check": "original raw preserved",
+      "passed": true
+    },
+    {
+      "mode": "operator",
+      "check": "old saved base preserved on restore",
+      "passed": true
+    },
+    {
+      "mode": "operator",
+      "check": "old candidate not silently reclassified",
+      "passed": true
+    },
+    {
+      "mode": "operator",
+      "check": "old captured final13 is not reused as deviation",
+      "passed": true
+    },
+    {
+      "mode": "operator",
+      "check": "new replacement validates against restored provenance",
+      "passed": true
+    },
+    {
+      "mode": "operator",
+      "check": "new final is raw3 not old13 or repeated23",
+      "passed": true
+    },
+    {
+      "mode": "model-import",
+      "check": "legacy proof and raw lineage survived real old serializer",
+      "passed": true
+    },
+    {
+      "mode": "model-import",
+      "check": "original raw preserved",
+      "passed": true
+    },
+    {
+      "mode": "model-import",
+      "check": "old saved base preserved on restore",
+      "passed": true
+    },
+    {
+      "mode": "model-import",
+      "check": "old candidate not silently reclassified",
+      "passed": true
+    },
+    {
+      "mode": "model-import",
+      "check": "old model draft remains explicit",
+      "passed": true
+    },
+    {
+      "mode": "model-import",
+      "check": "explicit current Cell restage required",
+      "passed": true
+    },
+    {
+      "mode": "saved-proxy",
+      "check": "legacy proof and raw lineage survived real old serializer",
+      "passed": true
+    },
+    {
+      "mode": "saved-proxy",
+      "check": "original raw preserved",
+      "passed": true
+    },
+    {
+      "mode": "saved-proxy",
+      "check": "old saved base preserved on restore",
+      "passed": true
+    },
+    {
+      "mode": "saved-proxy",
+      "check": "old candidate not silently reclassified",
+      "passed": true
+    },
+    {
+      "mode": "saved-proxy",
+      "check": "already applied legacy manual result not silently replaced",
+      "passed": true
+    },
+    {
+      "mode": "saved-proxy",
+      "check": "explicit fresh copy can be applied under new policy",
+      "passed": true
+    },
+    {
+      "mode": "saved-operator",
+      "check": "legacy proof and raw lineage survived real old serializer",
+      "passed": true
+    },
+    {
+      "mode": "saved-operator",
+      "check": "original raw preserved",
+      "passed": true
+    },
+    {
+      "mode": "saved-operator",
+      "check": "old saved base preserved on restore",
+      "passed": true
+    },
+    {
+      "mode": "saved-operator",
+      "check": "old candidate not silently reclassified",
+      "passed": true
+    },
+    {
+      "mode": "saved-operator",
+      "check": "already applied legacy manual result not silently replaced",
+      "passed": true
+    },
+    {
+      "mode": "saved-operator",
+      "check": "explicit fresh copy can be applied under new policy",
+      "passed": true
+    }
+  ],
+  "legacySourceCommit": "35ef09b13dddb2d581582689e34978b9ac285d39",
+  "sourceSha256": {
+    "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs": {
+      "oldGitSha256": "8f17be4a69a420c0e03a6dc633363bc4be391b9d2331d434ad17179aad44edc6",
+      "currentSha256": "45db1cc07c12d1829cb4705541a6c8c73e93160d439e4c393913cec34031a049"
+    },
+    "Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs": {
+      "oldGitSha256": "5de73469bc0aa40d2c49a008f3d26bbd58f75a246445ca0f13eafa098ebdf391",
+      "currentSha256": "14e0150f97e65dc7e13b1564e574274c5616c8916b6d3ac4b7bb3c9508e9179a"
+    },
+    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs": {
+      "oldGitSha256": "ae3e71077f5edd2221c8ce2746c384965ceb89463cd9029e7efdaddad092a081",
+      "currentSha256": "5e6c2beda1c547a4dd0c1a9037e6a8494bab214043978a496562eddc02b53804"
+    }
+  },
+  "scope": "Actual git-show .7 pure source serializer -> current pure source restorer; synthetic data only; no production device App/SDK/driver."
+}

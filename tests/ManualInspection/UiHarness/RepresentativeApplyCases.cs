@@ -30,7 +30,7 @@ internal static partial class Program
     {
         var source=FinalOffsetFixture();var first=source.Points[0];
         return source with{Version=500,Points=source.Points.Select(point=>point.Key==first.Key?point with{WorkingJudge="OK",WorkingXUm=3,WorkingYUm=-2,OriginalJudge="OK",OriginalXUm=3,OriginalYUm=-2,
-            ReferenceFinalXUm=13,ReferenceFinalYUm=-4,ReferenceValueKind="MEASURED",ReferenceValueJudge="OK",ReferenceValueUnavailableReason=""}:point).ToArray()};
+            ReferenceFinalXUm=3,ReferenceFinalYUm=-2,ReferenceValueKind="MEASURED",ReferenceValueJudge="OK",ReferenceValueUnavailableReason=""}:point).ToArray()};
     }
 
     private static Window HostRepresentativeView(CManualInspectionView view,double width=1490,double height=900)
@@ -66,23 +66,20 @@ internal static partial class Program
         view.ConfirmationForTesting=(_,_,_)=>true;fake.OnExecute=(action,request)=>
         {
             if(action!=EN_MANUAL_INSPECTION_UI_ACTION.CopyReference)return;
-            var values=new Dictionary<string,CManualInspectionUiOffset>(fake.Snapshot.FinalOffsetPoints,StringComparer.Ordinal);
-            foreach(var key in request.Keys)values[key]=new(13,-4);
-            fake.Replace(fake.Snapshot with{Version=503,FinalOffsetPoints=values,FinalOffsetRevisionId="COPY-SAVED",FinalOffsetFileName="20261124_180000_001_reviewoffset.csv",
-                Points=fake.Snapshot.Points.Select(point=>request.Keys.Contains(point.Key)?point with{WorkingJudge="OK",IsProxy=true,ReferenceKey=state.Points[0].Key,IsMeasurementOffsetInitialized=false,IsMeasurementStateCleared=false}:point).ToArray()});
+            fake.Replace(fake.Snapshot with{Version=503,
+                Points=fake.Snapshot.Points.Select(point=>request.Keys.Contains(point.Key)?point with{WorkingJudge="OK",WorkingXUm=3,WorkingYUm=-2,ReferenceFinalXUm=3,ReferenceFinalYUm=-2,IsProxy=true,ReferenceKey=state.Points[0].Key,IsMeasurementOffsetInitialized=false,IsMeasurementStateCleared=false}:point).ToArray()});
         };
         ClickCopy();
         var map=Find<CManualInspectionMapControl>("PositionMap");var projected=Field<IReadOnlyList<CManualInspectionUiPoint>>(map,"_all");
-        Test("copy_saved_reply_immediately_updates_default_final_map_and_csv_caption",projected.Single(point=>point.Key==state.Points[1].Key).BaseXUm==13&&projected.Single(point=>point.Key==state.Points[1].Key).BaseYUm==-4
-            &&Find<TextBlock>("FinalCsvSourceText").Text.Contains("20261124_180000"));
+        Test("copy_working_reply_updates_measurement_map_without_saving_csv",projected.Single(point=>point.Key==state.Points[1].Key).WorkingXUm==3&&projected.Single(point=>point.Key==state.Points[1].Key).WorkingYUm==-2&&fake.Snapshot.FinalOffsetRevisionId==state.FinalOffsetRevisionId);
         Test("copy_view_never_fabricates_original_raw_from_saved_reply",fake.Snapshot.Points[1].OriginalJudge==state.Points[1].OriginalJudge&&fake.Snapshot.Points[1].OriginalXUm==state.Points[1].OriginalXUm);
         state=state with{Version=504,Points=state.Points.Select((point,index)=>index==0?point with{WorkingJudge="NG",ReferenceValueJudge="NG"}:point).ToArray()};fake.Replace(state);Pump();SelectCopy();
         fake.OnExecute=null;string ngDescription="";view.ConfirmationForTesting=(_,text,_)=>{ngDescription=text;return true;};before=fake.Calls.Count;ClickCopy();
-        Test("copy_ng_reference_still_requires_confirm_and_describes_state_only",fake.Calls.Count==before+1&&ngDescription.Contains("대표 상태 NG")&&ngDescription.Contains("상태만")&&fake.Snapshot.FinalOffsetRevisionId==state.FinalOffsetRevisionId);
+        Test("copy_ng_reference_still_requires_confirm_and_describes_state_only",fake.Calls.Count==before+1&&ngDescription.Contains("NG")&&ngDescription.Contains("보정 저장 대상에서는 제외")&&fake.Snapshot.FinalOffsetRevisionId==state.FinalOffsetRevisionId);
         state=state with{Version=505,Points=state.Points.Select((point,index)=>index==0?point with{WorkingJudge="UNMEASURED",WorkingXUm=null,WorkingYUm=null,ReferenceValueJudge="UNMEASURED",
             ReferenceFinalXUm=null,ReferenceFinalYUm=null,ReferenceValueUnavailableReason="빈 측정 상태",CanCopyReferenceState=true,HasAppliedOffset=false,IsMeasurementOffsetInitialized=true}:point).ToArray()};
         fake.Replace(state);Pump();SelectCopy();string emptyDescription="";view.ConfirmationForTesting=(_,text,_)=>{emptyDescription=text;return true;};before=fake.Calls.Count;ClickCopy();
-        Test("copy_unmeasured_reference_confirms_state_only_without_inventing_numeric_value",fake.Calls.Count==before+1&&emptyDescription.Contains("미측정")&&fake.Snapshot.Points[0].WorkingXUm is null&&fake.Snapshot.FinalOffsetRevisionId==state.FinalOffsetRevisionId);
+        Test("copy_unmeasured_reference_confirms_state_only_without_inventing_numeric_value",fake.Calls.Count==before+1&&emptyDescription.Contains("빈 측정")&&fake.Snapshot.Points[0].WorkingXUm is null&&fake.Snapshot.FinalOffsetRevisionId==state.FinalOffsetRevisionId);
         observations.Add(new{copyConfirmations=confirmations.Count,copyCalls=fake.Calls.Count});host.Close();Pump();
     }
 
@@ -126,7 +123,7 @@ internal static partial class Program
             Invoke(view,"ChangeSelection",new CManualInspectionSelectionEventArgs([state.Points[1].Key,state.Points[2].Key],state.Points[1].Key));Pump();var observed=false;
             _application.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,new Action(()=>
             {
-                var popup=_application.Windows.Cast<Window>().Single(window=>window.Title=="대표값 복사 적용 확인");observed=true;
+                var popup=_application.Windows.Cast<Window>().Single(window=>window.Title=="대표 편차 복사 확인");observed=true;
                 Test("real_copy_confirmation_inherits_current_theme_"+theme,((SolidColorBrush)popup.Background).Color.ToString()==ResourceColor("PanelBackgroundBrush"));
                 Render(popup,"representative-confirm-"+theme.ToLowerInvariant()+".png");popup.DialogResult=false;
             }));
@@ -184,29 +181,28 @@ internal static partial class Program
         fake.Replace(state with{Version=507,Points=[finalOnly]});Pump();Invoke(view,"ChangeSelection",new CManualInspectionSelectionEventArgs([other],other));Pump();
         var errorText=((TextBlock)view.FindName("PointErrorText")).Text;
         Test("operator_final_only_never_invents_base_or_zero_as_residual",!finalOnly.UsesAppliedMeasurement&&finalOnly.MeasurementXUm is null&&finalOnly.MeasurementYUm is null
-            &&errorText.Contains("수동 확정 최종")&&errorText.Contains("잔류 편차 수치 없음")&&!errorText.Contains("실측")&&!errorText.Contains("L1"));
+            &&errorText.Contains("유효 측정 편차 없음")&&!errorText.Contains("실측")&&!errorText.Contains("L1"));
         Render(view,"manual-final-only-light.png");
         SelectViewChoice(view,"ScatterDataCombo","WORKING");var plot=(CManualInspectionScatterControl)view.FindName("ScatterPlot");var residualCount=plot.Metrics.Count;
-        SelectViewChoice(view,"ScatterDataCombo","FINAL_OFFSETS");
-        Test("operator_final_only_is_not_a_working_scatter_sample_but_saved_B_remains_visible",residualCount==0&&plot.Metrics.Count==1&&plot.Metrics.MeanX==state.FinalOffsetPoints[other].XUm);
+        SelectViewChoice(view,"ScatterDataCombo","WORKING");
+        Test("operator_final_only_is_not_fabricated_as_working_measurement",residualCount==0&&plot.Metrics.Count==0);
         var capturedFinal=finalOnly with{BaseXUm=3,BaseYUm=-2,ReferenceFinalXUm=12,ReferenceFinalYUm=-8};
         fake.Replace(state with{Version=508,Points=[capturedFinal]});Pump();
-        Test("operator_final_only_shows_captured_F_instead_of_unrelated_active_B",((TextBlock)view.FindName("PointErrorText")).Text.Contains("최종 F 12 / -8")
-            &&capturedFinal.MeasurementXUm is null&&capturedFinal.MeasurementYUm is null);
+        Test("operator_old_final_without_current_deviation_is_not_new_measurement",((TextBlock)view.FindName("PointErrorText")).Text.Contains("유효 측정 편차 없음")&&capturedFinal.MeasurementXUm is null&&capturedFinal.MeasurementYUm is null);
         var pendingFinal=capturedFinal with{HasAppliedOffset=false,ReferenceValueUnavailableReason=""};
         var incompleteFinals=new[]{pendingFinal with{ReferenceFinalYUm=null},pendingFinal with{ReferenceFinalXUm=double.NaN},pendingFinal with{ReferenceValueUnavailableReason="출처 미확인"},
             pendingFinal with{IsMasked=true},pendingFinal with{IsMeasurementOffsetInitialized=true},pendingFinal with{IsMeasurementStateCleared=true}};
-        Test("pending_operator_final_is_completed_history_without_fabricated_residual",pendingFinal.HasMeasurementHistory&&pendingFinal.MeasurementStatusText.Contains("OK")
+        Test("pending_operator_final_is_completed_history_without_fabricated_residual",!pendingFinal.HasMeasurementHistory&&pendingFinal.MeasurementStatusText.Contains("미측정")
             &&pendingFinal.MeasurementXUm is null&&pendingFinal.MeasurementYUm is null&&!pendingFinal.UsesAppliedMeasurement&&incompleteFinals.All(point=>!point.HasMeasurementHistory));
         var pendingState=state with{Version=509,Points=[pendingFinal],FinalOffsetPoints=new Dictionary<string,CManualInspectionUiOffset>{{other,new(0,0)}},
             FinalAppliedPointKeys=new HashSet<string>(),FinalInitializedPointKeys=new HashSet<string>{other}};fake.Replace(pendingState);Pump();
-        SelectViewChoice(view,"ColorFilter","level");SelectViewChoice(view,"JudgeFilter","MEASURED");
+        SelectViewChoice(view,"JudgeFilter","MEASURED");
         var measuredRows=((IEnumerable)((DataGrid)view.FindName("ResultGrid")).ItemsSource).Cast<object>().Count();
         SelectViewChoice(view,"JudgeFilter","OK");var okRows=((IEnumerable)((DataGrid)view.FindName("ResultGrid")).ItemsSource).Cast<object>().Count();
         SelectViewChoice(view,"JudgeFilter","UNMEASURED");var unmeasuredRows=((IEnumerable)((DataGrid)view.FindName("ResultGrid")).ItemsSource).Cast<object>().Count();
         SelectViewChoice(view,"JudgeFilter","ALL");SelectViewChoice(view,"ScatterDataCombo","WORKING");var unknownResidualCount=plot.Metrics.Count;
-        SelectViewChoice(view,"ScatterDataCombo","FINAL_OFFSETS");
-        Test("pending_operator_final_filters_are_consistent_and_both_unsaved_scatter_populations_stay_empty",measuredRows==1&&okRows==1&&unmeasuredRows==0&&unknownResidualCount==0&&plot.Metrics.Count==0);
+        SelectViewChoice(view,"ScatterDataCombo","WORKING");
+        Test("pending_operator_final_filters_are_consistent_and_both_unsaved_scatter_populations_stay_empty",measuredRows==0&&okRows==0&&unmeasuredRows==1&&unknownResidualCount==0&&plot.Metrics.Count==0);
         SelectViewChoice(view,"SourceFilter","ALL");fake.Replace(state with{Version=509});Pump();Invoke(view,"ChangeSelection",new CManualInspectionSelectionEventArgs([key,other],key));Pump();
         map.ShowOperationMenu();Pump();menu=map.ContextMenu!;force=menu.Items.OfType<MenuItem>().Single(item=>item.Header?.ToString()?.StartsWith("측정 완료",StringComparison.Ordinal)==true);fake.Replace(state with{Version=510});Pump();var before=fake.Calls.Count;
         force.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));Pump();menu.IsOpen=false;Test("context_force_opened_before_source_change_does_not_dispatch",fake.Calls.Count==before);

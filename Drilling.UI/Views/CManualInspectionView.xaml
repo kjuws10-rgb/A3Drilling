@@ -226,9 +226,9 @@
             <Grid Grid.Column="0" ClipToBounds="True">
               <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*" MinWidth="0"/></Grid.ColumnDefinitions>
               <TextBlock Text="2D 결과 지도" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold" FontSize="16" VerticalAlignment="Center" ToolTip="MANUAL INSPECTION · 지도에서 선택하고 우클릭으로 동작합니다." />
-              <Button Grid.Column="1" x:Name="FinalCsvSourceButton" Style="{StaticResource ManualButton}" Click="ShowFinalOffsets_Click" Margin="8,0,4,0" Padding="6,2" MinHeight="26" FontSize="10" HorizontalAlignment="Left" MaxWidth="420" AutomationProperties.Name="현재 최종 Review CSV 보기">
-                <TextBlock x:Name="FinalCsvSourceText" Text="Final Offset · CSV 확인 중" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
-              </Button>
+              <Border Grid.Column="1" x:Name="FinalCsvSourceBadge" Margin="8,0,4,0" Padding="6,2" CornerRadius="3" BorderThickness="1" BorderBrush="{DynamicResource PanelBorderBrush}" Background="{DynamicResource PanelBackgroundBrush}" HorizontalAlignment="Left" MaxWidth="420">
+                <TextBlock x:Name="FinalCsvSourceText" Text="Offset CSV 확인 중" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+              </Border>
             </Grid>
 
 
@@ -277,7 +277,7 @@
                         <StackPanel Margin="3,4,3,2">
                           <TextBlock Text="Cell · 표시 기준" Style="{StaticResource ManualLabel}" Margin="0,2,0,2"/>
                           <ComboBox Grid.Column="1" Width="Auto" Margin="0,0,0,4" x:Name="CellFilter" Style="{StaticResource ManualComboBox}" DisplayMemberPath="Label" SelectionChanged="Filter_Changed" AutomationProperties.Name="지도 Cell 범위" ToolTip="지도와 결과 표의 Cell 범위입니다. 산포도는 별도 범위를 사용합니다."/>
-                          <ComboBox Grid.Column="2" Width="Auto" Margin="0,0,0,4" x:Name="ColorFilter" Style="{StaticResource ManualComboBox}" SelectionChanged="Color_Changed" AutomationProperties.Name="지도 색상 기준" ToolTip="측정 편차 Level 또는 OK/NG"/>
+                          <TextBlock x:Name="MeasurementLevelLabel" Text="측정 편차 Level" Style="{StaticResource ManualLabel}" Margin="0,0,0,4"/>
                           <Grid>
                             <Grid.ColumnDefinitions>
                               <ColumnDefinition Width="*"/>
@@ -285,7 +285,7 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel Margin="0,0,3,0">
                               <TextBlock Text="측정 상태" Style="{StaticResource ManualLabel}" Margin="0,2,0,2"/>
-                              <ComboBox x:Name="JudgeFilter" Style="{StaticResource ManualComboBox}" SelectionChanged="Filter_Changed" AutomationProperties.Name="지도 측정 상태 필터" ToolTip="측정됨에는 기존 보정 기반 이력도 포함됩니다. 실측 OK/NG는 수신 판정을 사용합니다."/>
+                              <ComboBox x:Name="JudgeFilter" Style="{StaticResource ManualComboBox}" SelectionChanged="Filter_Changed" AutomationProperties.Name="지도 측정 상태 필터" ToolTip="현재 측정·복사 편차의 상태를 구분합니다. 저장된 Offset만 있는 점은 새 측정 전까지 미측정입니다."/>
                             </StackPanel>
                             <StackPanel Grid.Column="1" Margin="3,0,0,0">
                               <TextBlock Text="Head" Style="{StaticResource ManualLabel}" Margin="0,2,0,2"/>
@@ -324,7 +324,6 @@
                         <TextBlock Text="저장된 최종 Review Offset" FontWeight="SemiBold" Style="{StaticResource ManualLabel}"/>
                         <TextBlock x:Name="FinalOffsetFileText" Style="{StaticResource ManualLabel}" TextTrimming="CharacterEllipsis"/>
                         <TextBlock x:Name="FinalOffsetInfoText" Style="{StaticResource ManualLabel}" TextWrapping="Wrap" MaxHeight="48"/>
-                        <Button x:Name="ShowFinalOffsetsButton" Content="최종 보정 지도 보기" Style="{StaticResource ManualButton}" Click="ShowFinalOffsets_Click" Margin="0,3,0,6"/>
                         <TextBlock x:Name="StagePositionText" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" FontFamily="Consolas" ToolTip="마지막 도착 확인 목표입니다. 실시간 모터 피드백이 아닙니다."/>
                         <TextBlock x:Name="PersistenceText" Foreground="{DynamicResource TextMutedBrush}" FontSize="10" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"/>
                         <TextBlock Text="방향키 한 점 · Ctrl 끝 · Shift 범위" Style="{StaticResource ManualLabel}" Margin="0,2,0,2"/>
@@ -348,7 +347,7 @@
                                   </UniformGrid>
                                 </StackPanel>
                                 <Grid x:Name="ScatterPlotRow" Height="190">
-                                  <views:CManualInspectionScatterControl x:Name="ScatterPlot" MinHeight="150" Height="190" AutomationProperties.Name="통합 Offset·측정 산포도" AutomationProperties.HelpText="측정 편차를 현재 Cell·Head·선택 Cell 범위로 봅니다. 점을 클릭하면 지도와 선택이 연결됩니다. Ctrl 휠 또는 확대 축소 버튼으로 보기를 바꾸고 더블클릭하면 Auto로 맞춥니다. 원측정 기록은 기존 보정 기반 값을 포함하지 않습니다."/>
+                                  <views:CManualInspectionScatterControl x:Name="ScatterPlot" MinHeight="150" Height="190" AutomationProperties.Name="측정 편차 산포도" AutomationProperties.HelpText="측정 편차를 현재 Cell·Head·선택 Cell 범위로 봅니다. 점을 클릭하면 지도와 선택이 연결됩니다. Ctrl 휠 또는 확대 축소 버튼으로 보기를 바꾸고 더블클릭하면 Auto로 맞춥니다. 원측정 기록은 기존 보정 기반 값을 포함하지 않습니다."/>
                                 </Grid>
                               </StackPanel>
                             </TabItem>
@@ -413,9 +412,9 @@
                           </TabItem>
                           <TabItem x:Name="SettingsLimitsTab" Header="한계" Style="{StaticResource ManualSideTab}">
                             <StackPanel Margin="3,4,3,2">
-                              <TextBlock Text="증감 상한 µm" Style="{StaticResource ManualLabel}" Margin="0,2,0,2"/>
+                              <TextBlock Text="입력 편차 상한 µm" Style="{StaticResource ManualLabel}" Margin="0,2,0,2"/>
                               <TextBox x:Name="DeltaLimitInput" Style="{StaticResource ManualInput}"/>
-                              <TextBlock Text="총량 상한 µm" Style="{StaticResource ManualLabel}" Margin="0,2,0,2"/>
+                              <TextBlock Text="저장값 상한 µm" Style="{StaticResource ManualLabel}" Margin="0,2,0,2"/>
                               <TextBox x:Name="TotalLimitInput" Style="{StaticResource ManualInput}"/>
                               <TextBlock Text="Scanner Field mm" Style="{StaticResource ManualLabel}" Margin="0,2,0,2"/>
                               <TextBox x:Name="FieldLimitInput" Style="{StaticResource ManualInput}"/>
@@ -493,7 +492,6 @@
                         <DataGridTextColumn Header="측정 상태" Binding="{Binding Point.MeasurementStatusText}" Width="145"/>
                         <DataGridTextColumn Header="측정 편차 X/Y µm" Binding="{Binding Point.MeasurementErrorText}" Width="155"/>
                         <DataGridTextColumn Header="측정 Level" Binding="{Binding MeasurementLevelText}" Width="90"/>
-                        <DataGridTextColumn Visibility="Collapsed" x:Name="ResultOffsetColumn" Header="적용 보정 X/Y µm" Binding="{Binding AppliedOffsetText}" Width="155"/>
                         <DataGridTextColumn Visibility="Collapsed" Header="보정 Level" Binding="{Binding AppliedLevelText}" Width="100"/>
                         <DataGridTextColumn Header="측정 출처" Binding="{Binding MeasurementOriginText}" Width="170"/>
                         <DataGridTextColumn Header="작업 상태" Binding="{Binding Point.SourceText}" Width="160"/>
@@ -530,7 +528,6 @@
                     <TextBlock x:Name="PointScopeText" Text="포커스 위치" Style="{StaticResource ManualLabel}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Visibility="Collapsed"/>
                     <TextBlock x:Name="PointTitleText" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="16" FontWeight="SemiBold" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
                     <TextBlock x:Name="PointIdentityText" Style="{StaticResource ManualLabel}" Margin="0,2,0,4" FontSize="10" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
-                    <TextBlock Visibility="Collapsed" x:Name="PointAppliedText" Foreground="{DynamicResource AccentTextBrush}" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,3"/>
                     <TextBlock x:Name="LastMeasurementText" Foreground="{DynamicResource AccentTextBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,3" MaxHeight="30"/>
                     <Grid>
                       <Grid.ColumnDefinitions>
@@ -574,58 +571,23 @@
                             <Button x:Name="ClearReferenceButton" Content="대표 해제" Style="{StaticResource ManualButton}" Click="ClearReference_Click" FontSize="11" Padding="3,4" MinHeight="28"/>
                             <Button x:Name="UndoCopyButton" Content="복사 취소" Tag="UndoCopy" Style="{StaticResource ManualButton}" Click="Action_Click" FontSize="11" Padding="3,4" MinHeight="28" Grid.Column="1"/>
                           </Grid>
-                            <TextBlock Text="값 또는 빈 상태를 작업 화면에 복사합니다. 실제 보정은 별도 검증합니다." Style="{StaticResource ManualLabel}" Margin="0,2,0,2"/>
+                            <TextBlock Text="대표 편차를 작업에 대체합니다. CSV 저장은 현재 Cell 일괄 보정에서 합니다." Style="{StaticResource ManualLabel}" Margin="0,2,0,2"/>
                         </StackPanel>
                       </Expander>
                     </TabItem>
                     <TabItem x:Name="RightCorrectionTab" Header="보정" Style="{StaticResource ManualSideTab}">
-                      <Expander x:Name="CorrectionSection" Header="보정 확인 · 적용" IsExpanded="False" Style="{StaticResource ManualSideSection}" Expanded="SideSection_Expanded">
-                        <TabControl x:Name="CorrectionPaneTabs" Style="{StaticResource ManualSideTabs}" SelectionChanged="CorrectionPane_SelectionChanged">
-                          <TabItem x:Name="CorrectionActionsTab" Header="실행" Style="{StaticResource ManualSideTab}">
-                            <StackPanel Margin="3,4,3,2">
-                              <TextBlock x:Name="CandidateStatusText" Foreground="{DynamicResource AccentTextBrush}" FontSize="12"/>
-                              <Button x:Name="BulkApplyButton" Content="현재 Cell 일괄 보정" Tag="BulkApply" Style="{StaticResource ManualPrimaryButton}" Click="Action_Click" ToolTip="현재 Cell의 새 유효 측정 결과만 계산·검증하여 저장합니다. 다른 Cell의 보정값은 유지합니다." MinHeight="28" Padding="5,4"/>
-                              <TextBlock x:Name="BulkSummaryText" Style="{StaticResource ManualLabel}" TextWrapping="Wrap" FontSize="11" MaxHeight="42" TextTrimming="CharacterEllipsis"/>
-                              <Button x:Name="CalculateButton" Content="선택점 보정" Tag="ApplySelectedOffsets" Style="{StaticResource ManualButton}" Click="Action_Click" ToolTip="선택한 위치만 계산·검증한 뒤 모델 Offset에 저장합니다." MinHeight="28" Padding="5,4"/>
-                              <Grid>
-                                <Grid.ColumnDefinitions>
-                                  <ColumnDefinition Width="*"/>
-                                  <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Button x:Name="RollbackButton" Content="되돌리기" Style="{StaticResource ManualButton}" Click="Rollback_Click" FontSize="11" Padding="4,3" MinHeight="28"/>
-                                <Button Grid.Column="1" x:Name="RedoOffsetsButton" Content="다시 적용" Tag="RedoOffsets" Style="{StaticResource ManualButton}" Click="Action_Click" FontSize="11" Padding="4,3" MinHeight="28"/>
-                              </Grid>
-                              <TextBlock x:Name="IncompleteText" Foreground="{DynamicResource ButtonDangerBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,3,0,6" MaxHeight="30"/>
-                            </StackPanel>
-                          </TabItem>
-                          <TabItem x:Name="CorrectionInitTab" Header="초기화" Style="{StaticResource ManualSideTab}">
-                            <StackPanel Margin="3,4,3,2">
-                              <TextBlock x:Name="OffsetStateText" Style="{StaticResource ManualLabel}" Margin="0,0,0,7" TextWrapping="Wrap" FontSize="11" MaxHeight="48"/>
-                              <WrapPanel>
-                                <ComboBox x:Name="InitScopeCombo" Width="100" Style="{StaticResource ManualComboBox}" SelectionChanged="InitScope_Changed"/>
-                                <ComboBox x:Name="InitCellCombo" Width="98" Style="{StaticResource ManualComboBox}"/>
-                                <ComboBox x:Name="InitHeadCombo" Width="98" Style="{StaticResource ManualComboBox}"/>
-                              </WrapPanel>
-                              <Button x:Name="OffsetInitButton" Content="Offset Init" Tag="InitializeOffsets" Style="{StaticResource ManualButton}" Click="Action_Click" ToolTip="측정으로 누적된 통합 Offset만 화면에서 초기화합니다. 모델 저장 전에는 설비와 기존 파일이 바뀌지 않습니다." MinHeight="28" Padding="5,4"/>
-                              <Button x:Name="ApplyButton" Content="모델 Offset 저장" Visibility="Collapsed" Style="{StaticResource ManualButton}" Click="Apply_Click" MinHeight="28" Padding="5,4"/>
-                              <Button x:Name="ValidateButton" Content="후보 검증" Tag="Validate" Visibility="Collapsed" Style="{StaticResource ManualButton}" Click="Action_Click"/>
-                              <CheckBox x:Name="AllowManualCheck" Content="대표 복사 후보도 검증" Visibility="Collapsed" Style="{StaticResource ManualCheck}" Checked="AllowManual_Changed" Unchecked="AllowManual_Changed" Margin="0,3,0,7"/>
-                            </StackPanel>
-                          </TabItem>
-                          <TabItem x:Name="CorrectionCandidateTab" Header="후보" Style="{StaticResource ManualSideTab}">
-                            <StackPanel Margin="3,4,3,2">
-                              <TextBlock x:Name="CandidateContextText" Style="{StaticResource ManualLabel}" MaxHeight="34" TextTrimming="CharacterEllipsis"/>
-                              <DataGrid x:Name="CandidateGrid" Style="{StaticResource ManualGrid}" MaxHeight="116" Margin="0,5,0,5">
-                                <DataGrid.Columns>
-                                  <DataGridTextColumn Header="대상" Binding="{Binding Key}" Width="*"/>
-                                  <DataGridTextColumn Header="후보 F µm" Binding="{Binding FinalText}" Width="*"/>
-                                </DataGrid.Columns>
-                              </DataGrid>
-                              <TextBlock x:Name="CandidateRowCountText" Style="{StaticResource ManualLabel}"/>
-                              <TextBlock x:Name="ValidationText" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="11" FontWeight="Normal" TextWrapping="Wrap" Margin="0,4,0,6" MaxHeight="80" TextTrimming="CharacterEllipsis"/>
-                            </StackPanel>
-                          </TabItem>
-                        </TabControl>
+                      <Expander x:Name="CorrectionSection" Header="현재 Cell CSV 저장" IsExpanded="False" Style="{StaticResource ManualSideSection}" Expanded="SideSection_Expanded">
+                        <StackPanel Margin="3,4,3,2">
+                          <TextBlock x:Name="SaveStatusText" Style="{StaticResource ManualLabel}" MaxHeight="48" TextTrimming="CharacterEllipsis"/>
+                          <TextBlock x:Name="BulkSummaryText" Style="{StaticResource ManualLabel}" MaxHeight="45" TextTrimming="CharacterEllipsis"/>
+                          <Button x:Name="BulkApplyButton" Content="현재 Cell 일괄 보정 · CSV 저장" Tag="BulkApply" Style="{StaticResource ManualPrimaryButton}" Click="Action_Click" MinHeight="28" Padding="5,4"/>
+                          <Button x:Name="OffsetInitButton" Content="현재 Cell Offset Init" Tag="InitializeOffsets" Style="{StaticResource ManualButton}" Click="Action_Click" MinHeight="28" Padding="5,4" Margin="0,4,0,0"/>
+                          <Grid Margin="0,4,0,0">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <Button x:Name="RollbackButton" Content="되돌리기 (0)" Style="{StaticResource ManualButton}" Click="Rollback_Click" MinHeight="28" Padding="3,4"/>
+                            <Button x:Name="RedoOffsetsButton" Grid.Column="1" Content="다시 적용 (0)" Tag="RedoOffsets" Style="{StaticResource ManualButton}" Click="Action_Click" MinHeight="28" Padding="3,4"/>
+                          </Grid>
+                        </StackPanel>
                       </Expander>
                     </TabItem>
                   </TabControl>
