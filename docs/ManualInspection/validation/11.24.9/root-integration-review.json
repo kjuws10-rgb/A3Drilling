@@ -1,0 +1,142 @@
+{
+  "schemaVersion": "a3-manual-root-calibration-integration/1",
+  "version": "11.24.9",
+  "passed": true,
+  "rounds": [
+    "1: contract/source trace, isolate actual residual versus absolute F and authority lifetime",
+    "2: migrated meaningful existing regression fixtures; found raw-only proxy numeric and frame-default mismatch; retained raw/NG/Cell/CAS safeguards",
+    "3: frozen production Release0/0, actual DLL Controller295 and Backend202, pure Core287/Bridge38/loop35/legacy46, WPF20 modes1074, source scope31"
+  ],
+  "sourceHashes": {
+    ".gitignore": "24481543a90758804391cb0d2e0a3efa940013ded33487f071b28ce6f8099f4d",
+    "Drilling.Common/Recipe/CShotCoordinatePlanBuilder.cs": "142fd432b5de1af2fc70c6e1ecccd3b4d42b85253ecda3e3c0342ae6fec6fa5a",
+    "Drilling.Common/Review/CAutoFineReviewCoordinator.cs": "de93f27b8070bd8bebd6d4c67ee3147299448bc7eb940da7b83ab9bd2b2dbd7e",
+    "Drilling.Common/Review/CManualInspectionCoordinateBridge.cs": "add6302b312539da6afbcd59f961200764757c00ef629d3c8b6d2d0cf112525c",
+    "Drilling.Common/Review/CReviewManager.cs": "32bb509070f077f16b22059cb7c2ed815a351b8a7876c4fdd1da75649de255cd",
+    "Drilling.Common/Review/CReviewProcessingBasis.cs": "630bf8330257d1286f8045fc04c528f99d76cd30fa0e0e48e9785cfab2c9bd01",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs": "39421a7ad709281b992d0effe8c0f6386e6fb5b38f3232b6adf0c0413bffad47",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs": "a981eaf9c6f5b57cd0f6324b608ba78528eeb096f088c096d1da2baae377f3b0",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs": "1a5e0e1cb92749caeeb3a6e4663aa8f80144de9136d7f8ae37dbe1220696d10c",
+    "Drilling.Common/Station/CStageReviewSequences.cs": "49e1a43341978bc8ae28013cebce4827cb99e933b04df32aab4ad74d5a9402a7",
+    "Drilling.Common/Station/CStationManager.cs": "0a5c046fab1a9b2441a81f623674018049c1ba7419888bbae249dae39ec63c87",
+    "Drilling.Common/Station/CStationProcess.cs": "a7ddd9a2539f1d8770ac6c4844a62f29e2c28d2581b01b63ad63414f3cb67235",
+    "Drilling.File/ReviewOffset/CReviewOffsetFile.cs": "56ebca90c0cd29ded87d6a41f9e6bacf7077baabbfd9371fbcad1f112aa7c1db",
+    "Drilling.File/Script/CAutomation1ScriptFile.cs": "1681351dcfa412fcae7313a2ff470b23be816cad1047ee586e3fb79f35850ac4",
+    "Drilling.UI/CAppStartup.cs": "98e8716b093e6970d73233f8488d538acf7fa02f5d140ab1baebd9e8abdcd9b9",
+    "Drilling.UI/CRootView.cs": "d6834c39b212da80a085576fea93b68d310e0bb0713331396309126af101e154",
+    "Drilling.UI/Drilling.UI.csproj": "d11e1088370e578993735ecb567c86dc8606ec00fc124ba6cc325cd176d64d60",
+    "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs": "46e3442d3c65da5439ccff1b3ebf7ab0e28a1945747cc66d1a3d86278ce5bf5c",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "0c4cd0cff4a9fb6e8e6546445d798cf7b0a1d63111f02d760eff8514f6686b81",
+    "Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs": "ca64804c4e9745f8e35414e2c6c59cc714ab7ba0a80d86e6d518d9ce8eaec362",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.ManualInspection.cs": "eca5d22d7496210c5ad853cc010059a070eefce716da33227c5c4d8c43293047",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Display.cs": "d8d2bcf72b26adb6ef00ec04f3dc0b1e4cae885c706852e0f9cc98eaf219f6a5",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Edit.cs": "2b07373e13aa12a83477f7ef7708a6a5c790b19e45ec55a0938b8701526be6b3",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Offset.cs": "0ec33aefb0847d2886301be4fb5db0d73db47dd45c45342d71d8678a14f6b0ea",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Reinspection.cs": "f5ba162be1fb07f05954469f04a5cb959a3f47734f6ec0babd36e170762b91ff",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.cs": "47cf020a2a387c2e5e5de3cd210df897a852675eb600dc7041b456b9c6398907",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.cs": "388dda336057dbf57eff598d5c3648491ae9972ec387db25498f0cf4f4bbdb52",
+    "Drilling.UI/Menu/Menus/CMenuMonitor.cs": "14ba9cc6682157c3b7a72bc8e6b57c1830a4618bceb10b45f33911dc2a7399f5",
+    "Drilling.UI/Menu/Menus/CMenuRecipe.cs": "5c3d300be071074a77763e5ae1d8a74f92c0879723ecbf4fcc46a3003a96a8a3",
+    "Drilling.UI/Menu/Menus/CReviewOffsetDisplaySnapshot.cs": "7ddb55f332e36f7ce3b3b597f9ba3bba5415cd19e538b2dc958e9a6fe1f27b83",
+    "Drilling.UI/Views/CCorrectionView.xaml": "850404c76dda72d2d741b74f07a8161966f6cd55d173697bebaf619ee79e296c",
+    "Drilling.UI/Views/CManualInspectionMapControl.cs": "0b13ba074bfcfa00866ab2fb59685e2643f05cf9f04c99bd138cfef11104819a",
+    "Drilling.UI/Views/CManualInspectionScatterControl.cs": "784068336f5136ff1c2a2c937e9980f944115990c53de460bcc891efc110ac6f",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "d46bc80a4077b85b8bfcc3aedf73e7653205fda9a741e83c223ed1bb4fc300db",
+    "Drilling.UI/Views/CManualInspectionView.xaml": "c28cf51b6b28f449edcef815ae9bd2fb888da1334389966cee27ea592df49713",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "149b28226e672c806fbe74c88417b8b5c8fafc8bbc0a8c930ac8fe09eb141b26"
+  },
+  "reports": [
+    {
+      "path": "core-results.json",
+      "sha256": "58eb1a2d64a6886de1cb7374160bf7d422dd4c39aaa2f71655ffa694c7d47959",
+      "passed": true,
+      "count": 287
+    },
+    {
+      "path": "controller-production.json",
+      "sha256": "d2c103c198d26957c4025c99a91b116aec9da7ec9823dae66d129822fe87a0b9",
+      "passed": true,
+      "count": 295
+    },
+    {
+      "path": "backend-read.json",
+      "sha256": "75736aeb1e999ba9fa3dd9d140525369a53907bb5b1cde6e9d33dafae896e50e",
+      "passed": true,
+      "count": 202
+    },
+    {
+      "path": "bridge-writer.json",
+      "sha256": "dcd856ec03a0b3391f6147209ff1c138642b408cc07aae411b53c08102b7e19a",
+      "passed": true,
+      "count": 38
+    },
+    {
+      "path": "closed-loop.json",
+      "sha256": "1e2925cf6582092fcb69f8a9d70c4af401ed20b8e6625d9a1f134fbded1a70b6",
+      "passed": true,
+      "count": 35
+    },
+    {
+      "path": "scope-results.json",
+      "sha256": "c755aeb0158d876aad580a9ad99c254e6bb2cfa76de4dcf914f155dc0037aab4",
+      "passed": true,
+      "count": 31
+    },
+    {
+      "path": "legacy-serialization.json",
+      "sha256": "ced45cca99b5c827d0a22e9c5b9176c955cbeb5a8e0a18fe7576c555a6e9069c",
+      "passed": true,
+      "count": 46
+    }
+  ],
+  "wpf": {
+    "path": "ui-final/validation.json",
+    "passed": true,
+    "tests": 1074,
+    "modes": 20,
+    "sha256": "88f23cb47a24282dcc0a68e582879267ce071c4a8bb7bcd535093ff258b2fc54"
+  },
+  "actualFixes": [
+    "Residual uses frozen completed B_run and inverse actual ratio; target CSV changes never relabel old marks",
+    "Absolute copy/keypad/file stages F without target addition or fabricated raw measurement",
+    "Source-owned point authority required independently of session JSON; mode0/unknown/actual-SIM mismatch cannot authorize residual apply",
+    "Root execution request adds GlassId/LotId and default DIAMETER/HEAD_COUNT; native frame signature now normalizes these while checking identities separately",
+    "Only actually used stage/controller routes determine process simulation; unknown modes cannot publish completed authority",
+    "Incomplete lifecycle persists PENDING before RUN; completion source hooks reviewed for Auto/Manual MOF/AUTO_STAGE",
+    "Save reservation exception scope includes prepare/invalidation/CAS; unknown committed receipt retains recovery data",
+    "Actual CSV Review reader retains submicron values; field guard changed from Align1um rounding to actual writer6decimal-mm quantization",
+    "Map remains primary; short current deviation/stored Review/pending state and one current-Cell save action; original-raw and absolute-work scatter separated"
+  ],
+  "regressionFailuresExplained": [
+    "Old B+delta/old replacement assumptions and missing typed basis in synthetic fixtures updated without weakening NG/raw/limit assertions",
+    "Initial native prepared-identity fixture used submillisecond SaveNew time, but production reload has filename milliseconds; fixture now reloads canonical identity before SHA-only mutation",
+    "Review rounding assumption independently corrected against ReadDouble source; frozen consumed precision and CSV precision tested separately",
+    "Field precision defects reproduced35/38 before fix;38/38 after fix"
+  ],
+  "visualReview": [
+    "Viewed final synthetic dark notebook1108x548 and light wide1478x869; themes and map-first compact layout retained",
+    "30 UI test input hashes matched source-linked final build; no production geometry/hit-selection/zoom/dispatch algorithms changed"
+  ],
+  "unchanged": [
+    "Other Review menu algorithms",
+    "default/first beam/distortion/hardware offset config",
+    "shared coordinate planner",
+    "actual Review CSV format/writer",
+    "Root process parameter generator",
+    "A1 text generator",
+    "Config/Data/vendor/theme trees"
+  ],
+  "notExecuted": [
+    "Equipment App/Root/Manager constructors",
+    "full native SaveCore equipment guard",
+    "PLC/Vision/motion/vendor APIs",
+    "AeroScript compile/upload/run",
+    "laser",
+    "physical precision"
+  ],
+  "limitations": [
+    "Linear plant is assumed; true hardware response sign and precision require equipment verification",
+    "Pure lifecycle helper plus static hook trace is not a live full Station run",
+    "Legacy missing process basis remains unknown; explicit absolute value is separate from residual correction"
+  ]
+}

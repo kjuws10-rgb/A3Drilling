@@ -1,0 +1,248 @@
+{
+  "passed": true,
+  "count": 35,
+  "checks": [
+    {
+      "name": "candidate validates under real Core",
+      "passed": true
+    },
+    {
+      "name": "scale 0.5 cycle 0: closed loop reaches zero",
+      "passed": true
+    },
+    {
+      "name": "candidate validates under real Core",
+      "passed": true
+    },
+    {
+      "name": "scale 0.5 cycle 1: closed loop reaches zero",
+      "passed": true
+    },
+    {
+      "name": "candidate validates under real Core",
+      "passed": true
+    },
+    {
+      "name": "scale 0.5 cycle 2: closed loop reaches zero",
+      "passed": true
+    },
+    {
+      "name": "candidate validates under real Core",
+      "passed": true
+    },
+    {
+      "name": "scale 0.5 cycle 3: closed loop reaches zero",
+      "passed": true
+    },
+    {
+      "name": "candidate validates under real Core",
+      "passed": true
+    },
+    {
+      "name": "scale 1 cycle 0: closed loop reaches zero",
+      "passed": true
+    },
+    {
+      "name": "candidate validates under real Core",
+      "passed": true
+    },
+    {
+      "name": "scale 1 cycle 1: closed loop reaches zero",
+      "passed": true
+    },
+    {
+      "name": "candidate validates under real Core",
+      "passed": true
+    },
+    {
+      "name": "scale 1 cycle 2: closed loop reaches zero",
+      "passed": true
+    },
+    {
+      "name": "candidate validates under real Core",
+      "passed": true
+    },
+    {
+      "name": "scale 1 cycle 3: closed loop reaches zero",
+      "passed": true
+    },
+    {
+      "name": "candidate validates under real Core",
+      "passed": true
+    },
+    {
+      "name": "scale 2 cycle 0: closed loop reaches zero",
+      "passed": true
+    },
+    {
+      "name": "candidate validates under real Core",
+      "passed": true
+    },
+    {
+      "name": "scale 2 cycle 1: closed loop reaches zero",
+      "passed": true
+    },
+    {
+      "name": "candidate validates under real Core",
+      "passed": true
+    },
+    {
+      "name": "scale 2 cycle 2: closed loop reaches zero",
+      "passed": true
+    },
+    {
+      "name": "candidate validates under real Core",
+      "passed": true
+    },
+    {
+      "name": "scale 2 cycle 3: closed loop reaches zero",
+      "passed": true
+    },
+    {
+      "name": "candidate validates under real Core",
+      "passed": true
+    },
+    {
+      "name": "same machined hole uses processing B10 despite current CSV20",
+      "passed": true
+    },
+    {
+      "name": "candidate validates under real Core",
+      "passed": true
+    },
+    {
+      "name": "confirmed first process with explicit zero baseline can calibrate",
+      "passed": true
+    },
+    {
+      "name": "legacy unknown process cannot invent a baseline",
+      "passed": true
+    },
+    {
+      "name": "zero scale cannot auto-correct",
+      "passed": true
+    },
+    {
+      "name": "absolute entry does not fabricate a measured deviation",
+      "passed": true
+    },
+    {
+      "name": "absolute value without raw is not mistaken for empty-state copy",
+      "passed": true
+    },
+    {
+      "name": "absolute copy preserves absent target raw",
+      "passed": true
+    },
+    {
+      "name": "absolute copy validates without pretending to be a measured residual",
+      "passed": true
+    },
+    {
+      "name": "representative F12 replaces target20 with12, not32 or2",
+      "passed": true
+    }
+  ],
+  "traces": [
+    {
+      "scale": 0.5,
+      "rows": [
+        {
+          "cycle": 0,
+          "appliedOffsetUm": 10,
+          "residualUm": 1,
+          "nextOffsetUm": 12,
+          "nextResidualUm": 0
+        },
+        {
+          "cycle": 1,
+          "appliedOffsetUm": 12,
+          "residualUm": 0,
+          "nextOffsetUm": 12,
+          "nextResidualUm": 0
+        },
+        {
+          "cycle": 2,
+          "appliedOffsetUm": 12,
+          "residualUm": 0,
+          "nextOffsetUm": 12,
+          "nextResidualUm": 0
+        },
+        {
+          "cycle": 3,
+          "appliedOffsetUm": 12,
+          "residualUm": 0,
+          "nextOffsetUm": 12,
+          "nextResidualUm": 0
+        }
+      ]
+    },
+    {
+      "scale": 1,
+      "rows": [
+        {
+          "cycle": 0,
+          "appliedOffsetUm": 10,
+          "residualUm": 2,
+          "nextOffsetUm": 12,
+          "nextResidualUm": 0
+        },
+        {
+          "cycle": 1,
+          "appliedOffsetUm": 12,
+          "residualUm": 0,
+          "nextOffsetUm": 12,
+          "nextResidualUm": 0
+        },
+        {
+          "cycle": 2,
+          "appliedOffsetUm": 12,
+          "residualUm": 0,
+          "nextOffsetUm": 12,
+          "nextResidualUm": 0
+        },
+        {
+          "cycle": 3,
+          "appliedOffsetUm": 12,
+          "residualUm": 0,
+          "nextOffsetUm": 12,
+          "nextResidualUm": 0
+        }
+      ]
+    },
+    {
+      "scale": 2,
+      "rows": [
+        {
+          "cycle": 0,
+          "appliedOffsetUm": 10,
+          "residualUm": 4,
+          "nextOffsetUm": 12,
+          "nextResidualUm": 0
+        },
+        {
+          "cycle": 1,
+          "appliedOffsetUm": 12,
+          "residualUm": 0,
+          "nextOffsetUm": 12,
+          "nextResidualUm": 0
+        },
+        {
+          "cycle": 2,
+          "appliedOffsetUm": 12,
+          "residualUm": 0,
+          "nextOffsetUm": 12,
+          "nextResidualUm": 0
+        },
+        {
+          "cycle": 3,
+          "appliedOffsetUm": 12,
+          "residualUm": 0,
+          "nextOffsetUm": 12,
+          "nextResidualUm": 0
+        }
+      ]
+    }
+  ],
+  "scope": "Actual pure Core with assumed linear unit-response plant; 100%=1, fresh processed glass per iteration. No real equipment or physical precision validation."
+}

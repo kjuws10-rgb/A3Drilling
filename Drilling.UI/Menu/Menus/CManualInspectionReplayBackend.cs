@@ -14,6 +14,7 @@ public sealed class CManualInspectionReplayBackend : IManualInspectionBackend
     private CManualInspectionSource? _source;
     private Dictionary<string, ST_MANUAL_OFFSET> _values = [];
     private readonly Dictionary<string, ST_MANUAL_OFFSET> _truth = [];
+    private readonly Dictionary<string,ST_MANUAL_CALIBRATION_BASIS> _calibrationBases = [];
     private CManualInspectionUiRequest _request = new();
     private bool _stop;
     private int _attempt;
@@ -39,11 +40,17 @@ public sealed class CManualInspectionReplayBackend : IManualInspectionBackend
         if (resultPath is not null) throw new InvalidOperationException("SIM 예제는 실제 결과 파일과 섞지 않습니다.");
         var n = _scenario == "stress" ? 25 : 8; var spacing = n == 25 ? .16 : .5;
         var context = _imported?.Context ?? new ST_MANUAL_CONTEXT("SIM_A3_REVIEW", "SIM-RUN-" + Guid.NewGuid().ToString("N"), "SIM-INITIAL", "SIM-DESIGN-UM-v1");
-        var points = new List<ST_MANUAL_POINT>(16 * n * n); _truth.Clear();
+        var points = new List<ST_MANUAL_POINT>(16 * n * n); _truth.Clear();_calibrationBases.Clear();
+        var completedAt=DateTimeOffset.UtcNow.AddSeconds(-1);
         for (var cell = 1; cell <= 16; cell++) for (var row = 0; row < n; row++) for (var col = 0; col < n; col++)
         {
             token.ThrowIfCancellationRequested(); var head = (cell - 1) % 8 + 1; var shot = row * n + col + 1;
             var key = $"C{cell}/H{head}/S{shot}/B11";
+            // This explicit fixture represents holes machined with a known zero Review
+            // contribution. Importing a legacy session must not manufacture process evidence.
+            if(_imported is null)_calibrationBases[$"C{cell}/S{shot}"]=new("SIM-BASIS-"+context.RunId,"SIM-PROCESS-"+context.RunId,
+                context.RecipeId,"SIM-GLASS",completedAt,context.CoordinateSignature,CManualInspectionBackend.Digest("SIM_INITIAL_ZERO"),ST_MANUAL_OFFSET.Zero,1)
+                {RunId=context.RunId,CellNo=cell,ShotNo=shot,HeadNo=head,IsSimulation=true};
             var u = (double)col / (n - 1); var v = (double)row / (n - 1);
             var truth = new ST_MANUAL_OFFSET(-(1.2 + .13 * (cell % 4) + .7 * Math.Sin(u * Math.PI) + .55 * v),
                 -(-1.4 + .11 * (cell % 5) + .5 * Math.Cos(u * Math.PI) - .45 * v));
@@ -74,7 +81,8 @@ public sealed class CManualInspectionReplayBackend : IManualInspectionBackend
             return new(Math.Abs(x) <= l.FieldWidthMm / 2 && Math.Abs(y) <= l.FieldWidthMm / 2, "SIM Field 범위 확인")
             { ScannerXMm = x, ScannerYMm = y };
         }
-        _source = new(context, points, new Dictionary<string, ST_MANUAL_OFFSET>(_values), limits, Field, 5, 5, "", $"SIM · {_scenario} · {points.Count:N0}점 · 설비와 활성 보정 미연결");
+        _source = new(context, points, new Dictionary<string, ST_MANUAL_OFFSET>(_values), limits, Field, 5, 5, "", $"SIM · {_scenario} · {points.Count:N0}점 · 설비와 활성 보정 미연결")
+            {CalibrationBasisByOffsetKey=new Dictionary<string,ST_MANUAL_CALIBRATION_BASIS>(_calibrationBases),CalibrationBasisStatus=_imported is null?"SIM 실제 가공 기준 0 · Scale 100%":"이전 세션 · 가공 기준 확인 필요"};
         return Task.FromResult(_source);
     }
     public void GuardOperation() { }
@@ -129,10 +137,11 @@ public sealed class CManualInspectionReplayBackend : IManualInspectionBackend
         return Task.FromResult(id);
     }
     public void Stop() => _stop = true;
-    private static ST_MANUAL_MEASUREMENT Measure(ST_MANUAL_CONTEXT c, string key, ST_MANUAL_OFFSET error)
+    private ST_MANUAL_MEASUREMENT Measure(ST_MANUAL_CONTEXT c, string key, ST_MANUAL_OFFSET error)
     {
         var raw = FormattableString.Invariant($"SIM-DESIGN-UM:{error.XUm:R},{error.YUm:R}");
+        var split=key.Split('/');var offsetKey=split[0]+"/"+split[2];
         return new(Math.Abs(error.XUm) <= 5 && Math.Abs(error.YUm) <= 5 ? "OK" : "NG", error.XUm, error.YUm,
-            CManualInspectionBackend.Digest(c.RunId + key + raw), c.RecipeId, c.RunId, c.CoordinateSignature) { RawData = raw };
+            CManualInspectionBackend.Digest(c.RunId + key + raw), c.RecipeId, c.RunId, c.CoordinateSignature) { RawData = raw,CalibrationBasis=_calibrationBases.GetValueOrDefault(offsetKey),IsStageSimulation=true,IsVisionSimulation=true };
     }
 }

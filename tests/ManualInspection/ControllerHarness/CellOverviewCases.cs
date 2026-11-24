@@ -141,8 +141,9 @@ internal static partial class Program
         var source=f.Source;var path=Path.Combine(f.StateDirectory,name+".csv");var at=DateTimeOffset.UtcNow.AddMinutes(1);
         var points=source.Points.Select(p=>
         {
-            var measurement=new ST_MANUAL_MEASUREMENT("OK",dx,-1,"FILE-"+name+"-"+p.Key,source.Context.RecipeId,source.Context.RunId,source.Context.CoordinateSignature){RawData="Synthetic explicit-file raw",MeasuredAt=at};
-            return p with{Source="IMPORTED",Judge="OK",ErrorXUm=dx,ErrorYUm=-1,MeasurementVersion=0,OriginalMeasurement=measurement,AdoptedFileMeasurement=measurement,ExternalObservedAt=at};
+            var measurement=new ST_MANUAL_MEASUREMENT("OK",dx,-1,"FILE-"+name+"-"+p.Key,source.Context.RecipeId,source.Context.RunId,source.Context.CoordinateSignature){IsStageSimulation=false,IsVisionSimulation=false,RawData="Synthetic explicit-file raw",MeasuredAt=at,CalibrationBasis=source.CalibrationBasisByOffsetKey.GetValueOrDefault(p.OffsetKey)};
+            return p with{Source="IMPORTED",Judge="OK",ErrorXUm=dx,ErrorYUm=-1,MeasurementVersion=0,OriginalMeasurement=measurement,AdoptedFileMeasurement=measurement,ExternalObservedAt=at,
+                IsMeasurementStateCleared=false,StateCopySource=null,ProxySource=null,OperatorResult=null,IsMeasurementOffsetInitialized=false};
         }).ToArray();
         return source with{SourcePath=path,Description="Synthetic selected file "+name,ReadOnly=false,Points=points,
             Context=source.Context with{SourceResultPath=path},ImportedResults=points.ToDictionary(p=>p.Key,_=>new CManualInspectionImportedResult(path,at,"MANUAL FILE")),ObservationFingerprint="FILE-"+name};

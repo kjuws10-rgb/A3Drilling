@@ -1,0 +1,285 @@
+{
+  "passed": true,
+  "tests": 54,
+  "failures": 0,
+  "checks": [
+    {
+      "name": "any_point_reference_button_enabled_measured",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "any_point_reference_marker_set_without_backend_measured",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "reference_copy_value_eligibility_separate_measured",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "any_point_reference_button_enabled_ng",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "any_point_reference_marker_set_without_backend_ng",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "reference_copy_value_eligibility_separate_ng",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "any_point_reference_button_enabled_proxy",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "any_point_reference_marker_set_without_backend_proxy",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "reference_copy_value_eligibility_separate_proxy",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "any_point_reference_button_enabled_saved",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "any_point_reference_marker_set_without_backend_saved",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "reference_copy_value_eligibility_separate_saved",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "unavailable_reference_disables_copy_without_invented_value_saved",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "any_point_reference_button_enabled_unadopted_file",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "any_point_reference_marker_set_without_backend_unadopted_file",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "reference_copy_value_eligibility_separate_unadopted_file",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "unavailable_reference_disables_copy_without_invented_value_unadopted_file",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "any_point_reference_button_enabled_no_value",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "any_point_reference_marker_set_without_backend_no_value",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "reference_copy_value_eligibility_separate_no_value",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "unavailable_reference_disables_copy_without_invented_value_no_value",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "any_point_reference_button_enabled_initialized",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "any_point_reference_marker_set_without_backend_initialized",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "reference_copy_value_eligibility_separate_initialized",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "unavailable_reference_disables_copy_without_invented_value_initialized",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "any_point_reference_button_enabled_error",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "any_point_reference_marker_set_without_backend_error",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "reference_copy_value_eligibility_separate_error",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "unavailable_reference_disables_copy_without_invented_value_error",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "any_point_reference_button_enabled_nonfinite",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "any_point_reference_marker_set_without_backend_nonfinite",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "reference_copy_value_eligibility_separate_nonfinite",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "unavailable_reference_disables_copy_without_invented_value_nonfinite",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "any_point_reference_button_enabled_masked",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "any_point_reference_marker_set_without_backend_masked",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "reference_copy_value_eligibility_separate_masked",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "masked_reference_focus_never_enters_measurement_selection",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "any_point_reference_button_enabled_partial_final",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "any_point_reference_marker_set_without_backend_partial_final",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "reference_copy_value_eligibility_separate_partial_final",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "unavailable_reference_disables_copy_without_invented_value_partial_final",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "any_point_reference_button_enabled_nonfinite_final",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "any_point_reference_marker_set_without_backend_nonfinite_final",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "reference_copy_value_eligibility_separate_nonfinite_final",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "unavailable_reference_disables_copy_without_invented_value_nonfinite_final",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "representative_marker_survives_source_judge_value_and_validation_changes",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "representative_marking_allowed_during_unsaved_offset_edit",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "representative_marking_never_saves_or_cancels_pending_edit",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "coordinate_frame_change_clears_old_representative",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "model_change_clears_old_representative",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "state_copy_working_scatter_has_no_fabricated_zero_or_old_B_sample",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "state_copy_original_scatter_keeps_preserved_raw",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "state_copy_offset_scatter_keeps_actual_saved_B",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "state_copy_scatter_projections_do_not_modify_source_state_or_model_values",
+      "passed": true,
+      "details": null
+    }
+  ],
+  "sourceHashes": {
+    "Views/CManualInspectionUiContract.cs": "d46bc80a4077b85b8bfcc3aedf73e7653205fda9a741e83c223ed1bb4fc300db",
+    "Views/CManualInspectionMapControl.cs": "0b13ba074bfcfa00866ab2fb59685e2643f05cf9f04c99bd138cfef11104819a",
+    "Views/CManualInspectionScatterControl.cs": "784068336f5136ff1c2a2c937e9980f944115990c53de460bcc891efc110ac6f",
+    "Views/CManualInspectionView.xaml": "c28cf51b6b28f449edcef815ae9bd2fb888da1334389966cee27ea592df49713",
+    "Views/CManualInspectionView.xaml.cs": "149b28226e672c806fbe74c88417b8b5c8fafc8bbc0a8c930ac8fe09eb141b26"
+  },
+  "scope": "Source-linked real WPF controls; synthetic immutable snapshots and inert controller. No equipment App/Root/Manager/SDK, motion, PLC, Vision or scripts."
+}

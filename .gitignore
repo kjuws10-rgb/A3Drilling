@@ -361,3 +361,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Local machining calibration provenance; generated on the equipment PC.
+/Data/ProcessingBasis/

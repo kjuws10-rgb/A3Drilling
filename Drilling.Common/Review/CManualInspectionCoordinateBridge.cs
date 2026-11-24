@@ -70,11 +70,11 @@ public static class CManualInspectionCoordinateBridge
         var scale = parameters.TryGetValue("REVIEW_OFFSET_SCALE", out var text)
             ? double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture) / 100.0 : 1.0;
         if (!double.IsFinite(scale) || scale < 0) return new(false, "REVIEW_OFFSET_SCALE이 유효하지 않습니다.");
-        // The existing plan reader rounds Review Offset to 0.001 mm. File precision is finer,
-        // so evaluate the actual consumed F, not the unrounded difference between file B and F.
+        // Review uses the CSV's six-decimal mm value directly. Align's 0.001 mm rounding
+        // belongs to a different offset and must not hide a submicron Review field overrun.
+        static double SavedMm(double um) => double.Parse((um / 1000.0).ToString("0.000000", CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
         var next = CScannerAxisTransform.DesignOffsetToScanner(parameters, shot.HeadNo,
-            CAlignShotOffsetData.RoundValue(finalValue.XUm / 1000.0),
-            CAlignShotOffsetData.RoundValue(finalValue.YUm / 1000.0));
+            SavedMm(finalValue.XUm), SavedMm(finalValue.YUm));
         var gx = stationary.X + shot.FinalScannerOffsetX - shot.ReviewOffsetX + next.X * scale;
         var gy = stationary.Y + shot.FinalScannerOffsetY - shot.ReviewOffsetY + next.Y * scale;
         var half = Math.Min(actualWidth, limits.FieldWidthMm) / 2.0;

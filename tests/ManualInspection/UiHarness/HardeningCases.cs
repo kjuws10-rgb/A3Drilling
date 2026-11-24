@@ -48,9 +48,9 @@ internal static partial class Program
             Invoke(view, "ChangeSelection", new CManualInspectionSelectionEventArgs([target.Key], target.Key));
             Test("direct_reference_enables_copy_to_other_selected_point", ((Button)view.FindName("CopyReferenceButton")).IsEnabled);
             fake.Replace(fake.Snapshot with { Version = fake.Snapshot.Version + 1,
-                Points = fake.Snapshot.Points.Select(p => p.Key == first.Key ? p with { Source = "IMPORTED" } : p).ToArray() }); Pump();
+                Points = fake.Snapshot.Points.Select(p => p.Key == first.Key ? p with { Source = "IMPORTED",CalibrationBasisReady=false,ReferenceFinalXUm=null,ReferenceFinalYUm=null,ReferenceValueUnavailableReason="파일 실측 기준 확인 필요" } : p).ToArray() }); Pump();
             Test("external_source_change_keeps_selected_representative_with_updated_value_eligibility", Field<string?>(view, "_representativeKey") == first.Key
-                && ((TextBlock)view.FindName("ReferenceText")).Text.Contains(first.Key));
+                && ((TextBlock)view.FindName("ReferenceText")).Text.Contains(first.Identity));
 
             fake.Replace(fake.Snapshot with { Version = fake.Snapshot.Version + 1, IsReadOnly = true, Message = "" }); Pump();
             Test("legacy_readonly_flag_does_not_show_readonly_mode", !((TextBlock)view.FindName("MessageText")).Text.Contains("조회 전용"));

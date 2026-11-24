@@ -1,0 +1,111 @@
+{
+  "passed": true,
+  "tests": 19,
+  "failures": 0,
+  "checks": [
+    {
+      "name": "offset_init_current_cell_request_is_explicit_and_immediate",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "offset_init_no_head_or_whole_model_controls",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "offset_init_protected_offset_families_are_explicit",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "offset_init_staged_points_are_empty_not_precision_zero",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "offset_init_other_cell_measurements_remain_unchanged",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "offset_init_pending_reuses_init_button_as_cancel",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "offset_init_pending_blocks_moving_plan",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "offset_init_cancel_does_not_save_or_confirm",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "offset_init_single_bulk_saves_staged_current_cell",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "offset_init_legacy_readonly_flag_does_not_disable_current_cell_init",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "offset_init_overview_disables_scope_ambiguous_init",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_working_excludes_saved_B_only_history",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_auto_scale_uses_current_error_not_large_saved_B",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_selected_cells_use_complete_current_populations",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_current_population_independent_of_map_filter",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_fixed_range_does_not_change_population",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_fit_returns_to_auto_without_B_fallback",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_original_preserves_camera_raw_for_saved_only_point",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_population_changes_never_modify_raw_or_offset",
+      "passed": true,
+      "details": null
+    }
+  ],
+  "observations": null,
+  "sourceHashes": {
+    "Views/CManualInspectionView.xaml": "c28cf51b6b28f449edcef815ae9bd2fb888da1334389966cee27ea592df49713",
+    "Views/CManualInspectionView.xaml.cs": "149b28226e672c806fbe74c88417b8b5c8fafc8bbc0a8c930ac8fe09eb141b26",
+    "Views/CManualInspectionUiContract.cs": "d46bc80a4077b85b8bfcc3aedf73e7653205fda9a741e83c223ed1bb4fc300db",
+    "Views/CManualInspectionMapControl.cs": "0b13ba074bfcfa00866ab2fb59685e2643f05cf9f04c99bd138cfef11104819a",
+    "Views/CManualInspectionScatterControl.cs": "784068336f5136ff1c2a2c937e9980f944115990c53de460bcc891efc110ac6f"
+  },
+  "scope": "Actual source-linked WPF controls/themes, synthetic immutable snapshots and fake Controller only. No Manager, equipment, motion, Vision, vendor, production CSV or real application executes. Actual replacement arithmetic/CSV persistence is covered separately by Core/Controller/Backend tests. Obsolete final-color/candidate UI assertions are replaced by current measurement-only/Cell-stage policy; generic legacy APIs are not changed by this UI fixture."
+}

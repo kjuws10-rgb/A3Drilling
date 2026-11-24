@@ -26,7 +26,7 @@ internal static partial class Program
     // The new default tests below never call this helper before proving constructor/load defaults.
     private static void SelectMeasurementView(CManualInspectionView view)
     {
-        SelectViewChoice(view,"ScatterDataCombo","WORKING");
+        SelectViewChoice(view,"ScatterDataCombo","ORIGINAL");
     }
 
     private static void SelectViewChoice(CManualInspectionView view,string name,string value)
@@ -68,7 +68,7 @@ internal static partial class Program
         {
             var plot=(CManualInspectionScatterControl)view.FindName("ScatterPlot");
             var original=JsonSerializer.Serialize(state.Points);
-            Test("existing_csv_constructor_fixed_measurement_mode",MeasurementMapMode(view)=="level"&&plot.DataKind=="WORKING"&&view.FindName("ColorFilter") is null);
+            Test("existing_csv_constructor_fixed_measurement_mode",MeasurementMapMode(view)=="level"&&plot.DataKind=="ORIGINAL"&&view.FindName("ColorFilter") is null);
             Test("existing_csv_saved_data_is_metadata_not_measurement_projection",Field<IReadOnlyList<CManualInspectionUiPoint>>((CManualInspectionMapControl)view.FindName("PositionMap"),"_all").All(point=>point.WorkingXUm==state.Points.Single(raw=>raw.Key==point.Key).WorkingXUm));
             Test("existing_csv_badge_visible_with_closed_side_panels",((Border)view.FindName("FinalCsvSourceBadge")).IsVisible&&((TextBlock)view.FindName("FinalCsvSourceText")).Text.Contains(state.FinalOffsetFileName));
             Test("existing_csv_badge_tooltip_preserves_path_sha",((Border)view.FindName("FinalCsvSourceBadge")).ToolTip.ToString()!.Contains(state.FinalOffsetFilePath)&&((Border)view.FindName("FinalCsvSourceBadge")).ToolTip.ToString()!.Contains(state.FinalOffsetContentSha256));
@@ -81,7 +81,7 @@ internal static partial class Program
             SelectViewChoice(view,"JudgeFilter","ALL");SelectViewChoice(view,"ScatterDataCombo","WORKING");Invoke(view,"RestoreWorkspaceView",bookmark);Pump();
             Test("existing_csv_file_bookmark_restores_judge_and_original_scope",Field<string>(view,"_judge")=="NG"&&plot.DataKind=="ORIGINAL"&&MeasurementMapMode(view)=="level");
             fake.Replace(changed with{Version=402,RecipeId="OTHER",RunId="OTHER"});Pump();
-            Test("existing_csv_new_model_defaults_measurement_working",MeasurementMapMode(view)=="level"&&plot.DataKind=="WORKING");
+            Test("existing_csv_new_model_defaults_measurement_working",MeasurementMapMode(view)=="level"&&plot.DataKind=="ORIGINAL");
             fake.Replace(state with{Version=403,HasFinalOffsetSnapshot=true,FinalOffsetFileName="",FinalOffsetFilePath="",FinalOffsetStatusText="저장 파일 없음"});Pump();
             Test("existing_csv_no_file_is_explicit_but_does_not_erase_raw",((TextBlock)view.FindName("FinalCsvSourceText")).Text.Contains("없음")&&plot.Metrics.Count>0);
             fake.Replace(state with{Version=404,HasFinalOffsetSnapshot=false,FinalOffsetFileName="",FinalOffsetFilePath="",FinalOffsetStatusText="최종 저장값 조회 실패"});Pump();

@@ -97,6 +97,7 @@ internal static partial class Program
         await RunBulkFinalVerificationChecks();
         await RunCellCsvWorkflowChecks();
         await RunReplacementWorkflowChecks();
+        await RunCalibrationBasisChecks();
         await Check("generic_sta_application_and_no_loaded_vendor_assemblies",async()=>{True(Application.Current.GetType()==typeof(Application));True(!VendorAssemblies().Any());await Task.CompletedTask;});
         var path=args.Length==2&&args[0]=="--report"?args[1]:Path.Combine(AppContext.BaseDirectory,"controller-results.json");Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         var assembly=typeof(CManualInspectionController).Assembly;
@@ -337,6 +338,15 @@ internal static partial class Program
     private static async Task Prepared(CManualInspectionController c){await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Calculate,["P1"]);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Validate);}
     private static (FakeBackend,CManualInspectionController) Fixture(bool readOnly=false,bool ngReference=false){var f=new FakeBackend(Path.Combine(Root,Guid.NewGuid().ToString("N")),readOnly,ngReference);return(f,new(f));}
     private static async Task<(FakeBackend,CManualInspectionController)> Loaded(bool ngReference=false){var(f,c)=Fixture(ngReference:ngReference);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);return(f,c);}
+    // Only explicit synthetic machining fixtures may declare a zero-baseline process.
+    // Production/source loading never synthesizes this authority from current saved B.
+    private static CManualInspectionSource DeclareZeroProcess(CManualInspectionSource source)
+    {
+        var context=source.Context;var map=source.Points.GroupBy(p=>p.OffsetKey).ToDictionary(g=>g.Key,g=>new ST_MANUAL_CALIBRATION_BASIS("QA-BASIS-"+context.RunId+g.Key,"QA-PROCESS",context.RecipeId,"QA-GLASS",DateTimeOffset.UnixEpoch,
+            context.CoordinateSignature,"QA-VERIFIED-ZERO",ST_MANUAL_OFFSET.Zero,1){RunId=context.RunId,CellNo=g.First().CellNo,ShotNo=g.First().ShotNo,HeadNo=g.First().HeadNo});
+        ST_MANUAL_MEASUREMENT? WithBasis(ST_MANUAL_POINT p,ST_MANUAL_MEASUREMENT? m)=>m is not null&&m.RecipeId==context.RecipeId&&m.RunId==context.RunId&&m.CoordinateSignature==context.CoordinateSignature?m with{CalibrationBasis=map[p.OffsetKey],IsStageSimulation=false,IsVisionSimulation=false}:m;
+        return source with{CalibrationBasisByOffsetKey=map,Points=source.Points.Select(p=>p with{OriginalMeasurement=WithBasis(p,p.OriginalMeasurement),AdoptedFileMeasurement=WithBasis(p,p.AdoptedFileMeasurement)}).ToArray()};
+    }
     private static void True(bool x){if(!x)throw new InvalidOperationException("Assertion failed");}private static void Near(double a,double b){if(Math.Abs(a-b)>1e-8)throw new InvalidOperationException($"Expected {b}, actual {a}");}
     private static async Task Throws(Func<Task>a){var thrown=false;try{await a();}catch{thrown=true;}True(thrown);}
     private static async Task Check(string name,Func<Task>a){try{await a();Results.Add(new{name,passed=true});Console.WriteLine("PASS "+name);}catch(Exception e){Failed++;Results.Add(new{name,passed=false,error=e.ToString()});Console.WriteLine("FAIL "+name+": "+e.Message);}}
@@ -362,8 +372,11 @@ internal static partial class Program
         public FakeBackend(string path,bool readOnly,bool ng)
         {
             StateDirectory=path;var context=new ST_MANUAL_CONTEXT("QA","RUN-1","INITIAL","COORD-1");
-            var points=Enumerable.Range(1,3).Select(i=>{var judge=i==1&&ng?"NG":"OK";var m=new ST_MANUAL_MEASUREMENT(judge,i==1?3:1,-1,"RAW-"+i,context.RecipeId,context.RunId,context.CoordinateSignature){RawData="Synthetic raw "+i};return new ST_MANUAL_POINT("P"+i,1,1,i,11,.1*i,.2*i){Row=i==3?1:0,Column=i-1,Judge=judge,Source="MEASURED",ErrorXUm=m.ErrorXUm,ErrorYUm=m.ErrorYUm,OriginalMeasurement=m,MeasurementVersion=1};}).ToArray();
-            Source=new(context,points,points.ToDictionary(p=>p.Key,_=>ST_MANUAL_OFFSET.Zero),new(30,200,5),(_,_,_)=>new(true,"synthetic field"),5,5,"","Synthetic current source"){ReadOnly=readOnly};
+            var points=Enumerable.Range(1,3).Select(i=>{var judge=i==1&&ng?"NG":"OK";var m=new ST_MANUAL_MEASUREMENT(judge,i==1?3:1,-1,"RAW-"+i,context.RecipeId,context.RunId,context.CoordinateSignature){IsStageSimulation=false,IsVisionSimulation=false,RawData="Synthetic raw "+i};return new ST_MANUAL_POINT("P"+i,1,1,i,11,.1*i,.2*i){Row=i==3?1:0,Column=i-1,Judge=judge,Source="MEASURED",ErrorXUm=m.ErrorXUm,ErrorYUm=m.ErrorYUm,OriginalMeasurement=m,MeasurementVersion=1};}).ToArray();
+            var bases=points.ToDictionary(p=>p.OffsetKey,p=>new ST_MANUAL_CALIBRATION_BASIS("QA-BASIS-"+p.OffsetKey,"QA-PROCESS",context.RecipeId,"QA-GLASS",DateTimeOffset.UnixEpoch,context.CoordinateSignature,"QA-VERIFIED-ZERO",ST_MANUAL_OFFSET.Zero,1)
+                {RunId=context.RunId,CellNo=p.CellNo,ShotNo=p.ShotNo,HeadNo=p.HeadNo});
+            points=points.Select(p=>p with{OriginalMeasurement=p.OriginalMeasurement! with{CalibrationBasis=bases[p.OffsetKey]}}).ToArray();
+            Source=new(context,points,points.ToDictionary(p=>p.Key,_=>ST_MANUAL_OFFSET.Zero),new(30,200,5),(_,_,_)=>new(true,"synthetic field"),5,5,"","Synthetic current source"){ReadOnly=readOnly,CalibrationBasisByOffsetKey=bases,CalibrationBasisStatus="검증된 합성 가공 기준 0 / Scale 100%"};
         }
         public async Task<CManualInspectionSource> LoadAsync(string? p,CancellationToken t,IReadOnlyList<string>?displayKeys=null){Loads++;LoadedPaths.Add(p);var captured=p is not null&&FileSources.TryGetValue(p,out var file)?file:Source;if(LoadHook is not null)await LoadHook(captured,t);t.ThrowIfCancellationRequested();return captured with { Points=captured.Points.Select(point=>point with { HasAppliedOffsetEvidence=captured.AppliedOffsetKeys.Contains(point.Key)&&captured.StoredInitializedOffsetKeys?.Contains(point.OffsetKey)!=true&&!point.IsMeasurementOffsetInitialized }).ToArray() };}
         public void GuardOperation(){Guards++;if(RejectGuard)throw new InvalidOperationException("Synthetic equipment safety interlock");}
@@ -371,7 +384,7 @@ internal static partial class Program
         public async Task<CManualInspectionMeasurement> ExecutePointAsync(CManualInspectionSource s,string key,EN_MANUAL_OPERATION_KIND kind,Action<string>progress,CancellationToken token)
         {
             Executed.Add(key);PointHook?.Invoke(key);Entered.TrySetResult();if(Hold){using var registration=CancellationCallbackThrows?token.Register(()=>throw new IOException("Synthetic cancellation callback failure")):default;try{await Task.Delay(Timeout.Infinite,token);}catch(OperationCanceledException){CancelObserved.TrySetResult();await Release.Task;throw;}}
-            token.ThrowIfCancellationRequested();if(key==FailKey)throw new TimeoutException("Synthetic missing response");var p=s.Points.First(p=>p.Key==key);var m=new ST_MANUAL_MEASUREMENT(NewJudge,NewX,NewY,"NEW-RAW-"+NewX,s.Context.RecipeId,s.Context.RunId,s.Context.CoordinateSignature){RawData="Synthetic new raw"};return new(key,m,p.XMm,p.YMm);
+            token.ThrowIfCancellationRequested();if(key==FailKey)throw new TimeoutException("Synthetic missing response");var p=s.Points.First(p=>p.Key==key);var m=new ST_MANUAL_MEASUREMENT(NewJudge,NewX,NewY,"NEW-RAW-"+NewX,s.Context.RecipeId,s.Context.RunId,s.Context.CoordinateSignature){IsStageSimulation=false,IsVisionSimulation=false,RawData="Synthetic new raw"};return new(key,m,p.XMm,p.YMm);
         }
         public async Task ExecuteFlyingAsync(CManualInspectionSource s,IReadOnlyList<string>keys,Action<CManualInspectionMeasurement>measured,Action<string>progress,CancellationToken token){FlyingKeys.AddRange(keys);foreach(var k in keys)measured(await ExecutePointAsync(s,k,EN_MANUAL_OPERATION_KIND.Flying,progress,token));}
         public async Task ExecuteFlyingAsync(CManualInspectionSource s,IReadOnlyList<string>keys,Action<CManualInspectionMeasurement>measured,Action<string>progress,Action<IReadOnlyList<string>>activeTargets,CancellationToken token)

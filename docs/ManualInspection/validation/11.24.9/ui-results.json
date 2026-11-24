@@ -1,0 +1,258 @@
+{
+  "schemaVersion": "a3-manual-inspection-native-ui/1",
+  "passed": true,
+  "tests": 49,
+  "failures": 0,
+  "scope": "Standalone STA WPF view with fake controller and current application theme/styles. No equipment app, vendor DLL, controller, laser or source script execution.",
+  "checks": [
+    {
+      "name": "native_view_loaded",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "controller_attached",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "loaded_recipe_context_is_visible",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "combo_uses_visible_label",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "theme_light_background",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "theme_dark_background",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "drawn_map_geometry",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_current_cell_independent",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_pop_sigma",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "zoom_is_view_only",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "zoom_upper_bound",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "zoom_lower_bound",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "fit_reset",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "pan_is_visual_only",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "ctrl_multiple_selection",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "ctrl_toggle_selection",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "rectangle_selection_all_visible",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "empty_rectangle_clears_selection",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "context_retains_two_motion_operations_without_auto_correction",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "context_busy_disabled",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "context_legacy_readonly_flag_does_not_disable_motion",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "table_page_50",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visible_ng_selection_only",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "clear_selection",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "ng_filter_does_not_shrink_scatter",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "ng_filter_leaves_slots",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "filter_keeps_exact_point_coordinates",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "head_scope_across_cells",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "selected_cells_scope",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "original_scatter_drops_proxy_mark",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "refresh_request_uses_controller",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "request_has_current_version",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "real_mode_has_no_injection_ui",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "stale_context_rejected_before_dialog",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "rectangle_skips_masking",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "masked_click_cannot_select",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "proxy_can_be_marked_representative",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "direct_ng_can_be_representative",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "representative_does_not_mutate_original",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "legacy_reference_fallback_ignores_unresolved_candidate_fields",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "applied_candidate_not_reused_as_reference_F",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "original_scatter_uses_preserved_values",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "masked_scatter_exclusion_count",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "new_run_resets_final_scatter_reference_selection",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "ten_thousand_points_retained",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "ten_thousand_fit_does_not_crop_groups",
+      "passed": true,
+      "details": {
+        "hits": 10000
+      }
+    },
+    {
+      "name": "ten_thousand_native_layout_completes",
+      "passed": true,
+      "details": {
+        "milliseconds": 634.2262
+      }
+    },
+    {
+      "name": "sim_mode_has_no_injection_ui",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "compact_native_layout_finite",
+      "passed": true,
+      "details": null
+    }
+  ]
+}

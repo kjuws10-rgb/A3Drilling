@@ -33,8 +33,8 @@ internal static partial class Program
             await Dispatch(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply,[]);var saved=await f.Offsets.LoadLatest("QA");var row=saved.Rows.Single();var final=c.Snapshot.FinalOffsetPoints[p.Key];var monitor=MonitorReview(f,saved,p);
             True(b.SuccessfulSaves==1&&b.DeviceCalls==0&&row.ReviewOffsetX==.005&&row.ReviewOffsetY==.001&&final==new CManualInspectionUiOffset(5,1));
             True(c.Snapshot.Points.Single(x=>x.Key==p.Key).BaseXUm==5&&Math.Abs(monitor.X-5)<1e-7&&Math.Abs(monitor.Y-1)<1e-7&&System.IO.File.ReadAllBytes(old.FilePath).SequenceEqual(original));
-            True(workingLevel==0&&CManualInspectionLevels.Evaluate(final.XUm,final.YUm,c.Snapshot.LevelMetric,c.Snapshot.LevelBoundsUm)==0&&c.Snapshot.LastSaveVerificationCode=="VERIFIED");
-            BulkFinalTrace.Add(new{scenario="measurement_deviation_replaces_B",baseUm=new[]{18d,-3},deltaUm=new[]{5d,1},workingLevel=workingLevel+1,finalUm=new[]{final.XUm,final.YUm},csvMm=new[]{row.ReviewOffsetX,row.ReviewOffsetY},monitorDesignUm=new[]{monitor.X,monitor.Y},finalLevel=1,status=c.Snapshot.StatusText});
+            True(workingLevel is null&&CManualInspectionLevels.Evaluate(final.XUm,final.YUm,c.Snapshot.LevelMetric,c.Snapshot.LevelBoundsUm)==0&&c.Snapshot.LastSaveVerificationCode=="VERIFIED");
+            BulkFinalTrace.Add(new{scenario="explicit_absolute_input_no_residual_invented",baseUm=new[]{18d,-3},deltaUm=new[]{5d,1},workingLevel=workingLevel+1,finalUm=new[]{final.XUm,final.YUm},csvMm=new[]{row.ReviewOffsetX,row.ReviewOffsetY},monitorDesignUm=new[]{monitor.X,monitor.Y},finalLevel=1,status=c.Snapshot.StatusText});
         });
         await Check("bulk_csv_existing_over_limit_base_is_replaced_by_valid_deviation_while_input_limits_still_exclude",async()=>
         {
@@ -43,13 +43,21 @@ internal static partial class Program
             var b=new CsvWriterSeam(f);var c=new CManualInspectionController(b);await c.EnsureLoaded();await Dispatch(c,EN_MANUAL_INSPECTION_UI_ACTION.ForceMeasurement,[p.Key],r=>r with{ForcedXUm=5,ForcedYUm=1,Reason="valid absolute deviation replaces old large B"});
             True(c.Snapshot.BulkEligibleCount==1&&c.Snapshot.TotalLimitUm==200);await Dispatch(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply,[]);
             True(b.SuccessfulSaves==1&&c.Snapshot.FinalOffsetPoints[p.Key]==new CManualInspectionUiOffset(5,1)&&System.IO.File.ReadAllBytes(old.FilePath).SequenceEqual(bytes));
-            foreach(var invalid in new[]{31d,201d})
-            {
-                await Dispatch(c,EN_MANUAL_INSPECTION_UI_ACTION.ForceMeasurement,[p.Key],r=>r with{ForcedXUm=invalid,ForcedYUm=0,Reason="invalid measured deviation remains excluded"});
-                True(c.Snapshot.BulkEligibleCount==0);await Reject(()=>Dispatch(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply,[]));
-                True(b.SuccessfulSaves==1&&c.Snapshot.StatusText.Contains("수치한계 1")&&c.Snapshot.FinalOffsetPoints[p.Key]==new CManualInspectionUiOffset(5,1));
-            }
-            BulkFinalTrace.Add(new{scenario="legacy_large_B_replaced_valid_delta_invalid_inputs_excluded",baseUm=new[]{500d,-700},deltaUm=new[]{5d,1},invalidInputsUm=new[]{31d,201d},saves=b.SuccessfulSaves,status=c.Snapshot.StatusText});
+            await Dispatch(c,EN_MANUAL_INSPECTION_UI_ACTION.ForceMeasurement,[p.Key],r=>r with{ForcedXUm=31,ForcedYUm=0,Reason="explicit absolute value, not residual increment"});
+            True(c.Snapshot.BulkEligibleCount==1);await Dispatch(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply,[]);
+            True(b.SuccessfulSaves==2&&c.Snapshot.FinalOffsetPoints[p.Key].XUm==31);
+            await Dispatch(c,EN_MANUAL_INSPECTION_UI_ACTION.ForceMeasurement,[p.Key],r=>r with{ForcedXUm=201,ForcedYUm=0,Reason="absolute value beyond total limit"});
+            True(c.Snapshot.BulkEligibleCount==0);await Reject(()=>Dispatch(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply,[]));
+            True(b.SuccessfulSaves==2&&c.Snapshot.StatusText.Contains("수치한계 1")&&c.Snapshot.FinalOffsetPoints[p.Key].XUm==31);
+            // A real calibrated residual of31 still exceeds the separate increment limit30.
+            var f2=Scaled();var original=await f2.Backend.LoadAsync(null,default);var q=original.Points.First(v=>!v.Masked);
+            var initialZero=await f2.Offsets.SaveNew("QA",[new(q.CellNo,Matrix(f2,q),0,0){IsDesignCoordinate=true}]);var zeroBytes=System.IO.File.ReadAllBytes(initialZero.FilePath);
+            var writer=new CsvWriterSeam(f2);var sensor=new ReplacementCsvSeam(f2,writer);sensor.Responses[q.Key]=("OK",31,0);
+            var calibrated=new CManualInspectionController(sensor);await calibrated.EnsureLoaded();await Dispatch(calibrated,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,[q.Key]);
+            True(calibrated.Snapshot.BulkEligibleCount==0&&calibrated.Snapshot.Points.Single(v=>v.Key==q.Key).OriginalXUm==31);
+            await Reject(()=>Dispatch(calibrated,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply,[]));
+            True(writer.SuccessfulSaves==0&&System.IO.File.ReadAllBytes(initialZero.FilePath).SequenceEqual(zeroBytes));
+            BulkFinalTrace.Add(new{scenario="legacy_large_B_replaced_valid_delta_invalid_inputs_excluded",baseUm=new[]{500d,-700},deltaUm=new[]{5d,1},explicitAbsolute31Saved=true,invalidAbsoluteUm=201d,invalidMeasuredIncrementUm=31d,saves=b.SuccessfulSaves,status=c.Snapshot.StatusText});
         });
         await Check("bulk_csv_stale_current_reconnect_reads_actual_latest_final_before_rejecting_old_operator",async()=>
         {

@@ -124,7 +124,7 @@ internal static partial class Program
             var(f,c)=await Loaded();var file=Archive(f,"recovery-write-failure",7);f.FileSources[file.SourcePath]=file;await OpenFile(c,file.SourcePath);
             var n=f.Source.Context;var native=Path.Combine(f.StateDirectory,"Sessions",CManualInspectionBackend.Digest($"{n.RecipeId}|{n.RunId}|{n.CoordinateSignature}|{n.RevisionId}")+".json");var nativeBytes=await File.ReadAllBytesAsync(native);
             var context=f.Source.Context with{RecipeId="QB",RunId="RUN-QB",CoordinateSignature="COORD-QB"};f.Source=f.Source with{Context=context,Points=f.Source.Points.Select(p=>p with{XMm=p.XMm+1,OriginalMeasurement=p.OriginalMeasurement! with{RecipeId="QB",RunId="RUN-QB",CoordinateSignature="COORD-QB"}}).ToArray()};
-            var target=new CManualInspectionController(f);await Do(target,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);await Prepared(target);
+            f.Source=DeclareZeroProcess(f.Source);var target=new CManualInspectionController(f);await Do(target,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);await Prepared(target);
             var recovery=Path.Combine(f.StateDirectory,"Recovery");await File.WriteAllTextAsync(recovery,"synthetic file prevents creating Recovery directory");f.Stale=true;
             f.LoadHook=(loaded,_)=>{if(loaded.SourcePath==file.SourcePath){f.Stale=false;throw new InvalidOperationException("Synthetic file belongs to former model.");}return Task.CompletedTask;};
             await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Move,["P1"]));True(c.Snapshot.RecipeId=="QA"&&c.Snapshot.SourcePath==file.SourcePath&&c.Snapshot.CanReturnToPreviousWorkspace&&f.Executed.Count==0&&File.ReadAllBytes(native).SequenceEqual(nativeBytes));

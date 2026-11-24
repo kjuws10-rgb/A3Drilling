@@ -41,7 +41,7 @@ internal static partial class Program
             foreach(var name in new[]{"CalculateButton","ValidateButton","ApplyButton","AllowManualCheck","CorrectionPaneTabs","CandidateGrid","ValidationText","ShowFinalOffsetsButton","InitScopeCombo","InitCellCombo","InitHeadCombo","PointAppliedText","ResultOffsetColumn"})
                 Test("replacement_removed_control_"+name,view.FindName(name) is null);
             var choices=((ComboBox)view.FindName("ScatterDataCombo")).Items.Cast<object>().Select(item=>item.GetType().GetProperty("Value")!.GetValue(item)?.ToString()).ToArray();
-            Test("replacement_scatter_only_measurement_and_original",choices.SequenceEqual(new[]{"WORKING","ORIGINAL"}));
+            Test("replacement_scatter_only_measurement_and_original",choices.SequenceEqual(new[]{"ORIGINAL","WORKING"}));
             Test("replacement_csv_source_is_noninteractive_badge",view.FindName("FinalCsvSourceButton") is null&&view.FindName("FinalCsvSourceBadge") is Border&&((TextBlock)view.FindName("FinalCsvSourceText")).Text.Contains(state.FinalOffsetFileName));
             Test("replacement_badge_has_exact_saved_path_sha_but_no_action",((Border)view.FindName("FinalCsvSourceBadge")).ToolTip.ToString()!.Contains(state.FinalOffsetFilePath)&&((Border)view.FindName("FinalCsvSourceBadge")).ToolTip.ToString()!.Contains(state.FinalOffsetContentSha256)&&fake.Calls.Count==0);
             var savedOnly=state.Points[0] with{WorkingXUm=null,WorkingYUm=null,OriginalXUm=null,OriginalYUm=null,WorkingJudge="UNMEASURED",OriginalJudge="UNMEASURED",HasAppliedOffset=true,BaseXUm=100,BaseYUm=200,ReferenceFinalXUm=null,ReferenceFinalYUm=null};
@@ -62,7 +62,7 @@ internal static partial class Program
             string message="";var confirms=0;view.ConfirmationForTesting=(_,text,_)=>{message=text;confirms++;return false;};
             ((Button)view.FindName("CopyReferenceButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();
             Test("replacement_copy_cancel_has_confirmation_and_no_dispatch",confirms==1&&fake.Calls.Count==0);
-            Test("replacement_copy_explains_delta_absolute_stage_not_immediate_save",message.Contains("편차 Δ")&&message.Contains("더하지")&&message.Contains("아직 CSV")&&message.Contains("현재 Cell"));
+            Test("copy_stages_recommended_absolute_review_without_save",message.Contains("추천 Review")&&message.Contains("아직 미저장")&&message.Contains("현재 Cell"));
             view.ConfirmationForTesting=(_,_,_)=>true;((Button)view.FindName("CopyReferenceButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();
             Test("replacement_copy_only_dispatches_copy_not_apply",fake.Calls.Count==1&&fake.Calls[0].Action==EN_MANUAL_INSPECTION_UI_ACTION.CopyReference&&fake.Calls[0].Request.Keys.SequenceEqual([target.Key]));
             Test("replacement_copy_keeps_saved_csv_and_original_raw_unchanged_in_ui",fake.Snapshot.FinalOffsetRevisionId==state.FinalOffsetRevisionId&&JsonSerializer.Serialize(fake.Snapshot.Points.Select(point=>new{point.OriginalJudge,point.OriginalXUm,point.OriginalYUm}))==raw);
@@ -94,10 +94,10 @@ internal static partial class Program
             Invoke(view,"SetMapCellScope",2);Test("replacement_pending_other_cell_blocks_save",!((Button)view.FindName("BulkApplyButton")).IsEnabled);var before=fake.Calls.Count;Click("BulkApplyButton");Test("replacement_programmatic_other_cell_click_also_cannot_leak_scope",fake.Calls.Count==before);
             Click("OffsetInitButton");Test("replacement_cancel_is_nonmoving_no_modal_and_keeps_csv",fake.Calls.Count==before+1&&fake.Calls.Last().Action==EN_MANUAL_INSPECTION_UI_ACTION.CancelOffsetEdit&&fake.Snapshot.FinalOffsetRevisionId==state.FinalOffsetRevisionId);
             fake.Replace(state with{Version=802});Invoke(view,"SetMapCellScope",1);SelectViewChoice(view,"HeadFilter","2");SelectViewChoice(view,"JudgeFilter","NG");before=fake.Calls.Count;Click("BulkApplyButton");
-            Test("replacement_bulk_filters_do_not_change_current_cell_scope",fake.Calls.Count==before+1&&fake.Calls.Last().Request.CurrentCellNo==1&&description.Contains("필터")&&description.Contains("대체")&&description.Contains("더하지"));
+            Test("replacement_bulk_filters_do_not_change_current_cell_scope",fake.Calls.Count==before+1&&fake.Calls.Last().Request.CurrentCellNo==1&&description.Contains("필터")&&description.Contains("추천·편집 보정"));
             view.ConfirmationForTesting=(_,_,_)=>{Invoke(view,"SetMapCellScope",2);return true;};before=fake.Calls.Count;Invoke(view,"SetMapCellScope",1);Click("BulkApplyButton");Test("replacement_cell_change_inside_modal_rejects_same_version_save",fake.Calls.Count==before);
             fake.Replace(state with{Version=803,IsOffsetEditPending=true,PendingOffsetCellNo=1,OffsetInitPending=false});Invoke(view,"SetMapCellScope",1);Pump();
-            Test("replacement_import_stage_has_same_single_save_path",((Button)view.FindName("BulkApplyButton")).IsEnabled&&((TextBlock)view.FindName("SaveStatusText")).Text.Contains("가져온 편차"));
+            Test("replacement_import_stage_has_same_single_save_path",((Button)view.FindName("BulkApplyButton")).IsEnabled&&((TextBlock)view.FindName("SaveStatusText")).Text.Contains("미저장"));
             Invoke(view,"Files_Click",view,new RoutedEventArgs());var menu=((Button)view.FindName("FilesButton")).ContextMenu!;Test("replacement_pending_import_disables_both_file_actions",menu.Items.OfType<MenuItem>().Count()==2&&menu.Items.OfType<MenuItem>().All(item=>!item.IsEnabled));menu.IsOpen=false;
             observations.Add(new{stage="current-cell",fake.Calls.Count,confirms});
         }

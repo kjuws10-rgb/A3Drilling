@@ -1,4 +1,4 @@
-"""Generate JSON with the actual .7 pure source, then restore with current pure source."""
+"""Real .7 serializer -> current source: preserve raw, reject unknown process basis, allow explicit absolute edits."""
 import argparse, hashlib, json, subprocess
 from pathlib import Path
 from xml.sax.saxutils import escape
@@ -39,26 +39,24 @@ foreach(var mode in new[]{"proxy","operator","model-import","saved-proxy","saved
  Assert(w.Points.All(p=>p.OriginalMeasurement!.RawToken.StartsWith("SYNTHETIC_RAW_")),"original raw preserved");
  Assert(w.ActiveOffsets.All(p=>p.Value==expectedValues[p.Key]),"old saved base preserved on restore");
  Assert(w.Candidate is not null&&!w.Candidate.IsMeasurementReplacement&&w.Candidate.ReplacementCellNo is null,"old candidate not silently reclassified");
- if(saved)
+ if(mode=="model-import")
  {
-  Assert(w.PreviewMeasurementReplacement([subject]).Keys.Count==0,"already applied legacy manual result not silently replaced");
-  var reference=points.Single(p=>p.Key!=subject).Key;var copy=w.PreviewMeasurementReferenceCopy(reference,[subject]);
-  w.ConfirmMeasurementReferenceCopy(copy,[subject],"explicit fresh copy after legacy save");
-  Assert(w.PreviewMeasurementReplacement([subject]).Keys.SequenceEqual([subject]),"explicit fresh copy can be applied under new policy");
- }
- else if(mode=="model-import")
- {
-  Assert(w.HasPendingOffsetEdit,"old model draft remains explicit");w.CancelOffsetReplacement();
-  w.BuildScopedOffsetReplacementCandidate(1,points.ToDictionary(p=>p.Key,_=>new ST_MANUAL_OFFSET(7,2)),new HashSet<string>(),"restaged Cell");
-  Assert(w.Candidate!.ReplacementCellNo==1,"explicit current Cell restage required");
+  Assert(w.HasPendingOffsetEdit,"legacy whole-model draft remains explicit");w.CancelOffsetReplacement();
+  w.BuildScopedOffsetReplacementCandidate(1,points.ToDictionary(p=>p.Key,_=>new ST_MANUAL_OFFSET(7,2)),new HashSet<string>(),"restaged explicit Cell file values");
+  Assert(w.Candidate!.ReplacementCellNo==1,"absolute file must be explicitly restaged for current Cell");
  }
  else
  {
-  var key=mode=="proxy"?points[1].Key:points[0].Key;
-  Assert(w.ResolveMeasurementReferenceValue(key).Final==new ST_MANUAL_OFFSET(3,1),"old captured final13 is not reused as deviation");
-  w.BuildMeasurementReplacementCandidate([key]);Assert(w.ValidateCandidate(mode=="proxy"||mode=="operator").Ok,"new replacement validates against restored provenance");
-  var snapshot=w.CreateApplySnapshot(true);w.CommitApplied(snapshot,"SYNTHETIC_REPLACED","synthetic no-device commit");
-  Assert(w.ActiveOffsets[key]==new ST_MANUAL_OFFSET(3,1),"new final is raw3 not old13 or repeated23");
+  Assert(w.PreviewMeasurementReplacement([subject]).Keys.Count==0,"old residual or manual value without processing authority cannot be auto-applied");
+  bool refused=false;try{w.ResolveMeasurementReferenceValue(subject);}catch(InvalidOperationException){refused=true;}
+  Assert(refused,"old B or captured final is never guessed as processed calibration basis");
+  var original=w.GetPoint(subject).OriginalMeasurement;
+  w.RecordMeasurementOperatorResults([subject],3,1,"explicit absolute Review value after legacy upgrade");
+  Assert(w.GetPoint(subject).OriginalMeasurement==original,"explicit absolute entry preserves the legacy original raw");
+  Assert(w.ResolveMeasurementReferenceValue(subject).Final==new ST_MANUAL_OFFSET(3,1),"explicit absolute entry is allowed without inventing process basis");
+  w.BuildMeasurementReplacementCandidate([subject]);Assert(w.ValidateCandidate(true).Ok,"explicit absolute replacement validates without false residual lineage");
+  var snapshot=w.CreateApplySnapshot(true);w.CommitApplied(snapshot,"SYNTHETIC_EXPLICIT_ABSOLUTE","synthetic no-device commit");
+  Assert(w.ActiveOffsets[subject]==new ST_MANUAL_OFFSET(3,1),"explicit absolute value replaces without additional base accumulation");
  }
 #endif
 }

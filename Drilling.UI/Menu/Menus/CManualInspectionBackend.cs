@@ -92,6 +92,9 @@ public sealed record CManualInspectionSource(
     public double ShiftOffsetXmm { get; init; }
     public double ShiftOffsetYmm { get; init; }
     public CManualInspectionSavedOffsetSnapshot? SavedOffsets { get; init; }
+    public IReadOnlyDictionary<string,ST_MANUAL_CALIBRATION_BASIS> CalibrationBasisByOffsetKey { get; init; }
+        = FrozenDictionary<string,ST_MANUAL_CALIBRATION_BASIS>.Empty;
+    public string CalibrationBasisStatus { get; init; }="가공 기준 확인 필요";
 }
 
 /// <summary>
@@ -185,10 +188,14 @@ public sealed class CManualInspectionBackend(
         completion = resolvedCompletion.Completion;
         var currentGlass = product is not null && product.RecipeId.Equals(_recipe.Id, StringComparison.OrdinalIgnoreCase)
             ? product.GlassId : "";
+        var processingBasis=manager?.Station().LastCompletedProcessingBasis;
+        var matchingBasis=processingBasis is not null&&processingBasis.RecipeId==_recipe.Id&&processingBasis.GlassId==currentGlass
+            &&processingBasis.IsSimulation==_sourceSimulation&&(product is null||processingBasis.CompletedAt>=product.CreatedAt)?processingBasis:null;
         var minimumTime = product?.CreatedAt;
         if (completion is not null && (minimumTime is null || completion.CompletedAt > minimumTime)) minimumTime = completion.CompletedAt;
+        if(matchingBasis is not null&&(minimumTime is null||matchingBasis.CompletedAt>minimumTime))minimumTime=matchingBasis.CompletedAt;
         var currentFrame = new ST_MANUAL_RESULT_FRAME(_recipe.Id, currentGlass, minimumTime,
-            completion?.ShiftOffsetX ?? 0, completion?.ShiftOffsetY ?? 0, _sourceSimulation);
+            matchingBasis?.ShiftOffsetXmm ?? completion?.ShiftOffsetX ?? 0, matchingBasis?.ShiftOffsetYmm ?? completion?.ShiftOffsetY ?? 0, _sourceSimulation);
         var catalog = (await results.ListCorrectionResults(token))
             .Where(item => item.RecipeId.Equals(_recipe.Id, StringComparison.OrdinalIgnoreCase))
             .OrderByDescending(item => item.SavedAt).ThenBy(item => item.FilePath, StringComparer.OrdinalIgnoreCase).ToArray();
@@ -232,8 +239,8 @@ public sealed class CManualInspectionBackend(
             beamNos = beamNos.Concat(extra).Distinct().ToArray();
         }
         if (beamNos.Any(b => b < 1 || b > split * split)) throw new InvalidOperationException("결과 파일의 Beam 번호가 현재 Recipe 범위를 벗어납니다.");
-        _shiftX = file?.ShiftOffsetX ?? completion?.ShiftOffsetX ?? 0;
-        _shiftY = file?.ShiftOffsetY ?? completion?.ShiftOffsetY ?? 0;
+        _shiftX = file?.ShiftOffsetX ?? matchingBasis?.ShiftOffsetXmm ?? completion?.ShiftOffsetX ?? 0;
+        _shiftY = file?.ShiftOffsetY ?? matchingBasis?.ShiftOffsetYmm ?? completion?.ShiftOffsetY ?? 0;
         _parameters["SHIFT_OFFSET_X"] = _shiftX.ToString("R", CultureInfo.InvariantCulture);
         _parameters["SHIFT_OFFSET_Y"] = _shiftY.ToString("R", CultureInfo.InvariantCulture);
         _plans = await Task.Run(() => beamNos.ToDictionary(b => b, b => review.CreateAllPlan(_recipe, b, _shiftX, _shiftY)), token);
@@ -370,7 +377,9 @@ public sealed class CManualInspectionBackend(
           CellLayouts = BuildCellLayouts(_parameters), GlassWidthMm = Number(_parameters,"GLASS_SIZE_X",0), GlassHeightMm = Number(_parameters,"GLASS_SIZE_Y",0),
           RecentResults = catalog, ObservationFingerprint = ObservationFingerprint(external, file, _latest, context.CoordinateSignature),
           ShiftOffsetXmm=_shiftX,ShiftOffsetYmm=_shiftY };
-        source=source with { SavedOffsets=SavedSnapshot(source,_latest) };
+        var calibration=CreateCalibrationBasisMap(matchingBasis,context,source.Points,currentGlass,product?.CreatedAt,_sourceSimulation);
+        source=source with { SavedOffsets=SavedSnapshot(source,_latest),CalibrationBasisByOffsetKey=calibration,
+            CalibrationBasisStatus=calibration.Count>0?matchingBasis?.ReviewOffsetScale==0?"가공 Scale 0 · 자동 보정 불가":"완료된 가공 기준 연결":"가공 기준 확인 필요 · 이동·측정 가능" };
         // Loading is read-only, but the published coordinate context must be internally current.
         // This also detects same-path offset replacement through the store's content identity.
         await EnsureCurrentAsync(source, token);
@@ -550,7 +559,7 @@ public sealed class CManualInspectionBackend(
             throw new InvalidOperationException("선택 Recipe가 바뀌었습니다. 현재 Recipe를 다시 불러오세요.");
         var recipe = (await recipes.LoadRecipes(token)).SingleOrDefault(r => r.Id == _recipe.Id)
             ?? throw new InvalidOperationException("현재 Recipe가 없습니다.");
-        if (Signature(Parameters(recipe)) + ShiftSignature() != source.Context.CoordinateSignature)
+        if (CReviewProcessingBasis.CoordinateSignature(Parameters(recipe),_shiftX,_shiftY) != source.Context.CoordinateSignature)
             throw new InvalidOperationException("Recipe 또는 좌표 Setting이 바뀌었습니다. 다시 불러오세요.");
         if (RunIdentity() != source.Context.RunId)
             throw new InvalidOperationException("기판/가공 완료 회차가 바뀌었습니다. 새 작업공간을 불러오세요.");
@@ -784,8 +793,9 @@ public sealed class CManualInspectionBackend(
         var converted = CManualInspectionCoordinateBridge.FromVision(measured.Point.ErrorX, measured.Point.ErrorY,
             plan.VisionFlipType, _parameters, point.HeadNo);
         var stage = CReviewManager.VisionErrorToStageOffset(measured.Point.ErrorX, measured.Point.ErrorY, plan.VisionFlipType);
-        var packet = FormattableString.Invariant($"Stage-mm:{stage.X:R},{stage.Y:R};Judge:{measured.Point.Judge}");
-        return new(key, Measurement(source.Context, key, point.HeadNo, measured.Point.Judge, converted, stage.X, stage.Y, packet),
+        var packet = FormattableString.Invariant($"Stage-mm:{stage.X:R},{stage.Y:R};Judge:{measured.Point.Judge};StageSIM:{measured.IsStageSimulation};VisionSIM:{measured.IsVisionSimulation}");
+        var raw=Measurement(source.Context,key,point.HeadNo,measured.Point.Judge,converted,stage.X,stage.Y,packet);
+        return new(key,BindCalibrationMeasurement(raw,source,OffsetKey(point.CellNo,point.ShotNo),_sourceSimulation,measured.IsStageSimulation,measured.IsVisionSimulation),
             point.ReviewTargetX, point.ReviewTargetY);
         }
         finally { positionLease?.Dispose(); }
@@ -823,13 +833,19 @@ public sealed class CManualInspectionBackend(
                 var finished = await review.StartFineCorrection(request,
                     snapshot => progress($"Flying {line.Number}/{lines.Length} · {snapshot.Message}"), token);
                 if (!string.IsNullOrEmpty(finished.ResultSaveError)) throw new IOException("Flying 결과 저장 실패: " + finished.ResultSaveError);
+                bool? stageSimulation=null,visionSimulation=null;
+                if(!string.IsNullOrEmpty(finished.ResultFilePath))
+                    try{var saved=await results.Load(finished.ResultFilePath,token);stageSimulation=saved.IsStageSimulation;visionSimulation=saved.IsVisionSimulation;}
+                    catch(Exception error)when(error is IOException or UnauthorizedAccessException or InvalidDataException or FormatException)
+                    { System.Diagnostics.Trace.TraceError("Flying measurement mode unavailable: "+error.Message); }
                 foreach (var p in finished.Lines.SelectMany(l => l.Points).Where(p => p.State is EN_REVIEW_POINT_STATE.Ok or EN_REVIEW_POINT_STATE.Ng))
                 {
                     var key = lookup[Normalize(p.ShotKey)]; if (!received.Add(key)) continue;
                     var value = CManualInspectionCoordinateBridge.FromVision(p.ErrorX, p.ErrorY, plan.VisionFlipType, _parameters, p.HeadNo);
                     var stage = CReviewManager.VisionErrorToStageOffset(p.ErrorX, p.ErrorY, plan.VisionFlipType);
-                    measured(new(key, Measurement(source.Context, key, p.HeadNo, p.Judge, value, stage.X, stage.Y,
-                        FormattableString.Invariant($"Stage-mm:{stage.X:R},{stage.Y:R};Judge:{p.Judge}")), p.ReviewTargetX, p.ReviewTargetY));
+                    var raw=Measurement(source.Context,key,p.HeadNo,p.Judge,value,stage.X,stage.Y,
+                        FormattableString.Invariant($"Stage-mm:{stage.X:R},{stage.Y:R};Judge:{p.Judge};StageSIM:{stageSimulation};VisionSIM:{visionSimulation}"));
+                    measured(new(key,BindCalibrationMeasurement(raw,source,OffsetKey(p.CellNo,p.ShotNo),_sourceSimulation,stageSimulation,visionSimulation),p.ReviewTargetX,p.ReviewTargetY));
                 }
                 if (finished.State != EN_REVIEW_SEQUENCE_STATE.Completed || line.Points.Any(p => !received.Contains(lookup[Normalize(p.ShotKey)])))
                     throw new InvalidOperationException("Flying 행이 전수 완료되지 않았습니다. 저장된 정상 응답은 보존하고 잔여 위치를 다시 측정하세요.");
@@ -877,40 +893,40 @@ public sealed class CManualInspectionBackend(
         // Per-measurement durable reservations prevent a crash or a different selected subset from
         // bypassing the same Run/raw guard. The existing apply history proves committed writes.
         var reservations = new List<string>();
-        var driving = measuredRows.Where(r => r.MeasurementToken.Length > 0).ToDictionary(r => r.Key, r => r.MeasurementToken);
-        var consumed = consumedMeasurements ?? driving;
-        foreach (var pair in consumed)
+        return await CReviewSaveReservationTransaction.Run(reservations,async()=>
         {
-            var marker = Path.Combine(directory, "point-" + Digest(source.Context.RunId + pair.Key + pair.Value) + ".json");
-            if (System.IO.File.Exists(marker))
+            var driving = measuredRows.Where(r => r.MeasurementToken.Length > 0).ToDictionary(r => r.Key, r => r.MeasurementToken);
+            var consumed = consumedMeasurements ?? driving;
+            foreach (var pair in consumed)
             {
-                var old = JsonSerializer.Deserialize<Reservation>(await System.IO.File.ReadAllTextAsync(marker, token))!;
-                if (await offsets.FindCommittedSourceApplication(source.Context.RecipeId, old.SourcePath, token) is not null)
+                var marker = Path.Combine(directory, "point-" + Digest(source.Context.RunId + pair.Key + pair.Value) + ".json");
+                if (System.IO.File.Exists(marker))
                 {
-                    if (driving.GetValueOrDefault(pair.Key) == pair.Value)
-                        throw new InvalidOperationException($"{pair.Key}: 같은 Run의 측정 원본이 이미 적용됐습니다. 새 가공 후 재측정하세요.");
-                    continue; // Already-consumed companion raw does not block a fresh driving measurement.
+                    var old = JsonSerializer.Deserialize<Reservation>(await System.IO.File.ReadAllTextAsync(marker, token))!;
+                    if (await offsets.FindCommittedSourceApplication(source.Context.RecipeId, old.SourcePath, token) is not null)
+                    {
+                        if (driving.GetValueOrDefault(pair.Key) == pair.Value)
+                            throw new InvalidOperationException($"{pair.Key}: 같은 Run의 측정 원본이 이미 적용됐습니다. 새 가공 후 재측정하세요.");
+                        continue; // Already-consumed companion raw does not block a fresh driving measurement.
+                    }
+                    if (old.BaseRevision != Revision(_latest!)) throw new InvalidOperationException("미완료 보정 저장 기록과 활성 파일이 다릅니다. 이력을 확인하세요.");
                 }
-                if (old.BaseRevision != Revision(_latest!)) throw new InvalidOperationException("미완료 보정 저장 기록과 활성 파일이 다릅니다. 이력을 확인하세요.");
+                AtomicText(marker, JsonSerializer.Serialize(new Reservation(sourcePath, Revision(_latest!),
+                    source.Context.RunId, pair.Key, pair.Value))); reservations.Add(marker);
             }
-            AtomicText(marker, JsonSerializer.Serialize(new Reservation(sourcePath, Revision(_latest!),
-                source.Context.RunId, pair.Key, pair.Value))); reservations.Add(marker);
-        }
-        // Build/validate the next pure coordinate plan before the authoritative file transaction.
-        // After a successful writer return, no cancellable I/O or planning error may make the host
-        // claim that a committed offset was not applied.
-        var nextRows = rows.Values.Select(WrittenRow).ToArray();
-        var nextLookup = nextRows.ToDictionary(row => $"{row.CellId}:{Normalize(row.ShotId)}", StringComparer.OrdinalIgnoreCase);
-        var actualValues = source.Points.ToDictionary(p => p.Key, p =>
-            nextLookup.TryGetValue($"{p.CellNo}:{Normalize(CReviewShotNameFormatter.ToMatrixName(p.ShotNo, _targets[p.Key].PixelCountX))}", out var row)
-                ? CManualInspectionCoordinateBridge.FromFile(row, _parameters, Math.Max(1, p.HeadNo)) : ST_MANUAL_OFFSET.Zero);
-        var nextParameters = new Dictionary<string, string>(_parameters, StringComparer.OrdinalIgnoreCase);
-        CReviewOffsetData.ApplyToParameters(nextParameters, _latest! with { Rows = nextRows });
-        var rebuilt = await Task.Run(() => CShotCoordinatePlanBuilder.Build(nextParameters), token);
-        var nextShots = rebuilt.Shots.ToDictionary(s => OffsetKey(s.CellNo, s.CellShotNo), StringComparer.Ordinal);
-        manager?.Station().InvalidatePreparedReviewOffset();
-        try
-        {
+            // Build/validate the next pure coordinate plan before the authoritative file transaction.
+            // After a successful writer return, no cancellable I/O or planning error may make the host
+            // claim that a committed offset was not applied.
+            var nextRows = rows.Values.Select(WrittenRow).ToArray();
+            var nextLookup = nextRows.ToDictionary(row => $"{row.CellId}:{Normalize(row.ShotId)}", StringComparer.OrdinalIgnoreCase);
+            var actualValues = source.Points.ToDictionary(p => p.Key, p =>
+                nextLookup.TryGetValue($"{p.CellNo}:{Normalize(CReviewShotNameFormatter.ToMatrixName(p.ShotNo, _targets[p.Key].PixelCountX))}", out var row)
+                    ? CManualInspectionCoordinateBridge.FromFile(row, _parameters, Math.Max(1, p.HeadNo)) : ST_MANUAL_OFFSET.Zero);
+            var nextParameters = new Dictionary<string, string>(_parameters, StringComparer.OrdinalIgnoreCase);
+            CReviewOffsetData.ApplyToParameters(nextParameters, _latest! with { Rows = nextRows });
+            var rebuilt = await Task.Run(() => CShotCoordinatePlanBuilder.Build(nextParameters), token);
+            var nextShots = rebuilt.Shots.ToDictionary(s => OffsetKey(s.CellNo, s.CellShotNo), StringComparer.Ordinal);
+            manager?.Station().InvalidatePreparedReviewOffset();
             // Receipt I/O and plan building above can yield. Recheck external host/product/setting
             // changes at the write boundary as well as the writer's atomic offset-revision check.
             GuardOperation(); await EnsureCurrentAsync(source, token);
@@ -923,14 +939,7 @@ public sealed class CManualInspectionBackend(
             _parameters = nextParameters;
             _shots = nextShots;
             return Revision(saved);
-        }
-        catch
-        {
-            // Keep a marker when the authoritative writer committed but subsequent host work failed.
-            if (await offsets.FindCommittedSourceApplication(source.Context.RecipeId, sourcePath, CancellationToken.None) is null)
-                foreach (var path in reservations) System.IO.File.Delete(path);
-            throw;
-        }
+        },async()=>await offsets.FindCommittedSourceApplication(source.Context.RecipeId,sourcePath,CancellationToken.None) is not null);
     }
 
     private Dictionary<string,ST_REVIEW_OFFSET_ROW> BuildWorkingRows(CManualInspectionSource source,
@@ -1239,13 +1248,39 @@ public sealed class CManualInspectionBackend(
             .ToDictionary(g => g.Key, g => g.Last().Value, StringComparer.OrdinalIgnoreCase);
         foreach (var item in settings.LoadSection(EN_SETTING_TAB.Option).Concat(settings.LoadSection(EN_SETTING_TAB.Motor)))
             if (!string.IsNullOrWhiteSpace(item.Key)) map[item.Key] = item.Value;
+        map.TryAdd("HEAD_COUNT","8"); // Same explicit planner/Root default; preserve supplied settings.
         return map;
+    }
+    public static ST_MANUAL_MEASUREMENT BindCalibrationMeasurement(ST_MANUAL_MEASUREMENT raw,CManualInspectionSource source,string offsetKey,
+        bool expectedSimulation,bool? stageSimulation,bool? visionSimulation)
+    {
+        var basis=source.CalibrationBasisByOffsetKey.GetValueOrDefault(offsetKey);
+        var matches=stageSimulation.HasValue&&visionSimulation.HasValue&&stageSimulation.Value==expectedSimulation&&visionSimulation.Value==expectedSimulation
+            &&(basis is null||basis.IsSimulation==expectedSimulation);
+        return raw with{CalibrationBasis=matches?basis:null,IsStageSimulation=stageSimulation,IsVisionSimulation=visionSimulation,
+            CalibrationBasisUnavailableReason=matches?null:"측정 Stage/Vision 출처가 가공 기준과 다르거나 확인되지 않았습니다. 원측정은 보존하며 자동 보정은 대기합니다."};
+    }
+    public static IReadOnlyDictionary<string,ST_MANUAL_CALIBRATION_BASIS> CreateCalibrationBasisMap(ST_REVIEW_PROCESSING_BASIS? basis,
+        ST_MANUAL_CONTEXT context,IReadOnlyList<ST_MANUAL_POINT> points,string currentGlass,DateTimeOffset? productCreatedAt,bool simulation)
+    {
+        if(basis is null)return FrozenDictionary<string,ST_MANUAL_CALIBRATION_BASIS>.Empty;
+        try{CReviewProcessingBasis.Validate(basis);}catch(InvalidDataException){return FrozenDictionary<string,ST_MANUAL_CALIBRATION_BASIS>.Empty;}
+        if(basis.RecipeId!=context.RecipeId||basis.GlassId!=currentGlass||basis.CoordinateSignature!=context.CoordinateSignature
+            ||basis.IsSimulation!=simulation||productCreatedAt is not null&&basis.CompletedAt<productCreatedAt)
+            return FrozenDictionary<string,ST_MANUAL_CALIBRATION_BASIS>.Empty;
+        var known=points.Where(p=>!p.Masked).GroupBy(p=>p.OffsetKey).ToDictionary(g=>g.Key,g=>g.ToArray(),StringComparer.Ordinal);
+        return basis.Offsets.Where(v=>known.TryGetValue(OffsetKey(v.CellNo,v.ShotNo),out var p)&&p.All(p=>p.HeadNo==v.HeadNo))
+            .ToFrozenDictionary(v=>OffsetKey(v.CellNo,v.ShotNo),v=>new ST_MANUAL_CALIBRATION_BASIS(basis.BasisId,basis.ProcessId,basis.RecipeId,basis.GlassId,
+                basis.CompletedAt,basis.CoordinateSignature,basis.ReviewCsvSha256,v.BaseOffsetUm,basis.ReviewOffsetScale)
+                {RunId=context.RunId,CellNo=v.CellNo,ShotNo=v.ShotNo,HeadNo=v.HeadNo,IsSimulation=basis.IsSimulation},StringComparer.Ordinal);
     }
     private string RunIdentity()
     {
         var p = manager?.Product().Current; var c = manager?.Station().LastCompletedManualMof;
-        return CreateRunIdentity(_recipe!.Id, p?.ProductId, p?.GlassId, p?.RecipeId, p?.CreatedAt,
+        var run=CreateRunIdentity(_recipe!.Id, p?.ProductId, p?.GlassId, p?.RecipeId, p?.CreatedAt,
             c?.CompletedAt, c?.ShiftOffsetX, c?.ShiftOffsetY);
+        var identity=manager?.Station().ProcessingBasisIdentity;
+        return string.IsNullOrEmpty(identity)?run:run+"|BASIS:"+Digest(identity);
     }
     private static (ST_MANUAL_MOF_COMPLETION? Completion, bool Ambiguous) ResolveCompletion(
         string selectedRecipeId, string? productRecipeId, DateTimeOffset? createdAt, ST_MANUAL_MOF_COMPLETION? completion)
@@ -1278,13 +1313,9 @@ public sealed class CManualInspectionBackend(
             context.RecipeId, context.RunId, context.CoordinateSignature)
         { RawData = stableRaw, ScannerErrorXUm = head > 0 ? scanner.X * 1000 : null, ScannerErrorYUm = head > 0 ? scanner.Y * 1000 : null };
     }
-    private static string Signature(IReadOnlyDictionary<string, string> values) => Digest(string.Join("\n",
-        values.Where(p => !CReviewOffsetData.IsParameterKey(p.Key) && p.Key is not ("CURRENT_PROCESS_COUNT" or "SHIFT_OFFSET_X" or "SHIFT_OFFSET_Y")
-            && !p.Key.Contains("PASSWORD", StringComparison.OrdinalIgnoreCase) && !p.Key.Contains("SECRET", StringComparison.OrdinalIgnoreCase)
-            && !p.Key.Contains("TOKEN", StringComparison.OrdinalIgnoreCase))
-            .OrderBy(p => p.Key, StringComparer.OrdinalIgnoreCase).Select(p => p.Key + "=" + p.Value)));
+    private static string Signature(IReadOnlyDictionary<string, string> values) => CReviewProcessingBasis.StaticSignature(values);
     private string ShiftSignature() => FormattableString.Invariant($"|SHIFT:{_shiftX:R},{_shiftY:R}");
-    private string CoordinateSignature() => Signature(_parameters) + ShiftSignature();
+    private string CoordinateSignature() => CReviewProcessingBasis.CoordinateSignature(_parameters,_shiftX,_shiftY);
     public static string Digest(string text) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text)));
     private static string DigestFile(string path) { using var stream = System.IO.File.OpenRead(path); return Convert.ToHexString(SHA256.HashData(stream)); }
     private static string Revision(ST_REVIEW_OFFSET_FILE_DATA value) => string.IsNullOrEmpty(value.FilePath) ? "INITIAL_ZERO"

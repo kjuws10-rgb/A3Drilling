@@ -62,7 +62,7 @@ internal static partial class Program
     private static void BulkFinalMeasurementMode(CManualInspectionView view)
     {
 
-        SelectViewChoice(view, "ScatterDataCombo", "WORKING");
+        SelectViewChoice(view, "ScatterDataCombo", "ORIGINAL");
     }
     private static void RunBulkFinalConfirmationCases(List<object> observations)
     {
@@ -74,16 +74,16 @@ internal static partial class Program
             view.ConfirmationForTesting = (title, text, button) => { confirms++; seen = title + "\n" + text + "\n" + button; return false; };
             ((Button)view.FindName("BulkApplyButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Pump();
             Test("bulk_final_cancel_preserves_user_mode_and_does_not_dispatch", confirms == 1 && fake.Calls.Count == 0 && MeasurementMapMode(view) == "level" && !(((CManualInspectionScatterControl)view.FindName("ScatterPlot")).DataKind=="OFFSETS"));
-            Test("bulk_final_confirmation_identifies_actual_model_and_current_cell_scope", seen.Contains(state.RecipeId) && seen.Contains("Cell 1") && seen.Contains("필터") && seen.Contains("다른 Cell"));
-            Test("bulk_final_confirmation_explains_delta_replacement_without_B_addition",seen.Contains("대체")&&seen.Contains("더하지")&&seen.Contains("편차 Δ"));
-            Test("bulk_final_confirmation_lists_numeric_limits_and_storage_readback", seen.Contains("31") && seen.Contains("402") && seen.Contains("µm") && seen.Contains("CSV") && seen.Contains("다시 읽"));
-            Test("bulk_final_confirmation_retains_ng_unmeasured_and_protected_offsets", seen.Contains("NG") && seen.Contains("미측정") && seen.Contains("보호 Offset"));
+            Test("bulk_final_confirmation_identifies_actual_model_and_current_cell_scope",seen.Contains(state.RecipeId)&&seen.Contains("Cell 1")&&seen.Contains("필터")&&seen.Contains("다른 Cell"));
+            Test("bulk_final_confirmation_names_resolved_recommendation_and_remeasurement",seen.Contains("추천·편집 보정")&&seen.Contains("재측정"));
+            Test("bulk_final_short_confirmation_keeps_numeric_limits_in_existing_settings",((TextBox)view.FindName("DeltaLimitInput")).Text=="31"&&((TextBox)view.FindName("TotalLimitInput")).Text=="402"&&seen.Split('\n').Length<=6);
+            Test("bulk_final_confirmation_retains_ng_unmeasured_and_protected_offsets",seen.Contains("다른 Cell")&&seen.Contains("원측정")&&((Button)view.FindName("BulkApplyButton")).ToolTip.ToString()!.Contains("보호 Offset"));
             var rawBefore = BulkFinalRaw(state); var verified = BulkFinalVerified(state);
             view.ConfirmationForTesting = (_, _, _) => true;
             fake.OnExecute = (action, _) => { if (action == EN_MANUAL_INSPECTION_UI_ACTION.BulkApply) fake.Replace(verified); };
             ((Button)view.FindName("BulkApplyButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Pump();
             Test("bulk_final_accepted_request_uses_frozen_version_and_cell_without_motion", fake.Calls.Count == 1 && fake.Calls[0].Action == EN_MANUAL_INSPECTION_UI_ACTION.BulkApply && fake.Calls[0].Request.ExpectedVersion == 600 && fake.Calls[0].Request.CurrentCellNo == 1);
-            Test("bulk_final_verified_csv_does_not_replace_measurement_display_mode",MeasurementMapMode(view)=="level"&&!Field<bool>(view,"_scatterOriginal")&&((CManualInspectionScatterControl)view.FindName("ScatterPlot")).DataKind=="WORKING");
+            Test("bulk_final_verified_csv_does_not_replace_measurement_display_mode",MeasurementMapMode(view)=="level"&&Field<bool>(view,"_scatterOriginal")&&((CManualInspectionScatterControl)view.FindName("ScatterPlot")).DataKind=="ORIGINAL");
             Test("bulk_final_cell_apply_does_not_drop_user_ng_filter", Field<string>(view, "_judge") == "NG");
             var projected = Field<IReadOnlyList<CManualInspectionUiPoint>>((CManualInspectionMapControl)view.FindName("PositionMap"), "_all");
             Test("bulk_final_map_keeps_current_delta_not_old_B",projected.Single(point=>point.Key==state.Points[0].Key).WorkingXUm==2&&projected.Single(point=>point.Key==state.Points[0].Key).WorkingYUm==-3);
@@ -91,7 +91,7 @@ internal static partial class Program
             var rows = ((IEnumerable)((DataGrid)view.FindName("ResultGrid")).ItemsSource).Cast<object>().Select(row => (CManualInspectionUiPoint)row.GetType().GetProperty("Point")!.GetValue(row)!).ToArray();
             Test("bulk_final_table_keeps_measurement_delta",rows.Single(point=>point.Key==state.Points[0].Key).MeasurementXUm==2&&rows.Single(point=>point.Key==state.Points[0].Key).MeasurementYUm==-3);
             var plot = (CManualInspectionScatterControl)view.FindName("ScatterPlot");
-            Test("bulk_final_scatter_uses_current_measurement_population_including_NG",plot.DataKind=="WORKING"&&plot.Metrics.Count==2&&plot.Metrics.MeanX==5.5&&plot.Metrics.MeanY==3);
+            Test("bulk_final_scatter_uses_current_measurement_population_including_NG",plot.DataKind=="ORIGINAL"&&plot.Metrics.Count==2&&plot.Metrics.MeanX==5.5&&plot.Metrics.MeanY==3);
             Test("bulk_final_verified_file_and_readback_status_are_current", ((TextBlock)view.FindName("FinalOffsetFileText")).Text == verified.FinalOffsetFileName && ((TextBlock)view.FindName("FinalOffsetInfoText")).Text.Contains(verified.LastSaveVerificationText));
             Test("bulk_final_map_explains_measurement_delta_replacement",((TextBlock)view.FindName("ColorDescriptionText")).ToolTip.ToString()!.Contains("대체"));
             Test("bulk_final_apply_changes_display_basis_without_rewriting_raw_measurement", BulkFinalRaw(fake.Snapshot) == rawBefore && state.Points[0].BaseXUm == 4 && state.FinalOffsetPoints[state.Points[0].Key].XUm == 4);
@@ -128,7 +128,7 @@ internal static partial class Program
                 fake.OnExecute = (_, _) => { if (outcome == "THROW") throw new InvalidOperationException("synthetic CSV operation rejected before save"); fake.Replace(reply); };
                 var action = outcome == "FORCE" ? EN_MANUAL_INSPECTION_UI_ACTION.ForceMeasurement : EN_MANUAL_INSPECTION_UI_ACTION.BulkApply;
                 ((Task)Invoke(view, "Execute", action, new CManualInspectionUiRequest { ExpectedVersion = state.Version, Keys = [state.Points[0].Key], CurrentCellNo = 1 })!).GetAwaiter().GetResult(); Pump();
-                Test("bulk_final_does_not_switch_without_this_verified_save_" + outcome, MeasurementMapMode(view) == "level" && !(((CManualInspectionScatterControl)view.FindName("ScatterPlot")).DataKind=="OFFSETS") && !(((CManualInspectionScatterControl)view.FindName("ScatterPlot")).DataKind=="OFFSETS") && !Field<bool>(view, "_scatterOriginal"));
+                Test("bulk_final_does_not_switch_without_this_verified_save_" + outcome, MeasurementMapMode(view) == "level" && !(((CManualInspectionScatterControl)view.FindName("ScatterPlot")).DataKind=="OFFSETS") && !(((CManualInspectionScatterControl)view.FindName("ScatterPlot")).DataKind=="OFFSETS") && Field<bool>(view, "_scatterOriginal"));
                 Test("bulk_final_outcome_dispatches_only_requested_non_motion_action_" + outcome, fake.Calls.Count == 1 && fake.Calls[0].Action == action);
                 if (outcome == "READ_FAILED")
                 {

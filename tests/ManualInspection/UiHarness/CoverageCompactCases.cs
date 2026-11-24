@@ -71,14 +71,14 @@ internal static partial class Program
             Test("invalid_stored_numeric_does_not_create_a_level",!invalid.HasMeasurementHistory&&CManualInspectionDrawing.Level(invalid,state)==-1);
             Test("correction_based_and_error_points_can_be_marked_without_native_relabel", based.CanBeReference && zero.CanBeReference && error.CanBeReference && based.Source != "MEASURED");
             Test("copied_working_measurement_preserves_original_distinction", proxy.HasMeasurementHistory && !proxy.UsesAppliedMeasurement
-                && proxy.MeasurementXUm == 6 && proxy.OriginalXUm == 9 && proxy.CanBeReference);
+                && proxy.MeasurementXUm == 9 && proxy.WorkingXUm == 6 && proxy.OriginalXUm == 9 && proxy.CanBeReference);
             Test("measurement_level_covers_same_B_across_cells_heads", CManualInspectionDrawing.Level(based, state)
                 == CManualInspectionDrawing.Level(based with { CellNo = 9, HeadNo = 8 }, state));
             string Brush(CManualInspectionUiPoint point, string mode) => ((SolidColorBrush)CManualInspectionDrawing.PointBrush(view, point, mode, state)).Color.ToString();
             Test("measurement_and_applied_level_agree_without_direct_raw",Brush(based,"level")=="#FFDBE4EA"&&Brush(based,"applied")!="#FFDBE4EA");
 
             var metrics = CManualInspectionScatterMetrics.Calculate(points);
-            Test("scatter_excludes_saved_B_only_history",metrics.Count==2&&metrics.CorrectionBasedCount==0&&Math.Abs(metrics.MeanX!.Value-4.5)<1e-8&&Math.Abs(metrics.MeanY!.Value+1.5)<1e-8);
+            Test("scatter_excludes_saved_B_only_history",metrics.Count==2&&metrics.CorrectionBasedCount==0&&Math.Abs(metrics.MeanX!.Value-6)<1e-8&&Math.Abs(metrics.MeanY!.Value-2.5)<1e-8);
             Test("scatter_counts_missing_masked_and_invalid_separately",metrics.Unmeasured==5&&metrics.Masked==1&&metrics.Errors==1&&metrics.Invalid==0);
             Test("projection_does_not_mutate_measurement_or_offset_records", before == JsonSerializer.Serialize(points, jsonOptions));
             Set(view, "_focusKey", based.Key); Invoke(view, "Refresh"); Pump();
@@ -157,8 +157,8 @@ internal static partial class Program
             map.ShowOperationMenu(); Pump();
             var menu = map.ContextMenu!;
             Test("point_context_has_six_actions_including_manual_ok_and_keypad", menu.Items.OfType<MenuItem>().Count(i => i.IsEnabled) == 6
-                &&menu.Items.OfType<MenuItem>().Any(i=>i.Header.ToString()!.StartsWith("측정 완료",StringComparison.Ordinal))
-                &&menu.Items.OfType<MenuItem>().Any(i=>i.Header.ToString()!.StartsWith("편차 직접 입력",StringComparison.Ordinal)));
+                &&menu.Items.OfType<MenuItem>().Any(i=>i.Header.ToString()!.StartsWith("추천 보정값 확정",StringComparison.Ordinal))
+                &&menu.Items.OfType<MenuItem>().Any(i=>i.Header.ToString()!.StartsWith("보정값 직접 입력",StringComparison.Ordinal)));
             Test("point_context_keeps_two_move_actions_without_auto_correction", menu.Items.OfType<MenuItem>().Count(i => i.Header.ToString()!.StartsWith("이동", StringComparison.Ordinal)) == 2);
             var measure = menu.Items.OfType<MenuItem>().Single(i => i.Header.ToString()!.Contains("현재 위치"));
             var beforeCalls = fake.Calls.Count;

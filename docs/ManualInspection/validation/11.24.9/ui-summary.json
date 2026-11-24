@@ -1,0 +1,217 @@
+{
+  "schema": "a3-manual-inspection-ui-calibration-basis/1",
+  "version": "11.24.9",
+  "passed": true,
+  "modeCount": 20,
+  "tests": 1074,
+  "failures": 0,
+  "build": {
+    "configuration": "Release",
+    "warnings": 0,
+    "errors": 0,
+    "kind": "source-linked WPF harness; BuildProjectReferences=false; private output only",
+    "dll": "source-linked test harness only (private build output)",
+    "sha256": "1bcab3bf8619d3e6975a895ac9067caae27074ac17ec4f893f13bf4fcc946c9a"
+  },
+  "sourceHashMismatches": [],
+  "sourceInputs": {
+    "tests/ManualInspection/UiHarness/ManualInspection.UiHarness.csproj": "59a31c77d09242fd740f9921c1893609eacc93846daaaba329040dc459a3fa9d",
+    "tests/ManualInspection/UiHarness/Program.cs": "00b900755e2457366cce7d309bf71cac70e2a1de6539b1a4f7302319b09d5685",
+    "tests/ManualInspection/UiHarness/CoverageCompactCases.cs": "d3c2549ea12e15c759b033fcf87e75a1d819cc1ecfb485ab342b3b6e8e78e611",
+    "tests/ManualInspection/UiHarness/HardeningCases.cs": "16afb7607b7952b7e8b88eff8185a8a571566192c32c61f452ecb11957488501",
+    "tests/ManualInspection/UiHarness/VisualUsabilityCases.cs": "03e285e85020a4ab161390c7c5c64a8e49408b2bc7828a1db3c068152a41e3fa",
+    "tests/ManualInspection/UiHarness/MapFirstCases.cs": "0b37b1a1cfde8052373ec077ba17b570fe3d8e6d93317eae1d003c2188b714b2",
+    "tests/ManualInspection/UiHarness/CellOverviewCases.cs": "726f9f2f980c2f48d737d421efc16a1b5a5fc4f4c8428577b36239bd92592a86",
+    "tests/ManualInspection/UiHarness/OffsetInitCases.cs": "f70a019eb6824a327f5432df2895319bbd2a322e15c56b1b2bc24ba9f64df68c",
+    "tests/ManualInspection/UiHarness/MeasurementWorkflowCases.cs": "2782a14bde9ae9989094fde795dc5a53dd513be1c110a7b009e4d41db830e58a",
+    "tests/ManualInspection/UiHarness/BulkHistoryCases.cs": "3e868ec45d453a967780e7cdfeb90e63f8531421a7c038fa6e437be85d8bd9e1",
+    "tests/ManualInspection/UiHarness/RepresentativeCases.cs": "70d503ccf1503b3cde946bf0a2b4f5207d1cce240fe558fa7aa7212b8b225046",
+    "tests/ManualInspection/UiHarness/SidePanelsCases.cs": "7ee454661d0a5fd8db65ae8b34cb2b38f0dd5ffa7ecb1e31c9d2932a32e0cf66",
+    "tests/ManualInspection/UiHarness/FinalOffsetCases.cs": "024d9eed8fe4546f416b9597ae38e99c057296bc4c56f302fb655f493619156d",
+    "tests/ManualInspection/UiHarness/ExistingFinalCsvCases.cs": "a1e43c1b3ffc6a166b54b2d69445e1ea255ca94cdd274f6bfee1eb160e642c98",
+    "tests/ManualInspection/UiHarness/RepresentativeApplyCases.cs": "c2fa1cb5b01a26a0b24ff75b1cacea93ead70220ab5cc3e97f90691ec3659d7b",
+    "tests/ManualInspection/UiHarness/BulkFinalConsistencyCases.cs": "9f1190f37a21038f79b77b9c1c59b6e70db1f542850afd61cd1ea2196fae9c33",
+    "tests/ManualInspection/UiHarness/CellCsvWorkflowCases.cs": "1fd0b7f06a0cc3739caea490d4bb36b464fd490df52bbc746625fc90a7b5eb4b",
+    "tests/ManualInspection/UiHarness/ReplacementWorkflowCases.cs": "9b01ecdcf3041c1ca26542744c4df554ea028d43562df0cd35716a88396a7a2e",
+    "tests/ManualInspection/UiHarness/CalibrationBasisCases.cs": "0d47ba8f18c2fcbf5bb7ea46112f087aeb3097a9f06b408666bdec20c13c24d1",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "d46bc80a4077b85b8bfcc3aedf73e7653205fda9a741e83c223ed1bb4fc300db",
+    "Drilling.UI/Views/CManualInspectionMapControl.cs": "0b13ba074bfcfa00866ab2fb59685e2643f05cf9f04c99bd138cfef11104819a",
+    "Drilling.UI/Views/CManualInspectionScatterControl.cs": "784068336f5136ff1c2a2c937e9980f944115990c53de460bcc891efc110ac6f",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "149b28226e672c806fbe74c88417b8b5c8fafc8bbc0a8c930ac8fe09eb141b26",
+    "Drilling.UI/Views/CManualInspectionView.xaml": "c28cf51b6b28f449edcef815ae9bd2fb888da1334389966cee27ea592df49713",
+    "Drilling.UI/Popup/CValueInputDialog.xaml.cs": "2b05f6cf626e622daefee01b894f4aba1909dbcd11b77da23e4cda5caf502166",
+    "Drilling.UI/Popup/CValueInputDialog.xaml": "304abe666aab54bd6d5618650ab78176bb7e67f32cde9cba4b36bb1116df67a5",
+    "Drilling.UI/Themes/ThemeDark.xaml": "08bc81877f8766d2198e515f869e6b06f74f4b4c6eb7a1a9d8093234f11b2e4c",
+    "Drilling.UI/Themes/ThemeLight.xaml": "2a3d9bc68816fd0c25360ae10c3d344354ac494c5ec03fc7f7077adaff99ea87",
+    "Drilling.UI/App.xaml": "34b55a666684d02ffc18dcb66313415e72629a7f027e5a5d42ecb0357df82357",
+    "Drilling.Common/Managers/CRecipeManager.cs": "b8d208d8945081e6a6d500f40d51e3f4fca414124329325c36c7fffedb86c9b9"
+  },
+  "inputCount": 30,
+  "results": [
+    {
+      "mode": "bulk-final-consistency",
+      "passed": true,
+      "count": 49,
+      "path": "validation/11.24.9/ui-bulk-final-consistency-results.json",
+      "sha256": "e7207c68b020b32b20ae07e09fe12f85b8e1231ba346feba2c3e3c2347c80462"
+    },
+    {
+      "mode": "bulk-history",
+      "passed": true,
+      "count": 35,
+      "path": "validation/11.24.9/ui-bulk-history-results.json",
+      "sha256": "742d3c6f18190fea4bf848222cd510b04a7d85a12b738cb4c094f6e49e3ab603"
+    },
+    {
+      "mode": "calibration-basis",
+      "passed": true,
+      "count": 43,
+      "path": "validation/11.24.9/ui-calibration-basis-results.json",
+      "sha256": "dd2d6cf89979e9ba41528f7fa3bfd5009a3b1dc23259eb120ddc61f6bf3b06eb"
+    },
+    {
+      "mode": "cell-csv-workflow",
+      "passed": true,
+      "count": 27,
+      "path": "validation/11.24.9/ui-cell-csv-workflow-results.json",
+      "sha256": "67d5068c77392911f595cdea9a80465ecbb1b4f0607e2c061dcc33c9ec3e6107"
+    },
+    {
+      "mode": "cell-overview",
+      "passed": true,
+      "count": 181,
+      "path": "validation/11.24.9/ui-cell-overview-results.json",
+      "sha256": "adb2a19a9975eb5806fbfba2d29414265845969a3c462ba34fc43dcae3ccfd33"
+    },
+    {
+      "mode": "coverage-compact",
+      "passed": true,
+      "count": 71,
+      "path": "validation/11.24.9/ui-coverage-compact-results.json",
+      "sha256": "9eca9189749cef2a966d1d01b59c32096c81b2c61e826c36a5efb48c6ff2efa1"
+    },
+    {
+      "mode": "default",
+      "passed": true,
+      "count": 49,
+      "path": "validation/11.24.9/ui-results.json",
+      "sha256": "e73e5757b8237f9a0123bd1fbba7f324d1a291f67735569b97abffa8ae616490"
+    },
+    {
+      "mode": "existing-final-csv",
+      "passed": true,
+      "count": 20,
+      "path": "validation/11.24.9/ui-existing-final-csv-results.json",
+      "sha256": "d25ffdb5dee67916c095e3890ba2e5f37fe6f6d6ea450c9557c540075ecac225"
+    },
+    {
+      "mode": "final-offsets",
+      "passed": true,
+      "count": 16,
+      "path": "validation/11.24.9/ui-final-offsets-results.json",
+      "sha256": "a38d9000fcc4ca70a019e82c268c1b62548e0b2e7bfcb1b87e1d0752d43de64e"
+    },
+    {
+      "mode": "hardening",
+      "passed": true,
+      "count": 30,
+      "path": "validation/11.24.9/ui-hardening-results.json",
+      "sha256": "e9d5eb815c775ae4f806faf63b3a1dbfe685a11f2372869bed8a2d082325b048"
+    },
+    {
+      "mode": "integration-impact",
+      "passed": true,
+      "count": 23,
+      "path": "validation/11.24.9/ui-integration-impact-results.json",
+      "sha256": "e371fced562983b3ec0800d69aa8765abfbae0f4cd4e67c80fe3ebedd730e4f2"
+    },
+    {
+      "mode": "map-first",
+      "passed": true,
+      "count": 73,
+      "path": "validation/11.24.9/ui-map-first-results.json",
+      "sha256": "a8abd840e1c463d0b95769f3961016a3c925221900b3a138b3fbf218bf4abe27"
+    },
+    {
+      "mode": "measurement-workflow",
+      "passed": true,
+      "count": 42,
+      "path": "validation/11.24.9/ui-measurement-workflow-results.json",
+      "sha256": "5412c857b0914fb8774cd32d7e247b247121ab4069198f32c134205daf13c3b3"
+    },
+    {
+      "mode": "offset-init",
+      "passed": true,
+      "count": 19,
+      "path": "validation/11.24.9/ui-offset-init-results.json",
+      "sha256": "7d1b2d8b83b548b65a8f93a280947706e42b4f64857c72497bc493282f8d7586"
+    },
+    {
+      "mode": "replacement-workflow",
+      "passed": true,
+      "count": 48,
+      "path": "validation/11.24.9/ui-replacement-workflow-results.json",
+      "sha256": "4efcbec8533a29827dd57e4689e8cbb671ab2387f682db5fcfa5868c22712b88"
+    },
+    {
+      "mode": "representative",
+      "passed": true,
+      "count": 54,
+      "path": "validation/11.24.9/ui-representative-results.json",
+      "sha256": "8ee7a1e9f749a9c73f1406ba0a09abc5ef5b7ec40e466e3388cb016ad570a260"
+    },
+    {
+      "mode": "representative-apply",
+      "passed": true,
+      "count": 58,
+      "path": "validation/11.24.9/ui-representative-apply-results.json",
+      "sha256": "66490e60003a6c74d9e8bed70ae6e799cd1194f91428cb456365c5b694aff8aa"
+    },
+    {
+      "mode": "side-panels",
+      "passed": true,
+      "count": 97,
+      "path": "validation/11.24.9/ui-side-panels-results.json",
+      "sha256": "267ea5ed61b0a24fdd081f5d56a6cd7265da0129b15b3b8d22c29ccbc883007d"
+    },
+    {
+      "mode": "sync-levels",
+      "passed": true,
+      "count": 34,
+      "path": "validation/11.24.9/ui-sync-levels-results.json",
+      "sha256": "4ab280e0f9f412eb7e0f495abb759f908e57fe7f0c8ff9280a10e6e19d761ffa"
+    },
+    {
+      "mode": "visual-usability",
+      "passed": true,
+      "count": 105,
+      "path": "validation/11.24.9/ui-visual-usability-results.json",
+      "sha256": "acd62d7b052bfce2e5f5ace634725df9199ff767b33b7d630ca71d1797fad070"
+    }
+  ],
+  "visualReview": [
+    {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_9_CalibrationBasis\\ui-final\\calibration-basis\\calibration-notebook-dark.png",
+      "sha256": "86c446f8b38845a9c01a6be397d7008689ae576bac360ad47b2bbf0fd650f5e6",
+      "review": "direct image inspection of original themes/central map/compact states; no equipment connection"
+    },
+    {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_9_CalibrationBasis\\ui-final\\calibration-basis\\calibration-notebook-light.png",
+      "sha256": "c8823fd410c924ca438bea2216f953122aac226c0218cdbdce9eb1e9d597bfaf",
+      "review": "direct image inspection of original themes/central map/compact states; no equipment connection"
+    },
+    {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_9_CalibrationBasis\\ui-final\\calibration-basis\\calibration-wide-light.png",
+      "sha256": "68603967c8d8d487b34b30ff7bfdb1cd90fc77286081f7988bda6812d4596a1e",
+      "review": "direct image inspection of original themes/central map/compact states; no equipment connection"
+    }
+  ],
+  "productionScope": [
+    "Drilling.UI/Views/CManualInspectionView.xaml",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs",
+    "Drilling.UI/Views/CManualInspectionMapControl.cs",
+    "Drilling.UI/Views/CManualInspectionScatterControl.cs"
+  ],
+  "limits": "Synthetic immutable DTOs/Fake Controller only. Controller supplies already resolved F; these UI tests do not prove machining-basis arithmetic or live precision. No native equipment application/Manager/vendor/motion/Vision/operating CSV executes. Original residual and absolute Review F are separate populations. Existing scopes/interactions/state/provenance tests remain; only old .8 calculation/labels/scatter-population expectations migrate to .9."
+}

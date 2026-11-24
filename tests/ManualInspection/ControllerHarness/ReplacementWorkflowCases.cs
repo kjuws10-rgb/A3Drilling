@@ -13,7 +13,7 @@ internal static partial class Program
         {
             var(f,c)=Fixture();TwoCells(f);await c.EnsureLoaded();var original=c.Snapshot.Points.Single(p=>p.Key=="P2").OriginalXUm;
             await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,["P2"],r=>r with{ReferenceKey="P1",Reason="staged XY replacement"});
-            var p=c.Snapshot.Points.Single(p=>p.Key=="P2");True(f.Saves==0&&p.WorkingXUm==3&&p.ReferenceFinalXUm==3&&p.BaseXUm==10&&p.OriginalXUm==original&&c.Snapshot.CandidateRows.Count==0);
+            var p=c.Snapshot.Points.Single(p=>p.Key=="P2");True(f.Saves==0&&p.WorkingXUm==original&&p.ReferenceFinalXUm==3&&p.BaseXUm==10&&p.OriginalXUm==original&&c.Snapshot.CandidateRows.Count==0);
             await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply);True(f.Saves==1&&c.Snapshot.Points.Single(p=>p.Key=="P1").BaseXUm==3&&c.Snapshot.Points.Single(p=>p.Key=="P2").BaseXUm==3&&c.Snapshot.Points.Single(p=>p.Key=="P3").BaseXUm==222);
             await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply));True(f.Saves==1);
         });
@@ -21,7 +21,7 @@ internal static partial class Program
         {
             var(f,c)=Fixture();TwoCells(f);await c.EnsureLoaded();var outside=c.Snapshot.Points.Single(p=>p.Key=="P3");
             f.ImportedBundleValues=f.Source.Points.ToDictionary(p=>p.Key,_=>new ST_MANUAL_OFFSET(7,-1));await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ImportOffsetBundle,[],r=>r with{ResultPath="synthetic.csv"});
-            var p=c.Snapshot.Points.Single(p=>p.Key=="P1");True(c.Snapshot.PendingOffsetCellNo==1&&p.Source=="OFFSET_FILE"&&p.WorkingXUm==7&&p.OriginalXUm==3&&f.Saves==0&&c.Snapshot.CanBulkApply);
+            var p=c.Snapshot.Points.Single(p=>p.Key=="P1");True(c.Snapshot.PendingOffsetCellNo==1&&p.Source=="OFFSET_FILE"&&p.WorkingXUm==3&&p.ReferenceFinalXUm==7&&p.OriginalXUm==3&&f.Saves==0&&c.Snapshot.CanBulkApply);
             True(c.Snapshot.Points.Single(p=>p.Key=="P3").WorkingXUm==outside.WorkingXUm&&c.Snapshot.Points.Single(p=>p.Key=="P3").BaseXUm==222);
             await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply,[],r=>r with{CurrentCellNo=2}));True(f.Saves==0&&c.Snapshot.IsOffsetEditPending);
             await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply);True(f.Saves==1&&f.CumulativeInitializations.SequenceEqual([false])&&f.Source.Values["P1"].XUm==7&&f.Source.Values["P3"].XUm==222&&!c.Snapshot.IsOffsetEditPending);

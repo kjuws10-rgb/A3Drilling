@@ -1,0 +1,131 @@
+{
+  "schemaVersion": "a3-calibration-core-controller-round3/1",
+  "version": "2026.11.24.9",
+  "passed": true,
+  "sourceHashes": [
+    {
+      "path": "Drilling.Common\\Review\\ManualInspection\\CManualInspectionModels.cs",
+      "expected": "39421A7AD709281B992D0EFFE8C0F6386E6FB5B38F3232B6ADF0C0413BFFAD47",
+      "actual": "39421A7AD709281B992D0EFFE8C0F6386E6FB5B38F3232B6ADF0C0413BFFAD47",
+      "passed": true
+    },
+    {
+      "path": "Drilling.Common\\Review\\ManualInspection\\CManualInspectionWorkspace.cs",
+      "expected": "1A5E0E1CB92749CAEEB3A6E4663AA8F80144DE9136D7F8AE37DBE1220696D10C",
+      "actual": "1A5E0E1CB92749CAEEB3A6E4663AA8F80144DE9136D7F8AE37DBE1220696D10C",
+      "passed": true
+    },
+    {
+      "path": "Drilling.UI\\Menu\\Menus\\CManualInspectionController.cs",
+      "expected": "0C4CD0CFF4A9FB6E8E6546445D798CF7B0A1D63111F02D760EFF8514F6686B81",
+      "actual": "0C4CD0CFF4A9FB6E8E6546445D798CF7B0A1D63111F02D760EFF8514F6686B81",
+      "passed": true
+    },
+    {
+      "path": "Drilling.UI\\Menu\\Menus\\CManualInspectionReplayBackend.cs",
+      "expected": "CA64804C4E9745F8E35414E2C6C59CC714AB7BA0A80D86E6D518D9CE8EAEC362",
+      "actual": "CA64804C4E9745F8E35414E2C6C59CC714AB7BA0A80D86E6D518D9CE8EAEC362",
+      "passed": true
+    }
+  ],
+  "testReports": [
+    {
+      "path": "core-results.json",
+      "sha256": "58EB1A2D64A6886DE1CB7374160BF7D422DD4C39AAA2F71655FFA694C7D47959",
+      "passed": true,
+      "count": 287,
+      "scope": "source-linked; not additive to actual Controller count"
+    },
+    {
+      "path": "controller-linked.json",
+      "sha256": "5777C2A8D0E07808DC32EC955C262306C63DDB2FA2E62F4F9D1DEBBE0556B5EB",
+      "passed": true,
+      "count": 292,
+      "scope": "source-linked; not additive to actual Controller count"
+    },
+    {
+      "path": "controller-production.json",
+      "sha256": "D2C103C198D26957C4025C99A91B116AEC9DA7EC9823DAE66D129822FE87A0B9",
+      "passed": true,
+      "count": 295,
+      "scope": "actual production DLL with synthetic no-device backend"
+    },
+    {
+      "path": "closed-loop.json",
+      "sha256": "1E2925CF6582092FCB69F8A9D70C4AF401ED20B8E6625D9A1F134FBDED1A70B6",
+      "passed": true,
+      "count": 35,
+      "scope": "actual Core, assumed plant; not physical equipment accuracy"
+    },
+    {
+      "path": "legacy-serialization.json",
+      "sha256": "CED45CCA99B5C827D0A22E9C5B9176C955CBEB5A8E0A18FE7576C555A6E9069C",
+      "passed": true,
+      "count": 46,
+      "scope": "actual .7 serializer fixtures; no old basis invented"
+    },
+    {
+      "path": "backend-read.json",
+      "sha256": "75736AEB1E999BA9FA3DD9D140525369A53907BB5B1CDE6E9D33DAFAE896E50E",
+      "passed": true,
+      "count": 202,
+      "scope": "Actual UI production adapter + actual pure Review/Recipe/Setting managers, parser/writer; synthetic temp data; no equipment Manager/App/Root or vendor objects."
+    },
+    {
+      "path": "ui-cross-review.json",
+      "sha256": "09580B1E2186AFDE613526C0EE751208EF6BE18FEB787230AC93D40E92D89075",
+      "passed": true,
+      "count": 1074,
+      "modeCount": 20,
+      "scope": "Actual source-linked WPF; display/input compatibility, not physical equipment performance"
+    }
+  ],
+  "productionBuild": {
+    "path": "release-build-final.log",
+    "warnings": 0,
+    "errors": 0,
+    "observed": true,
+    "sha256": "762ED37CBC7E49020CF309127E9C6E37BD6F95B1EBE068A9DAC82066F2770058"
+  },
+  "sourceReview": [
+    "Native captures actual consumed Review contribution and inverse scale, not current saved CSV B",
+    "Recipe geometry is entirely derived from Parameters; static coordinate signature covers it. Current stage geometry is not compared to machined geometry because latest B may validly differ.",
+    "Source map is required independently of serialized observation metadata; mixed Stage/Vision modes and scale0 cannot authorize automatic calibration",
+    "Raw residual is preserved; typed/copy/file absolute F is separate from measurement Level and scatter",
+    "No-raw absolute proxy remains numeric; SubjectPointKey proof blocks cross-point transplant",
+    "Cell Bulk only save boundary; generic other Review accumulation APIs retain old behavior"
+  ],
+  "pending": [],
+  "sourceEditsAfterFreeze": false,
+  "deviceExecution": false,
+  "uiSourceHashMismatches": [],
+  "finalAssemblySha256": {
+    "Drilling.UI": {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BackendReadHarness\\bin\\Release\\net8.0-windows\\Drilling.UI.dll",
+      "sha256": "862df0bce332d940d3f055ae4159a77a6edec960178902090db0b35b11839fbc"
+    },
+    "Drilling.Common": {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BackendReadHarness\\bin\\Release\\net8.0-windows\\Drilling.Common.dll",
+      "sha256": "d149239937592bfd7d85634488b43b1b369aaacd9977e5dab688b088effe85c3"
+    }
+  },
+  "finalIndependentScope": "Read-only final receipt/source/basis/raw/absolute/CSV-precision audit; no new features, source edits or device execution",
+  "finalAssemblyChecks": [
+    {
+      "assembly": "Drilling.UI",
+      "expected": "862df0bce332d940d3f055ae4159a77a6edec960178902090db0b35b11839fbc",
+      "actual": "862DF0BCE332D940D3F055AE4159A77A6EDEC960178902090DB0B35B11839FBC",
+      "passed": true
+    },
+    {
+      "assembly": "Drilling.Common",
+      "expected": "d149239937592bfd7d85634488b43b1b369aaacd9977e5dab688b088effe85c3",
+      "actual": "D149239937592BFD7D85634488B43B1B369AAACD9977E5DAB688B088EFFE85C3",
+      "passed": true
+    },
+    {
+      "assembly": "Controller and Backend loaded same UI DLL",
+      "passed": true
+    }
+  ]
+}

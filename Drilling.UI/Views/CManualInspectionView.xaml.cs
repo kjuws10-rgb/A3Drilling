@@ -107,7 +107,7 @@ public partial class CManualInspectionView : UserControl
     private string _sort = "shot";
     private string _scatterScope = "HEAD";
     private int _scatterHead;
-    private bool _scatterOriginal;
+    private bool _scatterOriginal = true;
     private bool _scatterFollowSelection;
     private WorkspaceViewBookmark? _workspaceViewBookmark;
     private int _page;
@@ -129,10 +129,10 @@ public partial class CManualInspectionView : UserControl
     {
         InitializeComponent();
         _updating = true;
-        SetChoices(JudgeFilter, [new("ALL", "전체 결과"), new("MEASURED", "측정됨"), new("OK", "측정 OK"), new("NG", "측정 NG"), new("ERROR", "최근 수신 오류"), new("UNMEASURED", "미측정")], "ALL");
-        SetChoices(SourceFilter, [new("ALL", "전체 출처"), new("MEASURED", "MEASURED"), new("IMPORTED", "IMPORTED · 불러온 결과"), new("INTERPOLATED", "INTERPOLATED"), new("MANUAL", "MANUAL"), new("OPERATOR", "OPERATOR · 수동 확정"), new("KEPT", "KEPT")], "ALL");
+        SetChoices(JudgeFilter, [new("ALL", "전체 결과"), new("MEASURED", "편차 있음"), new("OK", "측정 OK"), new("NG", "측정 NG"), new("ERROR", "최근 수신 오류"), new("UNMEASURED", "미측정")], "ALL");
+        SetChoices(SourceFilter, [new("ALL", "전체 출처"), new("MEASURED", "MEASURED"), new("IMPORTED", "IMPORTED · 불러온 결과"), new("OFFSET_FILE", "파일 입력"), new("INTERPOLATED", "INTERPOLATED"), new("MANUAL", "MANUAL"), new("OPERATOR", "OPERATOR · 수동 확정"), new("KEPT", "KEPT")], "ALL");
         SetChoices(SortFilter, [new("shot", "Shot 순"), new("cell", "Cell 순"), new("error", "편차 크기 순")], "shot");
-        SetChoices(ScatterDataCombo, [new("WORKING", "측정 편차"), new("ORIGINAL", "원측정 기록")], "WORKING");
+        SetChoices(ScatterDataCombo, [new("ORIGINAL", "원측정 편차"), new("WORKING", "작업 보정값")], "ORIGINAL");
         SetChoices(MeasurementModeCombo, [new("P2P", "P2P · 선택점"), new("FLYING", "Flying · 해당 행 전체")], "P2P");
         _updating = false;
         PositionMap.SelectionRequested += Map_SelectionRequested;
@@ -313,7 +313,7 @@ public partial class CManualInspectionView : UserControl
                 _cell = _snapshot.Points.FirstOrDefault()?.CellNo ?? 0; _head = 0; _judge = _source = "ALL";
                 _query = ""; _page = 0; SearchBox.Text = "";
                 _localMessage = "";
-                _scatterScope = "HEAD"; _scatterHead = 0; _scatterOriginal = false; _scatterFollowSelection = false;
+                _scatterScope = "HEAD"; _scatterHead = 0; _scatterOriginal = true; _scatterFollowSelection = false;
                 PositionMap.IsPanTool = false; PositionMap.Cursor = Cursors.Cross;
                 _scatterCells.Clear(); if (_cell != 0) _scatterCells.Add(_cell);
             }
@@ -386,9 +386,9 @@ public partial class CManualInspectionView : UserControl
     {
         var points = _snapshot.Points.Where(p => (_cell == 0 || p.CellNo == _cell) && (_head == 0 || p.HeadNo == _head)
             && (_judge == "ALL" || _judge == "MEASURED" && p.HasMeasurementHistory
-                || _judge == "UNMEASURED" && !p.IsMasked && !p.HasMeasurementHistory && p.WorkingJudge is not ("NG" or "ERROR")
-                || _judge == "OK" && p.WorkingJudge == "OK" && p.HasMeasurementHistory
-                || _judge is not ("MEASURED" or "UNMEASURED" or "OK") && p.WorkingJudge == _judge)
+                || _judge == "UNMEASURED" && !p.IsMasked && !p.HasMeasurementHistory && p.MeasurementJudge is not ("NG" or "ERROR")
+                || _judge == "OK" && !p.IsFileOffsetValue && p.MeasurementJudge == "OK" && p.HasMeasurementHistory
+                || _judge is not ("MEASURED" or "UNMEASURED" or "OK") && p.MeasurementJudge == _judge)
             && (_source == "ALL" || (p.IsProxy ? "MANUAL" : p.MeasurementSourceCode) == _source)
             && (_query.Length == 0 || (p.Key + " " + p.Identity).Contains(_query, StringComparison.OrdinalIgnoreCase)));
         return (_sort switch
@@ -439,37 +439,34 @@ public partial class CManualInspectionView : UserControl
 
     private void RefreshReference()
     {
-        var reference = _representativeKey is not null && _points.TryGetValue(_representativeKey, out var point) ? point : null;
-        var values = reference is null ? (X:(double?)null, Y:(double?)null) : ReferenceValues(reference);
-        ReferenceText.Text = reference is null ? "원하는 점을 선택한 뒤 ‘대표값으로 지정’하세요."
-            : $"★ {reference.Key} · {reference.ReferenceValueJudge}\n" + (reference.CanCopyAsReference
-                ? $"대표 편차 Δ {CManualInspectionUiPoint.Pair(values.X, values.Y)} µm"
-                : reference.CanCopyReferenceState ? "빈 측정 상태 · CSV 저장 전 작업 상태만 복사" : "복사할 측정 편차 없음");
-        ReferenceText.SetResourceReference(TextBlock.ForegroundProperty, reference?.WorkingJudge == "NG" ? "ButtonDangerBrush" : "AccentTextBrush");
-        var count = _selected.Count(key => key != _representativeKey && _points.TryGetValue(key, out var target) && !target.IsMasked);
-        CopyReferenceButton.Content = $"대표 편차로 대체 · {count}점";
-        CopyReferenceButton.ToolTip = "선택점의 작업 편차와 상태를 대표 편차로 대체합니다. 기존 Offset에 더하지 않으며 아직 CSV에는 저장하지 않습니다. 현재 Cell 일괄 보정에서 저장하세요.";
+        var reference=_representativeKey is not null && _points.TryGetValue(_representativeKey,out var point)?point:null;
+        var value=reference is null? (X:(double?)null,Y:(double?)null):ReferenceValues(reference);
+        ReferenceText.Text=reference is null?"점을 고른 뒤 대표로 지정하세요."
+            : $"★ {reference.Identity}\n"+(reference.CanCopyAsReference?$"추천 Review {ShortPair(value.X,value.Y)} µm":reference.CanCopyReferenceState?"빈 상태 복사":"가공기준 또는 보정값 확인 필요");
+        ReferenceText.ToolTip=reference is null?"":reference.CalibrationBasisStatusText+"\n"+reference.ReferenceValueUnavailableReason;
+        ReferenceText.SetResourceReference(TextBlock.ForegroundProperty,reference?.MeasurementJudge=="NG"?"ButtonDangerBrush":"AccentTextBrush");
+        var targets=_selected.Where(key=>key!=_representativeKey && _points.TryGetValue(key,out var target)&&!target.IsMasked).Select(key=>_points[key]).ToArray();
+        CopyReferenceButton.Content=$"대표값 복사 · {targets.Length}점";
+        CopyReferenceButton.ToolTip=TargetCellsText(targets)+"\n대표의 추천 Review 값을 대체해 준비합니다. 원측정은 유지하며, 저장은 현재 Cell만 실행합니다.";
     }
 
     private (double? X, double? Y) ReferenceValues(CManualInspectionUiPoint point)
     {
-        // The Manual replacement resolver exposes the captured current deviation here.
-        // Never infer a measurement from stored B, and never recompute B + deviation.
-        if (!point.CanCopyAsReference) return (null, null);
-        if (point.ReferenceFinalXUm.HasValue || point.ReferenceFinalYUm.HasValue)
-            return (point.ReferenceFinalXUm, point.ReferenceFinalYUm);
-        return point.HasMeasurementHistory ? (point.MeasurementXUm, point.MeasurementYUm) : (null, null);
+        // Only the Controller/engine resolves the machining basis and recommended absolute F.
+        return point.CanCopyAsReference ? (point.ReferenceFinalXUm, point.ReferenceFinalYUm) : (null,null);
     }
 
     private void RefreshCorrection()
     {
-        var pendingCell=_snapshot.PendingOffsetCellNo;
-        SaveStatusText.Text=_snapshot.IsOffsetEditPending
-            ? $"Cell {pendingCell} · {(_snapshot.OffsetInitPending ? "초기화" : "가져온 편차")} 작업 · 아직 CSV 미저장"
-            : !string.IsNullOrWhiteSpace(_snapshot.LastSaveVerificationText) ? _snapshot.LastSaveVerificationText
-            : "측정·복사 후 현재 Cell 일괄 보정에서 CSV에 저장합니다.";
-        SaveStatusText.ToolTip=_snapshot.OffsetSummaryText+"\n"+_snapshot.FinalOffsetStatusText;
-        CorrectionSection.Header=_snapshot.IsOffsetEditPending ? $"Cell {pendingCell} 작업 저장" : "현재 Cell CSV 저장";
+        var here=_cell>0?_snapshot.CellUnsavedPointCounts.GetValueOrDefault(_cell):_snapshot.UnsavedPointCount;
+        var other=Math.Max(0,_snapshot.UnsavedPointCount-here);
+        SaveStatusText.Text=here>0?$"미저장 {here:N0}점"+(other>0?$" · 다른 Cell {other:N0}점":"")
+            : _snapshot.IsOffsetEditPending?$"Cell {_snapshot.PendingOffsetCellNo} · 미저장 작업"
+            : _snapshot.UnsavedPointCount>0?$"다른 Cell 미저장 {_snapshot.UnsavedPointCount:N0}점"
+            : _snapshot.LastSaveVerificationCode=="VERIFIED"?"저장됨 · 재측정 필요"
+            : !string.IsNullOrWhiteSpace(_snapshot.LastSaveVerificationText)?_snapshot.LastSaveVerificationText:"측정 후 필요한 값만 보정 저장";
+        SaveStatusText.ToolTip=$"현재 Cell 미저장 {here:N0}점 · 전체 {_snapshot.UnsavedPointCount:N0}점\n{_snapshot.LastSaveVerificationText}\n파일 일치 확인은 실제 정밀도 합격 판정이 아닙니다. 보정 후 재측정으로 확인하세요.\n{_snapshot.OffsetSummaryText}";
+        CorrectionSection.Header=_cell>0?$"Cell {_cell} 보정":"현재 Cell 보정";
         RevisionItems.ItemsSource=_snapshot.Revisions.Take(8).ToArray();
         var signature=FormattableString.Invariant($"{_snapshot.DeltaLimitUm:R}|{_snapshot.TotalLimitUm:R}|{_snapshot.ScannerFieldMm:R}");
         if(_lastLimitsVersion!=_snapshot.Version && _lastLimitsSignature!=signature)
@@ -482,17 +479,35 @@ public partial class CManualInspectionView : UserControl
         _lastLimitsVersion=_snapshot.Version;
     }
 
+    private static string ShortPair(double? x,double? y)
+        => (CManualInspectionUiPoint.Finite(x)?x!.Value.ToString("+0.###;-0.###;0",CultureInfo.InvariantCulture):"—")+" / "+
+           (CManualInspectionUiPoint.Finite(y)?y!.Value.ToString("+0.###;-0.###;0",CultureInfo.InvariantCulture):"—");
+    private static string TargetCellsText(IEnumerable<CManualInspectionUiPoint> points)
+        => string.Join(" · ",points.GroupBy(point=>point.CellNo).OrderBy(group=>group.Key).Select(group=>$"Cell {group.Key} {group.Count():N0}점"));
+    private string StoredReview(CManualInspectionUiPoint point)
+    {
+        var text=!_snapshot.HasFinalOffsetSnapshot?"저장 Review 확인 필요"
+            :_snapshot.FinalInitializedPointKeys.Contains(point.Key)?"저장 Review 없음 · Init"
+            :_snapshot.FinalAppliedPointKeys.Contains(point.Key) && _snapshot.FinalOffsetPoints.TryGetValue(point.Key,out var saved)
+                ?"저장 Review "+ShortPair(saved.XUm,saved.YUm)+" µm":"저장 Review 없음";
+        if(point.HasUnsavedCorrection && CManualInspectionUiPoint.Finite(point.ReferenceFinalXUm) && CManualInspectionUiPoint.Finite(point.ReferenceFinalYUm))
+            text+="\n작업 "+ShortPair(point.ReferenceFinalXUm,point.ReferenceFinalYUm)+" µm · 미저장";
+        return text;
+    }
+
     private void RefreshDetails()
     {
         var p=FocusPoint;
         PointTitleText.Text=p is null?"선택 없음":$"Cell {p.CellNo} · Head {p.HeadNo}";
         PointIdentityText.Text=p is null?"":$"Shot {p.ShotNo} · Beam {p.BeamNo}";
-        PointJudgesText.Text=p?.MeasurementStatusText ?? "측정 위치를 선택하세요.";
-        PointJudgesText.SetResourceReference(TextBlock.ForegroundProperty,p?.WorkingJudge=="NG"?"ButtonDangerBrush":p?.WorkingJudge=="ERROR"?"ButtonWarningBrush":"TextPrimaryBrush");
+        PointJudgesText.Text=(p?.MeasurementStatusText ?? "측정 위치를 선택하세요.")+(p?.HasUnsavedCorrection==true?" · 편집":"");
+        PointJudgesText.SetResourceReference(TextBlock.ForegroundProperty,p?.MeasurementJudge=="NG"?"ButtonDangerBrush":p?.MeasurementJudge=="ERROR"?"ButtonWarningBrush":"TextPrimaryBrush");
         var level=p is null?-1:CManualInspectionDrawing.Level(p,_snapshot);
         PointErrorText.Text=p is null?"":p.HasMeasurementHistory
-            ? $"편차 {p.MeasurementErrorText} µm"+(level>=0?$" · L{level+1}":"") : "유효 측정 편차 없음";
-        PointErrorText.ToolTip=p is null?"":p.MeasurementBasisText+(p.IsOperatorResult?"\n"+p.OperatorReason:"");
+            ? $"편차 {ShortPair(p.MeasurementXUm,p.MeasurementYUm)} µm"+(level>=0?$" · L{level+1}":"") : "유효 측정 편차 없음";
+        PointErrorText.ToolTip=p is null?"":p.MeasurementBasisText+"\n"+p.CalibrationBasisStatusText+(p.IsOperatorResult?"\n"+p.OperatorReason:"");
+        StoredReviewText.Text=p is null?"":StoredReview(p);
+        StoredReviewText.ToolTip=p is null?"":StoredReview(p)+"\n"+_snapshot.FinalOffsetFilePath+"\n"+_snapshot.FinalOffsetStatusText;
         PointDetailsText.Text=p is null?"":$"설계 X / Y  {p.DesignXmm:0.###} / {p.DesignYmm:0.###} mm\n측정 출처: {(string.IsNullOrWhiteSpace(p.DisplayedMeasurementOrigin)?p.MeasurementBasisText:p.DisplayedMeasurementOrigin)}\n{p.MeasurementSourcePath}\n{p.Key}";
         PointDetailsText.ToolTip=p?.Details;
         var selected=_snapshot.Points.Where(point=>_selected.Contains(point.Key)).ToArray();
@@ -506,7 +521,7 @@ public partial class CManualInspectionView : UserControl
         LastMeasurementText.Text=_snapshot.LastMeasurementText;
         LastMeasurementText.Visibility=string.IsNullOrWhiteSpace(_snapshot.LastMeasurementText)?Visibility.Collapsed:Visibility.Visible;
         var latest=_snapshot.LastMeasuredPointKey is {} latestKey && _points.TryGetValue(latestKey,out var latestPoint)?latestPoint:null;
-        LastMeasurementText.SetResourceReference(TextBlock.ForegroundProperty,latest?.WorkingJudge=="NG"?"ButtonDangerBrush":latest?.WorkingJudge=="ERROR"?"ButtonWarningBrush":"AccentTextBrush");
+        LastMeasurementText.SetResourceReference(TextBlock.ForegroundProperty,latest?.MeasurementJudge=="NG"?"ButtonDangerBrush":latest?.MeasurementJudge=="ERROR"?"ButtonWarningBrush":"AccentTextBrush");
         JobProgressText.Text=Busy?$"진행 {_snapshot.CompletedCount:N0} / {_snapshot.TotalCount:N0}점":_snapshot.HasIncomplete?$"잔여 {_snapshot.RemainingCount:N0}점":"";
         JobProgressBar.Visibility=Busy?Visibility.Visible:Visibility.Collapsed;
         JobProgressBar.Value=_snapshot.TotalCount>0?100d*_snapshot.CompletedCount/_snapshot.TotalCount:0;
@@ -524,15 +539,18 @@ public partial class CManualInspectionView : UserControl
         LoadRecipeButton.ToolTip=_snapshot.IsOffsetEditPending?"현재 작업을 CSV에 저장하거나 취소한 뒤 새로고침하세요.":"현재 자료를 다시 읽습니다.";
         FilesButton.IsEnabled=idle;
         BulkApplyButton.IsEnabled=writable && pendingHere;
-        BulkApplyButton.Content=_cell>0?$"Cell {_cell} 일괄 보정 · CSV 저장":"현재 Cell 일괄 보정 · CSV 저장";
-        BulkApplyButton.ToolTip=_cell<=0?"먼저 보정할 Cell 하나를 열어주세요.":!pendingHere?$"Cell {_snapshot.PendingOffsetCellNo} 작업을 먼저 저장하거나 취소하세요.":"현재 Cell의 편차를 Review Offset으로 대체해 CSV에 저장합니다. 다른 Cell과 보호 Offset은 유지합니다.";
-        BulkSummaryText.Text=_cell>0?CellBulkSummary(_snapshot,_cell):"전체 Cell 보기 · 보정할 Cell 하나를 선택하세요.";
+        BulkApplyButton.Content=_cell>0?$"Cell {_cell} 보정 저장":"Cell 선택 후 저장";
+        BulkApplyButton.ToolTip=_cell<=0?"먼저 보정할 Cell 하나를 열어주세요.":!pendingHere?$"Cell {_snapshot.PendingOffsetCellNo} 작업을 먼저 저장하거나 취소하세요.":"현재 Cell의 검증된 추천·편집값을 저장합니다. 실측은 가공 시점 기준으로 계산하고, 대표·파일·직접 입력은 절대 Review 값입니다. 다른 Cell과 보호 Offset은 유지합니다.";
+        BulkSummaryText.Text=_cell<=0?"저장할 Cell 하나를 여세요.":CellBulkCount(_snapshot,_cell)>0?$"저장 가능 {CellBulkCount(_snapshot,_cell):N0}점":!string.IsNullOrWhiteSpace(_snapshot.CorrectionBasisStatusText)?"가공기준 필요 · 측정은 가능":"저장할 새 결과 없음";
+        BulkSummaryText.ToolTip=CellBulkSummary(_snapshot,_cell)+"\n"+_snapshot.CorrectionBasisStatusText;
         OffsetInitButton.IsEnabled=writable && (_snapshot.IsOffsetEditPending || _cell>0);
-        OffsetInitButton.Content=_snapshot.IsOffsetEditPending?$"Cell {_snapshot.PendingOffsetCellNo} 작업 취소":_cell>0?$"Cell {_cell} Offset Init":"현재 Cell Offset Init";
+        OffsetInitButton.Content=_snapshot.IsOffsetEditPending?$"Cell {_snapshot.PendingOffsetCellNo} 작업 취소":_cell>0?$"Cell {_cell} 초기화":"현재 Cell 초기화";
         OffsetInitButton.Tag=_snapshot.IsOffsetEditPending?"CancelOffsetEdit":"InitializeOffsets";
         OffsetInitButton.ToolTip=_snapshot.IsOffsetEditPending?"가져오기/초기화 전 작업값으로 돌아갑니다. CSV는 바꾸지 않습니다.":"현재 Cell의 측정 기반 Offset을 값 없음으로 준비합니다. CSV 저장은 일괄 보정에서 합니다.";
         RollbackButton.IsEnabled=operate && _snapshot.CanUndoOffsets; RollbackButton.Content=$"되돌리기 ({_snapshot.UndoOffsetCount})";
+        RollbackButton.ToolTip=_snapshot.UndoOffsetDescription;
         RedoOffsetsButton.IsEnabled=operate && _snapshot.CanRedoOffsets; RedoOffsetsButton.Content=$"다시 적용 ({_snapshot.RedoOffsetCount})";
+        RedoOffsetsButton.ToolTip=_snapshot.RedoOffsetDescription;
         OffsetHistoryText.Text=_snapshot.OffsetHistoryText;
         SetReferenceButton.IsEnabled=idle && FocusPoint?.CanBeReference==true;
         ClearReferenceButton.IsEnabled=idle && _representativeKey is not null;
@@ -578,7 +596,7 @@ public partial class CManualInspectionView : UserControl
             foreach(var key in _selected) if(_points.TryGetValue(key,out var point) && !point.IsMasked) _scatterCells.Add(point.CellNo);
         }
         var currentCell=_cell!=0?_cell:FocusPoint?.CellNo ?? _snapshot.Points.FirstOrDefault()?.CellNo ?? 0;
-        var kind=_scatterOriginal?"ORIGINAL":"WORKING";
+        var kind=_scatterOriginal?"ORIGINAL":"WORKING_REVIEW";
         var signature=FormattableString.Invariant($"{_scatterScope}|{(_scatterScope=="CELL"?currentCell:0)}|{_scatterHead}|{kind}|{_snapshot.ToleranceXUm:R}|{_snapshot.ToleranceYUm:R}")
             +"|"+_scatterFollowSelection+"|"+string.Join(",",_scatterCells.OrderBy(cell=>cell));
         var contextIdentity=FormattableString.Invariant($"{_snapshot.Version}|{_snapshot.RecipeId}|{_snapshot.RunId}");
@@ -587,13 +605,28 @@ public partial class CManualInspectionView : UserControl
         _scatterProjectedPoints=_snapshot.Points;_scatterRenderSignature=signature;
         _scatterRenderedSelection.Clear();_scatterRenderedSelection.UnionWith(_selected);
         var range=_snapshot.Points.Where(point=>_scatterScope=="CELL"?point.CellNo==currentCell:_scatterScope=="HEAD"?_scatterHead==0 || point.HeadNo==_scatterHead:_scatterCells.Contains(point.CellNo)).ToArray();
-        var display=_scatterOriginal?range.Select(point=>point with {WorkingJudge=point.OriginalJudge,WorkingXUm=point.OriginalXUm,WorkingYUm=point.OriginalYUm,
-            IsProxy=false,IsOperatorResult=false,OperatorReason="",HasAppliedOffset=false,IsMeasurementOffsetInitialized=false,IsMeasurementStateCleared=false,CanUseImportedForCorrection=false}).ToArray():range;
+        var display=_scatterOriginal?range.Select(point=>point with
+        {
+            WorkingJudge=point.OriginalJudge,WorkingXUm=point.OriginalXUm,WorkingYUm=point.OriginalYUm,WorkingValueKind="RESIDUAL",IsWorkingReviewDisplay=false,Source="MEASURED",
+            IsProxy=false,IsOperatorResult=false,OperatorReason="",HasAppliedOffset=false,IsMeasurementOffsetInitialized=false,IsMeasurementStateCleared=false,CanUseImportedForCorrection=false
+        }).ToArray():range.Select(point=>point with
+        {
+            WorkingJudge=(point.CanCopyAsReference || point.IsFileOffsetValue) && CManualInspectionUiPoint.Finite(point.ReferenceFinalXUm)&&CManualInspectionUiPoint.Finite(point.ReferenceFinalYUm)?point.IsFileOffsetValue?"OK":point.ReferenceValueJudge:"UNMEASURED",
+            WorkingXUm=point.ReferenceFinalXUm,WorkingYUm=point.ReferenceFinalYUm,IsWorkingReviewDisplay=true,
+            IsMeasurementOffsetInitialized=point.IsMeasurementOffsetInitialized,IsMeasurementStateCleared=point.IsMeasurementStateCleared
+        }).ToArray();
         ScatterPlot.Configure(display,_selected,_scatterScope=="HEAD",_snapshot.ToleranceXUm,_snapshot.ToleranceYUm,
-            _scatterScope=="CELLS" && _scatterCells.Count==0?"산포도를 볼 Cell을 선택하세요.":"이 범위에 유효한 측정 편차가 없습니다.",_focusKey,contextIdentity,signature,kind);
+            _scatterScope=="CELLS" && _scatterCells.Count==0?"산포도를 볼 Cell을 선택하세요.":_scatterOriginal?"이 범위에 원측정 편차가 없습니다.":"이 범위에 준비된 작업 보정값이 없습니다.",_focusKey,contextIdentity,signature,_scatterOriginal?"ORIGINAL":"WORKING_REVIEW");
         RefreshScatterAxis();var m=ScatterPlot.Metrics;
-        ScatterMetricsText.Text=$"전체 위치 {m.Total:N0}점\n{(_scatterOriginal?"원측정":"현재 측정/복사")} {m.Count:N0}점\n평균 ΔX / ΔY\n{CManualInspectionUiPoint.Pair(m.MeanX,m.MeanY)} µm\n표준편차 σX / σY\n{CManualInspectionUiPoint.Number(m.SigmaX)} / {CManualInspectionUiPoint.Number(m.SigmaY)} µm\n최대 편차 {CManualInspectionUiPoint.Number(m.MaximumVector)} µm";
-        ScatterExcludedText.Text=$"제외: Masking {m.Masked} · 미측정 {m.Unmeasured} · 수신 오류 {m.Errors} · 수치 없음 {m.Invalid}점. σ는 모집단 기준입니다.";
+        var sampled=m.ValidPoints.Select(point=>point.Key).ToHashSet(StringComparer.Ordinal);
+        var included=range.Where(point=>sampled.Contains(point.Key)).ToArray();
+        var actual=_scatterOriginal?m.Count:included.Count(point=>!point.IsProxy&&!point.IsOperatorResult&&!point.IsFileOffsetValue);
+        var copied=_scatterOriginal?0:included.Count(point=>point.IsProxy);
+        var manual=_scatterOriginal?0:included.Count(point=>point.IsOperatorResult);
+        var files=_scatterOriginal?0:included.Count(point=>point.IsFileOffsetValue);
+        ScatterMetricsText.Text=$"{(_scatterOriginal?"원측정 편차":"작업 보정값")} {m.Count:N0}점\n실측 {actual:N0} · 복사 {copied:N0} · 수동 {manual:N0} · 파일 {files:N0}\n평균 X / Y\n{ShortPair(m.MeanX,m.MeanY)} µm\n표준편차 σX / σY\n{CManualInspectionUiPoint.Number(m.SigmaX)} / {CManualInspectionUiPoint.Number(m.SigmaY)} µm";
+        ScatterMetricsText.ToolTip=_scatterOriginal?"원측정 모집단의 편차입니다. σ는 모집단 기준이며 보정 후 정밀도 합격을 자동 판정하지 않습니다.":"추천·복사·수동·파일 Review 값의 분포입니다. 원측정 편차의 산포나 실측 정밀도 합격이 아닙니다.";
+        ScatterExcludedText.Text=$"제외 {m.Total-m.Count:N0}점 · Masking {m.Masked} / 값 없음 {m.Unmeasured+m.Invalid} / 오류 {m.Errors}";
         var byHead = _scatterScope == "HEAD";
         var groups = display.GroupBy(p => byHead ? p.HeadNo : p.CellNo).OrderBy(g => g.Key).Select(g =>
         {
@@ -607,7 +640,7 @@ public partial class CManualInspectionView : UserControl
             var group = groups[i]; var index = byHead && int.TryParse(group.Group.AsSpan(1), out var h) ? Math.Max(0, h - 1) : i;
             AddLegend(ScatterLegendItems, group.Group, CManualInspectionDrawing.Color(CManualInspectionDrawing.HeadColors[index % 8]));
         }
-        ScatterLegendText.Text = string.Join(" · ", groups.Select(g => g.Group)) + "   평균 + · (0,0): 목표 · " + (_scatterOriginal ? "원측정 기록" : "현재 측정/복사 편차");
+        ScatterLegendText.Text = string.Join(" · ", groups.Select(g => g.Group)) + "   평균 + · (0,0): 목표 · " + (_scatterOriginal ? "원측정 편차" : "작업 Review · 품질판정 아님");
         foreach (var b in new[] { ScatterCellButton, ScatterHeadButton, ScatterCellsButton }) b.Style = (Style)FindResource((string)b.Tag == _scatterScope ? "ManualPrimaryButton" : "ManualButton");
         ScatterScopeControls.Children.Clear();
         if (_scatterScope == "CELL") ScatterScopeControls.Children.Add(Label($"Cell {currentCell} 전체 · 지도 선택·NG·검색 필터와 관계없이 셀 전체를 봅니다."));
@@ -890,22 +923,26 @@ public partial class CManualInspectionView : UserControl
                 return;
             }
             var confirmingController = _controller;
-            var panel = new StackPanel(); panel.Children.Add(Label($"Recipe {current.RecipeId} · Run {current.RunId}"));
+            var panel = new StackPanel();
             var copying = action == EN_MANUAL_INSPECTION_UI_ACTION.CopyReference;
-            if (copying && current.Points.FirstOrDefault(point => point.Key == frozen.ReferenceKey) is { } reference)
+            var requestedKeys=frozen.Keys.ToHashSet(StringComparer.Ordinal);
+            var targets=current.Points.Where(point=>requestedKeys.Contains(point.Key)).ToArray();
+            var reference=current.Points.FirstOrDefault(point=>point.Key==frozen.ReferenceKey);
+            var title = copying ? "대표값 복사 확인" : "현재 Cell 보정 저장";
+            var confirmText = copying ? "복사" : "보정 저장";
+            panel.Children.Add(Label($"Recipe {current.RecipeId}"+(copying?"":$" · Cell {frozen.CurrentCellNo}")));
+            if(copying)
             {
-                var (x,y) = ReferenceValues(reference);
-                panel.Children.Add(Label($"대표 {reference.Key} · {reference.ReferenceValueJudge} · 편차 Δ {CManualInspectionUiPoint.Pair(x,y)} µm"));
+                var (x,y)=reference is null?((double?)null,(double?)null):ReferenceValues(reference);
+                panel.Children.Add(Label(reference?.CanCopyReferenceState==true && reference.CanCopyAsReference==false ? "대표의 빈 상태를 복사합니다." : $"대표 추천 Review {ShortPair(x,y)} µm"+(reference?.ReferenceValueJudge=="NG"?" · NG":"")));
+                panel.Children.Add(Label(TargetCellsText(targets)+"\n아직 미저장 · 현재 Cell만 저장(NG·빈 상태 제외). 원측정은 유지합니다."));
             }
-            var title = copying ? "대표 편차 복사 확인" : "현재 Cell 일괄 보정 확인";
-            var confirmText = copying ? "작업 편차 대체" : "현재 Cell CSV 저장";
-            panel.Children.Add(Label(copying
-                ? $"선택한 {frozen.Keys.Distinct(StringComparer.Ordinal).Count():N0}점의 작업 편차와 상태를 대표값으로 대체합니다.\n기존 Offset에 더하지 않습니다. 원측정 기록은 유지합니다.\n아직 CSV에는 저장하지 않습니다. 현재 Cell 일괄 보정에서 유효한 OK만 저장합니다.\nNG·빈 측정 상태도 작업 상태에 복사되며 보정 저장 대상에서는 제외됩니다."
-                : $"모델 {current.RecipeId} · 현재 Cell {frozen.CurrentCellNo}\n{CellBulkSummary(current,frozen.CurrentCellNo!.Value)}\n"
-                    + (current.OffsetInitPending ? "현재 Cell의 측정 기반 Offset을 값 없음으로 저장합니다. 0 측정으로 만들지 않습니다.\n"
-                        : "현재 Cell의 작업 편차 Δ를 Review Offset에 대체하여 CSV에 저장합니다. 기존 B에 Δ를 더하지 않습니다.\n")
-                    + $"입력 편차 한계 {current.DeltaLimitUm:0.###} / 저장값 한계 {current.TotalLimitUm:0.###} µm 및 Scanner Field를 확인합니다.\nNG·미측정·한계 초과 결과는 제외합니다. 필터·선택과 관계없이 현재 Cell만 저장하며 다른 Cell은 유지합니다.\n같은 Shot의 Beam은 보정값을 공유합니다. 보호 Offset과 원측정은 유지하며, 저장 후 최대 10회 되돌릴 수 있습니다.\n저장한 CSV를 다시 읽어 확인합니다."));
-            panel.Children.Add(Label("장비를 이동하지 않습니다. 취소하면 작업값과 CSV는 바뀌지 않습니다."));
+            else
+            {
+                panel.Children.Add(Label(current.OffsetInitPending?"현재 Cell의 측정 보정을 값 없음으로 저장합니다.":$"추천·편집 보정 {CellBulkCount(current,frozen.CurrentCellNo!.Value):N0}점을 저장합니다."));
+                panel.Children.Add(Label("현재 Cell 전체(필터·선택 무관), 다른 Cell·원측정은 유지합니다.\n저장 뒤 실제 정밀도는 재측정으로 확인하세요."));
+            }
+            panel.ToolTip=$"실측 추천 Review = 가공 시점 Review + 측정 잔차 / Review Scale. 대표·파일·직접 입력은 절대 Review 값을 대체합니다. 기준 없는 잔차는 저장하지 않습니다.\n입력 {current.DeltaLimitUm:0.###} / 저장값 {current.TotalLimitUm:0.###} µm 한계와 Field를 검증하며 NG·미측정·한계 초과·중복 결과는 제외합니다.\n장비는 이동하지 않습니다. 취소하면 바뀌지 않으며 저장된 상태는 최대 10회 되돌릴 수 있습니다.";
             bool accepted;
             _actionConfirmationPending = true; RefreshButtons();
             try { accepted = Confirm(title,panel,confirmText); }
@@ -1052,26 +1089,26 @@ public partial class CManualInspectionView : UserControl
     {
         if (Busy || _controller is null || expectedVersion != _controller.Snapshot.Version
             || _snapshot.IsOffsetEditPending || !_points.TryGetValue(key, out var point) || point.IsMasked)
-        { ShowMessage("현재 측정 기준과 선택점을 확인한 뒤 편차를 입력하세요."); return; }
+        { ShowMessage("현재 기준과 선택점을 확인한 뒤 보정값을 입력하세요."); return; }
         var controller = _controller;
         string? xText = null, yText = null;
         _actionConfirmationPending = true; RefreshButtons();
         try
         {
-            xText = Input("X 편차 · µm · " + point.Identity, point.WorkingXUm);
+            xText = Input("X Review 보정값 · µm · " + point.Identity, point.ReferenceFinalXUm);
             if (xText is null) return;
-            yText = Input("Y 편차 · µm · " + point.Identity, point.WorkingYUm);
+            yText = Input("Y Review 보정값 · µm · " + point.Identity, point.ReferenceFinalYUm);
             if (yText is null) return;
         }
-        catch (Exception error) { ShowMessage("편차 입력창을 열지 못했습니다. " + error.Message); return; }
+        catch (Exception error) { ShowMessage("보정값 입력창을 열지 못했습니다. " + error.Message); return; }
         finally { _actionConfirmationPending = false; RefreshButtons(); }
         if (!ReferenceEquals(controller, _controller) || expectedVersion != controller.Snapshot.Version || Busy)
         { Refresh(); ShowMessage("입력 중 측정 기준이 바뀌었습니다. 현재 자료를 확인한 뒤 다시 입력하세요."); return; }
         if (!double.TryParse(xText, NumberStyles.Float, CultureInfo.InvariantCulture, out var x) || !double.IsFinite(x)
             || !double.TryParse(yText, NumberStyles.Float, CultureInfo.InvariantCulture, out var y) || !double.IsFinite(y))
-        { ShowMessage("X/Y 편차는 유효한 숫자로 입력하세요. 값이 없으면 0으로 만들지 않습니다."); return; }
+        { ShowMessage("X/Y 보정값은 유효한 숫자로 입력하세요. 값이 없으면 0으로 만들지 않습니다."); return; }
         await Execute(EN_MANUAL_INSPECTION_UI_ACTION.ForceMeasurement, Request([key], expectedVersion)
-            with { ForcedXUm = x, ForcedYUm = y, Reason = "사용자 키패드 편차 입력 · 수동 OK 확정" });
+            with { ForcedXUm = x, ForcedYUm = y, Reason = "사용자 키패드 절대 Review 입력 · 원측정 보존" });
 
         string? Input(string prompt, double? current)
         {
@@ -1140,14 +1177,14 @@ public partial class CManualInspectionView : UserControl
         var menu = NewMenu(FilesButton);
         foreach (var (label, action) in new[] {
             ("통합 Offset 파일 가져오기", EN_MANUAL_INSPECTION_UI_ACTION.ImportOffsetBundle),
-            ("현재 Offset 데이터 내보내기 (CSV)", EN_MANUAL_INSPECTION_UI_ACTION.ExportCurrentOffsetCsv) })
+            ("마지막 저장 모델 전체 내보내기 (CSV)", EN_MANUAL_INSPECTION_UI_ACTION.ExportCurrentOffsetCsv) })
         {
             var imports = action == EN_MANUAL_INSPECTION_UI_ACTION.ImportOffsetBundle;
             var item = new MenuItem { Header = label, IsEnabled = !Busy && !_snapshot.IsOffsetEditPending && (!imports || _cell > 0)
                     && (!imports || !_snapshot.HasIncomplete) && _snapshot.Points.Count > 0,
-                ToolTip = _snapshot.IsOffsetEditPending ? "현재 Cell 작업을 일괄 보정으로 CSV에 저장하거나 취소하세요."
+                ToolTip = _snapshot.IsOffsetEditPending ? "현재 Cell 작업을 보정 저장하거나 취소하세요."
                     : imports && _snapshot.HasIncomplete ? "미완료 측정의 잔여점을 먼저 완료하세요."
-                    : imports ? "전체 파일을 검증한 뒤 현재 Cell의 작업 편차만 가져옵니다. 실제 저장은 현재 Cell 일괄 보정에서 합니다."
+                    : imports ? "전체 파일을 검증한 뒤 현재 Cell의 작업 편차만 가져옵니다. 실제 반영은 현재 Cell 보정 저장에서 합니다."
                     : "현재 모델의 저장된 누적 Review Offset 전체를 기존 최종 CSV와 동일한 형식으로 내보냅니다. 기본 위치는 해당 모델의 reviewoffset 폴더이며 파일명을 바꿀 수 있습니다. 미적용 후보는 포함하지 않습니다." };
             ToolTipService.SetShowOnDisabled(item, true);
             item.SetResourceReference(Control.ForegroundProperty, "TextPrimaryBrush");

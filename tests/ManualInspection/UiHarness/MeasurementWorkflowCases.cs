@@ -23,7 +23,7 @@ internal static partial class Program
             var p=state.Points[1] with{WorkingJudge="OK",WorkingXUm=0,WorkingYUm=0,BaseXUm=0,BaseYUm=0,HasAppliedOffset=true,IsProxy=false,Source="MEASURED"};
             string Color(CManualInspectionUiPoint point,string mode="level")=>((SolidColorBrush)CManualInspectionDrawing.PointBrush(view,point,mode,state)).Color.ToString();
             Test("workflow_color_mode_is_fixed_measurement_level",view.FindName("ColorFilter") is null&&MeasurementMapMode(view)=="level");
-            Test("workflow_scatter_defaults_to_current_measurement_and_all_heads",!Field<bool>(view,"_scatterOriginal")&&Field<string>(view,"_scatterScope")=="HEAD"&&Field<int>(view,"_scatterHead")==0&&plot.DataKind=="WORKING");
+            Test("workflow_scatter_defaults_to_original_measurement_and_all_heads",Field<bool>(view,"_scatterOriginal")&&Field<string>(view,"_scatterScope")=="HEAD"&&Field<int>(view,"_scatterHead")==0&&plot.DataKind=="ORIGINAL");
             SelectMeasurementView(view); // The remaining workflow assertions exercise the retained raw/measurement view.
             foreach(var theme in new[]{"Light","Dark"})
             {

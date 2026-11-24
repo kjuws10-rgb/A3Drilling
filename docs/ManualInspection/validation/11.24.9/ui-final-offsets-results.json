@@ -1,0 +1,125 @@
+{
+  "passed": true,
+  "tests": 16,
+  "failures": 0,
+  "checks": [
+    {
+      "name": "final_offset_metadata_retained_without_color_or_scatter_modes",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "final_offset_metadata_shows_exact_current_saved_csv",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "final_offset_map_is_measurement_not_final_saved_projection",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "final_offset_new_csv_metadata_is_visible_while_working_draft_preserved",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "final_offset_metadata_refresh_does_not_mutate_raw_or_fake_zero",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "final_offset_bookmark_preserves_original_measurement_not_saved_mode",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "final_offset_failed_read_has_explicit_metadata_warning",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "final_offset_display_and_bookmark_send_no_motion_or_save",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "final_metadata_compact_page_preserves_map_Darknotebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "final_metadata_does_not_add_another_action_Darknotebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "final_metadata_compact_page_preserves_map_Darkwide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "final_metadata_does_not_add_another_action_Darkwide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "final_metadata_compact_page_preserves_map_Lightnotebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "final_metadata_does_not_add_another_action_Lightnotebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "final_metadata_compact_page_preserves_map_Lightwide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "final_metadata_does_not_add_another_action_Lightwide",
+      "passed": true,
+      "details": null
+    }
+  ],
+  "observations": [
+    {
+      "savedCsvMetadataOnly": true,
+      "rawPopulation": 7
+    },
+    {
+      "theme": "Dark",
+      "Name": "notebook",
+      "ActualWidth": 800.2800000000001,
+      "ActualHeight": 448.24
+    },
+    {
+      "theme": "Dark",
+      "Name": "wide",
+      "ActualWidth": 1150.6800000000003,
+      "ActualHeight": 769.84
+    },
+    {
+      "theme": "Light",
+      "Name": "notebook",
+      "ActualWidth": 800.2800000000001,
+      "ActualHeight": 448.24
+    },
+    {
+      "theme": "Light",
+      "Name": "wide",
+      "ActualWidth": 1150.6800000000003,
+      "ActualHeight": 769.84
+    }
+  ],
+  "sourceHashes": {
+    "Views/CManualInspectionView.xaml": "c28cf51b6b28f449edcef815ae9bd2fb888da1334389966cee27ea592df49713",
+    "Views/CManualInspectionView.xaml.cs": "149b28226e672c806fbe74c88417b8b5c8fafc8bbc0a8c930ac8fe09eb141b26",
+    "Views/CManualInspectionUiContract.cs": "d46bc80a4077b85b8bfcc3aedf73e7653205fda9a741e83c223ed1bb4fc300db",
+    "Views/CManualInspectionMapControl.cs": "0b13ba074bfcfa00866ab2fb59685e2643f05cf9f04c99bd138cfef11104819a",
+    "Views/CManualInspectionScatterControl.cs": "784068336f5136ff1c2a2c937e9980f944115990c53de460bcc891efc110ac6f"
+  },
+  "scope": "Actual source-linked WPF views and current theme resources with immutable synthetic saved-offset metadata and a fake Controller. No production App/Root/Manager, vendor, equipment, motion, Vision, real CSV or offset export executes. Final values and working/raw states are deliberately different."
+}

@@ -1,0 +1,439 @@
+{
+  "status": "passed",
+  "passed": true,
+  "runtimeVerified": true,
+  "observedAt": "2026-11-24T13:08:27.998603+00:00",
+  "sourceSha256": {
+    "Drilling.Common/Review/CReviewProcessingBasis.cs": "630bf8330257d1286f8045fc04c528f99d76cd30fa0e0e48e9785cfab2c9bd01",
+    "Drilling.Common/Station/CStationProcess.cs": "a7ddd9a2539f1d8770ac6c4844a62f29e2c28d2581b01b63ad63414f3cb67235",
+    "Drilling.Common/Station/CStationManager.cs": "0a5c046fab1a9b2441a81f623674018049c1ba7419888bbae249dae39ec63c87",
+    "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs": "46e3442d3c65da5439ccff1b3ebf7ab0e28a1945747cc66d1a3d86278ce5bf5c",
+    "tests/ManualInspection/BackendReadHarness/CalibrationBasisNativeCases.cs": "e2641fde4e43010e48e5f32442387a16efcff28a7536365db0e6face0c24ecc5",
+    "tests/ManualInspection/BackendReadHarness/ReplacementWorkflowCsvCases.cs": "70de9ac06a458096a6b28d2445c29f75e10e2cd27fdaa02961c0eb37174f0c6c",
+    "tests/ManualInspection/BackendReadHarness/CellCsvWorkflowCases.cs": "d215792062237dfebb473806123fbee1900436f3128a4e184c50eb93d12ecd94",
+    "tests/ManualInspection/BackendReadHarness/BulkFinalConsistencyCases.cs": "0964d13df569b560582cf79627f028fbb61b863c5d1ab1ce38e2447899e300a4"
+  },
+  "checks": [
+    {
+      "name": "pending persisted before physical RUN",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "no old completed fallback on pending",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "normal Auto Stage task completion publishes before later handshake or Review errors",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Manual MOF completion waits for owned Stage and tasks",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "source native scope includes actual laser-enabled Shot Head map",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "execution route unknown cannot publish a completed basis",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "prepared file guard includes raw content SHA",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "native measurement binding carries typed observation modes",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exact native frame map checks Recipe Glass signature time mode and Head",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "reservation exception boundary surrounds planning invalidation and file commit",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "unknown or committed receipt keeps reservations",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "actual contribution captured independently from current CSV and scale zero does not divide",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "frozen Native/backend/test source hashes current",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "final actual Backend202 PASS",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "final actual Controller295 PASS",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "all nineteen native helper store transaction mode guard cases PASS",
+      "passed": true,
+      "detail": [
+        "native_basis_signature_is_exact_legacy_algorithm_and_detects_shift_scale_static_changes_without_serializing_settings",
+        "native_basis_backend_and_root_share_head_count_default_without_overwriting_explicit_count",
+        "native_basis_captures_exact_actual_contribution_and_distinguishes_explicitly_quantized_frozen_plan",
+        "native_basis_initial_absence_is_explicit_consumed_zero_and_scale_zero_is_not_invented_positive_scale",
+        "native_basis_pending_completed_restart_and_new_pending_never_falls_back_to_old_completed_record",
+        "native_basis_completed_publication_failure_retains_pending_and_cleans_temporary_file",
+        "native_basis_tampering_and_wrong_frame_glass_head_or_simulation_cannot_authorize_current_measurements",
+        "native_measurement_mode_binding_preserves_raw_but_rejects_mixed_or_unknown_stage_vision_basis",
+        "native_basis_manual_head_scope_keeps_original_signature_but_only_actual_selected_shots_get_authority",
+        "native_station_prepared_identity_rejects_same_path_same_saved_time_changed_sha_without_constructing_station",
+        "native_basis_mode_ignores_unused_simulated_devices_and_heads",
+        "native_basis_mode_marks_actual_simulated_head_only_when_used",
+        "native_basis_mode_marks_used_simulated_stage_or_process_handshake_route",
+        "native_basis_mode_unknown_or_missing_required_route_never_proves_real_machining",
+        "native_save_reservation_exception_boundary_cleans_uncommitted_reservation",
+        "native_save_reservation_exception_boundary_cleans_uncommitted_plan",
+        "native_save_reservation_exception_boundary_cleans_uncommitted_invalidate",
+        "native_save_reservation_exception_boundary_cleans_uncommitted_save",
+        "native_save_reservation_preserves_committed_or_unknown_receipt_and_successful_write"
+      ]
+    },
+    {
+      "name": "all nine actual CSV Monitor A1 cases PASS",
+      "passed": true,
+      "detail": [
+        "calibrated_csv_copy_stages_recommended_absolute_review_then_cell_bulk_never_adds_target_B",
+        "replacement_csv_operator_delta_replaces_legacy_B500_with_5_without_increment_limit_false_rejection",
+        "replacement_csv_ng_missing_and_saved_B_only_do_not_become_fake_raw_or_new_corrections",
+        "replacement_csv_import_stages_current_cell_only_and_bulk_preserves_other_cell_measured_zero_raw_ledger_and_hidden_rows",
+        "replacement_csv_current_cell_init_bulk_never_resets_other_cell_measured_zero_or_hidden_history",
+        "replacement_csv_legacy_generic_measured_session_cannot_acquire_new_basis_until_fresh_measurement",
+        "replacement_csv_legacy_generic_operator_session_cannot_acquire_new_basis_until_fresh_measurement",
+        "replacement_csv_saved_bulk_init_undo_redo_feed_actual_station_model_and_all_four_A1_text_modes_without_execution",
+        "replacement_csv_ng_reference_copy_is_working_state_only_and_never_writes_correction"
+      ]
+    },
+    {
+      "name": "Drilling.UI actual runtime SHA equals final Release",
+      "passed": true,
+      "detail": [
+        "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\Drilling.UI\\bin\\Release\\net8.0-windows\\Drilling.UI.dll"
+      ]
+    },
+    {
+      "name": "Drilling.Common actual runtime SHA equals final Release",
+      "passed": true,
+      "detail": [
+        "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\Drilling.Common\\bin\\Release\\net8.0\\Drilling.Common.dll"
+      ]
+    },
+    {
+      "name": "actual Controller uses same final UI DLL",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "final Release zero warnings errors",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "backend-read.json final passed",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "controller-production.json final passed",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "core-results.json final passed",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "bridge-writer.json final passed",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "legacy-serialization.json final passed",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "closed-loop.json final passed",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "WPF20 modes1074 passed with immutable inputs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UI input current tests/ManualInspection/UiHarness/ManualInspection.UiHarness.csproj",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UI input current tests/ManualInspection/UiHarness/Program.cs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UI input current tests/ManualInspection/UiHarness/CoverageCompactCases.cs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UI input current tests/ManualInspection/UiHarness/HardeningCases.cs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UI input current tests/ManualInspection/UiHarness/VisualUsabilityCases.cs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UI input current tests/ManualInspection/UiHarness/MapFirstCases.cs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UI input current tests/ManualInspection/UiHarness/CellOverviewCases.cs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UI input current tests/ManualInspection/UiHarness/OffsetInitCases.cs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UI input current tests/ManualInspection/UiHarness/MeasurementWorkflowCases.cs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UI input current tests/ManualInspection/UiHarness/BulkHistoryCases.cs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UI input current tests/ManualInspection/UiHarness/RepresentativeCases.cs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UI input current tests/ManualInspection/UiHarness/SidePanelsCases.cs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UI input current tests/ManualInspection/UiHarness/FinalOffsetCases.cs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UI input current tests/ManualInspection/UiHarness/ExistingFinalCsvCases.cs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UI input current tests/ManualInspection/UiHarness/RepresentativeApplyCases.cs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UI input current tests/ManualInspection/UiHarness/BulkFinalConsistencyCases.cs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UI input current tests/ManualInspection/UiHarness/CellCsvWorkflowCases.cs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UI input current tests/ManualInspection/UiHarness/ReplacementWorkflowCases.cs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UI input current tests/ManualInspection/UiHarness/CalibrationBasisCases.cs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UI input current Drilling.UI/Views/CManualInspectionUiContract.cs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UI input current Drilling.UI/Views/CManualInspectionMapControl.cs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UI input current Drilling.UI/Views/CManualInspectionScatterControl.cs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UI input current Drilling.UI/Views/CManualInspectionView.xaml.cs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UI input current Drilling.UI/Views/CManualInspectionView.xaml",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UI input current Drilling.UI/Popup/CValueInputDialog.xaml.cs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UI input current Drilling.UI/Popup/CValueInputDialog.xaml",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UI input current Drilling.UI/Themes/ThemeDark.xaml",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UI input current Drilling.UI/Themes/ThemeLight.xaml",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UI input current Drilling.UI/App.xaml",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "UI input current Drilling.Common/Managers/CRecipeManager.cs",
+      "passed": true,
+      "detail": null
+    }
+  ],
+  "newNativeCases": 19,
+  "actualCsvAndA1Cases": 9,
+  "boundaries": {
+    "nativeStationConstructorExecuted": false,
+    "uninitializedStationObjectUsedForPureFileFreshnessGuard": true,
+    "actualEquipmentSaveCoreExecuted": false,
+    "helperFaultInjectionExecuted": true,
+    "actualPureStationModelBuilderAndA1TextGeneratorExecuted": true,
+    "hardwareOrVendorApiExecuted": false,
+    "vendorAssemblyLoadingOutsideRecordedControllerScope": "not separately asserted",
+    "scriptUploadedCompiledOrExecuted": false,
+    "sourceOperationalCsvRecordsCopied": false,
+    "gitMutationByAgent": false
+  },
+  "note": "Final completed source/runtime record. Parent-owned publication manifest/document-link audit remains a separate final step.",
+  "round": 3,
+  "reports": {
+    "backend-read.json": {
+      "sha256": "75736aeb1e999ba9fa3dd9d140525369a53907bb5b1cde6e9d33dafae896e50e",
+      "passed": true,
+      "count": 202,
+      "failed": 0
+    },
+    "controller-production.json": {
+      "sha256": "d2c103c198d26957c4025c99a91b116aec9da7ec9823dae66d129822fe87a0b9",
+      "passed": true,
+      "count": 295,
+      "failed": 0
+    },
+    "core-results.json": {
+      "sha256": "58eb1a2d64a6886de1cb7374160bf7d422dd4c39aaa2f71655ffa694c7d47959",
+      "passed": true,
+      "count": 287,
+      "failed": 0
+    },
+    "bridge-writer.json": {
+      "sha256": "dcd856ec03a0b3391f6147209ff1c138642b408cc07aae411b53c08102b7e19a",
+      "passed": true,
+      "count": 38,
+      "failed": 0
+    },
+    "legacy-serialization.json": {
+      "sha256": "ced45cca99b5c827d0a22e9c5b9176c955cbeb5a8e0a18fe7576c555a6e9069c",
+      "passed": true,
+      "count": 46
+    },
+    "closed-loop.json": {
+      "sha256": "1e2925cf6582092fcb69f8a9d70c4af401ed20b8e6625d9a1f134fbded1a70b6",
+      "passed": true,
+      "count": 35
+    }
+  },
+  "runtimeAssemblies": {
+    "Drilling.UI": {
+      "sha256": "862df0bce332d940d3f055ae4159a77a6edec960178902090db0b35b11839fbc",
+      "runtimePath": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BackendReadHarness\\bin\\Release\\net8.0-windows\\Drilling.UI.dll"
+    },
+    "Drilling.Common": {
+      "sha256": "d149239937592bfd7d85634488b43b1b369aaacd9977e5dab688b088effe85c3",
+      "runtimePath": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BackendReadHarness\\bin\\Release\\net8.0-windows\\Drilling.Common.dll"
+    }
+  },
+  "releaseLogSha256": "762ed37cbc7e49020cf309127e9c6e37bd6f95b1ebe068a9dac82066f2770058",
+  "ui": {
+    "sha256": "88f23cb47a24282dcc0a68e582879267ce071c4a8bb7bcd535093ff258b2fc54",
+    "modes": 20,
+    "tests": 1074,
+    "inputCount": 30,
+    "images": [
+      {
+        "name": "calibration-notebook-dark.png",
+        "sha256": "86c446f8b38845a9c01a6be397d7008689ae576bac360ad47b2bbf0fd650f5e6",
+        "reviewedBy": "QA Native implementer opened both actual WPF synthetic renders; original residual vs saved and working Review F distinct, NG red/F-only gray, compact controls and large 2D preserved."
+      },
+      {
+        "name": "calibration-wide-light.png",
+        "sha256": "68603967c8d8d487b34b30ff7bfdb1cd90fc77286081f7988bda6812d4596a1e",
+        "reviewedBy": "QA Native implementer opened both actual WPF synthetic renders; original residual vs saved and working Review F distinct, NG red/F-only gray, compact controls and large 2D preserved."
+      }
+    ]
+  },
+  "reviewRole": "Implementation-owner source/runtime evidence audit, with parent independent integration/closed-loop checks and Core/UI peer review. Not an independent second implementation.",
+  "rounds": [
+    {
+      "round": 1,
+      "review": "Architecture and value contract: actual consumed B_run, source-owned map, raw provenance and strict absence/legacy distinction."
+    },
+    {
+      "round": 2,
+      "review": "Implementation/fault boundaries: pending/completed restart lifecycle, exact pending proof/IDs, source frame/mode binding, actual reader precision, scope/default alignment, immutable snapshot and transaction cleanup."
+    },
+    {
+      "round": 3,
+      "review": "Frozen final source plus actual Release/DLL/Backend202/Controller295/Bridge38/legacy/closed-loop/WPF1074 corroboration. No further source edits."
+    }
+  ],
+  "precisionCorrection": "Current Review planner uses ReadDouble directly; 3-digit rounding is Align-specific. Actual1.4um is preserved. Separate synthetic frozen command consuming1um proves capture does not substitute the1.4um CSV. Bridge Field normalization is parent-owned and covered by38 boundary regressions."
+}

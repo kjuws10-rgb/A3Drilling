@@ -91,7 +91,8 @@ public sealed class CManualInspectionScatterControl : Control
     private double _toleranceX = 5;
     private double _toleranceY = 5;
     private string _dataKind = "WORKING";
-    private bool IsOffsetData => _dataKind is "OFFSETS" or "OFFSETS_DRAFT";
+    private bool IsWorkingReviewData => _dataKind == "WORKING_REVIEW";
+    private bool IsOffsetData => IsWorkingReviewData || _dataKind is "OFFSETS" or "OFFSETS_DRAFT";
     private string _emptyText = "이 범위에 유효한 측정값이 없습니다.";
     private bool _autoScale = true;
     private double _halfRange = 5;
@@ -142,7 +143,7 @@ public sealed class CManualInspectionScatterControl : Control
         UpdateInteractionContext(focusKey, contextIdentity, scopeIdentity);
         _points = points; _selected = new HashSet<string>(selectedKeys, StringComparer.Ordinal);
         _byHead = byHead; _toleranceX = toleranceXUm; _toleranceY = toleranceYUm; _emptyText = emptyText; _dataKind = dataKind;
-        AutomationProperties.SetName(this, IsOffsetData ? "통합 Offset 산포도" : "리뷰 측정 편차 산포도");
+        AutomationProperties.SetName(this, IsWorkingReviewData ? "작업 Review 보정값 산포도" : IsOffsetData ? "통합 Offset 산포도" : "리뷰 측정 편차 산포도");
         AutomationProperties.SetHelpText(this, (IsOffsetData ? "가로/세로는 누적 통합 Offset X/Y µm입니다. 측정 잔류 오차나 공차 판정과 구분합니다. " : "가로 ΔX, 세로 ΔY는 µm이며 점선은 실제 측정 공차입니다. ")
             + "두 축 축척은 같으며 휠은 커서 중심 확대 축소, 더블클릭은 현재 모집단 자동 맞춤입니다. 겹친 점은 클릭 순환, Ctrl 클릭은 같은 위치의 점을 함께 선택합니다.");
         if (!samePoints)
@@ -282,7 +283,7 @@ public sealed class CManualInspectionScatterControl : Control
         CManualInspectionDrawing.Text(dc, this, IsOffsetData ? "Offset Y (µm)" : "ΔY (µm)", new Point(8, 3), 10, Foreground);
         var toleranceOutside = new[] { tx0, tx1, ty0, ty1 }.All(value => Math.Abs(value) > 1);
         var zeroOutside = Math.Abs(zx) > 1 || Math.Abs(zy) > 1;
-        CManualInspectionDrawing.Text(dc, this, (IsOffsetData ? "통합 측정 Offset · 누적 보정량 · 동일 축척" + (_dataKind == "OFFSETS_DRAFT" ? " · 미저장" : "")
+        CManualInspectionDrawing.Text(dc, this, (IsWorkingReviewData ? "작업 Review · 정밀도 판정 아님 · 동일 축척" : IsOffsetData ? "통합 측정 Offset · 누적 보정량 · 동일 축척" + (_dataKind == "OFFSETS_DRAFT" ? " · 미저장" : "")
                 : $"공차 X ±{CManualInspectionUiPoint.Number(tolX)} / Y ±{CManualInspectionUiPoint.Number(tolY)} µm · 동일 축척" + (toleranceOutside ? " · 공차 경계 축 밖" : ""))
             + (zeroOutside ? " · 원점 축 밖" : ""),
             new Point(8, 19), 10, Foreground, false, Math.Max(1, ActualWidth - 16), singleLine: true);
@@ -331,7 +332,7 @@ public sealed class CManualInspectionScatterControl : Control
         dc.Pop();
         var legend = ActualWidth < 350
             ? $"{(IsOffsetData ? "Offset" : "NG 빨강")} · + 평균 · {_hits.Count:N0}/{Metrics.Count:N0}점"
-            : IsOffsetData ? $"통합 Offset · + 평균 · {_hits.Count:N0}/{Metrics.Count:N0}점"
+            : IsOffsetData ? $"{(IsWorkingReviewData?"작업 Review":"통합 Offset")} · + 평균 · {_hits.Count:N0}/{Metrics.Count:N0}점"
             : $"NG 빨강 · 출처는 점 위에서 확인 · + 평균 · {_hits.Count:N0}/{Metrics.Count:N0}점";
         CManualInspectionDrawing.Text(dc, this, legend, new Point(8, ActualHeight - 16), 9, Foreground, false, Math.Max(1, ActualWidth - 16));
         if (ActualWidth > 470)
@@ -421,7 +422,7 @@ public sealed class CManualInspectionScatterControl : Control
         _tip.SetResourceReference(ForegroundProperty, "PreviewHoverTipTextBrush");
         if (group.Count == 0) { _tip.IsOpen = false; InvalidateVisual(); return; }
         var point = _pointByKey[_hoverKey!];
-        _tip.Content = $"{point.Key}\n" + (IsOffsetData
+        _tip.Content = $"{point.Key}\n" + (IsWorkingReviewData ? $"작업 Review {point.MeasurementErrorText} µm\n출처: {point.ValueOriginText} · 정밀도 판정 아님" : IsOffsetData
                 ? $"통합 Offset {point.BaseOffsetText} µm\n{(_dataKind == "OFFSETS_DRAFT" ? "미저장 작업 누적 보정량 · 실제 활성값은 아직 유지" : "모델에 저장된 누적 보정량 · 원측정 잔류 오차와 구분") }"
                 : $"{point.MeasurementStatusText} · Δ {point.MeasurementErrorText} µm\n출처: {CManualInspectionDrawing.MeasurementOrigin(point)}")
             + (group.Count > 1 ? $"\n같은 화면 위치에 {group.Count:N0}점 겹침 · 클릭: 한 점씩 순환 / Ctrl 클릭: 전체 선택·해제\n"

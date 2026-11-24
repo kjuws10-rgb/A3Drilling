@@ -1,0 +1,178 @@
+{
+  "passed": true,
+  "tests": 27,
+  "failures": 0,
+  "checks": [
+    {
+      "name": "cell_csv_file_menu_exposes_only_integrated_import_and_current_csv_Dark",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "cell_csv_file_menu_does_not_expose_session_measurement_json_export_or_return_Dark",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "cell_csv_export_delegates_current_saved_csv_picker_without_motion_confirmation_Dark",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "cell_csv_cancelled_fake_export_does_not_change_working_or_final_state_Dark",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "cell_csv_import_delegates_single_json_or_csv_import_action_Dark",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "cell_csv_pending_edit_requires_save_before_import_and_csv_export_Dark",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "cell_csv_incomplete_measurement_blocks_import_only_Dark",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "cell_csv_file_menu_exposes_only_integrated_import_and_current_csv_Light",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "cell_csv_file_menu_does_not_expose_session_measurement_json_export_or_return_Light",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "cell_csv_export_delegates_current_saved_csv_picker_without_motion_confirmation_Light",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "cell_csv_cancelled_fake_export_does_not_change_working_or_final_state_Light",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "cell_csv_import_delegates_single_json_or_csv_import_action_Light",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "cell_csv_pending_edit_requires_save_before_import_and_csv_export_Light",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "cell_csv_incomplete_measurement_blocks_import_only_Light",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "cell_csv_overview_never_falls_back_to_focused_cell_or_whole_model",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "cell_csv_missing_request_cell_cannot_fall_back_to_open_cell",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "cell_csv_bulk_uses_explicit_cell_even_with_other_cell_focus_and_selection",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "cell_csv_bulk_confirmation_uses_current_cell_count_not_global_count",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "cell_csv_visual_filters_do_not_shrink_current_cell_bulk_target",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "cell_csv_cell_change_during_modal_is_stale_even_at_same_snapshot_version",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "cell_csv_empty_current_cell_does_not_use_other_cell_global_eligibility",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "cell_csv_source_change_during_modal_preserves_scope_and_blocks_dispatch",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "cell_csv_reference_cancel_never_changes_offset_or_dispatches",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "cell_csv_reference_confirmation_explains_absolute_replacement",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "cell_csv_reference_dispatch_identifies_source_target_and_version",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "cell_csv_reference_stage_does_not_add_target_B_or_save_csv",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "cell_csv_reference_reply_keeps_other_cell_offsets_and_original_measurements",
+      "passed": true,
+      "details": null
+    }
+  ],
+  "observations": [
+    {
+      "theme": "Dark",
+      "menuCount": 2,
+      "fakeCalls": 2,
+      "confirmations": 0
+    },
+    {
+      "theme": "Light",
+      "menuCount": 2,
+      "fakeCalls": 2,
+      "confirmations": 0
+    },
+    {
+      "currentCellGuarded": true,
+      "globalEligible": 3,
+      "cellEligible": {
+        "1": 2,
+        "2": 1
+      },
+      "Count": 1
+    },
+    {
+      "sourceFinalX": 2,
+      "targetBeforeX": 101,
+      "targetAfterX": 101
+    }
+  ],
+  "sourceHashes": {
+    "Views/CManualInspectionView.xaml": "c28cf51b6b28f449edcef815ae9bd2fb888da1334389966cee27ea592df49713",
+    "Views/CManualInspectionView.xaml.cs": "149b28226e672c806fbe74c88417b8b5c8fafc8bbc0a8c930ac8fe09eb141b26",
+    "Views/CManualInspectionUiContract.cs": "d46bc80a4077b85b8bfcc3aedf73e7653205fda9a741e83c223ed1bb4fc300db",
+    "Views/CManualInspectionMapControl.cs": "0b13ba074bfcfa00866ab2fb59685e2643f05cf9f04c99bd138cfef11104819a",
+    "Views/CManualInspectionScatterControl.cs": "784068336f5136ff1c2a2c937e9980f944115990c53de460bcc891efc110ac6f"
+  },
+  "scope": "Actual source-linked WPF with immutable synthetic records and fake Controller. Tests verify menu exposure, request scope, confirmation and saved projection; actual CSV paths, save cancellation, byte copy/reopen, absolute correction and Undo persistence are verified by separate actual Backend/Core/Controller tests. No equipment, vendor, motion, Vision, real operating file or production save executes here."
+}

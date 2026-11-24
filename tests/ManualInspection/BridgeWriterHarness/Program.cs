@@ -102,6 +102,21 @@ internal static partial class Program
         {
             var p = Parameters(); p["H01_SCAN_FIELD_WIDTH_X"] = "2"; True(!CManualInspectionCoordinateBridge.EvaluateField(Shot(1.01, -1000, 0, 0), new(0, 0), new(0, 0), p, new(100, 1000, 5)).Ok);
         });
+        await Check("field_rejects_submicron_overrun_in_actual_review_precision", () =>
+        {
+            var result=CManualInspectionCoordinateBridge.EvaluateField(Shot(2.4988,-1000,0,0),new(0,0),new(1.4,0),Parameters(),new(30,200,5));
+            True(!result.Ok);Near(result.ScannerXMm!.Value,2.5002);
+        });
+        await Check("field_accepts_submicron_inside_without_align_rounding_false_rejection", () =>
+        {
+            var result=CManualInspectionCoordinateBridge.EvaluateField(Shot(2.4983,-1000,0,0),new(0,0),new(1.6,0),Parameters(),new(30,200,5));
+            True(result.Ok);Near(result.ScannerXMm!.Value,2.4999);
+        });
+        await Check("field_uses_exact_saved_six_decimal_mm_precision", () =>
+        {
+            var result=CManualInspectionCoordinateBridge.EvaluateField(Shot(2.4985,-1000,0,0),new(0,0),new(1.40049,0),Parameters(),new(30,200,5));
+            True(result.Ok);Near(result.ScannerXMm!.Value,2.4999);
+        });
         var optionalParameters = Environment.GetEnvironmentVariable("A3_MANUAL_QA_PARAMETERS");
         if (!string.IsNullOrWhiteSpace(optionalParameters)) await Check("optional_source_plan_stationary_field_matches_independent_encoder_model", () =>
         {

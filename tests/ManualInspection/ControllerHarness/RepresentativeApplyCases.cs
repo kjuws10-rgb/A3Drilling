@@ -10,7 +10,7 @@ internal static partial class Program
         await Check("copy_confirmation_dispatch_saves_known_final_and_refreshes_final_snapshot_without_motion",async()=>
         {
             var(f,c)=await Loaded();await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,["P2"],r=>r with{ReferenceKey="P1",Reason="explicit confirmed representative"});
-            True(f.Saves==0&&c.Snapshot.Points.Single(p=>p.Key=="P2").WorkingXUm==3);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply);
+            True(f.Saves==0&&c.Snapshot.Points.Single(p=>p.Key=="P2").WorkingXUm==1&&c.Snapshot.Points.Single(p=>p.Key=="P2").ReferenceFinalXUm==3);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply);
             True(f.Saves==1&&f.Executed.Count==0&&c.Snapshot.Points.Single(p=>p.Key=="P2").BaseXUm==3&&c.Snapshot.UndoOffsetCount==1);
             await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,["P2"],r=>r with{ReferenceKey="P1",Reason="same F again"});True(f.Saves==1);
         });
@@ -57,7 +57,7 @@ internal static partial class Program
         await Check("operator_unadopted_import_acceptance_keeps_foreign_raw_and_current_context_metadata",async()=>
         {
             var(f,c)=Fixture();f.Source=f.Source with{Points=f.Source.Points.Select(p=>p.Key=="P1"?p with{Source="IMPORTED",OriginalMeasurement=p.OriginalMeasurement! with{RunId="FOREIGN",CoordinateSignature="OLD"}}:p).ToArray()};await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);
-            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P1"]);True(f.Saves==1&&c.Snapshot.Points.Single(p=>p.Key=="P1").BaseXUm==0);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ForceMeasurement,["P1"],r=>r with{Reason="operator accepts current displayed values"});
+            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P1"]);True(f.Saves==1&&c.Snapshot.Points.Single(p=>p.Key=="P1").BaseXUm==0);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ForceMeasurement,["P1"],r=>r with{ForcedXUm=3,ForcedYUm=-1,Reason="explicit absolute imported acceptance"});
             await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P1"]);True(f.Saves==2&&c.Snapshot.Points.Single(p=>p.Key=="P1").OriginalXUm==3);
             await c.EnsureLoaded();True(!c.Snapshot.IsReadOnly&&c.Snapshot.Points.Single(p=>p.Key=="P1").IsOperatorResult);
         });
@@ -69,7 +69,7 @@ internal static partial class Program
         });
         await Check("operator_numeric_limits_are_excluded_per_row_but_field_and_shared_shot_stay_atomic",async()=>
         {
-            var(f,c)=await Loaded();await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ForceMeasurement,["P1"],r=>r with{ForcedXUm=31,ForcedYUm=0,Reason="large observed deviation"});await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P1","P2"]);
+            var(f,c)=await Loaded();await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ForceMeasurement,["P1"],r=>r with{ForcedXUm=201,ForcedYUm=0,Reason="absolute total over limit"});await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P1","P2"]);
             True(f.Saves==1&&c.Snapshot.Points.Single(p=>p.Key=="P1").BaseXUm==0&&c.Snapshot.Points.Single(p=>p.Key=="P2").BaseXUm==1);
             var(g,d)=Fixture();g.Source=g.Source with{FieldEvaluator=(_,_,_)=>new(false,"protected actual field")};await Do(d,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);await Do(d,EN_MANUAL_INSPECTION_UI_ACTION.ForceMeasurement,["P1"],r=>r with{ForcedXUm=1,ForcedYUm=0,Reason="field remains protected"});await Throws(()=>Do(d,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P1"]));True(g.Saves==0);
         });
@@ -85,9 +85,9 @@ internal static partial class Program
             var oldRaw=c.Snapshot.Points.Single(p=>p.Key=="P1").OriginalXUm;var file=Archive(f,"operator-file",8);f.FileSources[file.SourcePath]=file;await OpenFile(c,file.SourcePath);
             await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P3"]);True(f.Saves==1);
             await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ReturnToPreviousWorkspace);var returned=c.Snapshot.Points.Single(p=>p.Key=="P1");
-            True(!returned.IsOperatorResult&&returned.Source=="IMPORTED"&&returned.OriginalXUm==oldRaw&&returned.WorkingXUm==2&&returned.Details.Contains("old native operator value"));
+            True(!returned.IsOperatorResult&&returned.Source=="IMPORTED"&&returned.OriginalXUm==oldRaw&&returned.WorkingXUm==3&&returned.Details.Contains("old native operator value"));
             await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P1"]));True(f.Saves==1);
-            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ForceMeasurement,["P1"],r=>r with{Reason="accepted against returned current base"});await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P1"]);True(f.Saves==2);
+            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ForceMeasurement,["P1"],r=>r with{ForcedXUm=2,ForcedYUm=0,Reason="explicit final against returned base"});await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P1"]);True(f.Saves==2);
         });
     }
 }

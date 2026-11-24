@@ -94,6 +94,14 @@
         private IReadOnlyList<ST_INTERLOCK_ITEM> _lastInterLockItems = [];
         private ST_PROCESS_MODEL? _processModel;
         private string _preparedReviewOffsetFilePath = "";
+        private string _preparedReviewOffsetContentSha256 = "";
+        private string _preparedCalibrationCoordinateSignature = "";
+        private readonly CReviewProcessingBasisStore _processingBasisStore;
+        private ST_REVIEW_PROCESSING_BASIS? _lastCompletedProcessingBasis;
+        private ST_REVIEW_PROCESSING_BASIS? _runningProcessingBasis;
+        private string _processingBasisIdentity = "";
+        public ST_REVIEW_PROCESSING_BASIS? LastCompletedProcessingBasis { get { lock(_sequenceLock) return _lastCompletedProcessingBasis; } }
+        public string ProcessingBasisIdentity { get { lock(_sequenceLock) return _processingBasisIdentity; } }
         private DateTimeOffset _preparedReviewOffsetSavedAt = DateTimeOffset.MinValue;
         private bool _preparedReviewOffsetInvalidated;
         private ST_PROCESS_STATISTICS _statistics = EmptyStatistics();
@@ -151,6 +159,11 @@
             _automationManager = automationManager;
             _logManager = logManager;
             _manualMofCompletionPath = ResolveManualMofCompletionPath(scriptDirectory);
+            var basisRoot=string.IsNullOrWhiteSpace(scriptDirectory)?Path.Combine(AppContext.BaseDirectory,"Data"):Directory.GetParent(Path.GetFullPath(scriptDirectory))?.FullName??Path.GetFullPath(scriptDirectory);
+            _processingBasisStore=new CReviewProcessingBasisStore(Path.Combine(basisRoot,"ProcessingBasis","LastProcessingBasis.json"));
+            try { _lastCompletedProcessingBasis=_processingBasisStore.ReadCompleted();_processingBasisIdentity=_processingBasisStore.ReadIdentity(); }
+            catch(Exception error) when(error is IOException or UnauthorizedAccessException or JsonException or InvalidDataException)
+            { _processingBasisIdentity="INVALID";_lastCompletedProcessingBasis=null;System.Diagnostics.Trace.TraceError("Processing basis unavailable: "+error.Message); }
             _snapshot = CreateSnapshot(null, [], EN_SCRIPT_STATUS.NotCreated, EN_PROCESS_STEP.Idle, null);
             _stationStatus = new ST_STATION_STATUS(EN_STATION_ID.Process, stationName, EN_STATION_STATE.Idle, EN_PROCESS_STEP.Idle, EN_SCRIPT_STATUS.NotCreated, "Station idle.", DateTimeOffset.Now);
             StageRequests = CreateStageRequestSequence();
@@ -247,6 +260,8 @@
             ResetAutoStepStatesCore(preserveSequenceActions);
             SetSequenceState(EN_STATION_SEQUENCE.Ready);
             var runtimeParameters = BuildRuntimeParameters(recipeId, parameters, cancellationToken);
+            // Head selection has its own actual Shot/Head map; keep the pre-scope static signature.
+            _preparedCalibrationCoordinateSignature=CReviewProcessingBasis.CoordinateSignature(runtimeParameters);
             if (manualHeads is not null)
             {
                 var scoped = new Dictionary<string, string>(runtimeParameters, StringComparer.OrdinalIgnoreCase);
@@ -707,6 +722,7 @@
             }
 
             var headScripts = _lastScript.HeadScripts.Where(ShouldIncludeItem).ToArray();
+            BeginProcessingBasis(processModel,"AUTO");
             var bufferedRun = IsBufferedRunEnabled(processModel.Parameters);
             using var queueCountLogger = CQueueCountLogger.Create(this, processModel.RecipeId, bufferedRun, headScripts);
             using var scannerStatusLogger = CScannerStatusLogger.Create(this, processModel.RecipeId, bufferedRun, processModel.Parameters, headScripts);
@@ -733,6 +749,7 @@
                     scannerStatusLogger.Start();
                     WaitAutomationHeadScriptsComplete(processModel, headScripts, cancellationToken);
                 }
+                CompleteProcessingBasis();
             }
             catch
             {
@@ -1552,6 +1569,7 @@
             {
                 _preparedReviewOffsetFilePath = "";
                 _preparedReviewOffsetSavedAt = DateTimeOffset.MinValue;
+                _preparedReviewOffsetContentSha256 = "";
                 CReviewOffsetData.RemoveFromParameters(parameters);
                 return;
             }
@@ -1560,6 +1578,7 @@
             var reviewOffset = _reviewOffsetFile.LoadLatest(recipeId, cancellationToken).GetAwaiter().GetResult();
             _preparedReviewOffsetFilePath = reviewOffset.FilePath;
             _preparedReviewOffsetSavedAt = reviewOffset.SavedAt;
+            _preparedReviewOffsetContentSha256 = reviewOffset.ContentSha256;
             CReviewOffsetData.ApplyToParameters(parameters, reviewOffset);
             AddProcessLog("INFO", "REVIEW_OFFSET", $"Loaded latest Review Offset file: {reviewOffset.FileName} ({reviewOffset.Rows.Count} rows)");
         }
@@ -1583,18 +1602,21 @@
 
             string expectedPath;
             DateTimeOffset expectedSavedAt;
+            string expectedSha;
             lock (_sequenceLock)
             {
                 if (_preparedReviewOffsetInvalidated)
                     throw new InvalidOperationException("Review Offset이 변경되어 준비된 가공 모델이 무효화되었습니다. DoReady를 다시 실행해 주세요.");
                 expectedPath = _preparedReviewOffsetFilePath;
                 expectedSavedAt = _preparedReviewOffsetSavedAt;
+                expectedSha = _preparedReviewOffsetContentSha256;
             }
 
             // @보호 [리뷰옵셋] 가공전검증 - 준비 후 Offset이 롤백되거나 교체되면 이전 값으로 가공하지 않도록 DoReady 재실행을 요구한다.
             var current = _reviewOffsetFile.LoadLatest(processModel.RecipeId, cancellationToken).GetAwaiter().GetResult();
             if (!current.FilePath.Equals(expectedPath, StringComparison.OrdinalIgnoreCase)
-                || current.SavedAt != expectedSavedAt)
+                || current.SavedAt != expectedSavedAt
+                || !current.ContentSha256.Equals(expectedSha,StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidOperationException("가공 준비 후 Review Offset 파일이 변경되었습니다. 삭제되거나 이전 버전인 Offset으로 가공하지 않도록 DoReady를 다시 실행해 주세요.");
             }
@@ -3580,6 +3602,7 @@
                     }
                 }).ConfigureAwait(false);
                 await _manualMofActions.RunAsync("COMPLETE", () => ReleaseCompletedStageTasks(token)).ConfigureAwait(false);
+                CompleteProcessingBasis();
                 success = true;
                 message = "MOF 가공 완료";
                 var completion = new ST_MANUAL_MOF_COMPLETION(DateTimeOffset.Now, shiftOffsetX, shiftOffsetY);
@@ -3725,6 +3748,43 @@
             return value;
         }
 
+        private void BeginProcessingBasis(ST_PROCESS_MODEL model,string executionKind)
+        {
+            var basis=CReviewProcessingBasis.Capture(model,_preparedCalibrationCoordinateSignature,
+                _preparedReviewOffsetFilePath,string.IsNullOrEmpty(_preparedReviewOffsetFilePath)?CReviewProcessingBasis.Hash("NO_REVIEW_OFFSET_CSV"):_preparedReviewOffsetContentSha256,
+                _preparedReviewOffsetSavedAt,false,executionKind);
+            var usedHeads=basis.Offsets.Select(v=>v.HeadNo).Distinct().ToArray();
+            var headModes=usedHeads.ToDictionary(id=>id,id=>(bool?)_automationManager.IsSimul(model.HeadPlans.Single(h=>h.HeadNo==id).AutomationNo));
+            var requiredRoutes=executionKind=="AUTO_STAGE"
+                ?new[]{"MOTOR_STAGE_Y_CUR_POS","HANDSHAKE_STG_PROCESS_ABLE","HANDSHAKE_STG_PROCESS_START","HANDSHAKE_STG_PROCESS_COMPLETE","HANDSHAKE_PRC_PROCESS_ABLE","HANDSHAKE_PRC_PROCESS_START","HANDSHAKE_PRC_PROCESS_COMPLETE"}
+                :new[]{"MOTOR_STAGE_Y_CUR_POS"};
+            var usedDevices=requiredRoutes.Select(id=>_interfaceManager.Melsec.Map.SingleOrDefault(row=>row.Use&&row.Id.Equals(id,StringComparison.OrdinalIgnoreCase))?.DeviceNo??-1).Distinct().ToArray();
+            var stageModes=_interfaceManager.GetInterfaceCommunicationList(EN_EQP_MODULE.Melsec).GroupBy(d=>d.Number)
+                .ToDictionary(g=>g.Key,g=>g.Count()==1?(bool?)g.Single().IsSimulation:null);
+            var executionMode=CReviewProcessingBasis.GetExecutionSimulationMode(usedHeads,headModes,usedDevices,stageModes);
+            basis=basis with{IsSimulation=executionMode??false,IsExecutionModeKnown=executionMode.HasValue};
+            basis=basis with{ProofSha256=CReviewProcessingBasis.Proof(basis)};
+            lock(_sequenceLock){_lastCompletedProcessingBasis=null;_runningProcessingBasis=null;_processingBasisIdentity="PENDING|"+basis.BasisId;}
+            _processingBasisStore.Pending(basis); // Persist before RUN. Failure has not begun machining.
+            lock(_sequenceLock)_runningProcessingBasis=basis;
+        }
+        private void CompleteProcessingBasis()
+        {
+            ST_REVIEW_PROCESSING_BASIS? basis;lock(_sequenceLock)basis=_runningProcessingBasis;
+            if(basis is null)return;
+            try
+            {
+                var completed=_processingBasisStore.Completed(basis,DateTimeOffset.UtcNow);
+                lock(_sequenceLock){_lastCompletedProcessingBasis=completed;_processingBasisIdentity="COMPLETED|"+completed.BasisId;_runningProcessingBasis=null;}
+                AddProcessLog("INFO","PROCESSING_BASIS","가공 완료 Review 기준 기록: "+completed.BasisId);
+            }
+            catch(Exception error)when(error is IOException or UnauthorizedAccessException or JsonException or InvalidDataException)
+            {
+                lock(_sequenceLock){_lastCompletedProcessingBasis=null;_runningProcessingBasis=null;}
+                AddProcessLog("ERROR","PROCESSING_BASIS","가공은 완료됐으나 보정 기준 저장 실패: "+error.Message);
+            }
+        }
+
         private static string? ResolveManualMofCompletionPath(string? scriptDirectory)
         {
             if (string.IsNullOrWhiteSpace(scriptDirectory))
@@ -3849,6 +3909,8 @@
                 }
 
                 _stageMachiningCompleted = true;
+                // Manual MOF additionally waits for its owned Stage travel before publication.
+                if(!_manualMofRunning) CompleteProcessingBasis();
                 _scriptCompletedAt = DateTimeOffset.Now;
                 await CountCompletedProtectWindowGlass().ConfigureAwait(false);
                 // Persist actual usage even if the later MELSEC completion/readback fails.
@@ -4098,6 +4160,7 @@
             var readyRunId = _lastScript.MofReadyRunId;
             if (readyRunId <= 0)
                 throw new InvalidOperationException("Prepared scripts have no MOF readiness run ID. Rebuild the scripts before RUN.");
+            BeginProcessingBasis(GetProcessModel(),_manualMofRunning?"MANUAL_MOF":"AUTO_STAGE");
             var buffered = IsBufferedRunEnabled(GetProcessModel().Parameters);
             // Reset every controller-local slot before starting any queue. A write must never wait behind a running queue.
             foreach (var head in heads)

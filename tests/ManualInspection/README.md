@@ -1,6 +1,17 @@
-﻿# Manual Inspection 독립 검증
+# Manual Inspection 독립 검증
 
-현재 `11.24.8`의 측정편차 대체·복사 stage-only·현재 Cell 일괄 CSV 저장 검증은 [동작·범위](../../docs/ManualInspection/REPLACEMENT_WORKFLOW_11.24.8.md)와 [manifest](../../docs/ManualInspection/validation.json)를 따른다. `UiHarness --replacement-workflow`와 `verify_replacement_workflow.py`를 사용한다. 기존 generic 엔진의 B+Δ 시험은 다른 메뉴 호환 검증이며 Manual 대체 정책과 구분한다. 생산 저장 경로의 장비 Manager 가드는 실행하지 않는다.
+현재 `11.24.9`의 실측 가공 기준·절대값 대체·현재 Cell CSV 저장 검증은 [동작·범위](../../docs/ManualInspection/CALIBRATION_WORKFLOW_11.24.9.md)와 [manifest](../../docs/ManualInspection/validation.json)를 따른다. `UiHarness --calibration-basis`, `CalibrationClosedLoopHarness`, `verify_calibration_workflow.py`를 사용한다. 실제 가공 기준에 연결한 실측은 `F=B_run+잔차/Scale`, 대표·파일·직접 입력한 절대값은 `F=입력값`이다. 기존 generic 엔진 시험은 다른 메뉴 호환 검증과 구분한다. 생산 저장 경로의 장비 Manager 가드는 실행하지 않는다.
+
+추가 재현 명령:
+
+```powershell
+dotnet run --project tests/ManualInspection/CalibrationClosedLoopHarness/CalibrationClosedLoopHarness.csproj -c Release -- --report closed-loop.json
+dotnet run --project tests/ManualInspection/BackendReadHarness/BackendReadHarness.csproj -c Release -- --report backend-read.json
+python tests/ManualInspection/LegacySerializationHarness/generate_and_check.py --output legacy-serialization
+python tests/ManualInspection/verify_calibration_workflow.py --report scope-results.json
+```
+
+폐루프는 실제 Core와 가정한 선형 가공 응답을 결합한 합성 시험이며 실기 정밀도 시험이 아니다. Backend의 가공 기준 lifecycle·트랜잭션은 실제 helper/임시 파일로 검증한다. 준비 파일 SHA 검사는 생성자를 호출하지 않은 Station fixture의 가드만 실행하며 장비 시퀀스와 구분한다. 실제 `.7` serializer로 만든 JSON 5종의 원문·과거 기준 불명 처리를 검증한다. 실제 CSV는 6자리 mm 정밀도를 사용하므로 Field 검사도 이에 맞춘다.
 
 이전 `11.24.6`의 일괄보정 → 최종 CSV → Manual 지도/Monitor 일치 검증은 [원인·범위·결과](../../docs/ManualInspection/BULK_FINAL_CONSISTENCY_11.24.6.md)에 보존한다.
 

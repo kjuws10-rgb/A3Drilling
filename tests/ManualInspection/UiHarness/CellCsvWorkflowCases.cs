@@ -95,8 +95,8 @@ internal static partial class Program
             Invoke(view, "SetMapCellScope", 1); Invoke(view, "ChangeSelection", new CManualInspectionSelectionEventArgs([state.Points[1].Key, state.Points[2].Key], state.Points[2].Key));
             SelectViewChoice(view, "HeadFilter", "2"); SelectViewChoice(view, "JudgeFilter", "NG"); Bulk();
             Test("cell_csv_bulk_uses_explicit_cell_even_with_other_cell_focus_and_selection", fake.Calls.Count == 1 && fake.Calls[0].Action == EN_MANUAL_INSPECTION_UI_ACTION.BulkApply && fake.Calls[0].Request.CurrentCellNo == 1);
-            Test("cell_csv_bulk_confirmation_uses_current_cell_count_not_global_count", confirms == 1 && description.Contains("Cell 1") && description.Contains(state.CellBulkSummaryTexts[1]) && !description.Contains(state.BulkSummaryText));
-            Test("cell_csv_visual_filters_do_not_shrink_current_cell_bulk_target", description.Contains("필터") && fake.Calls[0].Request.CurrentCellNo == 1 && ((TextBlock)view.FindName("BulkSummaryText")).Text.Contains(state.CellBulkSummaryTexts[1]));
+            Test("cell_csv_bulk_confirmation_uses_current_cell_count_not_global_count",confirms==1&&description.Contains("Cell 1")&&description.Contains("2점")&&!description.Contains(state.BulkSummaryText));
+            Test("cell_csv_visual_filters_do_not_shrink_current_cell_bulk_target", description.Contains("필터") && fake.Calls[0].Request.CurrentCellNo == 1 && ((TextBlock)view.FindName("BulkSummaryText")).ToolTip.ToString()!.Contains(state.CellBulkSummaryTexts[1]));
             var before = fake.Calls.Count; Invoke(view, "SetMapCellScope", 1); view.ConfirmationForTesting = (_, _, _) => { Invoke(view, "SetMapCellScope", 2); Pump(); return true; }; Bulk();
             Test("cell_csv_cell_change_during_modal_is_stale_even_at_same_snapshot_version", fake.Snapshot.Version == 700 && fake.Calls.Count == before);
             fake.Replace(state with { Version = 703, CellBulkEligibleCounts = new Dictionary<int, int> { [1] = 2, [2] = 0 }, CellBulkSummaryTexts = new Dictionary<int, string> { [1] = state.CellBulkSummaryTexts[1], [2] = "Cell 2 · 새 OK 0" } });
@@ -121,7 +121,7 @@ internal static partial class Program
             var seen = ""; view.ConfirmationForTesting = (_, text, _) => { seen = text; return false; };
             void Copy() { ((Button)view.FindName("CopyReferenceButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Pump(); }
             Copy(); Test("cell_csv_reference_cancel_never_changes_offset_or_dispatches", fake.Calls.Count == 0 && fake.Snapshot.FinalOffsetPoints[target.Key].XUm == 101);
-            Test("cell_csv_reference_confirmation_explains_absolute_replacement", seen.Contains("대체") && seen.Contains("기존") && seen.Contains("더하지"));
+            Test("cell_csv_reference_confirmation_explains_absolute_replacement",seen.Contains("추천 Review")&&seen.Contains("아직 미저장")&&seen.Contains("현재 Cell"));
             var saved = state with {Version=706,Points=state.Points.Select(point=>point.Key==target.Key?point with{WorkingXUm=2,WorkingYUm=1,IsProxy=true,ReferenceKey=reference.Key}:point).ToArray()};
             view.ConfirmationForTesting = (_, _, _) => true; fake.OnExecute = (action, _) => { if (action == EN_MANUAL_INSPECTION_UI_ACTION.CopyReference) fake.Replace(saved); }; Copy();
             Test("cell_csv_reference_dispatch_identifies_source_target_and_version", fake.Calls.Count == 1 && fake.Calls[0].Action == EN_MANUAL_INSPECTION_UI_ACTION.CopyReference && fake.Calls[0].Request.ReferenceKey == reference.Key && fake.Calls[0].Request.Keys.SequenceEqual([target.Key]) && fake.Calls[0].Request.ExpectedVersion == 700);

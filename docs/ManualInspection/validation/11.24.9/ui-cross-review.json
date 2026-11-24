@@ -1,0 +1,66 @@
+{
+  "schema": "a3-manual-ui-cross-review/2",
+  "version": "11.24.9",
+  "passed": true,
+  "tests": 1074,
+  "modeCount": 20,
+  "newCalibrationChecks": 43,
+  "inputCount": 30,
+  "sourceHashMismatches": [],
+  "sourceHashes": {
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "d46bc80a4077b85b8bfcc3aedf73e7653205fda9a741e83c223ed1bb4fc300db",
+    "Drilling.UI/Views/CManualInspectionMapControl.cs": "0b13ba074bfcfa00866ab2fb59685e2643f05cf9f04c99bd138cfef11104819a",
+    "Drilling.UI/Views/CManualInspectionScatterControl.cs": "784068336f5136ff1c2a2c937e9980f944115990c53de460bcc891efc110ac6f",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "149b28226e672c806fbe74c88417b8b5c8fafc8bbc0a8c930ac8fe09eb141b26",
+    "Drilling.UI/Views/CManualInspectionView.xaml": "c28cf51b6b28f449edcef815ae9bd2fb888da1334389966cee27ea592df49713"
+  },
+  "validationPath": "D:\\CodexWork\\A3_Manual_Inspection_20261124_9_CalibrationBasis\\ui-final\\validation.json",
+  "validationSha256": "88f23cb47a24282dcc0a68e582879267ce071c4a8bb7bcd535093ff258b2fc54",
+  "harnessDllSha256": "1bcab3bf8619d3e6975a895ac9067caae27074ac17ec4f893f13bf4fcc946c9a",
+  "rounds": [
+    {
+      "round": 1,
+      "reviewer": "Parent + Core/Controller peer + UI owner",
+      "evidence": "Previous UX evaluation was compared with the .9 calibration policy; scalar contract and absolute F versus original residual semantics were agreed before implementation. No new settings/buttons or required B_run/Scale fields."
+    },
+    {
+      "round": 2,
+      "reviewer": "UI owner",
+      "evidence": "Actual source-linked WPF build 0 warnings/0 errors; new 43 cases and all existing 19 modes preserve raw/selection/keyboard/keypad/compact/theme/scope/modal guards. Twenty modes total 1,074/1,074; 30 exact input hashes and embedded report hashes matched."
+    },
+    {
+      "round": 3,
+      "reviewer": "Independent Backend/QA agent + Parent",
+      "evidence": "Both independently opened final Dark notebook and Light wide PNGs. Actual residual +2/-1, saved Review +10/+20 and unsaved working F +11/+19.5 are legible and distinct. F-only gray/edit and original-NG red, large map, folded table, single Cell save, original theme and no unwanted scroll/clipping confirmed. No further UI source change requested."
+    }
+  ],
+  "uiChanges": [
+    "A single passive selected-point readout adds saved Review and optional unsaved recommended/edited F; map remains actual residual Level.",
+    "Single short Cell n correction-save button remains the primary save; confirmations show model/value/Cell scope and remeasurement consequence in 3-4 lines.",
+    "Per-Cell and other-Cell unsaved counts override older CSV-verified text. CSV consistency success is named saved/re-measure required, never physical precision pass.",
+    "Raw camera residual, operator approval, absolute F input, copied F and file input are distinguished. F-only is editable/copyable but does not create a residual, a Level1 zero or a camera sample.",
+    "Original NG/error stays colored as the original physical result even after manual approval; pending edits are a passive text marker.",
+    "Default scatter is original residual; second option is working absolute Review F with origin counts, no physical residual tolerance box and no precision-pass claim. Same pan/zoom/hit/geometry/selection logic.",
+    "Export menu explicitly names last saved whole-model CSV. Undo/Redo tooltips name the target Cell/time."
+  ],
+  "intentionalExistingTestMigrations": [
+    "Old .8 UI assumption F=raw deviation is replaced only at the new Manual recommendation display boundary; tests now consume Controller-resolved immutable F and do not compute an unverified F in View.",
+    "Old WORKING residual population expectations become explicit original residual or working Review F populations. Existing test count 1,031 stays, plus new 43 checks.",
+    "Synthetic basis flags/recommended F are explicitly provided by fake Controller fixtures. Native basis proof/math/persistence is independently tested by Core/Controller/Backend, not inferred from UI passes.",
+    "Old long modal text and old force/keypad labels changed to short operational wording; stale/version/controller/reentry/cancel guards and raw immutability assertions remain."
+  ],
+  "productionFiles": [
+    "Drilling.UI/Views/CManualInspectionView.xaml",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs",
+    "Drilling.UI/Views/CManualInspectionMapControl.cs",
+    "Drilling.UI/Views/CManualInspectionScatterControl.cs"
+  ],
+  "productionFrozen": true,
+  "operationalLimits": [
+    "No actual equipment App/Root/Manager/vendor runtime/motion/Vision/operating CSV/laser executed by this UI run.",
+    "UI only consumes Controller-provided recommendation/proof; the 43 cases do not establish physical accuracy or the native calibration formula.",
+    "Gray can mean no actual residual, including absolute edit; saved Review and working F are readable separately.",
+    "Saving/verifying a CSV is not completion of post-correction measurement."
+  ]
+}

@@ -70,6 +70,8 @@ namespace Drilling.UI.Menu.Menus
         public double ShiftOffsetXmm { get; init; }
         public double ShiftOffsetYmm { get; init; }
         public CManualInspectionSavedOffsetSnapshot? SavedOffsets { get; init; }
+        public IReadOnlyDictionary<string,ST_MANUAL_CALIBRATION_BASIS> CalibrationBasisByOffsetKey { get; init; } = new Dictionary<string,ST_MANUAL_CALIBRATION_BASIS>(StringComparer.Ordinal);
+        public string CalibrationBasisStatus { get; init; } = "";
     }
     public sealed record CManualInspectionSavedOffsetSnapshot(string RecipeId,string RunId,string CoordinateSignature,string RevisionId,
         string FilePath,string FileName,DateTimeOffset? SavedAt,string ContentSha256,int RowCount,int InitializedRowCount,

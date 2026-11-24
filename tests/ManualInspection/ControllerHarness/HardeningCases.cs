@@ -232,7 +232,7 @@ internal static partial class Program
     private static CManualInspectionSource WithRun(CManualInspectionSource source, string run)
     {
         var context = source.Context with { RunId = run };
-        return source with { Context = context, ObservationFingerprint = run, ImportedResults = new Dictionary<string, CManualInspectionImportedResult>(),
-            Points = source.Points.Select(p => p with { OriginalMeasurement = p.OriginalMeasurement! with { RunId = run, RawToken = run + ":" + p.Key } }).ToArray() };
+        return DeclareZeroProcess(source with { Context = context, ObservationFingerprint = run, ImportedResults = new Dictionary<string, CManualInspectionImportedResult>(),
+            Points = source.Points.Select(p => p with { OriginalMeasurement = p.OriginalMeasurement! with { RunId = run, RawToken = run + ":" + p.Key } }).ToArray() });
     }
 }

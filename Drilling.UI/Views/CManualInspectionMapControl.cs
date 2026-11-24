@@ -114,7 +114,7 @@ public sealed class CManualInspectionMapControl : Control
         ToolTipService.SetInitialShowDelay(this, 180);
         ToolTipService.SetShowDuration(this, 15000);
         AutomationProperties.SetName(this, "리뷰 측정 위치 논리 행렬");
-        AutomationProperties.SetHelpText(this, "전체 Cell 보기에서는 셀 내부를 클릭하면 해당 Cell을 엽니다. 드래그로 측정점을 선택하고 Ctrl 드래그로 추가합니다. 단일 Cell에서는 Ctrl 클릭으로 복수 선택합니다. 방향키는 한 점, Ctrl 방향키는 행·열 끝, Shift 방향키는 사각 범위, Ctrl Shift 방향키는 끝까지 범위를 선택합니다. Space는 동작 메뉴, Esc는 메뉴 닫기, Ctrl 휠은 확대, Alt 방향키는 화면 이동입니다. 단일 Cell의 측정점 더블클릭은 편차 키패드 입력, 빈 공간 더블클릭은 맞춤입니다.");
+        AutomationProperties.SetHelpText(this, "전체 Cell 보기에서는 셀 내부를 클릭하면 해당 Cell을 엽니다. 드래그로 측정점을 선택하고 Ctrl 드래그로 추가합니다. 단일 Cell에서는 Ctrl 클릭으로 복수 선택합니다. 방향키는 한 점, Ctrl 방향키는 행·열 끝, Shift 방향키는 사각 범위, Ctrl Shift 방향키는 끝까지 범위를 선택합니다. Space는 동작 메뉴, Esc는 메뉴 닫기, Ctrl 휠은 확대, Alt 방향키는 화면 이동입니다. 단일 Cell의 측정점 더블클릭은 절대 Review 보정값 키패드 입력, 빈 공간 더블클릭은 맞춤입니다.");
         SizeChanged += (_, _) => { _layoutDirty = true; InvalidateVisual(); };
         Loaded += (_, _) => UpdateMeasurementBlink();
         IsVisibleChanged += (_, _) => UpdateMeasurementBlink();
@@ -478,8 +478,8 @@ public sealed class CManualInspectionMapControl : Control
             {
                 // Point identity stays readable; provenance is plain Korean in the tooltip rather
                 // than unexplained square/diamond/circle glyphs repeated in every matrix slot.
-                var state = p.Key == _representative ? "대표" : p.IsMasked ? "제외" : p.WorkingJudge == "NG" ? "NG"
-                    : p.WorkingJudge == "ERROR" ? "오류" : p.IsMeasurementOffsetInitialized ? "초기화" : "";
+                var state = p.Key == _representative ? "대표" : p.IsMasked ? "제외" : p.MeasurementJudge == "NG" ? "NG"
+                    : p.MeasurementJudge == "ERROR" ? "오류" : p.IsMeasurementOffsetInitialized ? "초기화" : p.HasUnsavedCorrection ? "편집" : "";
                 var label = "S" + p.ShotNo + (r.Width > 115 ? $" / B{p.BeamNo}" : "")
                     + (r.Width > 75 && state.Length > 0 ? " · " + state : "");
                 var textWidth = Math.Max(1, polygon is null ? tile.Width - 10 : Math.Min(tile.Width - 10, minimum * .7));
@@ -487,7 +487,7 @@ public sealed class CManualInspectionMapControl : Control
                 CManualInspectionDrawing.Text(context, this, label, new Point(textX, tile.Top + Math.Max(2, tile.Height / 2 - 7)),
                     Math.Clamp(tile.Height / 3.3, 9, 12), textBrush, selected || focused, textWidth, singleLine: true);
             }
-            else if (minimum > 12 && r.Width > 18 && p.WorkingJudge == "NG")
+            else if (minimum > 12 && r.Width > 18 && p.MeasurementJudge == "NG")
                 CManualInspectionDrawing.Text(context, this, "NG", new Point(tile.Left + 2, tile.Top + 1), 9, textBrush, true);
             if (filledPolygon is not null) context.Pop();
             AddHit(p, r, viewport, polygon);
@@ -996,18 +996,18 @@ public sealed class CManualInspectionMapControl : Control
             menu.Items.Add(item);
         }
         menu.Items.Add(new Separator());
-        var force = new MenuItem { Header = $"측정 완료 · OK로 변경 · {keys.Length}점",
+        var force = new MenuItem { Header = $"추천 보정값 확정 · {keys.Length}점",
             IsEnabled = !_snapshot.IsBusy && !_snapshot.IsOffsetEditPending,
-            ToolTip = "기존 유효 편차 또는 최종값을 수동 OK로 확정합니다. 원측정은 보존하며, 값이 없으면 편차를 직접 입력하세요. 보정 저장은 별도입니다." };
+            ToolTip = "현재 기준으로 검증된 추천 Review 값을 수동 승인합니다. 원측정은 유지합니다. 기준이 없으면 보정값 직접 입력을 사용하세요. 저장은 별도입니다." };
         force.SetResourceReference(ForegroundProperty, "TextPrimaryBrush");
         ToolTipService.SetShowOnDisabled(force, true);
         force.Click += (_, _) => OperationRequested?.Invoke(this, new(EN_MANUAL_INSPECTION_UI_ACTION.ForceMeasurement, keys, version));
         menu.Items.Add(force);
         var focus = _snapshot.Points.FirstOrDefault(p => p.Key == _focusKey && !p.IsMasked)
             ?? _snapshot.Points.First(p => p.Key == keys[0]);
-        var edit = new MenuItem { Header = "편차 직접 입력 · " + focus.Key,
+        var edit = new MenuItem { Header = "보정값 직접 입력 · " + focus.Key,
             IsEnabled = !_snapshot.IsBusy && !_snapshot.IsOffsetEditPending,
-            ToolTip = "숫자 키패드에서 X/Y 편차(µm)를 입력하고 수동 OK로 기록합니다. 측정점 더블클릭도 같은 동작입니다." };
+            ToolTip = "숫자 키패드에서 절대 Review X/Y(µm)를 입력해 작업값으로 준비합니다. 카메라 편차를 만들지 않습니다. 저장은 별도입니다." };
         edit.SetResourceReference(ForegroundProperty, "TextPrimaryBrush");
         ToolTipService.SetShowOnDisabled(edit, true);
         edit.Click += (_, _) => ValueInputRequested?.Invoke(this, new(EN_MANUAL_INSPECTION_UI_ACTION.ForceMeasurement, [focus.Key], version));
@@ -1242,19 +1242,21 @@ internal static class CManualInspectionDrawing
     {
         if (point.IsMasked) return Resource(owner, "ReviewMaskBackgroundBrush", Color("#EFF2F5"));
         // A failed measurement must never look successful merely because its numeric error is small.
-        if (point.WorkingJudge == "NG") return Color("#D16776");
-        if (point.WorkingJudge == "ERROR") return Color("#D39A45");
+        if (point.MeasurementJudge == "NG") return Color("#D16776");
+        if (point.MeasurementJudge == "ERROR") return Color("#D39A45");
         if (point.IsMeasurementOffsetInitialized) return Color("#DBE4EA");
         if (mode == "applied") return LevelBrush(AppliedLevel(point, snapshot));
         if (mode == "head") return Color(HeadColors[Math.Max(0, point.HeadNo - 1) % HeadColors.Length]);
         if (mode == "level") return LevelBrush(Level(point, snapshot));
         if (mode == "source") return point.Source switch { "MEASURED" => Color("#3B9870"), "IMPORTED" => Color("#7899A8"), "INTERPOLATED" => Color("#77A6CD"), "MANUAL" => Color("#A482BE"), _ => Color("#DBE4EA") };
         return point.UsesAppliedMeasurement ? Color("#638CA8")
-            : point.WorkingJudge switch { "OK" => Color("#3B9870"), "NG" => Color("#D16776"), "ERROR" => Color("#D39A45"), _ => Color("#DBE4EA") };
+            : point.MeasurementJudge switch { "OK" => Color("#3B9870"), "NG" => Color("#D16776"), "ERROR" => Color("#D39A45"), _ => Color("#DBE4EA") };
     }
     internal static string MeasurementOrigin(CManualInspectionUiPoint point) => point.IsMasked ? "사용 제외"
         : point.IsMeasurementOffsetInitialized ? "측정 보정 초기화 · 새 측정 전"
         : point.IsProxy ? "대표값 복사 · " + point.ReferenceKey
+        : point.IsFileOffsetValue ? "파일 작업값 · 실측 아님"
+        : point.IsOperatorResult ? "수동 보정값 · 원측정 보존"
         : point.UsesAppliedMeasurement ? "기존 측정 보정 기반"
         : point.Source == "IMPORTED" ? "불러온 측정 결과"
         : point.Source == "MEASURED" ? "실측"

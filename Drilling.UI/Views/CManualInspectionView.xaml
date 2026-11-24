@@ -459,7 +459,7 @@
             <Border x:Name="MapPanel" Grid.Row="0" Style="{StaticResource ManualPanel}" Padding="0" Margin="0,0,0,3" ClipToBounds="True">
               <Grid>
                 <Border x:Name="MapViewportFrame" ClipToBounds="True">
-                  <views:CManualInspectionMapControl x:Name="PositionMap" MinHeight="80" AutomationProperties.Name="측정 결과 2D 지도" AutomationProperties.HelpText="전체 Cell에서 셀 내부나 번호 클릭은 해당 Cell을 엽니다. 드래그로 점을 선택하고 Ctrl 드래그로 추가합니다. 방향키는 한 점, Ctrl 방향키는 행·열 끝, Shift 방향키는 범위 선택, Ctrl Shift 방향키는 끝까지 범위 선택입니다. Space는 동작 메뉴, Esc는 메뉴 닫기, Alt 방향키는 보기 이동, Ctrl 휠은 확대 축소입니다. 단일 Cell의 측정점 더블클릭은 편차 키패드 입력, 빈 공간 더블클릭은 맞춤입니다."/>
+                  <views:CManualInspectionMapControl x:Name="PositionMap" MinHeight="80" AutomationProperties.Name="측정 결과 2D 지도" AutomationProperties.HelpText="전체 Cell에서 셀 내부나 번호 클릭은 해당 Cell을 엽니다. 드래그로 점을 선택하고 Ctrl 드래그로 추가합니다. 방향키는 한 점, Ctrl 방향키는 행·열 끝, Shift 방향키는 범위 선택, Ctrl Shift 방향키는 끝까지 범위 선택입니다. Space는 동작 메뉴, Esc는 메뉴 닫기, Alt 방향키는 보기 이동, Ctrl 휠은 확대 축소입니다. 단일 Cell의 측정점 더블클릭은 절대 Review 보정값 키패드 입력, 빈 공간 더블클릭은 맞춤입니다."/>
                 </Border>
               </Grid>
             </Border>
@@ -540,6 +540,7 @@
                       </StackPanel>
                       <Button x:Name="MeasureCurrentButton" Content="현 위치 측정" Tag="Measure" Style="{StaticResource ManualButton}" Click="Action_Click" ToolTip="현재 도착한 선택 위치 한 점을 측정합니다." Grid.Column="1" FontSize="11" Padding="5,3" MinHeight="26" Margin="3,0,0,2"/>
                     </Grid>
+                    <TextBlock x:Name="StoredReviewText" Style="{StaticResource ManualLabel}" FontSize="10" MaxHeight="32" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Margin="0,0,0,2"/>
                     <TextBlock x:Name="JobProgressText" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="10" TextWrapping="Wrap" Margin="0,3,0,2" MaxHeight="28"/>
                     <ProgressBar x:Name="JobProgressBar" Height="7" Minimum="0" Maximum="100" Foreground="{DynamicResource AccentBrush}"/>
                     <Button x:Name="RetryButton" Content="남은 위치만 재측정" Tag="RetryRemaining" Style="{StaticResource ManualButton}" Click="Action_Click" Margin="0,3,0,0" FontSize="11" MinHeight="26" Padding="4,3"/>
@@ -571,7 +572,7 @@
                             <Button x:Name="ClearReferenceButton" Content="대표 해제" Style="{StaticResource ManualButton}" Click="ClearReference_Click" FontSize="11" Padding="3,4" MinHeight="28"/>
                             <Button x:Name="UndoCopyButton" Content="복사 취소" Tag="UndoCopy" Style="{StaticResource ManualButton}" Click="Action_Click" FontSize="11" Padding="3,4" MinHeight="28" Grid.Column="1"/>
                           </Grid>
-                            <TextBlock Text="대표 편차를 작업에 대체합니다. CSV 저장은 현재 Cell 일괄 보정에서 합니다." Style="{StaticResource ManualLabel}" Margin="0,2,0,2"/>
+                            <TextBlock Text="복사 후 현재 Cell에서 보정 저장" Style="{StaticResource ManualLabel}" Margin="0,2,0,2"/>
                         </StackPanel>
                       </Expander>
                     </TabItem>
@@ -580,7 +581,7 @@
                         <StackPanel Margin="3,4,3,2">
                           <TextBlock x:Name="SaveStatusText" Style="{StaticResource ManualLabel}" MaxHeight="48" TextTrimming="CharacterEllipsis"/>
                           <TextBlock x:Name="BulkSummaryText" Style="{StaticResource ManualLabel}" MaxHeight="45" TextTrimming="CharacterEllipsis"/>
-                          <Button x:Name="BulkApplyButton" Content="현재 Cell 일괄 보정 · CSV 저장" Tag="BulkApply" Style="{StaticResource ManualPrimaryButton}" Click="Action_Click" MinHeight="28" Padding="5,4"/>
+                          <Button x:Name="BulkApplyButton" Content="현재 Cell 보정 저장" Tag="BulkApply" Style="{StaticResource ManualPrimaryButton}" Click="Action_Click" MinHeight="28" Padding="5,4"/>
                           <Button x:Name="OffsetInitButton" Content="현재 Cell Offset Init" Tag="InitializeOffsets" Style="{StaticResource ManualButton}" Click="Action_Click" MinHeight="28" Padding="5,4" Margin="0,4,0,0"/>
                           <Grid Margin="0,4,0,0">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>

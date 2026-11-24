@@ -1,0 +1,264 @@
+{
+  "passed": true,
+  "tests": 43,
+  "failures": 0,
+  "checks": [
+    {
+      "name": "calibration_default_scatter_is_original_residual_not_final_F",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_original_scatter_keeps_raw_NG_and_explicit_zero",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_absolute_F_without_raw_is_not_measurement_or_precision_zero",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_manual_approval_keeps_original_NG_residual",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_copy_keeps_target_raw_instead_of_source_F",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_residual_approval_also_keeps_original_NG_not_operator_OK",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_file_absolute_F_never_becomes_live_OK_or_error_500",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_original_NG_remains_red_after_manual_approval_or_copy",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_original_NG_without_numbers_stays_red_not_manual_OK_green",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_receive_error_is_named_error_not_unmeasured",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_F_only_and_saved_B_only_are_gray_but_true_raw_zero_has_level",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_selected_point_shows_current_residual_and_saved_not_draft_B",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_selected_point_shows_unsaved_recommended_F_separately",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_absolute_only_point_reads_no_residual_but_explicit_edit",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_initialized_saved_value_is_absent_not_stored_zero",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_working_F_scatter_is_named_separately_and_has_no_residual_tolerance",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_working_plot_has_absolute_only_and_file_F_samples",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_working_plot_does_not_claim_physical_measurement",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_working_origin_counts_distinguish_camera_copy_manual_and_file",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_projection_never_mutates_raw_working_or_saved_source_records",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_failed_saved_read_does_not_fall_back_to_active_draft_B",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_unsaved_state_wins_over_prior_CSV_verified",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_primary_save_label_is_short_and_cell_explicit",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_undo_redo_tooltips_name_target_cell_and_time",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_missing_basis_blocks_residual_copy_but_preserves_measurement",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_explicit_absolute_input_works_without_inventing_camera_measurement",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_copy_confirmation_uses_recommended_absolute_F_and_cell_counts",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_cancelled_copy_dispatches_no_save_or_copy",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_save_confirmation_is_short_scoped_and_requires_remeasurement",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_export_label_names_last_saved_whole_model",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_CSV_verification_is_not_physical_precision_pass",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_short_value_save_controls_fit_without_outer_scroll_Darknotebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_no_new_tabs_modes_or_settings_actions_Darknotebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_theme_is_original_dark_light_Darknotebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_short_value_save_controls_fit_without_outer_scroll_Darkwide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_no_new_tabs_modes_or_settings_actions_Darkwide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_theme_is_original_dark_light_Darkwide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_short_value_save_controls_fit_without_outer_scroll_Lightnotebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_no_new_tabs_modes_or_settings_actions_Lightnotebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_theme_is_original_dark_light_Lightnotebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_short_value_save_controls_fit_without_outer_scroll_Lightwide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_no_new_tabs_modes_or_settings_actions_Lightwide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "calibration_theme_is_original_dark_light_Lightwide",
+      "passed": true,
+      "details": null
+    }
+  ],
+  "observations": [
+    {
+      "workingCount": 6,
+      "rawPreserved": true
+    },
+    {
+      "scopedAndShort": true,
+      "noDeviceRequests": true
+    },
+    {
+      "theme": "Dark",
+      "Name": "notebook",
+      "ActualWidth": 533.2800000000001,
+      "ActualHeight": 448.24
+    },
+    {
+      "theme": "Dark",
+      "Name": "wide",
+      "ActualWidth": 863.6800000000002,
+      "ActualHeight": 769.84
+    },
+    {
+      "theme": "Light",
+      "Name": "notebook",
+      "ActualWidth": 533.2800000000001,
+      "ActualHeight": 448.24
+    },
+    {
+      "theme": "Light",
+      "Name": "wide",
+      "ActualWidth": 863.6800000000002,
+      "ActualHeight": 769.84
+    }
+  ],
+  "sourceHashes": {
+    "Views/CManualInspectionView.xaml": "c28cf51b6b28f449edcef815ae9bd2fb888da1334389966cee27ea592df49713",
+    "Views/CManualInspectionView.xaml.cs": "149b28226e672c806fbe74c88417b8b5c8fafc8bbc0a8c930ac8fe09eb141b26",
+    "Views/CManualInspectionUiContract.cs": "d46bc80a4077b85b8bfcc3aedf73e7653205fda9a741e83c223ed1bb4fc300db",
+    "Views/CManualInspectionMapControl.cs": "0b13ba074bfcfa00866ab2fb59685e2643f05cf9f04c99bd138cfef11104819a",
+    "Views/CManualInspectionScatterControl.cs": "784068336f5136ff1c2a2c937e9980f944115990c53de460bcc891efc110ac6f"
+  },
+  "scope": "Actual source-linked WPF controls/themes, synthetic immutable snapshots and fake Controller only. No Manager, equipment, motion, Vision, vendor, production CSV or real application executes. Actual replacement arithmetic/CSV persistence is covered separately by Core/Controller/Backend tests. Obsolete final-color/candidate UI assertions are replaced by current measurement-only/Cell-stage policy; generic legacy APIs are not changed by this UI fixture."
+}

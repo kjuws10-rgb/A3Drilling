@@ -1,0 +1,162 @@
+{
+  "schemaVersion": "a3-manual-inspection-bridge-writer-tests/1",
+  "passed": true,
+  "count": 38,
+  "failed": 0,
+  "tests": [
+    {
+      "name": "vision_headflip_direction_matrix_128",
+      "passed": true
+    },
+    {
+      "name": "stage_result_does_not_apply_vision_flip_twice",
+      "passed": true
+    },
+    {
+      "name": "legacy_scanner_offsets_decode_with_inverse_head_transform",
+      "passed": true
+    },
+    {
+      "name": "design_file_offsets_have_no_double_axis_conversion",
+      "passed": true
+    },
+    {
+      "name": "to_file_converts_um_to_design_mm_and_matrix_identity",
+      "passed": true
+    },
+    {
+      "name": "nonfinite_raw_and_file_output_rejected",
+      "passed": true
+    },
+    {
+      "name": "mof_following_y_removed_and_review_scale_applied_once_48",
+      "passed": true
+    },
+    {
+      "name": "field_includes_current_static_offsets_and_new_delta",
+      "passed": true
+    },
+    {
+      "name": "field_rejects_missing_actual_head_width",
+      "passed": true
+    },
+    {
+      "name": "field_rejects_stationary_offset_and_negative_scale",
+      "passed": true
+    },
+    {
+      "name": "field_uses_smaller_user_or_actual_width",
+      "passed": true
+    },
+    {
+      "name": "field_rejects_submicron_overrun_in_actual_review_precision",
+      "passed": true
+    },
+    {
+      "name": "field_accepts_submicron_inside_without_align_rounding_false_rejection",
+      "passed": true
+    },
+    {
+      "name": "field_uses_exact_saved_six_decimal_mm_precision",
+      "passed": true
+    },
+    {
+      "name": "cas_initial_empty_revision_writes_exact_design_values",
+      "passed": true
+    },
+    {
+      "name": "cas_stale_expected_path_never_overwrites_new_revision",
+      "passed": true
+    },
+    {
+      "name": "cas_empty_expected_rejected_if_active_exists",
+      "passed": true
+    },
+    {
+      "name": "cas_same_source_duplicate_blocked_across_days",
+      "passed": true
+    },
+    {
+      "name": "cas_missing_source_does_not_create_revision",
+      "passed": true
+    },
+    {
+      "name": "cas_cancelled_token_has_no_files",
+      "passed": true
+    },
+    {
+      "name": "cas_invalid_rows_never_remove_previous_revision",
+      "passed": true
+    },
+    {
+      "name": "cas_history_failure_removes_only_new_offset",
+      "passed": true
+    },
+    {
+      "name": "cas_same_instance_concurrent_compare_allows_one_writer",
+      "passed": true
+    },
+    {
+      "name": "cas_returned_values_equal_persisted_fractional_um",
+      "passed": true
+    },
+    {
+      "name": "legacy_save_still_creates_new_files_without_source",
+      "passed": true
+    },
+    {
+      "name": "load_and_all_save_paths_return_actual_file_sha_and_precision",
+      "passed": true
+    },
+    {
+      "name": "cas_same_path_replacement_rejects_stale_content_hash",
+      "passed": true
+    },
+    {
+      "name": "shared_store_instances_allow_only_one_compare_and_save",
+      "passed": true
+    },
+    {
+      "name": "warm_history_cache_observes_other_store_commit",
+      "passed": true
+    },
+    {
+      "name": "history_same_length_and_time_replacement_invalidates_digest_cache",
+      "passed": true
+    },
+    {
+      "name": "backward_clock_save_is_the_new_active_revision",
+      "passed": true
+    },
+    {
+      "name": "submillisecond_clock_collision_advances_version",
+      "passed": true
+    },
+    {
+      "name": "midnight_version_shift_keeps_history_and_rollback_evidence",
+      "passed": true
+    },
+    {
+      "name": "legacy_rollback_preserves_immutable_source_receipt_for_fresh_store",
+      "passed": true
+    },
+    {
+      "name": "invalid_latest_name_cannot_report_a_nonactive_save_as_success",
+      "passed": true
+    },
+    {
+      "name": "history_publish_failure_preserves_previous_bytes_and_active_offset",
+      "passed": true
+    },
+    {
+      "name": "cooperating_process_lock_wait_is_cancellable",
+      "passed": true
+    },
+    {
+      "name": "another_process_waits_for_the_same_store_file_lease",
+      "passed": true
+    }
+  ],
+  "optionalSourcePlan": null,
+  "scope": "New production coordinate bridge, original pure planner/axis transform, production offset writer and CSV parser. Source-derived fixture contracts/static Vision conversion only. Synthetic temporary CSVs; no device, WPF, SDK or scripts."
+}

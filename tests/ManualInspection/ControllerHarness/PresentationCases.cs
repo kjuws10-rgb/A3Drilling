@@ -20,7 +20,7 @@ internal static partial class Program
         { Row=(i-1)/120,Column=(i-1)%120,Source="MEASURED",Judge="OK",ErrorXUm=.1,ErrorYUm=.2,
           OriginalMeasurement=new("OK",.1,.2,"INITIAL-V"+i,context.RecipeId,context.RunId,context.CoordinateSignature),MeasurementVersion=1 }).ToArray();
         f.Source=f.Source with {Points=points,Values=points.ToDictionary(p=>p.Key,_=>ST_MANUAL_OFFSET.Zero)};
-        f.NewX=7;var clock=new PresentationClock();return(f,new CManualInspectionController(f,presentationTime:clock),clock);
+        f.Source=DeclareZeroProcess(f.Source);f.NewX=7;var clock=new PresentationClock();return(f,new CManualInspectionController(f,presentationTime:clock),clock);
     }
     private static async Task RunPresentationChecks()
     {

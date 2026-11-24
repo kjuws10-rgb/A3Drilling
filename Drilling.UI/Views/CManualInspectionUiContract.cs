@@ -69,7 +69,7 @@ public sealed record CManualInspectionUiPoint
     public string MeasurementSourcePath { get; init; } = "";
     public double? CandidateXUm { get; init; }
     public double? CandidateYUm { get; init; }
-    /// <summary>Manual-resolved absolute replacement value: current measured deviation, never B + deviation.</summary>
+    /// <summary>Controller-resolved recommended absolute Review value, with its captured machining basis.</summary>
     public double? ReferenceFinalXUm { get; init; }
     public double? ReferenceFinalYUm { get; init; }
     public string ReferenceValueKind { get; init; } = "";
@@ -81,38 +81,59 @@ public sealed record CManualInspectionUiPoint
     public string MeasurementToken { get; init; } = "";
     public string Details { get; init; } = "";
     public bool CanUseImportedForCorrection { get; init; }
+    public bool HasUnsavedCorrection { get; init; }
+    public bool CalibrationBasisReady { get; init; }
+    public string CalibrationBasisStatusText { get; init; } = "";
+    /// <summary>RESIDUAL is a measured error; ABSOLUTE_REVIEW is an edited final Review value.</summary>
+    public string WorkingValueKind { get; init; } = "RESIDUAL";
+    /// <summary>View-only scatter clone of an absolute Review value; never a camera measurement.</summary>
+    public bool IsWorkingReviewDisplay { get; init; }
+    private bool UsesOriginalResidual => WorkingValueKind == "ABSOLUTE_REVIEW" || IsFileOffsetValue || IsProxy || IsOperatorResult;
+    public bool IsFileOffsetValue => Source == "OFFSET_FILE";
+    /// <summary>A camera result or imported camera record, excluding copied/manual/file Offset values.</summary>
+    public bool HasOriginalMeasurement => OriginalJudge is "OK" or "NG" && Finite(OriginalXUm) && Finite(OriginalYUm);
+    public bool HasActualMeasurement => !IsWorkingReviewDisplay && !IsMasked && HasWorkingMeasurement
+        && (HasOriginalMeasurement || !IsProxy && !IsOperatorResult && Source is "MEASURED" or "IMPORTED");
+    public string ValueOriginText => IsMeasurementStateCleared ? "빈 상태 복사" : IsMeasurementOffsetInitialized ? "Init"
+        : IsFileOffsetValue ? "파일값" : IsProxy ? "대표 복사" : IsOperatorResult ? "수동 확정"
+        : Source == "MEASURED" ? "실측" : Source == "IMPORTED" ? "불러온 실측" : Source == "INTERPOLATED" ? "보간값" : "편차 없음";
     /// <summary>
     /// Measurement deviation coverage is independent of the inspection menu that produced it.
     /// Stored offsets alone cannot reconstruct an original deviation. Raw/operator/proxy values
     /// retain their provenance; these display properties do not change raw or eligibility.
     /// </summary>
-    public bool HasWorkingMeasurement => !IsMeasurementOffsetInitialized && !IsMeasurementStateCleared && WorkingJudge is "OK" or "NG" && Finite(WorkingXUm) && Finite(WorkingYUm);
+    public bool HasWorkingMeasurement => !IsMeasurementOffsetInitialized && !IsMeasurementStateCleared
+        && (IsWorkingReviewDisplay ? WorkingJudge is "OK" or "NG" && Finite(WorkingXUm) && Finite(WorkingYUm)
+            : UsesOriginalResidual ? HasOriginalMeasurement
+            : WorkingJudge is "OK" or "NG" && Finite(WorkingXUm) && Finite(WorkingYUm));
     public bool HasMeasurementHistory => !IsMasked && !IsMeasurementOffsetInitialized && !IsMeasurementStateCleared
         && HasWorkingMeasurement;
     // Retained for source compatibility with older diagnostics. A stored correction alone
     // is never presented as a newly measured deviation in this workspace.
     public bool UsesAppliedMeasurement => false;
-    public double? MeasurementXUm => HasWorkingMeasurement ? WorkingXUm : null;
-    public double? MeasurementYUm => HasWorkingMeasurement ? WorkingYUm : null;
+    public double? MeasurementXUm => !HasWorkingMeasurement ? null : IsWorkingReviewDisplay ? WorkingXUm : UsesOriginalResidual ? OriginalXUm : WorkingXUm;
+    public double? MeasurementYUm => !HasWorkingMeasurement ? null : IsWorkingReviewDisplay ? WorkingYUm : UsesOriginalResidual ? OriginalYUm : WorkingYUm;
+    public string MeasurementJudge => IsWorkingReviewDisplay || IsMeasurementStateCleared ? WorkingJudge : UsesOriginalResidual
+        ? OriginalJudge is "NG" or "ERROR" || HasOriginalMeasurement ? OriginalJudge : "UNMEASURED" : WorkingJudge;
     public string MeasurementErrorText => Pair(MeasurementXUm, MeasurementYUm);
-    public string MeasurementStatusText => IsMasked ? "Masking" : IsMeasurementStateCleared ? (WorkingJudge=="ERROR"?"오류 상태 복사":WorkingJudge=="NG"?"NG · 값 없음":"미측정 상태 복사") : IsMeasurementOffsetInitialized ? "초기화 · 미측정" : !HasWorkingMeasurement ? "미측정 · 편차 없음" : IsOperatorResult ? WorkingJudge + " · 수동 확정"
-        : WorkingJudge switch { "OK" => "OK · 측정됨", "NG" => "NG · 측정됨", "ERROR" => "수신 오류", "UNMEASURED" => "미측정", _ => WorkingJudge };
-    public string MeasurementBasisText => IsMeasurementStateCleared ? "대표의 빈 상태 · 저장 보정은 유지" : IsMeasurementOffsetInitialized ? "측정 Offset 초기화" : IsOperatorResult ? "사용자 확정 편차 · 원측정 보존"
+    public string MeasurementStatusText => IsMasked ? "Masking" : IsMeasurementStateCleared ? (WorkingJudge=="ERROR"?"오류 상태 복사":WorkingJudge=="NG"?"NG · 값 없음":"미측정 상태 복사") : IsMeasurementOffsetInitialized ? "초기화 · 미측정"
+        : IsWorkingReviewDisplay ? "작업 Review · " + ValueOriginText : IsFileOffsetValue ? "파일값 · 미저장" : UsesOriginalResidual ? ValueOriginText + " · " + (HasOriginalMeasurement || OriginalJudge is "NG" or "ERROR" ? "원측정 " + OriginalJudge : "실측 없음")
+        : WorkingJudge == "ERROR" ? "수신 오류" : !HasWorkingMeasurement ? "미측정 · 편차 없음" : IsOperatorResult ? WorkingJudge + " · 수동 확정"
+        : MeasurementJudge switch { "OK" => "OK · 실측", "NG" => "NG · 실측", "ERROR" => "수신 오류", "UNMEASURED" => "미측정", _ => MeasurementJudge };
+    public string MeasurementBasisText => IsMeasurementStateCleared ? "대표의 빈 상태 · 저장 보정은 유지" : IsMeasurementOffsetInitialized ? "측정 Offset 초기화" : IsFileOffsetValue ? "파일 입력값 · 카메라 실측 아님 · CSV 미저장" : IsOperatorResult ? "사용자 확정 편차 · 원측정 보존"
         : HasWorkingMeasurement ? IsProxy ? "대표값 복사 편차" : "측정 결과 편차" : "유효 편차 없음";
     public string MeasurementSourceCode => IsMeasurementStateCleared ? "MANUAL" : IsOperatorResult ? "OPERATOR" : UsesAppliedMeasurement ? "CORRECTION_BASED" : IsProxy ? "MANUAL" : Source;
     public bool CanBeReference => !string.IsNullOrWhiteSpace(Key);
-    public bool CanCopyAsReference => HasWorkingMeasurement && !IsMeasurementOffsetInitialized && !IsMeasurementStateCleared && string.IsNullOrEmpty(ReferenceValueUnavailableReason)
-        && (ReferenceFinalXUm.HasValue || ReferenceFinalYUm.HasValue
-            ? Finite(ReferenceFinalXUm) && Finite(ReferenceFinalYUm)
-            : HeadNo is >= 1 and <= 8 && !IsProxy && (Source == "MEASURED" || CanUseImportedForCorrection) && HasWorkingMeasurement
-                );
+    public bool CanCopyAsReference => !IsMeasurementOffsetInitialized && !IsMeasurementStateCleared && string.IsNullOrEmpty(ReferenceValueUnavailableReason)
+        && Finite(ReferenceFinalXUm) && Finite(ReferenceFinalYUm)
+        && (WorkingValueKind == "ABSOLUTE_REVIEW" || CalibrationBasisReady && HasWorkingMeasurement);
     public string Identity => $"C{CellNo} / H{HeadNo:00} / S{ShotNo} / B{BeamNo}";
     public string WorkingErrorText => Pair(WorkingXUm, WorkingYUm);
     public string OriginalErrorText => Pair(OriginalXUm, OriginalYUm);
     public string BaseOffsetText => Pair(BaseXUm, BaseYUm);
     public string CandidateOffsetText => CandidateXUm.HasValue && CandidateYUm.HasValue
         ? Pair(CandidateXUm, CandidateYUm) : "—";
-    public string SourceText => IsMeasurementStateCleared ? "빈 상태 복사" : IsMeasurementOffsetInitialized ? "초기화" : IsOperatorResult ? "사용자 수동 확정" : UsesAppliedMeasurement ? "보정기반 측정 · 적용 이력"
+    public string SourceText => IsMeasurementStateCleared ? "빈 상태 복사" : IsMeasurementOffsetInitialized ? "초기화" : IsFileOffsetValue ? "파일 입력 · 미저장" : IsOperatorResult ? "사용자 수동 확정" : UsesAppliedMeasurement ? "보정기반 측정 · 적용 이력"
         : IsProxy ? "대표값 복사" : Source == "MEASURED" ? "직접 측정" : Source == "IMPORTED" ? "불러온 측정" : Source;
     public string ReferenceText => string.IsNullOrEmpty(ReferenceKey) ? "—" : ReferenceKey;
     public static bool Finite(double? value) => value.HasValue && double.IsFinite(value.Value);
@@ -251,6 +272,11 @@ public sealed record CManualInspectionUiSnapshot
     public int BulkEligibleCount { get; init; }
     public IReadOnlyDictionary<int,int> CellBulkEligibleCounts { get; init; } = new Dictionary<int,int>();
     public IReadOnlyDictionary<int,string> CellBulkSummaryTexts { get; init; } = new Dictionary<int,string>();
+    public IReadOnlyDictionary<int,int> CellUnsavedPointCounts { get; init; } = new Dictionary<int,int>();
+    public int UnsavedPointCount { get; init; }
+    public string CorrectionBasisStatusText { get; init; } = "";
+    public string UndoOffsetDescription { get; init; } = "";
+    public string RedoOffsetDescription { get; init; } = "";
     public string BulkSummaryText { get; init; } = "측정된 보정 대상 없음";
     public string OffsetHistoryText { get; init; } = "되돌릴 적용 이력 없음";
     public bool CanUndoCopy { get; init; }

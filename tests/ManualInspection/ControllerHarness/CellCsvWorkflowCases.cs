@@ -8,7 +8,7 @@ internal static partial class Program
     {
         static (FakeBackend Fake,CManualInspectionController Controller) TwoCells()
         {
-            var(f,c)=Fixture();f.Source=f.Source with{Points=f.Source.Points.Select(p=>p.Key=="P3"?p with{CellNo=2}:p).ToArray()};return(f,c);
+            var(f,c)=Fixture();f.Source=f.Source with{Points=f.Source.Points.Select(p=>p.Key=="P3"?p with{CellNo=2}:p).ToArray()};f.Source=DeclareZeroProcess(f.Source);return(f,c);
         }
         await Check("bulk_current_cell_applies_all_its_points_even_if_request_selection_is_other_cell",async()=>
         {

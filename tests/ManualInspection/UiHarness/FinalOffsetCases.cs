@@ -62,7 +62,7 @@ internal static partial class Program
             Test("final_offset_map_is_measurement_not_final_saved_projection",MeasurementMapMode(view)=="level"&&Field<IReadOnlyList<CManualInspectionUiPoint>>((CManualInspectionMapControl)view.FindName("PositionMap"),"_all").All(point=>point.WorkingXUm==state.Points.Single(raw=>raw.Key==point.Key).WorkingXUm));
             var changed=state with{Version=state.Version+1,FinalOffsetRevisionId="NEW-CSV",FinalOffsetFileName="updated_reviewoffset.csv",IsOffsetEditPending=true};fake.Replace(changed);Pump();
             Test("final_offset_new_csv_metadata_is_visible_while_working_draft_preserved",((TextBlock)view.FindName("FinalCsvSourceText")).Text.Contains("updated_reviewoffset.csv")&&fake.Snapshot.IsOffsetEditPending&&MeasurementMapMode(view)=="level");
-            Test("final_offset_metadata_refresh_does_not_mutate_raw_or_fake_zero",JsonSerializer.Serialize(fake.Snapshot.Points)==raw&&plot.DataKind=="WORKING");
+            Test("final_offset_metadata_refresh_does_not_mutate_raw_or_fake_zero",JsonSerializer.Serialize(fake.Snapshot.Points)==raw&&plot.DataKind=="ORIGINAL");
             SelectViewChoice(view,"ScatterDataCombo","ORIGINAL");var bookmark=Invoke(view,"CaptureWorkspaceView")!;SelectViewChoice(view,"ScatterDataCombo","WORKING");Invoke(view,"RestoreWorkspaceView",bookmark);Pump();
             Test("final_offset_bookmark_preserves_original_measurement_not_saved_mode",plot.DataKind=="ORIGINAL"&&MeasurementMapMode(view)=="level");
             fake.Replace(state with{Version=state.Version+2,HasFinalOffsetSnapshot=false,FinalOffsetFilePath="",FinalOffsetFileName="",FinalOffsetStatusText="조회 실패"});Pump();

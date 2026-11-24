@@ -43,8 +43,8 @@ internal static partial class Program
         var fake=new FakeController(state);var view=new CManualInspectionView{DataContext=fake};var host=HostRepresentativeView(view);
         try
         {
-            var plot=(CManualInspectionScatterControl)view.FindName("ScatterPlot");
-            Test("scatter_working_excludes_saved_B_only_history",plot.Metrics.Count==3&&!plot.Metrics.ValidPoints.Any(point=>point.Key==savedOnly.Key)&&plot.DataKind=="WORKING");
+            var plot=(CManualInspectionScatterControl)view.FindName("ScatterPlot");SelectViewChoice(view,"ScatterDataCombo","WORKING");
+            Test("scatter_working_excludes_saved_B_only_history",plot.Metrics.Count==3&&!plot.Metrics.ValidPoints.Any(point=>point.Key==savedOnly.Key)&&plot.DataKind=="WORKING_REVIEW");
             Test("scatter_auto_scale_uses_current_error_not_large_saved_B",plot.MaxXUm<999&&plot.MaxYUm<999);
             Set(view,"_scatterScope","CELLS");Set(view,"_scatterFollowSelection",true);Invoke(view,"ChangeSelection",new CManualInspectionSelectionEventArgs([state.Points[1].Key,state.Points[2].Key],state.Points[2].Key));Pump();
             Test("scatter_selected_cells_use_complete_current_populations",plot.Metrics.Total==4&&plot.Metrics.Count==3);

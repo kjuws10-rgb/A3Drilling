@@ -26,6 +26,7 @@
     <Compile Include="BulkFinalVerificationCases.cs" />
     <Compile Include="CellCsvWorkflowCases.cs" />
     <Compile Include="ReplacementWorkflowCases.cs" />
+    <Compile Include="CalibrationBasisCases.cs" />
   </ItemGroup>
   <ItemGroup Condition="'$(UseActualAssemblies)' != 'true'">
     <Compile Include="Contracts.cs" />

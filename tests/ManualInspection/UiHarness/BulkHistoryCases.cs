@@ -18,14 +18,14 @@ internal static partial class Program
             void Click(string name){Find<Button>(name).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();}
             var map=Find<CManualInspectionMapControl>("PositionMap");
             Find<Expander>("InspectorSection").IsExpanded=true;Find<Expander>("CorrectionSection").IsExpanded=true;Pump();
-            Test("bulk_ui_exposes_separate_bulk_apply_undo_redo_controls",Find<Button>("BulkApplyButton").Content.ToString()!.Contains("일괄")&&Find<Button>("RollbackButton").Content.ToString()!.Contains("되돌리기")&&Find<Button>("RedoOffsetsButton").Content.ToString()!.Contains("다시"));
+            Test("bulk_ui_exposes_separate_bulk_apply_undo_redo_controls",Find<Button>("BulkApplyButton").Content.ToString()!.Contains("보정 저장")&&Find<Button>("RollbackButton").Content.ToString()!.Contains("되돌리기")&&Find<Button>("RedoOffsetsButton").Content.ToString()!.Contains("다시"));
             Test("bulk_ui_initial_history_buttons_disabled",!Find<Button>("RollbackButton").IsEnabled&&!Find<Button>("RedoOffsetsButton").IsEnabled);
-            Test("bulk_ui_summary_discloses_current_cell_eligible_and_excluded_counts",Find<TextBlock>("BulkSummaryText").Text==state.CellBulkSummaryTexts[1]);
+            Test("bulk_ui_summary_discloses_current_cell_eligible_and_excluded_counts",Find<TextBlock>("BulkSummaryText").Text.Contains("60점")&&Find<TextBlock>("BulkSummaryText").ToolTip.ToString()!.Contains(state.CellBulkSummaryTexts[1]));
             var p=state.Points.First(x=>!x.IsMasked&&x.WorkingJudge=="OK"&&!x.IsProxy);Invoke(view,"ChangeSelection",new CManualInspectionSelectionEventArgs([p.Key],p.Key));Pump();map.ShowOperationMenu();Pump();
             var items=map.ContextMenu!.Items.OfType<MenuItem>().Where(i=>i.IsEnabled).ToArray(); // Disabled selection summary is not an action.
-            Test("bulk_ui_point_context_has_move_and_move_measure_without_automatic_correction",items.Count(i=>i.Header.ToString()!.StartsWith("이동",StringComparison.Ordinal))==2&&items.All(i=>!i.Header.ToString()!.Contains("&")&&!i.Header.ToString()!.Contains("보정")));
+            Test("bulk_ui_point_context_has_move_and_move_measure_without_automatic_correction",items.Count(i=>i.Header.ToString()!.StartsWith("이동",StringComparison.Ordinal))==2&&items.Where(i=>i.Header.ToString()!.StartsWith("이동",StringComparison.Ordinal)).All(i=>!i.Header.ToString()!.Contains("&")&&!i.Header.ToString()!.Contains("보정")));
             Test("bulk_ui_point_context_retains_single_measure_details_and_manual_input",items.Length==6&&items.Any(i=>i.Header.ToString()!.Contains("현재 위치"))&&items.Any(i=>i.Header.ToString()!.Contains("상세"))
-                &&items.Any(i=>i.Header.ToString()!.StartsWith("측정 완료",StringComparison.Ordinal))&&items.Any(i=>i.Header.ToString()!.StartsWith("편차 직접 입력",StringComparison.Ordinal)));map.ContextMenu.IsOpen=false;
+                &&items.Any(i=>i.Header.ToString()!.StartsWith("추천 보정값 확정",StringComparison.Ordinal))&&items.Any(i=>i.Header.ToString()!.StartsWith("보정값 직접 입력",StringComparison.Ordinal)));map.ContextMenu.IsOpen=false;
             var before=fake.Calls.Count;Click("BulkApplyButton");
             Test("bulk_ui_confirmation_cancel_writes_nothing",fake.Calls.Count==before&&confirms==1);
             Test("bulk_ui_confirmation_cancel_unlocks_apply",Find<Button>("BulkApplyButton").IsEnabled);
@@ -33,7 +33,7 @@ internal static partial class Program
             view.ConfirmationForTesting=(title,text,accept)=>{confirms++;confirmationText=title+text+accept;return true;};
             Click("BulkApplyButton");
             Test("bulk_ui_confirmed_apply_dispatches_once_with_frozen_version",fake.Calls.Count==before+1&&fake.Calls[^1].Action==EN_MANUAL_INSPECTION_UI_ACTION.BulkApply&&confirms==2&&fake.Calls[^1].Request.ExpectedVersion==state.Version);
-            Test("bulk_ui_confirmation_describes_current_cell_scope_and_exclusions",confirmationText.Contains("60")&&confirmationText.Contains("Cell 1")&&confirmationText.Contains("NG")&&fake.Calls[^1].Request.CurrentCellNo==1);
+            Test("bulk_ui_confirmation_describes_current_cell_scope_and_exclusions",confirmationText.Contains("60")&&confirmationText.Contains("Cell 1")&&confirmationText.Contains("다른 Cell")&&fake.Calls[^1].Request.CurrentCellNo==1);
             before=fake.Calls.Count;var confirmsBefore=confirms;
             view.ConfirmationForTesting=(_,_,_)=>
             {

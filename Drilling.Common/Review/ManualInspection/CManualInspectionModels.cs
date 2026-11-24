@@ -20,6 +20,22 @@ public sealed record ST_MANUAL_CONTEXT(string RecipeId, string RunId, string Rev
 public sealed record ST_MANUAL_LIMITS(double MaxDeltaUm, double MaxTotalUm, double FieldWidthMm);
 
 /// <summary>
+/// One actual machined Shot's immutable baseline. BaseOffsetUm is the inverse-design,
+/// unscaled value reconstructed from the command contribution actually consumed by that run,
+/// not an assumed latest CSV value. A source-owned authority map must independently confirm it.
+/// ReviewOffsetScale is a ratio: 1.0 means 100 percent.
+/// </summary>
+public sealed record ST_MANUAL_CALIBRATION_BASIS(string BasisId,string ProcessId,string RecipeId,string GlassId,
+    DateTimeOffset CompletedAt,string CoordinateSignature,string ReviewCsvSha256,ST_MANUAL_OFFSET BaseOffsetUm,double ReviewOffsetScale)
+{
+    public string RunId { get; init; } = "";
+    public int CellNo { get; init; }
+    public int ShotNo { get; init; }
+    public int HeadNo { get; init; }
+    public bool IsSimulation { get; init; }
+}
+
+/// <summary>
 /// Immutable last direct measurement. ErrorX/YUm are design-coordinate correction values supplied by
 /// the production converter; ScannerErrorX/YUm retain the actual measurement for the original-data UI.
 /// RawToken must be stable for the same raw packet, not an attempt number or timestamp.
@@ -32,6 +48,14 @@ public sealed record ST_MANUAL_MEASUREMENT(
     public double? ScannerErrorYUm { get; init; }
     public string RawData { get; init; } = "";
     public DateTimeOffset MeasuredAt { get; init; } = DateTimeOffset.UtcNow;
+    [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public ST_MANUAL_CALIBRATION_BASIS? CalibrationBasis { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public string? CalibrationBasisUnavailableReason { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public bool? IsStageSimulation { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public bool? IsVisionSimulation { get; init; }
 }
 
 public sealed record ST_MANUAL_PROXY(
@@ -47,6 +71,12 @@ public sealed record ST_MANUAL_PROXY(
     public string ReferenceValueSource { get; init; } = "";
     public string BasisRevisionId { get; init; } = "";
     public string ReferenceValueProof { get; init; } = "";
+    [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public string? ValueKind { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public string? SubjectPointKey { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public ST_MANUAL_CALIBRATION_BASIS? CalibrationBasis { get; init; }
 }
 
 /// <summary>A captured missing/error state only; contains no offset, precision value or raw packet.</summary>
@@ -68,6 +98,11 @@ public sealed record ST_MANUAL_OPERATOR_RESULT(string OperatorId,string Judge,do
     public string ObservedCoordinateSignature { get; init; } = "";
     public string ObservedValueProof { get; init; } = "";
     public string ValueProof { get; init; } = "";
+    /// <summary>ABSOLUTE_INPUT is an explicit Review F; RESIDUAL_APPROVAL uses a verified processing basis.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public string? ValueKind { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public ST_MANUAL_CALIBRATION_BASIS? CalibrationBasis { get; init; }
 }
 
 /// <summary>
@@ -148,6 +183,9 @@ public sealed record ST_MANUAL_CANDIDATE(
     /// <summary>A staged file/Init edit affects this Cell only; every outside row is exact OFFSET_KEEP.</summary>
     [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public int? ReplacementCellNo { get; init; }
+    /// <summary>9 requires a processing-basis recommendation or an explicitly captured absolute value.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public int CalibrationPolicyVersion { get; init; }
     /// <summary>Explicit zero initialization. Imported absolute maps are replacements but are not Init.</summary>
     [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
     public bool InitializeAllReviewRows { get; init; }
@@ -167,6 +205,7 @@ public sealed record ST_MANUAL_COPY_PREVIEW(
     ST_MANUAL_OFFSET Final, string Fingerprint)
 {
     public bool IsMeasurementReplacement { get; init; }
+    public ST_MANUAL_CALIBRATION_BASIS? CalibrationBasis { get; init; }
     public string OriginReferenceKey { get; init; } = "";
     public string ReferenceValueToken { get; init; } = "";
     public string ReferenceValueKind { get; init; } = "";
@@ -176,7 +215,8 @@ public sealed record ST_MANUAL_COPY_PREVIEW(
 
 public sealed record ST_MANUAL_REFERENCE_VALUE(string OriginReferenceKey, string Judge,
     double? ErrorXUm, double? ErrorYUm, ST_MANUAL_OFFSET Final, string Token, string Kind,
-    string Source, string BasisRevisionId);
+    string Source, string BasisRevisionId)
+{ public ST_MANUAL_CALIBRATION_BASIS? CalibrationBasis { get; init; } }
 
 public sealed record ST_MANUAL_STATE_COPY_PREVIEW(string ReferenceKey,IReadOnlyList<string> SelectionKeys,
     IReadOnlyList<string> Targets,IReadOnlyList<string> ExcludedMaskedKeys,string Judge,string Fingerprint)
@@ -194,6 +234,7 @@ public sealed record ST_MANUAL_APPLY_SNAPSHOT(
     public bool IsMeasurementReplacement { get; init; }
     [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public int? ReplacementCellNo { get; init; }
+    public int CalibrationPolicyVersion { get; init; }
     public bool InitializeAllReviewRows { get; init; }
     public IReadOnlyList<string> InitializationOffsetKeys { get; init; } = [];
     public IReadOnlyList<string> InitializedOffsetKeys { get; init; } = [];

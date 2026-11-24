@@ -579,6 +579,7 @@ internal static partial class Program
         RunRepresentativeApplyChecks();
         RunCellCsvWorkflowChecks();
         RunReplacementWorkflowChecks();
+        RunCalibrationBasisChecks();
         var output = args.Length == 2 && args[0] == "--report" ? args[1] : Path.Combine(AppContext.BaseDirectory, "manual-inspection-results.json");
         var report = new { schemaVersion = "a3-manual-inspection-core-tests/1", passed = Failed == 0, count = Results.Count, failed = Failed, tests = Results, sourceFiles = SourceInputs(),
             scope = "Linked production ManualInspection common files only; synthetic values/fake field evaluator. No equipment, WPF, SDK or device scripts executed." };
@@ -590,18 +591,22 @@ internal static partial class Program
 
     private static ST_MANUAL_POINT Point(int shot, double x = 3, double y = -2, string judge = "OK", int cell = 1, int head = 1, int beam = 11)
     {
-        var valid = judge is "OK" or "NG"; var m = Measurement(valid ? x : null, valid ? y : null, judge, $"RAW-{cell}-{shot}-{beam}");
+        var valid = judge is "OK" or "NG"; var m = Measurement(valid ? x : null, valid ? y : null, judge, $"RAW-{cell}-{shot}-{beam}") with{CalibrationBasis=ZeroBasis(cell,shot,head)};
         return new(Key(shot, cell, head, beam), cell, head, shot, beam, (shot % 5) * .1, (shot / 5) * .1)
         { Row = shot / 5, Column = shot % 5, Judge = judge, Source = valid ? "MEASURED" : "KEPT", ErrorXUm = valid ? x : null,
             ErrorYUm = valid ? y : null, OriginalMeasurement = m };
     }
     private static string Key(int shot, int cell = 1, int head = 1, int beam = 11) => $"C{cell:00}/H{head:00}/S{shot}/B{beam:00}";
-    private static ST_MANUAL_MEASUREMENT Measurement(double? x, double? y, string judge = "OK", string raw = "RAW_DEFAULT") => new(judge, x, y, raw, Initial.RecipeId, Initial.RunId, Initial.CoordinateSignature) { RawData = "SyntheticRaw:" + raw, ScannerErrorXUm = x, ScannerErrorYUm = y };
+    private static ST_MANUAL_MEASUREMENT Measurement(double? x, double? y, string judge = "OK", string raw = "RAW_DEFAULT") => new(judge, x, y, raw, Initial.RecipeId, Initial.RunId, Initial.CoordinateSignature) { IsStageSimulation=false,IsVisionSimulation=false,RawData = "SyntheticRaw:" + raw, ScannerErrorXUm = x, ScannerErrorYUm = y };
     private static CManualInspectionWorkspace Workspace(IEnumerable<ST_MANUAL_POINT>? points = null, Dictionary<string, ST_MANUAL_OFFSET>? values = null,
         ManualInspectionFieldEvaluator? evaluator = null, bool omitEvaluator = false)
     {
-        var w = new CManualInspectionWorkspace(); w.Load(Initial, points ?? [Point(1), Point(2, 1, 1), Point(3, -1, 2)], values ?? [], DefaultLimits, omitEvaluator ? null : evaluator ?? InsideField); return w;
+        var selected=(points ?? [Point(1),Point(2,1,1),Point(3,-1,2)]).ToArray();
+        var basis=selected.GroupBy(p=>p.OffsetKey).ToDictionary(g=>g.Key,g=>ZeroBasis(g.First().CellNo,g.First().ShotNo,g.First().HeadNo));
+        var w = new CManualInspectionWorkspace(); w.Load(Initial, selected, values ?? [], DefaultLimits, omitEvaluator ? null : evaluator ?? InsideField,calibrationBases:basis); return w;
     }
+    private static ST_MANUAL_CALIBRATION_BASIS ZeroBasis(int cell,int shot,int head)=>new("QA-BASIS-C"+cell+"/S"+shot,"QA-PROCESS",Initial.RecipeId,"QA-GLASS",DateTimeOffset.UnixEpoch,
+        Initial.CoordinateSignature,"QA-VERIFIED-ZERO",ST_MANUAL_OFFSET.Zero,1){RunId=Initial.RunId,CellNo=cell,ShotNo=shot,HeadNo=head};
     private static void Apply(CManualInspectionWorkspace w, string revision) { var s = w.CreateApplySnapshot(false); w.CommitApplied(s, revision, "QA successful synthetic writer"); }
     private static void Offset(ST_MANUAL_OFFSET value, double x, double y) { Equal(value.XUm, x); Equal(value.YUm, y); }
     private static void Equal(double actual, double expected) { if (!double.IsFinite(actual) || Math.Abs(actual - expected) > 1e-8) throw new InvalidOperationException($"Expected {expected:R}, actual {actual:R}"); }

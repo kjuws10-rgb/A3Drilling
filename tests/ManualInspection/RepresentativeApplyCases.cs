@@ -67,8 +67,8 @@ internal static partial class Program
         });
         Check("operator_result_new_measurement_and_init_clear_manual_metadata_but_keep_original_history",()=>
         {
-            var w=Workspace();w.RecordOperatorResults([Key(1)],2,1,"manual");var op=w.GetPoint(Key(1)).OperatorResult;var raw=Measurement(1,1,raw:"NEW-ACTUAL");w.RecordMeasurement(Key(1),raw);True(w.GetPoint(Key(1)).OperatorResult is null&&w.GetPoint(Key(1)).OriginalMeasurement==raw&&w.History.Last().Before.OperatorResult==op);
-            w.RecordOperatorResults([Key(1)],2,1,"manual again");w.InitializeMeasurementOffsets([Key(1)]);True(w.ValidateCandidate(false).Ok);Apply(w,"INIT-AFTER-OPERATOR");True(w.GetPoint(Key(1)).OperatorResult is null&&w.GetPoint(Key(1)).OriginalMeasurement==raw);
+            var w=Workspace();w.RecordOperatorResults([Key(1)],2,1,"manual");var op=w.GetPoint(Key(1)).OperatorResult;var raw=Measurement(1,1,raw:"NEW-ACTUAL");w.RecordMeasurement(Key(1),raw);True(w.GetPoint(Key(1)).OperatorResult is null&&w.GetPoint(Key(1)).OriginalMeasurement?.RawToken==raw.RawToken&&w.History.Last().Before.OperatorResult==op);
+            w.RecordOperatorResults([Key(1)],2,1,"manual again");w.InitializeMeasurementOffsets([Key(1)]);True(w.ValidateCandidate(false).Ok);Apply(w,"INIT-AFTER-OPERATOR");True(w.GetPoint(Key(1)).OperatorResult is null&&w.GetPoint(Key(1)).OriginalMeasurement?.RawToken==raw.RawToken);
         });
         Check("operator_result_is_copyable_frozen_and_cannot_be_laundered_after_session_tamper",()=>
         {

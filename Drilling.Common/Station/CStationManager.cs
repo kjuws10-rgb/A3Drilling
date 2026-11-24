@@ -21,6 +21,8 @@
         public Task StopProtectWindowCompletionMonitoring() => _processStation.StopProtectWindowCompletionMonitoring();
         public ST_MANUAL_MOF_STATUS ManualMofStatus => _processStation.ManualMofStatus;
         public ST_MANUAL_MOF_COMPLETION? LastCompletedManualMof => _processStation.LastCompletedManualMof;
+        public ST_REVIEW_PROCESSING_BASIS? LastCompletedProcessingBasis => _processStation.LastCompletedProcessingBasis;
+        public string ProcessingBasisIdentity => _processStation.ProcessingBasisIdentity;
 
         public Task RunManualMofAsync(ST_STAGE_PROCESS_REQUEST request, IReadOnlySet<int> heads, CancellationToken token = default) => _processStation.RunManualMofAsync(request, heads, token);
         public Task StopManualMofAsync() => _processStation.StopManualMofAsync();
