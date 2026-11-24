@@ -47,6 +47,14 @@ public interface IManualInspectionBackend
         try { activeTargets(keys); await ExecuteFlyingAsync(source,keys,measured,progress,token); }
         finally { activeTargets([]); }
     }
+    async Task ExecuteFlyingAsync(CManualInspectionSource source, IReadOnlyList<string> keys,
+        Action<CManualInspectionMeasurement> measured, Action<string> progress,
+        Action<IReadOnlyList<string>> activeTargets, Func<CancellationToken,Task> afterLine, CancellationToken token)
+    {
+        // Compatibility for old/test adapters. The native implementation fences each saved line.
+        await ExecuteFlyingAsync(source,keys,measured,progress,activeTargets,token);
+        await afterLine(token);
+    }
     Task<string> SaveAsync(CManualInspectionSource source, IReadOnlyDictionary<string, ST_MANUAL_OFFSET> values,
         string sourceIdentity, IReadOnlyList<ST_MANUAL_CANDIDATE_ROW> measuredRows, CancellationToken token,
         IReadOnlyDictionary<string, string>? consumedMeasurements = null);
@@ -157,7 +165,7 @@ public sealed class CManualInspectionBackend(
     public async Task<CManualInspectionSource> LoadAsync(string? resultPath, CancellationToken token, IReadOnlyList<string>? displayKeys = null)
     {
         var selected = selectedRecipe();
-        _recipe = (await recipes.LoadRecipes(token)).SingleOrDefault(r => r.Id.Equals(selected, StringComparison.OrdinalIgnoreCase))
+        _recipe = (await ReadRecipesOffUiAsync(token)).SingleOrDefault(r => r.Id.Equals(selected, StringComparison.OrdinalIgnoreCase))
             ?? throw new InvalidOperationException("현재 선택된 Recipe가 없습니다. Recipe를 선택한 후 불러오세요.");
         // Capture the run BEFORE asynchronous result/offset/plan work. A new product or machining
         // completion during loading must not relabel old Shift/observations as the new run.
@@ -169,7 +177,7 @@ public sealed class CManualInspectionBackend(
             throw new InvalidOperationException("측정 결과와 현재 Recipe가 다릅니다. 다른 Recipe의 위치로 이동하지 않습니다.");
         var fileMeasurementModeMatches = file is null || file.IsStageSimulation==_sourceSimulation && file.IsVisionSimulation==_sourceSimulation;
         _parameters = Parameters(_recipe);
-        _latest = await offsets.LoadLatest(_recipe.Id, token);
+        _latest = await ReadLatestOffsetOffUiAsync(_recipe.Id, token);
         _latest = await RestoreLegacyInitializationMetadata(_latest, token);
         ImportedInitializedOffsetKeys = new HashSet<string>(StringComparer.Ordinal);
         ImportedOffsetDescription = "";
@@ -548,7 +556,16 @@ public sealed class CManualInspectionBackend(
     {
         if (_recipe is null || !selectedRecipe().Equals(_recipe.Id, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("선택 Recipe가 바뀌었습니다. 현재 Recipe를 다시 불러오세요.");
-        var recipe = (await recipes.LoadRecipes(token)).SingleOrDefault(r => r.Id == _recipe.Id)
+        var recipeId = _recipe.Id;
+        // These stores can finish their Task synchronously while parsing/hashing CSV on the
+        // caller. Keep only file/cache work off the UI; device, selection and frame checks
+        // remain on the owning context and are repeated after the asynchronous boundary.
+        await ReadRecipesOffUiAsync(token);
+        var current = await ReadLatestOffsetOffUiAsync(recipeId, token);
+        token.ThrowIfCancellationRequested();
+        if (!selectedRecipe().Equals(recipeId, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("선택 Recipe가 바뀌었습니다. 현재 Recipe를 다시 불러오세요.");
+        var recipe = (await recipes.LoadRecipes(token)).SingleOrDefault(r => r.Id == recipeId)
             ?? throw new InvalidOperationException("현재 Recipe가 없습니다.");
         if (Signature(Parameters(recipe)) + ShiftSignature() != source.Context.CoordinateSignature)
             throw new InvalidOperationException("Recipe 또는 좌표 Setting이 바뀌었습니다. 다시 불러오세요.");
@@ -556,10 +573,15 @@ public sealed class CManualInspectionBackend(
             throw new InvalidOperationException("기판/가공 완료 회차가 바뀌었습니다. 새 작업공간을 불러오세요.");
         if (IsSimulation != _sourceSimulation)
             throw new InvalidOperationException("설비/시뮬레이션 모드가 바뀌었습니다. 현재 모드에서 다시 불러오세요.");
-        var current = await offsets.LoadLatest(_recipe.Id, token);
         if (_latest is null || Revision(current) != Revision(_latest) || Revision(current) != source.Context.RevisionId)
             throw new InvalidOperationException("다른 작업에서 활성 보정이 바뀌었습니다. 현재 보정을 다시 불러오세요.");
     }
+
+    private Task<IReadOnlyList<ST_RECIPE_DEFINITION>> ReadRecipesOffUiAsync(CancellationToken token)
+        => Task.Run(() => recipes.LoadRecipes(token), token);
+
+    private Task<ST_REVIEW_OFFSET_FILE_DATA> ReadLatestOffsetOffUiAsync(string recipeId, CancellationToken token)
+        => Task.Run(() => offsets.LoadLatest(recipeId, token), token);
 
     public async Task<CManualInspectionSavedOffsetSnapshot?> ReadSavedOffsetSnapshotAsync(
         CManualInspectionSource source,CancellationToken token)
@@ -686,7 +708,7 @@ public sealed class CManualInspectionBackend(
         var selected=selectedRecipe();
         if(!selected.Equals(source.Context.RecipeId,StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("선택 모델이 달라 최종 저장 보정을 연결하지 않았습니다.");
-        reader._recipe=(await recipes.LoadRecipes(token)).SingleOrDefault(recipe=>recipe.Id.Equals(selected,StringComparison.OrdinalIgnoreCase))
+        reader._recipe=(await reader.ReadRecipesOffUiAsync(token)).SingleOrDefault(recipe=>recipe.Id.Equals(selected,StringComparison.OrdinalIgnoreCase))
             ?? throw new InvalidOperationException("현재 모델이 없습니다.");
         reader._sourceSimulation=IsSimulation;
         reader._sourceRun=reader.RunIdentity();
@@ -795,9 +817,14 @@ public sealed class CManualInspectionBackend(
         Action<CManualInspectionMeasurement> measured, Action<string> progress, CancellationToken token)
         => ExecuteFlyingAsync(source,keys,measured,progress,_=>{},token);
 
-    public async Task ExecuteFlyingAsync(CManualInspectionSource source, IReadOnlyList<string> keys,
+    public Task ExecuteFlyingAsync(CManualInspectionSource source, IReadOnlyList<string> keys,
         Action<CManualInspectionMeasurement> measured, Action<string> progress,
         Action<IReadOnlyList<string>> activeTargets, CancellationToken token)
+        => ExecuteFlyingAsync(source,keys,measured,progress,activeTargets,_=>Task.CompletedTask,token);
+
+    public async Task ExecuteFlyingAsync(CManualInspectionSource source, IReadOnlyList<string> keys,
+        Action<CManualInspectionMeasurement> measured, Action<string> progress,
+        Action<IReadOnlyList<string>> activeTargets, Func<CancellationToken,Task> afterLine, CancellationToken token)
     {
         GuardOperation(); await EnsureCurrentAsync(source, token);
         foreach (var beamGroup in keys.Select(k => (Key: k, Target: _targets[k])).GroupBy(x => x.Target.BeamNo))
@@ -833,6 +860,9 @@ public sealed class CManualInspectionBackend(
                 }
                 if (finished.State != EN_REVIEW_SEQUENCE_STATE.Completed || line.Points.Any(p => !received.Contains(lookup[Normalize(p.ShotKey)])))
                     throw new InvalidOperationException("Flying 행이 전수 완료되지 않았습니다. 저장된 정상 응답은 보존하고 잔여 위치를 다시 측정하세요.");
+                // Do not begin another motion/line before a due recovery checkpoint is durable.
+                // The owner captures state; only its serializer/file writer runs on a worker.
+                await afterLine(token);
                 }
                 finally { activeTargets([]); }
             }
@@ -871,9 +901,8 @@ public sealed class CManualInspectionBackend(
         if (source.ReadOnly || !source.Context.LineageValid) throw new InvalidOperationException("작업 기준을 다시 확인한 후 새 측정·보정을 진행하세요.");
         ValidateWorkingValues(source,values);
         var rows = BuildWorkingRows(SourceWithSaveState(source,sourceIdentity),values,initializeAllReviewRows);
-        var directory = Path.Combine(StateDirectory, "ApplySources", Digest(source.Context.RunId)); Directory.CreateDirectory(directory);
+        var directory = Path.Combine(StateDirectory, "ApplySources", Digest(source.Context.RunId));
         var sourcePath = Path.Combine(directory, Digest(sourceIdentity) + ".json");
-        if (!System.IO.File.Exists(sourcePath)) AtomicText(sourcePath, sourceIdentity);
         // Per-measurement durable reservations prevent a crash or a different selected subset from
         // bypassing the same Run/raw guard. The existing apply history proves committed writes.
         var reservations = new List<string>();
@@ -889,24 +918,31 @@ public sealed class CManualInspectionBackend(
             ?pointsByOffset[row.OffsetKey].Select(point=>new KeyValuePair<string,string>(point.Key,row.MeasurementToken))
             :new[]{new KeyValuePair<string,string>(row.Key,row.MeasurementToken)}).ToHashSet();
         // Preserve both a point's original observation token and its correction-driving token.
-        var consumed = (consumedMeasurements ?? new Dictionary<string, string>()).Concat(driving).Distinct();
-        foreach (var pair in consumed)
+        var consumed = (consumedMeasurements ?? new Dictionary<string, string>()).Concat(driving).Distinct().ToArray();
+        var reservationRevision = Revision(_latest!);
+        await Task.Run(async () =>
         {
-            var marker = Path.Combine(directory, "point-" + Digest(source.Context.RunId + pair.Key + pair.Value) + ".json");
-            if (System.IO.File.Exists(marker))
+            Directory.CreateDirectory(directory);
+            if (!System.IO.File.Exists(sourcePath)) AtomicText(sourcePath, sourceIdentity);
+            foreach (var pair in consumed)
             {
-                var old = JsonSerializer.Deserialize<Reservation>(await System.IO.File.ReadAllTextAsync(marker, token))!;
-                if (await offsets.FindCommittedSourceApplication(source.Context.RecipeId, old.SourcePath, token) is not null)
+                token.ThrowIfCancellationRequested();
+                var marker = Path.Combine(directory, "point-" + Digest(source.Context.RunId + pair.Key + pair.Value) + ".json");
+                if (System.IO.File.Exists(marker))
                 {
-                    if (driving.Contains(pair))
-                        throw new InvalidOperationException($"{pair.Key}: 같은 Run의 측정 원본이 이미 적용됐습니다. 새 가공 후 재측정하세요.");
-                    continue; // Already-consumed companion raw does not block a fresh driving measurement.
+                    var old = JsonSerializer.Deserialize<Reservation>(await System.IO.File.ReadAllTextAsync(marker, token))!;
+                    if (await offsets.FindCommittedSourceApplication(source.Context.RecipeId, old.SourcePath, token) is not null)
+                    {
+                        if (driving.Contains(pair))
+                            throw new InvalidOperationException($"{pair.Key}: 같은 Run의 측정 원본이 이미 적용됐습니다. 새 가공 후 재측정하세요.");
+                        continue; // Already-consumed companion raw does not block a fresh driving measurement.
+                    }
+                    if (old.BaseRevision != reservationRevision) throw new InvalidOperationException("미완료 보정 저장 기록과 활성 파일이 다릅니다. 이력을 확인하세요.");
                 }
-                if (old.BaseRevision != Revision(_latest!)) throw new InvalidOperationException("미완료 보정 저장 기록과 활성 파일이 다릅니다. 이력을 확인하세요.");
+                AtomicText(marker, JsonSerializer.Serialize(new Reservation(sourcePath, reservationRevision,
+                    source.Context.RunId, pair.Key, pair.Value))); reservations.Add(marker);
             }
-            AtomicText(marker, JsonSerializer.Serialize(new Reservation(sourcePath, Revision(_latest!),
-                source.Context.RunId, pair.Key, pair.Value))); reservations.Add(marker);
-        }
+        }, token);
         // Build/validate the next pure coordinate plan before the authoritative file transaction.
         // After a successful writer return, no cancellable I/O or planning error may make the host
         // claim that a committed offset was not applied.
@@ -925,9 +961,10 @@ public sealed class CManualInspectionBackend(
             // Receipt I/O and plan building above can yield. Recheck external host/product/setting
             // changes at the write boundary as well as the writer's atomic offset-revision check.
             GuardOperation(); await EnsureCurrentAsync(source, token);
-            var saved = await offsets.SaveNewIfUnchanged(source.Context.RecipeId, _latest!.FilePath,
+            var expected = _latest!;
+            var saved = await Task.Run(() => offsets.SaveNewIfUnchanged(source.Context.RecipeId, expected.FilePath,
                 nextRows.OrderBy(r => r.CellId).ThenBy(r => r.ShotId, StringComparer.OrdinalIgnoreCase).ToArray(), sourcePath, token,
-                expectedLatestContentSha256: _latest.ContentSha256);
+                expectedLatestContentSha256: expected.ContentSha256), token);
             _latest = saved;
             LastSavedValues = actualValues;
             foreach (var p in source.Points) _baseline[p.OffsetKey] = actualValues[p.Key];
@@ -938,8 +975,11 @@ public sealed class CManualInspectionBackend(
         catch
         {
             // Keep a marker when the authoritative writer committed but subsequent host work failed.
-            if (await offsets.FindCommittedSourceApplication(source.Context.RecipeId, sourcePath, CancellationToken.None) is null)
-                foreach (var path in reservations) System.IO.File.Delete(path);
+            await Task.Run(async () =>
+            {
+                if (await offsets.FindCommittedSourceApplication(source.Context.RecipeId, sourcePath, CancellationToken.None) is null)
+                    foreach (var path in reservations) System.IO.File.Delete(path);
+            });
             throw;
         }
     }

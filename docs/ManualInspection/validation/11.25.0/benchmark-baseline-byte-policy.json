@@ -1,0 +1,133 @@
+{
+  "beforeCommit": "26a7db3e27bb17c4b9f141f2831d168965d978d5",
+  "beforeBytes": "Actual compiler inputs are the eight files under baseline-source. Portable PDB document checksums match final-benchmark-inputs.before and the root329 Windows-byte manifest exactly for all eight. These inputs also equal the initial Git-blob bytes; most are LF/no BOM, while UiContract retains its original UTF-8 BOM.",
+  "comparisonToWindows": "For this run the eight actual compiler inputs coincide byte-for-byte with root329 Windows-byte metadata as well as Git originals. Current working Models hash 6af6 is the changed .0 source, whereas frozen .10 Models and root329 Windows both use 5cb5. Do not label this as a compilation-input mismatch.",
+  "files": [
+    {
+      "path": "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs",
+      "isInitialGitBlob": true,
+      "rootGitShaMatches": true,
+      "rootWindowsShaMatches": true,
+      "bom": false,
+      "hasCrLf": false
+    },
+    {
+      "path": "Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs",
+      "isInitialGitBlob": true,
+      "rootGitShaMatches": true,
+      "rootWindowsShaMatches": true,
+      "bom": false,
+      "hasCrLf": false
+    },
+    {
+      "path": "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
+      "isInitialGitBlob": true,
+      "rootGitShaMatches": true,
+      "rootWindowsShaMatches": true,
+      "bom": false,
+      "hasCrLf": false
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CManualInspectionController.cs",
+      "isInitialGitBlob": true,
+      "rootGitShaMatches": true,
+      "rootWindowsShaMatches": true,
+      "bom": false,
+      "hasCrLf": false
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs",
+      "isInitialGitBlob": true,
+      "rootGitShaMatches": true,
+      "rootWindowsShaMatches": true,
+      "bom": false,
+      "hasCrLf": false
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CManualInspectionUpdateMonitor.cs",
+      "isInitialGitBlob": true,
+      "rootGitShaMatches": true,
+      "rootWindowsShaMatches": true,
+      "bom": false,
+      "hasCrLf": false
+    },
+    {
+      "path": "Drilling.UI/Views/CManualInspectionUiContract.cs",
+      "isInitialGitBlob": true,
+      "rootGitShaMatches": true,
+      "rootWindowsShaMatches": true,
+      "bom": true,
+      "hasCrLf": false
+    },
+    {
+      "path": "tests/ManualInspection/ControllerHarness/Contracts.cs",
+      "isInitialGitBlob": true,
+      "rootGitShaMatches": true,
+      "rootWindowsShaMatches": true,
+      "bom": false,
+      "hasCrLf": false
+    }
+  ],
+  "pdbEvidence": {
+    "path": "baseline-compile-documents.json",
+    "matchedCount": 8,
+    "documents": [
+      {
+        "path": "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs",
+        "compiledDocumentPath": "D:\\CodexWork\\A3_Manual_Inspection_20261125_0_Performance\\baseline-source\\Drilling.Common\\Review\\ManualInspection\\CManualInspectionModels.cs",
+        "pdbSourceSha256": "5cb5a0cdca1ea9a528c57d38a783bc60934af9fd960c621bdd017528cd9588de",
+        "inputSha256": "5cb5a0cdca1ea9a528c57d38a783bc60934af9fd960c621bdd017528cd9588de",
+        "matches": true
+      },
+      {
+        "path": "Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs",
+        "compiledDocumentPath": "D:\\CodexWork\\A3_Manual_Inspection_20261125_0_Performance\\baseline-source\\Drilling.Common\\Review\\ManualInspection\\CManualInspectionOffsetBundle.cs",
+        "pdbSourceSha256": "bfc6826a45e01af83fcfdaa66a5016a70b385bde2a1d08a616a87c2c7516ec32",
+        "inputSha256": "bfc6826a45e01af83fcfdaa66a5016a70b385bde2a1d08a616a87c2c7516ec32",
+        "matches": true
+      },
+      {
+        "path": "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
+        "compiledDocumentPath": "D:\\CodexWork\\A3_Manual_Inspection_20261125_0_Performance\\baseline-source\\Drilling.Common\\Review\\ManualInspection\\CManualInspectionWorkspace.cs",
+        "pdbSourceSha256": "ab8c1d28e431d7ad42d8160ca91ea7196019ef61524740bdf6de98020f513bde",
+        "inputSha256": "ab8c1d28e431d7ad42d8160ca91ea7196019ef61524740bdf6de98020f513bde",
+        "matches": true
+      },
+      {
+        "path": "Drilling.UI/Menu/Menus/CManualInspectionController.cs",
+        "compiledDocumentPath": "D:\\CodexWork\\A3_Manual_Inspection_20261125_0_Performance\\baseline-source\\Drilling.UI\\Menu\\Menus\\CManualInspectionController.cs",
+        "pdbSourceSha256": "64c2a6c7fe8acb186588b77f6c8ce09661482dbe8bf34bf30a436ef2a601f781",
+        "inputSha256": "64c2a6c7fe8acb186588b77f6c8ce09661482dbe8bf34bf30a436ef2a601f781",
+        "matches": true
+      },
+      {
+        "path": "Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs",
+        "compiledDocumentPath": "D:\\CodexWork\\A3_Manual_Inspection_20261125_0_Performance\\baseline-source\\Drilling.UI\\Menu\\Menus\\CManualInspectionReplayBackend.cs",
+        "pdbSourceSha256": "a7e6849d10bf5baebbe56d56084f74bdfb852289b30c571d9908f0a244855228",
+        "inputSha256": "a7e6849d10bf5baebbe56d56084f74bdfb852289b30c571d9908f0a244855228",
+        "matches": true
+      },
+      {
+        "path": "Drilling.UI/Menu/Menus/CManualInspectionUpdateMonitor.cs",
+        "compiledDocumentPath": "D:\\CodexWork\\A3_Manual_Inspection_20261125_0_Performance\\baseline-source\\Drilling.UI\\Menu\\Menus\\CManualInspectionUpdateMonitor.cs",
+        "pdbSourceSha256": "a5d8854aea32ae9eb9cf4cfa05c99cf6ab0548dddcebd7fa32a94335ab94a1e0",
+        "inputSha256": "a5d8854aea32ae9eb9cf4cfa05c99cf6ab0548dddcebd7fa32a94335ab94a1e0",
+        "matches": true
+      },
+      {
+        "path": "Drilling.UI/Views/CManualInspectionUiContract.cs",
+        "compiledDocumentPath": "D:\\CodexWork\\A3_Manual_Inspection_20261125_0_Performance\\baseline-source\\Drilling.UI\\Views\\CManualInspectionUiContract.cs",
+        "pdbSourceSha256": "422f30502a1d904f47df7a864d87f98527217f30a9359f82f75962303a6102cd",
+        "inputSha256": "422f30502a1d904f47df7a864d87f98527217f30a9359f82f75962303a6102cd",
+        "matches": true
+      },
+      {
+        "path": "tests/ManualInspection/ControllerHarness/Contracts.cs",
+        "compiledDocumentPath": "D:\\CodexWork\\A3_Manual_Inspection_20261125_0_Performance\\baseline-source\\tests\\ManualInspection\\ControllerHarness\\Contracts.cs",
+        "pdbSourceSha256": "d1049774e843915eb7394d108315fa7920fd6de4206a546538e6d18094bfdb1c",
+        "inputSha256": "d1049774e843915eb7394d108315fa7920fd6de4206a546538e6d18094bfdb1c",
+        "matches": true
+      }
+    ]
+  }
+}

@@ -51,6 +51,9 @@ public sealed class CManualInspectionMapControl : Control
     private bool _showCellOverview;
     private bool _hasRecipeLayout;
     private string _cellLayoutFingerprint = "";
+    private IReadOnlyList<CManualInspectionUiCellLayout>? _fingerprintedLayouts;
+    private double _fingerprintGlassWidth, _fingerprintGlassHeight;
+    private bool _fingerprintYDown, _fingerprintOverview;
     private Rect _glassBounds;
     private Rect _allCellsButton;
     private readonly Dictionary<(int X, int Y), List<int>> _hitBuckets = [];
@@ -133,6 +136,9 @@ public sealed class CManualInspectionMapControl : Control
         string? focusKey, string? representativeKey, string colorMode, string scopeSignature, bool showCellOverview = false)
     {
         if (ContextMenu?.IsOpen == true) ContextMenu.IsOpen = false;
+        var hadHover = _hoverKey is not null;
+        var colorChanged = _colorMode != colorMode || _snapshot.LevelMetric != snapshot.LevelMetric
+            || !_snapshot.LevelBoundsUm.SequenceEqual(snapshot.LevelBoundsUm);
         if (_snapshot.RecipeId != snapshot.RecipeId || _snapshot.RunId != snapshot.RunId
             || _snapshot.CoordinateSignature != snapshot.CoordinateSignature)
         { _measurementBlinkTimer.Stop(); _measurementBlinkKeys.Clear(); }
@@ -141,21 +147,33 @@ public sealed class CManualInspectionMapControl : Control
         var sameGeometry = samePoints || _all.Count == allScopedPoints.Count && _all.Zip(allScopedPoints).All(pair =>
             pair.First.Key == pair.Second.Key && pair.First.CellNo == pair.Second.CellNo && pair.First.HeadNo == pair.Second.HeadNo
             && pair.First.Row == pair.Second.Row && pair.First.Column == pair.Second.Column && pair.First.BeamNo == pair.Second.BeamNo);
-        var nextVisibleKeys = visiblePoints.Select(p => p.Key).ToHashSet(StringComparer.Ordinal);
+        var nextVisibleKeys = ReferenceEquals(_visible, visiblePoints) ? _visibleKeys
+            : visiblePoints.Select(p => p.Key).ToHashSet(StringComparer.Ordinal);
         var nextSelected = new HashSet<string>(selectedKeys, StringComparer.Ordinal);
-        var layoutFingerprint = string.Join(";", snapshot.CellLayouts.Select(cell => cell.CellNo + ":" + cell.Enabled + ":"
-            + string.Join("/", cell.BoundaryMm.Select(vertex => FormattableString.Invariant($"{vertex.Xmm:R},{vertex.Ymm:R}")))))
-            + FormattableString.Invariant($"|{snapshot.CellLayoutYDown}|{snapshot.GlassWidthMm:R}|{snapshot.GlassHeightMm:R}|{showCellOverview}");
+        var visibleChanged = !ReferenceEquals(_visibleKeys, nextVisibleKeys) && !_visibleKeys.SetEquals(nextVisibleKeys);
+        var selectionChanged = !_selected.SetEquals(nextSelected);
+        var presentationChanged = selectionChanged || _focusKey != focusKey || _representative != representativeKey || colorChanged;
+        var layoutFingerprint = _cellLayoutFingerprint;
+        if (!ReferenceEquals(_fingerprintedLayouts,snapshot.CellLayouts) || _fingerprintYDown!=snapshot.CellLayoutYDown
+            || _fingerprintGlassWidth!=snapshot.GlassWidthMm || _fingerprintGlassHeight!=snapshot.GlassHeightMm || _fingerprintOverview!=showCellOverview)
+        {
+            _fingerprintedLayouts=snapshot.CellLayouts;_fingerprintYDown=snapshot.CellLayoutYDown;
+            _fingerprintGlassWidth=snapshot.GlassWidthMm;_fingerprintGlassHeight=snapshot.GlassHeightMm;_fingerprintOverview=showCellOverview;
+            layoutFingerprint = string.Join(";", snapshot.CellLayouts.Select(cell => cell.CellNo + ":" + cell.Enabled + ":"
+                + string.Join("/", cell.BoundaryMm.Select(vertex => FormattableString.Invariant($"{vertex.Xmm:R},{vertex.Ymm:R}")))))
+                + FormattableString.Invariant($"|{snapshot.CellLayoutYDown}|{snapshot.GlassWidthMm:R}|{snapshot.GlassHeightMm:R}|{showCellOverview}");
+        }
         var scopeIdentity = snapshot.RunId + "|" + scopeSignature + "|" + allScopedPoints.Count + "|" + layoutFingerprint;
-        if (!sameGeometry || !_visibleKeys.SetEquals(nextVisibleKeys) || _layoutSignature != scopeIdentity
-            || !_publishingKeyboardSelection && (!_selected.SetEquals(nextSelected) || _focusKey != focusKey))
+        var scopeChanged = _layoutSignature != scopeIdentity;
+        if (!sameGeometry || visibleChanged || _layoutSignature != scopeIdentity
+            || !_publishingKeyboardSelection && (selectionChanged || _focusKey != focusKey))
             _keyboardAnchorKey = null;
         if (_cellLayoutFingerprint != layoutFingerprint)
         { _cellLayoutFingerprint = layoutFingerprint; sameGeometry = false; InvalidateClickSelection(); }
-        if (!samePoints || !_visibleKeys.SetEquals(nextVisibleKeys) || _snapshot.Version != snapshot.Version
+        if (!samePoints || visibleChanged || _snapshot.Version != snapshot.Version
             || _layoutSignature != scopeIdentity)
             InvalidateClickSelection();
-        if (_gesture && (!sameGeometry || !_visibleKeys.SetEquals(nextVisibleKeys) || _snapshot.Version != snapshot.Version
+        if (_gesture && (!sameGeometry || visibleChanged || _snapshot.Version != snapshot.Version
             || _layoutSignature != scopeIdentity))
             CancelGesture(true);
         if (!samePoints || _snapshot.Version != snapshot.Version) { _hoverKey = null; _tip.IsOpen = false; }
@@ -167,7 +185,10 @@ public sealed class CManualInspectionMapControl : Control
         _visibleKeys = nextVisibleKeys;
         _selected = nextSelected;
         _focusKey = focusKey;
+        var oldBlinkKeys = _measurementBlinkKeys;
+        var oldBlinkVisible = _measurementBlinkVisible;
         UpdateMeasurementBlink();
+        var blinkChanged = oldBlinkVisible != _measurementBlinkVisible || !oldBlinkKeys.SetEquals(_measurementBlinkKeys);
         _representative = representativeKey;
         _colorMode = colorMode;
         var nextSignature = scopeIdentity;
@@ -181,7 +202,9 @@ public sealed class CManualInspectionMapControl : Control
         // matrix slot. Only real geometry/scope/size changes rebuild layout. Hidden slots remain.
         if (!sameGeometry) _layoutDirty = true;
         if (_hoverKey is not null && !_visibleKeys.Contains(_hoverKey)) { _hoverKey = null; _tip.IsOpen = false; }
-        InvalidateVisual();
+        if (!samePoints || !sameGeometry || visibleChanged || presentationChanged || hadHover || scopeChanged)
+            InvalidateVisual();
+        else if (blinkChanged) InvalidateVisual();
     }
 
     public void ResetView()

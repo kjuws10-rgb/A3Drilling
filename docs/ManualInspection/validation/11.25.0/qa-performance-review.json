@@ -1,0 +1,271 @@
+{
+  "schema": "a3-manual-inspection-performance-independent-review/1",
+  "status": "passed",
+  "passed": true,
+  "generatedAtUtc": "2026-11-24T22:43:54.252447+00:00",
+  "baselineCommit": "26a7db3e27bb17c4b9f141f2831d168965d978d5",
+  "sourceReview": {
+    "currentPositionPath": [
+      "Controller.ExecuteAsync → Run → Current → Backend.EnsureCurrentAsync",
+      "Core.PreviewOperation → BeginOperation",
+      "actual temp checkpoint serialize/write before/after operation",
+      "Publish → UI status/points/map/table/scatter"
+    ],
+    "observedCauses": [
+      ".10 transient operation validation fingerprints serialized/sorted full point population repeatedly",
+      "status publication regenerated point lists/projections and copied active offsets",
+      "full checkpoint JSON serialization/atomic writes ran synchronously on owning Dispatcher",
+      "actual CReviewOffsetFile.LoadLatest can parse/hash inline after synchronously completed uncontended locks"
+    ],
+    "distinctions": [
+      "Native result catalog is not called by current-position Measure; actual CReviewResultFile.ListCorrectionResults already delegates its catalog scan to Task.Run",
+      "synthetic Controller benchmark excludes native file checking, physical hardware and production UIView rendering",
+      "UI interim status gains did not hide its separate selection performance regression; UI agent is measuring and fixing it"
+    ]
+  },
+  "findings": [
+    {
+      "kind": "runtime_measured",
+      "finding": "The due Received checkpoint remained synchronous in the first optimization",
+      "proof": "controller-checkpoint-due-preflight.json",
+      "effect": "32k UI dispatch gaps 297–603 ms despite ordinary intermediate gaps 19–25 ms",
+      "resolution": "Awaitable P2P/Flying line checkpoint fences implemented; final due diagnostic and actual Controller regression passed"
+    },
+    {
+      "kind": "runtime_regression",
+      "finding": "Unchanged UiPoint records still caused new outer lists during preparation/status publications",
+      "proof": "progress=5, initial-list-matches=1, unchanged-P2-record=True in source Controller preflight",
+      "resolution": "Reuses the outer list when all ordered point references are unchanged; final source Controller293/293 and actual Controller296/296 passed"
+    }
+  ],
+  "preflightProfiles": {
+    "controller-performance-after-preflight.json": {
+      "passed": true,
+      "sha256": "4f69847c306caa1faa91cb86e0eb9fac5e001d06fe4ae15b11b45e3c9e4d3792",
+      "scales": {
+        "1000": {
+          "iterations": 3,
+          "medianWallMs": 48.3431,
+          "medianMaxDispatcherGapMs": 19.6198,
+          "medianTotalAllocatedBytes": 6039080
+        },
+        "10000": {
+          "iterations": 3,
+          "medianWallMs": 333.4622,
+          "medianMaxDispatcherGapMs": 19.6036,
+          "medianTotalAllocatedBytes": 55289752
+        },
+        "20000": {
+          "iterations": 3,
+          "medianWallMs": 326.9146,
+          "medianMaxDispatcherGapMs": 22.1195,
+          "medianTotalAllocatedBytes": 161316112
+        },
+        "32000": {
+          "iterations": 3,
+          "medianWallMs": 498.9003,
+          "medianMaxDispatcherGapMs": 22.7879,
+          "medianTotalAllocatedBytes": 258529432
+        }
+      }
+    },
+    "controller-checkpoint-due-preflight.json": {
+      "passed": true,
+      "sha256": "bdb6faef9da8e20bb8682e9ac931ce402ebc3c37970b61ba52d7a3297afc4414",
+      "scales": {
+        "32000": {
+          "iterations": 3,
+          "medianWallMs": 1023.1994,
+          "medianMaxDispatcherGapMs": 313.8392,
+          "medianTotalAllocatedBytes": 385950056
+        }
+      }
+    },
+    "preflight-reports/controller-performance-before.json": {
+      "passed": true,
+      "sha256": "9554c314dd8d524effe18184d884b4619d86ffa098202bd7d7d10c22d36ab3d3",
+      "scales": {
+        "1000": {
+          "iterations": 3,
+          "medianWallMs": 81.6433,
+          "medianMaxDispatcherGapMs": 81.6108,
+          "medianTotalAllocatedBytes": 12988688
+        },
+        "10000": {
+          "iterations": 3,
+          "medianWallMs": 516.6094,
+          "medianMaxDispatcherGapMs": 516.5711,
+          "medianTotalAllocatedBytes": 159905104
+        },
+        "20000": {
+          "iterations": 3,
+          "medianWallMs": 832.4956,
+          "medianMaxDispatcherGapMs": 832.4547,
+          "medianTotalAllocatedBytes": 354811384
+        },
+        "32000": {
+          "iterations": 3,
+          "medianWallMs": 1138.6737,
+          "medianMaxDispatcherGapMs": 1138.6462,
+          "medianTotalAllocatedBytes": 451853168
+        }
+      }
+    }
+  },
+  "tests": {
+    "sourceController": {
+      "path": "controller-source.json",
+      "passed": true,
+      "count": 293,
+      "newCases": 4,
+      "scope": "source-linked actual Controller/Core plus synthetic backend"
+    },
+    "actualController": {
+      "path": "controller-production.json",
+      "passed": true,
+      "count": 296,
+      "newCases": [
+        "performance_idle_stop_does_not_leave_stopping_stage_on_the_next_measurement",
+        "performance_measure_reuses_unchanged_point_records_without_implicit_offset_save",
+        "performance_due_flying_checkpoint_error_preserves_received_raw_and_stops_before_next_line",
+        "performance_stop_waits_for_line_fence_cleanup_and_does_not_start_another_line"
+      ],
+      "scope": "actual production Drilling.UI/Common assemblies plus synthetic backend"
+    },
+    "actualBackend": {
+      "path": "backend-read.json",
+      "passed": true,
+      "count": 189,
+      "nativeIoSchedulingNewCases": [
+        "native_load_synchronous_offset_store_entry_runs_off_dispatcher_and_keeps_input_alive",
+        "native_ensure_current_synchronous_offset_entry_does_not_block_dispatcher",
+        "native_ensure_current_cancelled_during_worker_io_propagates_without_write_or_cached_success",
+        "native_ensure_current_rechecks_selected_recipe_after_off_thread_file_read",
+        "native_worker_io_error_is_not_cached_and_same_path_same_stamp_changed_sha_stays_stale"
+      ],
+      "scope": "actual native adapter, pure managers, actual parser/writer, temp-only synthetic data; no equipment CManager/Guard"
+    },
+    "core": {
+      "path": "core-results.json",
+      "passed": true,
+      "count": 294
+    },
+    "legacySerialization": {
+      "path": "legacy-serialization.json",
+      "passed": true,
+      "count": 37
+    },
+    "closedLoop": {
+      "path": "incremental-loop.json",
+      "passed": true,
+      "count": 21
+    },
+    "countPolicy": "Do not combine source-linked and actual Controller counts, or benchmark samples, into one correctness total."
+  },
+  "preservedContracts": [
+    "current target B + measured/copied residual, same-source and shared-Shot duplicate guards",
+    "NG/raw/proxy/Init history, current Cell scope and immutable old CSV",
+    "full session geometry/raw/recovery content; compact JSON formatting only",
+    "Stop/Busy remain held through checkpoint and line-fence cleanup",
+    "Native I/O still rejects same path and timestamp with changed content SHA; test preserves byte length and BOM"
+  ],
+  "excluded": [
+    "equipment App/Root/CManager/motion/Vision/vendor/PLC execution",
+    "native equipment SaveCore Guard execution",
+    "operational CSV record copies",
+    "machining-time basis/schema/new feature changes",
+    "long Flying batch throughput benchmark; existing completed/remaining list growth may be quadratic and is only a source observation"
+  ],
+  "next": "No required implementation remains in this delegated scope. Parent integrates final UI report, public documentation, manifest and publication.",
+  "finalControllerBenchmark": {
+    "path": "controller-performance-comparison.json",
+    "sha256": "2b4a6aadd7a29e08be00ce4ecb4dd1d9c5c8efdee17e0c0027f9e993669b5c56",
+    "passed": true,
+    "summary32k": {
+      "normalBeforeMedianWallMs": 1071.7008,
+      "normalAfterMedianWallMs": 409.5593,
+      "normalBeforeMedianDispatcherGapMs": 1071.6746,
+      "normalAfterMedianDispatcherGapMs": 20.6907,
+      "dueBeforeMedianDispatcherGapMs": 1236.9552,
+      "dueAfterMedianDispatcherGapMs": 26.9058,
+      "normalBeforeMedianAllocatedBytes": 451852424,
+      "normalAfterMedianAllocatedBytes": 124646320
+    },
+    "sourceControllerSha256": "b2e7a63f587f252701757ad284a807375b0b0eb2a926a0f21ddd3d0ec58635d0",
+    "sourceSnapshotAndHarnessHashesVerified": true,
+    "normalIterationsPerScale": 3,
+    "scales": [
+      1000,
+      10000,
+      20000,
+      32000
+    ],
+    "dedicatedSequentialWindow": true
+  },
+  "rendererReview": {
+    "intermediateExperiments": "Managed retained DrawingGroup/frozen clone/layer renderer trials showed actual selection performance regression or WPF measurement failure and were rejected. These are not final improvements.",
+    "finalApproach": "Original .10 OnRender drawing body restored; final keeps immutable projection/row/stat/legend/filter cache and avoids status-only redundant map invalidation. UI owner compares/runs actual WPF separately.",
+    "staticReviewLimit": "A VisualChildrenCount source review alone did not detect Control.MeasureOverride casting DrawingVisual to UIElement; actual Window.Show exposed it. Final code removes the renderer/layer/measure override trial."
+  },
+  "reports": {
+    "controller-source.json": {
+      "sha256": "36ac762d8bafce5ae0e66597a20d375197a05ae422fe3a8248e72325a3caaef7",
+      "passed": true,
+      "count": 293
+    },
+    "controller-production.json": {
+      "sha256": "8b905ae0cc7fe4dbe1ec9b536d120f331a66818ef59c858f83e555125bac377e",
+      "passed": true,
+      "count": 296
+    },
+    "backend-read.json": {
+      "sha256": "67876e4d78235cd9c978afa51aa00f4f783bce91513523501d4670f8d784993e",
+      "passed": true,
+      "count": 189
+    },
+    "core-results.json": {
+      "sha256": "c7201a3b4546f7d19cd09c1450741bc2a139314b4719226874a5cfa947d4e28f",
+      "passed": true,
+      "count": 294
+    },
+    "legacy-serialization.json": {
+      "sha256": "2050efee50c3e3d6135a94b3d3ef1b7934991b660528c38675be15e596769204",
+      "passed": true,
+      "count": 37
+    },
+    "incremental-loop.json": {
+      "sha256": "7b4e551e3c792b2254f56c42da58ac1debcdfdf0413e000ed5c922734dfdd600",
+      "passed": true,
+      "count": 21
+    }
+  },
+  "actualProductionAssemblies": {
+    "Drilling.UI": {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BackendReadHarness\\bin\\Release\\net8.0-windows\\Drilling.UI.dll",
+      "sha256": "c2651f848e90e1846713712c1e2d9124ece35c37fe9687c0a1447f783ff5b7bf"
+    },
+    "Drilling.Common": {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BackendReadHarness\\bin\\Release\\net8.0-windows\\Drilling.Common.dll",
+      "sha256": "9f6a3c333da0eb1bad129e01aa0c7007775f584686599da8d342c87ed974e8e0"
+    }
+  },
+  "actualControllerLoadedVendorAssemblies": [],
+  "sourceHashes": {
+    "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs": "b09b37cbf6da100db1c5ec35c89aee8cb0f3161f0295304a9b7a8e2e8c9296bf",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "b2e7a63f587f252701757ad284a807375b0b0eb2a926a0f21ddd3d0ec58635d0",
+    "Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs": "61c1b0a74638d83babd535a9cb2d0d761d1f30255697c8e8f14529a6ca92427e",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs": "6bde9206a739bc15f5e6a45e8208ec73260558bd0f227cdafbd2664a2cde089e",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "4f4140229f2a96e667257a3f3e25f38cf208aab141712a3c93f529d59e3892ea",
+    "tests/ManualInspection/BackendReadHarness/NativeIoSchedulingCases.cs": "8d97cd084c4773f7a595fae8ae5e6757b2ca33136f337dccb32f8c23eca38cdd",
+    "tests/ManualInspection/ControllerHarness/PerformanceCorrectnessCases.cs": "ea97bd6ef4ddeab9322008e184ac45866d462bcb4a5fa3a38cb7d8265934826b",
+    "tests/ManualInspection/ControllerHarness/Contracts.cs": "9eb608b7106a38367ace9e34b658de1280113fab7db432a029fb91704bc8375b"
+  },
+  "finalTimingSourceMatchesCurrent": true,
+  "baselineBytePolicy": {
+    "path": "benchmark-baseline-byte-policy.json",
+    "beforeByteForm": "Exact compiler PDB checksums match frozen baseline-source, final-benchmark-inputs.before, root329 Windows-byte manifest and initial Git blobs for all eight inputs; original UiContract BOM retained.",
+    "currentWorkingIsAfter": "The current Models 6af6 hash is the modified .0 source, not the frozen .10 input 5cb5.",
+    "compileRootProvenFromPortablePdb": true,
+    "noRebenchmarkRequired": true
+  }
+}

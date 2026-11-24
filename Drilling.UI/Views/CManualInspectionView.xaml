@@ -240,7 +240,13 @@
           </Grid>
           <Grid Grid.Row="1" Margin="0,3,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*" MinWidth="0" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
             <TextBlock Grid.Column="0" Margin="0,0,10,0" x:Name="ContextText" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
-            <TextBlock Grid.Column="1" MaxWidth="300" MaxHeight="18" Margin="0,0,12,0" x:Name="StatusText" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" FontWeight="SemiBold" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+            <Grid Grid.Column="1" Height="20" MaxWidth="300" Margin="0,0,12,0">
+              <TextBlock MaxHeight="18" x:Name="StatusText" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" FontWeight="SemiBold" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+              <StackPanel x:Name="JobProgressPanel" Visibility="Collapsed" MinWidth="90" MaxWidth="300">
+                <TextBlock x:Name="JobProgressText" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="11" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+                <ProgressBar x:Name="JobProgressBar" Height="3" Margin="0,2,0,0" Minimum="0" Maximum="100" Foreground="{DynamicResource AccentBrush}" AutomationProperties.Name="현재 작업 진행"/>
+              </StackPanel>
+            </Grid>
             <TextBlock Grid.Column="2" MaxWidth="250" x:Name="SelectionCountText" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
           </Grid>
         </Grid>
@@ -540,8 +546,6 @@
                       </StackPanel>
                       <Button x:Name="MeasureCurrentButton" Content="현 위치 측정" Tag="Measure" Style="{StaticResource ManualButton}" Click="Action_Click" ToolTip="현재 도착한 선택 위치 한 점을 측정합니다." Grid.Column="1" FontSize="11" Padding="5,3" MinHeight="26" Margin="3,0,0,2"/>
                     </Grid>
-                    <TextBlock x:Name="JobProgressText" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="10" TextWrapping="Wrap" Margin="0,3,0,2" MaxHeight="28"/>
-                    <ProgressBar x:Name="JobProgressBar" Height="7" Minimum="0" Maximum="100" Foreground="{DynamicResource AccentBrush}"/>
                     <Button x:Name="RetryButton" Content="남은 위치만 재측정" Tag="RetryRemaining" Style="{StaticResource ManualButton}" Click="Action_Click" Margin="0,3,0,0" FontSize="11" MinHeight="26" Padding="4,3"/>
                   </StackPanel>
                 </Border>

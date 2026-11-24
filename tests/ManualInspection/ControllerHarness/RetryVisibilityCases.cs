@@ -84,7 +84,10 @@ internal static partial class Program
         {
             var(f,c)=await Loaded();Action<IReadOnlyList<string>>? old=null;f.FlyingActiveHook=callback=>old=callback;
             await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1"],r=>r with{MeasurementMode="FLYING"});old!(["P1"]);
-            True(!c.Snapshot.IsMeasurementInProgress&&c.Snapshot.ActiveMeasurementPointKeys.Count==0);f.Hold=true;var run=Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P3"]);
+            True(!c.Snapshot.IsMeasurementInProgress&&c.Snapshot.ActiveMeasurementPointKeys.Count==0);f.Hold=true;
+            var active=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            c.Changed+=(_,_)=>{if(c.Snapshot.ActiveMeasurementPointKey=="P3")active.TrySetResult();};
+            var run=Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P3"]);await active.Task.WaitAsync(TimeSpan.FromSeconds(3));
             True(c.Snapshot.ActiveMeasurementPointKey=="P3");old([]);True(c.Snapshot.ActiveMeasurementPointKey=="P3"&&c.Snapshot.IsMeasurementInProgress);
             c.RequestStop();await f.CancelObserved.Task.WaitAsync(TimeSpan.FromSeconds(3));f.Release.TrySetResult();await run;True(!c.Snapshot.IsMeasurementInProgress&&c.Snapshot.ActiveMeasurementPointKeys.Count==0);
         });

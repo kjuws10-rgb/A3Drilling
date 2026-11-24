@@ -1,0 +1,2 @@
+# Preserve exact tested reports and recognize their Windows CRLF line endings.
+*.json -text whitespace=cr-at-eol

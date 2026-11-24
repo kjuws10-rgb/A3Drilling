@@ -1,0 +1,25 @@
+{
+  "harnessSha256": "d4dd7151e1ad7bc23aa6a6406c7b62583850d992eb3d64f8a252fb4683a16283",
+  "csprojSha256": "18803d2029c768f3ae814d81054c71b6d957112d51a36fb670649061e1752aa5",
+  "before": {
+    "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs": "5cb5a0cdca1ea9a528c57d38a783bc60934af9fd960c621bdd017528cd9588de",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs": "bfc6826a45e01af83fcfdaa66a5016a70b385bde2a1d08a616a87c2c7516ec32",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs": "ab8c1d28e431d7ad42d8160ca91ea7196019ef61524740bdf6de98020f513bde",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "64c2a6c7fe8acb186588b77f6c8ce09661482dbe8bf34bf30a436ef2a601f781",
+    "Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs": "a7e6849d10bf5baebbe56d56084f74bdfb852289b30c571d9908f0a244855228",
+    "Drilling.UI/Menu/Menus/CManualInspectionUpdateMonitor.cs": "a5d8854aea32ae9eb9cf4cfa05c99cf6ab0548dddcebd7fa32a94335ab94a1e0",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "422f30502a1d904f47df7a864d87f98527217f30a9359f82f75962303a6102cd",
+    "tests/ManualInspection/ControllerHarness/Contracts.cs": "d1049774e843915eb7394d108315fa7920fd6de4206a546538e6d18094bfdb1c"
+  },
+  "after": {
+    "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs": "6af6eb882a37e534d431db987182c04a6cba4cd6a77fd85a29dd791b4cda1bda",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs": "40eeebdb71005c81a668d53371ac0a07fea38a9daf59818b15776745109c0529",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs": "6bde9206a739bc15f5e6a45e8208ec73260558bd0f227cdafbd2664a2cde089e",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "b2e7a63f587f252701757ad284a807375b0b0eb2a926a0f21ddd3d0ec58635d0",
+    "Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs": "61c1b0a74638d83babd535a9cb2d0d761d1f30255697c8e8f14529a6ca92427e",
+    "Drilling.UI/Menu/Menus/CManualInspectionUpdateMonitor.cs": "2f237b8efa8ee47de8aa6af04f4d934474bea4e3bcb759217dfbad1591bb9b8b",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "4f4140229f2a96e667257a3f3e25f38cf208aab141712a3c93f529d59e3892ea",
+    "tests/ManualInspection/ControllerHarness/Contracts.cs": "9eb608b7106a38367ace9e34b658de1280113fab7db432a029fb91704bc8375b"
+  },
+  "scope": "Frozen .10 and final .0 source inputs; identical fixture; actual UIView rendering and native IO excluded"
+}

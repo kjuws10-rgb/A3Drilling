@@ -105,6 +105,10 @@ public sealed class CManualInspectionReplayBackend : IManualInspectionBackend
     public async Task ExecuteFlyingAsync(CManualInspectionSource source, IReadOnlyList<string> keys,
         Action<CManualInspectionMeasurement> measured, Action<string> progress,
         Action<IReadOnlyList<string>> activeTargets, CancellationToken token)
+        =>await ExecuteFlyingAsync(source,keys,measured,progress,activeTargets,_=>Task.CompletedTask,token);
+    public async Task ExecuteFlyingAsync(CManualInspectionSource source,IReadOnlyList<string> keys,
+        Action<CManualInspectionMeasurement> measured,Action<string> progress,
+        Action<IReadOnlyList<string>> activeTargets,Func<CancellationToken,Task> afterLine,CancellationToken token)
     {
         try
         {
@@ -115,6 +119,7 @@ public sealed class CManualInspectionReplayBackend : IManualInspectionBackend
                 // as active merely because they belong to the requested Flying batch.
                 activeTargets([key]);
                 measured(await ExecutePointAsync(source,key,EN_MANUAL_OPERATION_KIND.Flying,progress,token));
+                await afterLine(token);
             }
         }
         finally { activeTargets([]); }

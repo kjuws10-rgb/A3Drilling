@@ -289,6 +289,7 @@ internal static partial class Program
         await RunOffsetCsvTransferChecks();
         await RunReplacementWorkflowCsvChecks();
         await RunMonitorFinalConsistencyChecks();
+        await RunNativeIoSchedulingChecks();
         await Check("vendor_assemblies_never_loaded", () =>
         {
             True(!AppDomain.CurrentDomain.GetAssemblies().Any(a => new[] { "Aerotech", "Automation1", "ACS.SPii", "Newport.XPS", "CmdLib", "DeviceIOLib" }.Any(n => (a.GetName().Name ?? "").Contains(n, StringComparison.OrdinalIgnoreCase)))); return Task.CompletedTask;

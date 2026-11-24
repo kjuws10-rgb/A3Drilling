@@ -1,57 +1,57 @@
 {
-  "schemaVersion": "a3-manual-inspection-validation/23",
-  "programVersion": "11.24.10",
-  "baseCommit": "dc3a15e6ebc382c6f14d76a916c6b7c510e25590",
-  "featureBranch": "feature/manual-inspection-overwrite-only-20261124.10",
-  "verifiedDate": "2026-11-24",
+  "schemaVersion": "a3-manual-inspection-validation/24",
+  "programVersion": "11.25.0",
+  "baseCommit": "26a7db3e27bb17c4b9f141f2831d168965d978d5",
+  "featureBranch": "feature/manual-inspection-performance-20261125.0",
+  "verifiedDate": "2026-11-25",
   "passed": true,
   "checks": {
     "core-results.json": {
       "passed": true,
-      "count": 286,
-      "path": "validation/11.24.10/core-results.json",
-      "sha256": "0acf80c77eab348f64510e43c7896c8309dabd02f41267a2731f12ed77717dcb"
+      "count": 294,
+      "path": "validation/11.25.0/core-results.json",
+      "sha256": "c7201a3b4546f7d19cd09c1450741bc2a139314b4719226874a5cfa947d4e28f"
     },
     "controller-production.json": {
       "passed": true,
-      "count": 292,
-      "path": "validation/11.24.10/controller-production.json",
-      "sha256": "7d9716c05bf614dcc99765eaea825d6fe165e1d5b0885bfc85f16f4b06009f0b"
+      "count": 296,
+      "path": "validation/11.25.0/controller-production.json",
+      "sha256": "8b905ae0cc7fe4dbe1ec9b536d120f331a66818ef59c858f83e555125bac377e"
     },
     "backend-read.json": {
       "passed": true,
-      "count": 184,
-      "path": "validation/11.24.10/backend-read.json",
-      "sha256": "8729e16b5b7de7e75c19963166d9bb6f28720bcfad28a185556e9075d1dc8ee9"
+      "count": 189,
+      "path": "validation/11.25.0/backend-read.json",
+      "sha256": "67876e4d78235cd9c978afa51aa00f4f783bce91513523501d4670f8d784993e"
     },
     "incremental-loop.json": {
       "passed": true,
       "count": 21,
-      "path": "validation/11.24.10/incremental-loop.json",
+      "path": "validation/11.25.0/incremental-loop.json",
       "sha256": "7b4e551e3c792b2254f56c42da58ac1debcdfdf0413e000ed5c922734dfdd600"
     },
     "legacy-serialization.json": {
       "passed": true,
       "count": 37,
-      "path": "validation/11.24.10/legacy-serialization.json",
-      "sha256": "921961b1309d2e28b7fb36b428939ac67c13ecc8dbe8df1ee25dfb979e4225e0"
+      "path": "validation/11.25.0/legacy-serialization.json",
+      "sha256": "2050efee50c3e3d6135a94b3d3ef1b7934991b660528c38675be15e596769204"
     },
     "scope-results.json": {
       "passed": true,
       "count": 36,
-      "path": "validation/11.24.10/scope-results.json",
-      "sha256": "acde95c2d37e64dcc6728fd4610e2a9eb8d2a80be6f188e3749567af4d7ae76b"
+      "path": "validation/11.25.0/scope-results.json",
+      "sha256": "409e2dd7aac4dbb1cc19ecdefa1aed1c8bf64aa83f0649eb935ecc1277e4e25e"
     }
   },
-  "sourceHashPolicy": "Raw tested Windows checkout; published Git blobs compared after BOM/line-ending normalization.",
+  "sourceHashPolicy": "Raw tested Windows source checkout; source publication verified after BOM/line-ending normalization. This version archive keeps JSON report bytes exact through its local .gitattributes so report SHA256 matches Git blobs.",
   "productionSourcesSha256": {
     "Drilling.Common/Recipe/CShotCoordinatePlanBuilder.cs": "142fd432b5de1af2fc70c6e1ecccd3b4d42b85253ecda3e3c0342ae6fec6fa5a",
     "Drilling.Common/Review/CAutoFineReviewCoordinator.cs": "de93f27b8070bd8bebd6d4c67ee3147299448bc7eb940da7b83ab9bd2b2dbd7e",
     "Drilling.Common/Review/CManualInspectionCoordinateBridge.cs": "4d1753b71ff3fb62b022b362e94f95c9832452841d3c81f21b38ee3b1c21640c",
     "Drilling.Common/Review/CReviewManager.cs": "32bb509070f077f16b22059cb7c2ed815a351b8a7876c4fdd1da75649de255cd",
     "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs": "6af6eb882a37e534d431db987182c04a6cba4cd6a77fd85a29dd791b4cda1bda",
-    "Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs": "2f7022a4a246f5fc5a59c76d2e571a1386b0f9fe677d46b993fb59c11afc9da8",
-    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs": "ac4122e96c67314ffc34f8ae5e298d728208072fe7c3ec9de84243eee480ebb6",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs": "40eeebdb71005c81a668d53371ac0a07fea38a9daf59818b15776745109c0529",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs": "6bde9206a739bc15f5e6a45e8208ec73260558bd0f227cdafbd2664a2cde089e",
     "Drilling.Common/Station/CStageReviewSequences.cs": "49e1a43341978bc8ae28013cebce4827cb99e933b04df32aab4ad74d5a9402a7",
     "Drilling.Common/Station/CStationManager.cs": "0d239bcb1b55c4a0653a684b3e2f7e8235917dbee1a61d0cace96489442db63b",
     "Drilling.Common/Station/CStationProcess.cs": "7e5b1fd549370e222890c0882624bd116e1375ae160cb55e0d94cf3513f8b917",
@@ -59,10 +59,10 @@
     "Drilling.File/Script/CAutomation1ScriptFile.cs": "1681351dcfa412fcae7313a2ff470b23be816cad1047ee586e3fb79f35850ac4",
     "Drilling.UI/CAppStartup.cs": "98e8716b093e6970d73233f8488d538acf7fa02f5d140ab1baebd9e8abdcd9b9",
     "Drilling.UI/CRootView.cs": "d6834c39b212da80a085576fea93b68d310e0bb0713331396309126af101e154",
-    "Drilling.UI/Drilling.UI.csproj": "7e13ec2099a5a037ff5c030552d586f8af09e6c9fc81f4a076a3a3fc5b0bf92f",
-    "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs": "4778599a2f897aedcbb2a43e5bf958be7e2b951f270c46ab456ebd965a5c7332",
-    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "72878047422c27044f2945b7c7d1dfd9b337537885378ff403a778f4fbbdf97b",
-    "Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs": "e7e576e48f21101a6c478b717173f5ff4fb0b8f9362d8b63711f44c101a7bad6",
+    "Drilling.UI/Drilling.UI.csproj": "233997879a773aebb1a87c3768ebbe35b80202bd7f40a10fa49550fb51497c68",
+    "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs": "b09b37cbf6da100db1c5ec35c89aee8cb0f3161f0295304a9b7a8e2e8c9296bf",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "b2e7a63f587f252701757ad284a807375b0b0eb2a926a0f21ddd3d0ec58635d0",
+    "Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs": "61c1b0a74638d83babd535a9cb2d0d761d1f30255697c8e8f14529a6ca92427e",
     "Drilling.UI/Menu/Menus/CMenuCorrection.ManualInspection.cs": "eca5d22d7496210c5ad853cc010059a070eefce716da33227c5c4d8c43293047",
     "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Display.cs": "d8d2bcf72b26adb6ef00ec04f3dc0b1e4cae885c706852e0f9cc98eaf219f6a5",
     "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Edit.cs": "2b07373e13aa12a83477f7ef7708a6a5c790b19e45ec55a0938b8701526be6b3",
@@ -72,118 +72,278 @@
     "Drilling.UI/Menu/Menus/CMenuCorrection.cs": "388dda336057dbf57eff598d5c3648491ae9972ec387db25498f0cf4f4bbdb52",
     "Drilling.UI/Menu/Menus/CMenuMonitor.cs": "14ba9cc6682157c3b7a72bc8e6b57c1830a4618bceb10b45f33911dc2a7399f5",
     "Drilling.UI/Menu/Menus/CMenuRecipe.cs": "5c3d300be071074a77763e5ae1d8a74f92c0879723ecbf4fcc46a3003a96a8a3",
-    "Drilling.UI/Views/CManualInspectionMapControl.cs": "72964a4fef45bcd344d403af945a1f5a091d100745549d3caeaaddfb0af2f806",
+    "Drilling.UI/Views/CCorrectionView.xaml": "850404c76dda72d2d741b74f07a8161966f6cd55d173697bebaf619ee79e296c",
+    "Drilling.UI/Views/CManualInspectionMapControl.cs": "62842962f1d82f111ebaa84dcf85515e0d8a85e819961289b6296733793ae66a",
     "Drilling.UI/Views/CManualInspectionScatterControl.cs": "1cc3fb7be94547c2e714d8809906f2df6018e5805b6ed44ecc9fd2c398e6a0bb",
-    "Drilling.UI/Views/CManualInspectionUiContract.cs": "94c07c0d7faed65042d47c209dae457386e4df7611a221fb935807aaa0beafd8",
-    "Drilling.UI/Views/CManualInspectionView.xaml": "de85a569823fcadf344ce1a8d7840e5c49f4982bed9910b712f3c8d79cbb43f3",
-    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "740f8db69c572e07e04f7745c320ed6c75801e302da693a96e94ef13865bc297"
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "4f4140229f2a96e667257a3f3e25f38cf208aab141712a3c93f529d59e3892ea",
+    "Drilling.UI/Views/CManualInspectionView.xaml": "bc0a197ddbe3ee1ac693822604f9f4d6f544cd74976bd6b7e5a2ec8cc0aff26b",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "2152d59aa5cf19c09776f1ddafc1f6daeb2d4218a9c095547f19061012cc4028"
   },
   "build": {
     "configuration": "Release",
     "warnings": 0,
     "errors": 0,
-    "logSha256": "c58a7aac77bde03dc1de692796a6a12645fbacdcc55e007596768838748a6e28",
+    "logSha256": "c4e1af1ea1ef4815c0c6f26aed2ac5c3d5233bd80788ed709ce57864fc2c5b4f",
     "productionAssembliesSha256": {
-      "Drilling.UI": "3aa5d04064a1492e652ed0a7ff6e276e4abff50d8d2f34904ff7a023c7c9bf5d",
-      "Drilling.Common": "d199031a84557b8b3348d76170d7075829b23cbc4d3175038bbb44c55a63fe20",
-      "Drilling.File": "b904d96d47715f39b040792e05fdcaf7a5e39d1fb0d3f861b03064821c9f46bc"
-    }
+      "Drilling.UI": "c2651f848e90e1846713712c1e2d9124ece35c37fe9687c0a1447f783ff5b7bf",
+      "Drilling.Common": "9f6a3c333da0eb1bad129e01aa0c7007775f584686599da8d342c87ed974e8e0",
+      "Drilling.File": "030c7c50d416676ce0c1f876144974228dff1f21432d36430cbd84b09dec05df"
+    },
+    "equipmentAppExecuted": false
   },
   "wpf": {
     "passed": true,
-    "modeCount": 3,
-    "totalChecks": 124,
+    "modeCount": 20,
+    "totalChecks": 1075,
     "modes": [
       {
-        "mode": "replacement-workflow",
+        "mode": "bulk-final-consistency",
         "passed": true,
-        "count": 48,
-        "path": "validation/11.24.10/ui-replacement-workflow-results.json",
-        "sha256": "24fde8457c2b1b4ad19c03a0599d943cc7820dc879129b5eba0077c247fd4798"
+        "count": 49,
+        "path": "validation/11.25.0/ui-bulk-final-consistency-results.json",
+        "sha256": "5c0a0868e19fb673ed6d0334727eb5ae9a89e8df712ccac182e26c138f25c601"
+      },
+      {
+        "mode": "bulk-history",
+        "passed": true,
+        "count": 35,
+        "path": "validation/11.25.0/ui-bulk-history-results.json",
+        "sha256": "da844ce423a0c30c57640d29b2360ffac6b44a18c837f2a813ece6c2a1183a10"
       },
       {
         "mode": "cell-csv-workflow",
         "passed": true,
         "count": 27,
-        "path": "validation/11.24.10/ui-cell-csv-workflow-results.json",
-        "sha256": "9dc171f3a28fccc1d64b134722c2b08902f0aabcad1c372415e0b4424c4d0f06"
+        "path": "validation/11.25.0/ui-cell-csv-workflow-results.json",
+        "sha256": "effdce4a14b0f9b4fd5300b28295dd8eddef24f286da43a7f133517d28f4550c"
       },
       {
-        "mode": "bulk-final-consistency",
+        "mode": "cell-overview",
+        "passed": true,
+        "count": 181,
+        "path": "validation/11.25.0/ui-cell-overview-results.json",
+        "sha256": "6a50120b6119a2cd25b733746190a4e428db339de5fe958e6ad8787426c87b12"
+      },
+      {
+        "mode": "coverage-compact",
+        "passed": true,
+        "count": 71,
+        "path": "validation/11.25.0/ui-coverage-compact-results.json",
+        "sha256": "6c563041a8baaa369362597f8ea1a3820d0ecb9563a919fa15df54b4a4376349"
+      },
+      {
+        "mode": "default",
         "passed": true,
         "count": 49,
-        "path": "validation/11.24.10/ui-bulk-final-consistency-results.json",
-        "sha256": "5ea827c552c2cbe391b42efe6ff550ae400b7d33e4ba496188a32c62a11e15c7"
+        "path": "validation/11.25.0/ui-results.json",
+        "sha256": "7c474021e22b96991d8cf1e54cf01a905e2a557cbb3a736e767cd4de18803fb2"
+      },
+      {
+        "mode": "existing-final-csv",
+        "passed": true,
+        "count": 20,
+        "path": "validation/11.25.0/ui-existing-final-csv-results.json",
+        "sha256": "e4cf61b94ef83ed31eff7ce4a2144905af3f54ee96a3d4114e3d672379c7d535"
+      },
+      {
+        "mode": "final-offsets",
+        "passed": true,
+        "count": 16,
+        "path": "validation/11.25.0/ui-final-offsets-results.json",
+        "sha256": "904b6332ac9caf789be77dd20614ff3f42a1398527b7bcfe74a4df7839cfb8a6"
+      },
+      {
+        "mode": "hardening",
+        "passed": true,
+        "count": 30,
+        "path": "validation/11.25.0/ui-hardening-results.json",
+        "sha256": "e9d5eb815c775ae4f806faf63b3a1dbfe685a11f2372869bed8a2d082325b048"
+      },
+      {
+        "mode": "integration-impact",
+        "passed": true,
+        "count": 23,
+        "path": "validation/11.25.0/ui-integration-impact-results.json",
+        "sha256": "e371fced562983b3ec0800d69aa8765abfbae0f4cd4e67c80fe3ebedd730e4f2"
+      },
+      {
+        "mode": "map-first",
+        "passed": true,
+        "count": 73,
+        "path": "validation/11.25.0/ui-map-first-results.json",
+        "sha256": "46e2b4e4d54c35f24830b5063c0527970900bfb0b4020e3e8ea9664b38b58505"
+      },
+      {
+        "mode": "measurement-workflow",
+        "passed": true,
+        "count": 42,
+        "path": "validation/11.25.0/ui-measurement-workflow-results.json",
+        "sha256": "34059c2c50fea09dc3a5e93d5f872eaaad9e29452167b3f0f9282032c4de2054"
+      },
+      {
+        "mode": "offset-init",
+        "passed": true,
+        "count": 19,
+        "path": "validation/11.25.0/ui-offset-init-results.json",
+        "sha256": "0cbaa83cb68b568ebcbe204861b6663116a1607562da12deb35c563b1c16eea2"
+      },
+      {
+        "mode": "replacement-workflow",
+        "passed": true,
+        "count": 48,
+        "path": "validation/11.25.0/ui-replacement-workflow-results.json",
+        "sha256": "f56db68641c8cac99bf931df5a376daec39c577414fb3513d48ef8d6a72fc54a"
+      },
+      {
+        "mode": "representative",
+        "passed": true,
+        "count": 54,
+        "path": "validation/11.25.0/ui-representative-results.json",
+        "sha256": "f8c6bb60aad1ebfe3b4b6f6d80c9eceae9eb9a909a4cc212ff44149e80214619"
+      },
+      {
+        "mode": "representative-apply",
+        "passed": true,
+        "count": 58,
+        "path": "validation/11.25.0/ui-representative-apply-results.json",
+        "sha256": "a0a40b8235d54dddc40e8b4e6e296fe9d0a5d0e56d22faa8bc57fc83ef36f9dd"
+      },
+      {
+        "mode": "side-panels",
+        "passed": true,
+        "count": 97,
+        "path": "validation/11.25.0/ui-side-panels-results.json",
+        "sha256": "59de045176b647d9200fd9d0c319536ad199c62eb5ebfd80022dfcfa3fe4cb1b"
+      },
+      {
+        "mode": "sync-levels",
+        "passed": true,
+        "count": 34,
+        "path": "validation/11.25.0/ui-sync-levels-results.json",
+        "sha256": "4ab280e0f9f412eb7e0f495abb759f908e57fe7f0c8ff9280a10e6e19d761ffa"
+      },
+      {
+        "mode": "visual-usability",
+        "passed": true,
+        "count": 105,
+        "path": "validation/11.25.0/ui-visual-usability-results.json",
+        "sha256": "485e087e6ca0eba56e68580f075d9bd9486fa8ab07791e9ec0b99020804f5f13"
+      },
+      {
+        "mode": "performance-progress",
+        "passed": true,
+        "count": 44,
+        "path": "validation/11.25.0/ui-performance-progress-results.json",
+        "sha256": "a55660485dd3c5dda778d22d37530d26a0de89761aca1b1cb2ed4d7124e46373"
       }
     ],
-    "summaryPath": "validation/11.24.10/ui-summary.json",
-    "summarySha256": "4a6beae5dca2061dc01d7b02ab570b4c5de752b85272419b9d401499bad6bfa8",
-    "scope": "Only replacement-workflow, cell-csv-workflow and bulk-final-consistency rerun. Full19 modes not rerun. No equipment App."
+    "summaryPath": "validation/11.25.0/ui-summary.json",
+    "summarySha256": "f75ba364ef9aeffe42373588563f12e44e4a056dcf73d767943e7438c30ba80f",
+    "scope": "All 19 existing modes plus performance-progress; synthetic WPF Window, no equipment App."
+  },
+  "performanceEvidence": [
+    {
+      "path": "validation/11.25.0/controller-performance-comparison.json",
+      "sha256": "2b4a6aadd7a29e08be00ce4ecb4dd1d9c5c8efdee17e0c0027f9e993669b5c56"
+    },
+    {
+      "path": "validation/11.25.0/controller-performance-before.json",
+      "sha256": "b7c94c81699fe7a5d06e94d19664dcfdfdfda1657fa10be4fc3fc744278a8acf"
+    },
+    {
+      "path": "validation/11.25.0/controller-performance-after.json",
+      "sha256": "0656ea9c5d61d6327f085cbcd520d0eb4f197e23f19817f8a77d8f426dbc3965"
+    },
+    {
+      "path": "validation/11.25.0/controller-checkpoint-due-before.json",
+      "sha256": "7ce98953e63a3e3d08c68c670da140de79db30a076189cb0e0f1ed23175d797b"
+    },
+    {
+      "path": "validation/11.25.0/controller-checkpoint-due-after.json",
+      "sha256": "da1bfa52347de4a736c059aea268d956a5051647fc800e0df2a7da402e297464"
+    },
+    {
+      "path": "validation/11.25.0/final-benchmark-inputs.json",
+      "sha256": "f91e9c16d328e7be7f6aa9ba34782a2be4bcf6b66b203a8ecd1e6056db9cf5ff"
+    },
+    {
+      "path": "validation/11.25.0/baseline-source-manifest-root.json",
+      "sha256": "02b8a5c328b7a2f4095677a7cf930e53136a377b961a2233fd291969b1bacbe7"
+    },
+    {
+      "path": "validation/11.25.0/baseline-compile-documents.json",
+      "sha256": "fa0311c260bf4fb984aa24b556ffdf3683b7ed6e5a51cf364fc5af2b60ac2eb0"
+    },
+    {
+      "path": "validation/11.25.0/benchmark-baseline-byte-policy.json",
+      "sha256": "61fc01401583f569039966a2aed674b077c29d721a77904d29983286f2afc9e1"
+    },
+    {
+      "path": "validation/11.25.0/ui-presentation-comparison.json",
+      "sha256": "7793edbb618150ac757aa7454dbfb1df2d930f5411f055832f75dee5dd163caa"
+    },
+    {
+      "path": "validation/11.25.0/ui-presentation-baseline.json",
+      "sha256": "6596e0fcc1e3a5c1d0526bd708c6e1b73e6779d73d390935ff1307d3d7b6cf18"
+    },
+    {
+      "path": "validation/11.25.0/ui-presentation-candidate.json",
+      "sha256": "a763d99c17577afee12c4f9f3e1347649b8ba2d2d6a560867d408b2c256b9c95"
+    }
+  ],
+  "performanceScope": {
+    "controller": "Actual pure Core/Controller with synthetic Task.Yield backend and full real temp checkpoint JSON, warmup excluded, 3 samples each size, exclusive sequential comparison. Native Recipe/CSV, actual View and device time excluded.",
+    "wpf": "Same synthetic 8000 points, 24 status and 12 selection changes; enqueue plus Dispatcher pump, not screen FPS. Original OnRender retained; slower DrawingGroup/DrawingVisual experiments excluded.",
+    "remaining": "Initial 32000-point projection may still pause around 160ms; long Flying throughput not measured; physical Vision/motion/laser timing not executed."
   },
   "independentReviews": [
     {
-      "path": "validation/11.24.10/root-integration-review.json",
-      "sha256": "2ff6304f687049b834e20262d3843d7734f9932454503c6f5de94cced6b5892b"
+      "path": "validation/11.25.0/root-integration-review.json",
+      "sha256": "7d54705ba00aed308d6a01cc744a2e2562a334ff183b70a4e7a33259702d5059"
     },
     {
-      "path": "validation/11.24.10/core-peer-review.json",
-      "sha256": "7e667b9c46cd3d9fbb0b87fd34c19dd013a5aaeeb25cf3c79c8bb0ce8b2e6623"
+      "path": "validation/11.25.0/core-controller-review.json",
+      "sha256": "5d0b99597001e8ce66f1f806b035811b0d1ddbf9df0f96b73ea02eba07846ba4"
     },
     {
-      "path": "validation/11.24.10/backend-controller-review.json",
-      "sha256": "461dd41307874132d5b3d12451240163eac3fd40fb7403ab6698ec0e22c34505"
+      "path": "validation/11.25.0/qa-performance-review.json",
+      "sha256": "f775dacf66dc4973e506fd27cc9b0c74fcdf92247971a330ef0307ba31c756bb"
     },
     {
-      "path": "validation/11.24.10/ui-cross-review.json",
-      "sha256": "f809821c492dcac0a8e63ea7855539d9ca615b426cff63bbc49a0c1ce5df5412"
-    },
-    {
-      "path": "validation/11.24.10/ui-preservation-review.json",
-      "sha256": "5f47da14689bf3ee5bc9a41896cd9c1db4013c2dc4fbd67f9e9c4790bdc20a85"
+      "path": "validation/11.25.0/ui-cross-review.json",
+      "sha256": "b71ff23d21264684c8ba47d9bab83ef2ad80c466ac9628309027440c977bae99"
     }
   ],
   "policy": {
-    "actualMeasurement": "F = current saved B + validated residual",
-    "representative": "Copy residual/judge, not source B or source final F. Target20 + residual3 =23.",
-    "copy": "Stages only; Cell Bulk validates and writes canonical CSV.",
-    "init": "Existing current Cell scope; immediately writes latest final CSV with absence/zero baseline. Other Cells and protected setup offsets retained.",
-    "duplication": "Native raw plus manual driving tokens; same Shot sibling token propagation; identical observation or explicit identical input is not a fresh increment.",
-    "file": "Existing explicit absolute file replacement remains separate from residual increment.",
-    "history": "Old CSV/raw retained as audit/Undo history; not automatically reactivated after Init.",
-    "otherReview": "Other Review algorithms and coordinate/script formulas unchanged."
+    "actualMeasurement": "F = current B + validated residual; unchanged from 11.24.10",
+    "representative": "Target current B + copied residual/judge; not source final F. Existing duplicate/NG/unmeasured guards retained.",
+    "init": "Current Cell immediately writes authoritative final Review absence/zero baseline; other Cells and setup offsets preserved.",
+    "checkpoint": "Immutable full bundle capture on owner, compact JSON atomic serialization off UI, ordered writes awaited through cleanup. Due Flying checkpoint fenced after saved line before next motion.",
+    "integrity": "Canonical source SHA and persisted candidate proofs unchanged. Logical generation token is preview-only.",
+    "thread": "Core mutation, selected recipe/setting checks and device work stay on owner. Pure file/cache IO worker, owner recheck after await."
   },
   "verificationScope": {
-    "core": "Actual pure engine,286 tests; old271 retained,15 new. New schema/Station basis design not ported.",
-    "controller": "Actual production DLL, STA dispatcher and synthetic async backend; source-linked preflight not counted twice.",
-    "backend": "Actual reader/parser/planner/CSV CAS writer/Monitor projections/A1 text on synthetic files. Existing test seam bypasses device-owned save guard.",
-    "init": "Public Controller immediate write, reload/B0, IO/cancel/queue/unknown commit and unchanged failed preflight tested with synthetic backend; actual CSV seam integration tested separately.",
-    "legacyDraft": "43 old draft-related fixtures explicitly use legacy private stager to preserve checkpoint/import/export/cancel compatibility coverage; not proof public Init remains draft.",
-    "reservations": "Core and actual durable-reader restart tests plus source trace of native reservation merge; native SaveCore device guard/loop not executed.",
-    "loop": "Actual Core with assumed unit linear plant, Scale100 percent/current B equal machining B; fresh run/raw each cycle. Not hardware accuracy.",
-    "legacy": "Actual .7 git-show serializer generates5 JSON fixture modes, current restorer checks37 conditions.",
+    "core": "294 pure engine cases including snapshot/cache/stale preview and previous cumulative/Init policies.",
+    "controller": "296 actual production DLL cases; source-linked293 not counted twice. Synthetic backend only.",
+    "backend": "189 actual reader/parser/planner/CSV CAS/Monitor/A1-text and native read scheduling cases. Device guard/SaveCore hardware loop not executed.",
+    "ui": "Full20 modes, source-linked standalone WPF with original resources and keypad, no equipment App.",
+    "loop": "21 pure unit linear plant cases, Scale100%/current B equals machining B; not physical accuracy.",
+    "legacy": "37 actual old serializer compatibility conditions.",
     "notExecuted": [
-      "equipment App/Root/Manager constructors",
-      "native SaveCore equipment guard",
+      "equipment App/Root/CManager construction",
+      "native SaveCore equipment guard loop",
       "PLC/Vision/motion/vendor APIs",
       "AeroScript compile/upload/run",
       "laser",
-      "physical precision"
+      "physical accuracy"
     ]
   },
   "unchangedFromBase": [
-    "UI layout,keyboard,hit testing,zoom,theme,buttons",
-    "shared coordinate planner",
+    "B+residual formulas and immediate Init policy",
     "ReviewManager/Rough/Fine algorithms",
-    "Station/Root/process parameters",
-    "actual CSV writer/format",
-    "Bridge field evaluator",
-    "A1 text generator",
+    "Station/Root/processing and coordinate/script formulas",
+    "canonical CSV writer and format",
+    "Map hit testing/keyboard/zoom and Scatter",
     "Config/Data/vendor/theme trees"
-  ],
-  "remainingChecks": [
-    "Current B must match the correction used for the measured workpiece; processing-time B_run/Scale tracking from .9 intentionally excluded.",
-    "Physical sign/response, optics and equipment interlocks/timing require equipment verification.",
-    "Previous CSVs remain audit/Undo history; Init changes authoritative latest current Cell values without deleting history.",
-    "After correction/Init rerun DoReady before processing to rebuild prepared coordinates/scripts."
   ]
 }

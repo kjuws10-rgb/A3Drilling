@@ -1,0 +1,540 @@
+{
+  "passed": true,
+  "tests": 97,
+  "failures": 0,
+  "checks": [
+    {
+      "name": "side_panels_default_folded_handles_keep_bottom_table_folded",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_both_open_keep_central_map_readable_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_common_point_summary_stays_visible_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_filter_controls_fit_without_outer_scroll_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_active_filter_notice_keeps_reset_and_fields_reachable_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_legend_is_on_left_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_work_info_is_on_left_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_scatter_graph_is_full_left_page_without_moving_map_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_scatter_statistics_is_separate_page_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_scatter_axis_controls_remain_reachable_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_scatter_scope_is_separate_page_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_measurement_settings_fit_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_all_limit_settings_fit_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_level_settings_build_compact_reachable_page_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_real_level_editor_last_apply_button_fits_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_revision_history_is_on_left_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_reference_copy_controls_fit_and_summary_remains_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_correction_actions_fit_right_page_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_offset_init_controls_fit_right_page_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_candidate_page_preserves_grid_and_validation_controls_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_bottom_table_expansion_never_scrolls_entire_workspace_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_both_open_keep_central_map_readable_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_common_point_summary_stays_visible_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_filter_controls_fit_without_outer_scroll_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_active_filter_notice_keeps_reset_and_fields_reachable_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_legend_is_on_left_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_work_info_is_on_left_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_scatter_graph_is_full_left_page_without_moving_map_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_scatter_statistics_is_separate_page_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_scatter_axis_controls_remain_reachable_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_scatter_scope_is_separate_page_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_measurement_settings_fit_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_all_limit_settings_fit_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_level_settings_build_compact_reachable_page_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_real_level_editor_last_apply_button_fits_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_revision_history_is_on_left_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_reference_copy_controls_fit_and_summary_remains_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_correction_actions_fit_right_page_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_offset_init_controls_fit_right_page_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_candidate_page_preserves_grid_and_validation_controls_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_bottom_table_expansion_never_scrolls_entire_workspace_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_both_open_keep_central_map_readable_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_common_point_summary_stays_visible_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_filter_controls_fit_without_outer_scroll_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_active_filter_notice_keeps_reset_and_fields_reachable_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_legend_is_on_left_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_work_info_is_on_left_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_scatter_graph_is_full_left_page_without_moving_map_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_scatter_statistics_is_separate_page_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_scatter_axis_controls_remain_reachable_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_scatter_scope_is_separate_page_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_measurement_settings_fit_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_all_limit_settings_fit_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_level_settings_build_compact_reachable_page_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_real_level_editor_last_apply_button_fits_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_revision_history_is_on_left_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_reference_copy_controls_fit_and_summary_remains_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_correction_actions_fit_right_page_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_offset_init_controls_fit_right_page_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_candidate_page_preserves_grid_and_validation_controls_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_bottom_table_expansion_never_scrolls_entire_workspace_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_both_open_keep_central_map_readable_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_common_point_summary_stays_visible_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_filter_controls_fit_without_outer_scroll_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_active_filter_notice_keeps_reset_and_fields_reachable_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_legend_is_on_left_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_work_info_is_on_left_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_scatter_graph_is_full_left_page_without_moving_map_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_scatter_statistics_is_separate_page_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_scatter_axis_controls_remain_reachable_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_scatter_scope_is_separate_page_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_measurement_settings_fit_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_all_limit_settings_fit_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_level_settings_build_compact_reachable_page_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_real_level_editor_last_apply_button_fits_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_revision_history_is_on_left_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_reference_copy_controls_fit_and_summary_remains_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_correction_actions_fit_right_page_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_offset_init_controls_fit_right_page_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_candidate_page_preserves_grid_and_validation_controls_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_bottom_table_expansion_never_scrolls_entire_workspace_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_long_eight_revision_rows_fit_without_scroll_and_keep_full_tooltip",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_legacy_search_expansion_opens_left_filter_page",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_legacy_scatter_settings_expansion_opens_left_axis_page",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_legacy_reference_expansion_opens_right_reference_page",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_legacy_correction_expansion_opens_right_correction_page",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_file_return_restores_both_panes_and_active_pages",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_navigation_and_layout_never_mutate_measurements_or_dispatch_equipment",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_first_empty_model_can_mark_and_copy_reference_state",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_empty_state_copy_cancel_has_no_backend_action",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_empty_state_copy_accept_requests_only_copy_not_motion_or_apply",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_first_empty_model_keeps_bulk_explanation_button_enabled",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_empty_bulk_explains_without_extra_backend_or_confirmation",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_first_empty_model_offset_init_is_available",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_initial_empty_values_do_not_become_measured_zero",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_named_controls_remain_unique_for_real_codebehind",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "side_panels_all_required_selection_handlers_are_connected",
+      "passed": true,
+      "details": null
+    }
+  ],
+  "observations": [
+    {
+      "kind": "side-layout",
+      "name": "notebook",
+      "widthDip": 1120,
+      "heightDip": 560,
+      "mapWidthDip": 533.2800000000001,
+      "mapHeightDip": 444.20000000000005,
+      "outerScroll": false,
+      "dpiIsEquivalentSpaceAndRenderOnly": true
+    },
+    {
+      "kind": "side-layout",
+      "name": "wide",
+      "widthDip": 1490,
+      "heightDip": 900,
+      "mapWidthDip": 863.6800000000002,
+      "mapHeightDip": 765.8000000000001,
+      "outerScroll": false,
+      "dpiIsEquivalentSpaceAndRenderOnly": true
+    },
+    {
+      "kind": "side-layout",
+      "name": "dpi125",
+      "widthDip": 1120,
+      "heightDip": 720,
+      "mapWidthDip": 533.2800000000001,
+      "mapHeightDip": 604.2,
+      "outerScroll": false,
+      "dpiIsEquivalentSpaceAndRenderOnly": true
+    },
+    {
+      "kind": "side-layout",
+      "name": "dpi150",
+      "widthDip": 993.3333333333334,
+      "heightDip": 600,
+      "mapWidthDip": 406.8800000000001,
+      "mapHeightDip": 484.20000000000005,
+      "outerScroll": false,
+      "dpiIsEquivalentSpaceAndRenderOnly": true
+    }
+  ],
+  "sourceHashes": {
+    "Views/CManualInspectionView.xaml": "bc0a197ddbe3ee1ac693822604f9f4d6f544cd74976bd6b7e5a2ec8cc0aff26b",
+    "Views/CManualInspectionView.xaml.cs": "2152d59aa5cf19c09776f1ddafc1f6daeb2d4218a9c095547f19061012cc4028",
+    "Views/CManualInspectionUiContract.cs": "4f4140229f2a96e667257a3f3e25f38cf208aab141712a3c93f529d59e3892ea"
+  },
+  "scope": "Real source-linked WPF View and actual theme resources with synthetic immutable points/fake Controller. No equipment App/Root/vendor object, OS input injection, motion, Vision, script or real offset file writes."
+}

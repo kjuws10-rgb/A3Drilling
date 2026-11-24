@@ -97,6 +97,7 @@ internal static partial class Program
         await RunBulkFinalVerificationChecks();
         await RunCellCsvWorkflowChecks();
         await RunReplacementWorkflowChecks();
+        await RunPerformanceCorrectnessChecks();
         await Check("generic_sta_application_and_no_loaded_vendor_assemblies",async()=>{True(Application.Current.GetType()==typeof(Application));True(!VendorAssemblies().Any());await Task.CompletedTask;});
         var path=args.Length==2&&args[0]=="--report"?args[1]:Path.Combine(AppContext.BaseDirectory,"controller-results.json");Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         var assembly=typeof(CManualInspectionController).Assembly;
@@ -366,6 +367,7 @@ internal static partial class Program
         public Action? StopHook;
         public Action<string>? PointHook;
         public Action<Action<IReadOnlyList<string>>>? FlyingActiveHook;
+        public Func<CancellationToken,Task>? AfterLineHook;
         public bool CancellationCallbackThrows,RejectGuard;
         public IReadOnlyList<string> WatchRoots { get; set; } = [];
         public IReadOnlyList<KeyValuePair<string,string>> ConsumedMeasurements=>ReceiptSeeds.Concat(SavedConsumption).Distinct().ToArray();
@@ -390,6 +392,18 @@ internal static partial class Program
             FlyingActiveHook?.Invoke(activeTargets);var points=s.Points.ToDictionary(p=>p.Key,StringComparer.Ordinal);
             foreach(var line in keys.GroupBy(key=>(points[key].CellNo,points[key].HeadNo,points[key].Row,points[key].BeamNo)))
                 try { var current=line.ToArray();activeTargets(current);await ExecuteFlyingAsync(s,current,measured,progress,token); }
+                finally { activeTargets([]); }
+        }
+        public async Task ExecuteFlyingAsync(CManualInspectionSource s,IReadOnlyList<string>keys,Action<CManualInspectionMeasurement>measured,Action<string>progress,Action<IReadOnlyList<string>>activeTargets,Func<CancellationToken,Task> afterLine,CancellationToken token)
+        {
+            FlyingActiveHook?.Invoke(activeTargets);var points=s.Points.ToDictionary(p=>p.Key,StringComparer.Ordinal);
+            foreach(var line in keys.GroupBy(key=>(points[key].CellNo,points[key].HeadNo,points[key].Row,points[key].BeamNo)))
+                try
+                {
+                    var current=line.ToArray();activeTargets(current);await ExecuteFlyingAsync(s,current,measured,progress,token);
+                    if(AfterLineHook is not null)await AfterLineHook(token);
+                    await afterLine(token);
+                }
                 finally { activeTargets([]); }
         }
         public async Task<string> SaveAsync(CManualInspectionSource s,IReadOnlyDictionary<string,ST_MANUAL_OFFSET>values,string identity,IReadOnlyList<ST_MANUAL_CANDIDATE_ROW>rows,CancellationToken token,IReadOnlyDictionary<string,string>?consumedMeasurements=null)

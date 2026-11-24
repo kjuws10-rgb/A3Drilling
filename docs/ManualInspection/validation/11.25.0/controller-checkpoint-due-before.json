@@ -1,0 +1,116 @@
+{
+  "schema": "a3-manual-inspection-controller-performance/1",
+  "passed": true,
+  "generatedAtUtc": "2026-11-24T22:28:09.1568541+00:00",
+  "sizes": [
+    32000
+  ],
+  "iterations": 3,
+  "checkpointDueDiagnostic": true,
+  "measurements": [
+    {
+      "kind": "load",
+      "count": 32000,
+      "timing": {
+        "Phase": "load",
+        "WallMs": 544.518,
+        "MaxDispatcherGapMs": 544.4796,
+        "MaxDispatcherQueueDelayMs": 520.836,
+        "HeartbeatPulses": 1,
+        "TotalAllocatedBytes": 176549424,
+        "UiThreadAllocatedBytes": 176525928,
+        "Gen0": 10,
+        "Gen1": 7,
+        "Gen2": 5
+      },
+      "publications": 3,
+      "pointsRebuilt": 2
+    },
+    {
+      "kind": "current_position_measure_checkpoint_due",
+      "count": 32000,
+      "iteration": 1,
+      "timing": {
+        "Phase": "Measure",
+        "WallMs": 1215.6126,
+        "MaxDispatcherGapMs": 1215.5788,
+        "MaxDispatcherQueueDelayMs": 1198.0976,
+        "HeartbeatPulses": 1,
+        "TotalAllocatedBytes": 595521232,
+        "UiThreadAllocatedBytes": 595504504,
+        "Gen0": 20,
+        "Gen1": 13,
+        "Gen2": 6
+      },
+      "publications": 7,
+      "pointsRebuilt": 4,
+      "backendCurrentChecks": 1,
+      "backendMeasures": 1,
+      "backendSaves": 0,
+      "passed": true
+    },
+    {
+      "kind": "current_position_measure_checkpoint_due",
+      "count": 32000,
+      "iteration": 2,
+      "timing": {
+        "Phase": "Measure",
+        "WallMs": 1236.9896,
+        "MaxDispatcherGapMs": 1236.9552,
+        "MaxDispatcherQueueDelayMs": 1226.9542,
+        "HeartbeatPulses": 1,
+        "TotalAllocatedBytes": 547328776,
+        "UiThreadAllocatedBytes": 547286424,
+        "Gen0": 21,
+        "Gen1": 14,
+        "Gen2": 7
+      },
+      "publications": 7,
+      "pointsRebuilt": 4,
+      "backendCurrentChecks": 2,
+      "backendMeasures": 2,
+      "backendSaves": 0,
+      "passed": true
+    },
+    {
+      "kind": "current_position_measure_checkpoint_due",
+      "count": 32000,
+      "iteration": 3,
+      "timing": {
+        "Phase": "Measure",
+        "WallMs": 1343.5414,
+        "MaxDispatcherGapMs": 1343.5085,
+        "MaxDispatcherQueueDelayMs": 1300.9569,
+        "HeartbeatPulses": 1,
+        "TotalAllocatedBytes": 496985200,
+        "UiThreadAllocatedBytes": 496953744,
+        "Gen0": 17,
+        "Gen1": 9,
+        "Gen2": 4
+      },
+      "publications": 7,
+      "pointsRebuilt": 4,
+      "backendCurrentChecks": 3,
+      "backendMeasures": 3,
+      "backendSaves": 0,
+      "passed": true
+    }
+  ],
+  "sourceFiles": {
+    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs": "ab8c1d28e431d7ad42d8160ca91ea7196019ef61524740bdf6de98020f513bde",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs": "5cb5a0cdca1ea9a528c57d38a783bc60934af9fd960c621bdd017528cd9588de",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "64c2a6c7fe8acb186588b77f6c8ce09661482dbe8bf34bf30a436ef2a601f781",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "422f30502a1d904f47df7a864d87f98527217f30a9359f82f75962303a6102cd",
+    "tests/ManualInspection/ControllerHarness/Contracts.cs": "d1049774e843915eb7394d108315fa7920fd6de4206a546538e6d18094bfdb1c"
+  },
+  "assemblySha256": "36ac85636976d59ec26c48f5745ede4d3f8fac7c91dca56fc629e9f68f276ad6",
+  "runtime": "8.0.33",
+  "process64Bit": true,
+  "scope": "Source-linked actual Core/Controller plus actual checkpoint JSON/temp-file I/O. Generic STA WPF Application with a coalesced 10 ms Input dispatcher heartbeat. Synthetic async no-device backend uses Task.Yield, never artificial sleep. This excludes native Recipe/Setting/Review CSV I/O, real Vision latency, physical motion and production UIView rendering.",
+  "cautions": [
+    "Wall time includes real local temp-file I/O and GC. Scheduler/disk noise remains; compare repeated same-size samples.",
+    "No queued heartbeat sample does not prove a sub-millisecond UI stall. Longest dispatch gap includes measurement start/end boundaries.",
+    "Source-only and actual-assembly correctness suites are separate; timing samples must not be added to their case totals.",
+    "When checkpointDueDiagnostic=true, the fake response ages only the Controller checkpoint timestamp immediately before returning. This is a scheduling-state diagnostic without sleeping, not a real Vision time or normal speed-improvement sample."
+  ]
+}

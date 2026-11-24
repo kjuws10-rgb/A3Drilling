@@ -1,0 +1,1981 @@
+{
+  "baseCommit": "26a7db3e27bb17c4b9f141f2831d168965d978d5",
+  "passed": true,
+  "count": 329,
+  "files": [
+    {
+      "path": "Drilling.Common/Alarm/CAlarmManager.cs",
+      "windowsSha256": "5cbff85f66cfcf6744d14dd9955a75c2eb21a6536e0f7fd7517472b7f95fa872",
+      "gitSha256": "7434bbcb6e245d9b6a486e3eded8a9555ee318bcb342a2286a753690729bd5a6",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Automation/CAutomationManager.cs",
+      "windowsSha256": "5c7cfe44322a363450d005c89c67859d143e0a6fd8aa944d64b932529ef1df72",
+      "gitSha256": "50624d7423b43ae9fb023e2f4658a9a8327f99d316ee86d929a8bec495406d03",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Automation/CAutomationStatusSnapshotService.cs",
+      "windowsSha256": "33d676df36e26685063a422be9b62c51da89cfd13d2be9fc489f6dad3dc2cfe2",
+      "gitSha256": "35d03e5903291329b30cd93f9916609053bc94599dcd86d594c41ec0132f76f2",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Automation/CScannerAxisConfiguration.cs",
+      "windowsSha256": "46241bee261b984aa7c9999db2414c5f0b92c128bfbae34733ac0aceb59b04b4",
+      "gitSha256": "5dcb6159d107154d02a1ddee3b5664d4f620fd93de2ea6e2c413b12b2dde35a2",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Correction/CAlignInterpolation.cs",
+      "windowsSha256": "52be19d632488f70435f9c08a0b0ae82c36635c914161a731333839df3aaa94b",
+      "gitSha256": "010da52190c3955abd94e0c2222fc08a5c532cd80362a704291ed264c18b9146",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Correction/CDefaultOffsetCalibration.cs",
+      "windowsSha256": "806ffafa140d6f0baa1d791225aec09a033f799f8a440b1aa07effeb3602a641",
+      "gitSha256": "305531b176aa74a1afeca36ab5a09d74b4d296cd737af61df0c10c14e578b672",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Drilling.Common.csproj",
+      "windowsSha256": "ab342673559ca1997b4dfdd797c33d99226d6ccf01ac85cad022cc09319e7e75",
+      "gitSha256": "5ef4444b162dcc60d5e2b3f855662aa06e5662c6bb51628c08b798f866112dbf",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/InterLock/CInterLockManager.cs",
+      "windowsSha256": "6eb5679e2bedbc38cfd134f78abbba4eaca1cf263a4d13751f7a0561d9e5c149",
+      "gitSha256": "1271c1fda77547b0cc5e9cc0881c5b69b2019b6aa86a32f1696fcf8262af236b",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Interface/Automation1/CAutomation1Comm.cs",
+      "windowsSha256": "d2a75a6585fbb0315c9c2611d912e1b958ff6e9629e5fe8c05d1ebf2fb33ddc8",
+      "gitSha256": "b79f796674e037259d08bb3a41e504eab7040551c75ba545f7a95a9052bfcb89",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Interface/CComm.cs",
+      "windowsSha256": "6e793d154d708b514ef2940d287181a6e6a49473e2501e3f8981c0ed9095c46e",
+      "gitSha256": "15032d0ce8e03f0e40071b38cc16c4c18080557b7537659f202bcf3f106fa047",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Interface/CInterfaceManager.cs",
+      "windowsSha256": "abcba67628431513583ebafd5d0a27a1d3feb991a17d7c46ed5373fbab571b0f",
+      "gitSha256": "9735c0f8379aae0cde3396d293fea975adc71c928900b21ad50f57a1da572958",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Interface/CPowerMeasureRun.cs",
+      "windowsSha256": "e493b1e8caa9a16e8c7edf1939703c9f13b9c0032c7a5a8968bbe7bb231d9cf7",
+      "gitSha256": "9f42b4ecded0176a4f040ace7b33f068531fec33b1746c3530c52248d1a772e9",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Interface/CPowerMeasureService.cs",
+      "windowsSha256": "fd1a44a492d7ace7af5cfcd31bd66022e4c8879bcfbd728537f55e48f8308ab0",
+      "gitSha256": "fadec749e3b8b692b7814f776fa8fd7e97e0109ca3f4607c1be5430ef985a7aa",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Interface/Melsec/CMelsec.InterfaceLog.cs",
+      "windowsSha256": "a0beca33de55d4620ea1348d73298aa74274add332d51cad6c7907e6e559a103",
+      "gitSha256": "9ed4138349f8238afa6dba2cb5523db762347699e3c5d0edb73de990b4e566ae",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Interface/Melsec/CMelsec.cs",
+      "windowsSha256": "b57367eef12cab616f493e29ea7aed3ce1a583d13756a42890e07f57df8def1e",
+      "gitSha256": "bfd2c007944cd993c7621267e4b8b4a6cfecd00f24b2ec5f264506fddac96cd7",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Interface/Melsec/CStageGlassDataMap.cs",
+      "windowsSha256": "ae42e0681f9e8510476ad367eb29714feae95abc2dc1b4fb9e1af2129fc01eb3",
+      "gitSha256": "30e3b904903ade21cff77a391aeb640024621d6679a9cc446ae0f8853afd601c",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Interface/PicoMotor/CPicoMotor.cs",
+      "windowsSha256": "1ed2d4e75aff571327da9adc26627362304999b597201fd3d93de4d4f818fa93",
+      "gitSha256": "36fe054639181224be4e0fae7290e082269b38246f491cdc62067bd8de563332",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Interface/Serial/CBeamExpander.cs",
+      "windowsSha256": "03863c21ee7090c376d28f5692562f60e13eaf9efa617f9f5964a87158246346",
+      "gitSha256": "626d00b2bea4c862749f2eccef2dd8d88a4fcd6e18e49354f3a417c751dd4027",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Interface/Serial/CConex_AGP.cs",
+      "windowsSha256": "045680b42136d9b770c33450031297751351d54ddbafad8efd8955080cb13c37",
+      "gitSha256": "622a238d6a951efab3d4735d1d86fdddd3047466c5dff696cd36e907210dcef1",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Interface/Serial/CPowerMeter.cs",
+      "windowsSha256": "ae319b41165e250d08a037360e203f7d84c6c6912f19c6a72dfb8157356d9077",
+      "gitSha256": "29b03b41354d05b4b5f13a2fba52843e8cc5912e2cf547b607495648821c8f26",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Interface/Serial/CSerialComm.cs",
+      "windowsSha256": "a578af2d52c06c9a5318a31279edee8d52b3000efafc1e76ec12d22f5a44d37b",
+      "gitSha256": "caf5e09e120371f7ba57997230a48c358f42efbc84e66f25214ec017942b8ba1",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Interface/Serial/CTalonLaser.cs",
+      "windowsSha256": "73f3a2de798fff48de0f67ee34d85c2d2e068b13c8b9d797ce3d2b75ebce48db",
+      "gitSha256": "48c0cc9a846039e81cfd815286643036766f449c3d233c50044dad46c1da21c9",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Interface/Socket/CSocketComm.cs",
+      "windowsSha256": "c130d9f8306ea43776fa309ec60cdbe64a11f2ee12342a69dcd960b2460fe392",
+      "gitSha256": "c00a8e9e480d9b8cd8bd567bafbe34aeee5a725905c46ca9385a81b329d6c829",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Interface/Socket/CSocketServerComm.cs",
+      "windowsSha256": "a4fb2aed1e2a9fdcc155d77b0664232b070e40418cbbe896b9e8d03688dc923c",
+      "gitSha256": "3522984bef7a2d1a9f4818af6377aa2ef599b595b96d059ef7176b767f1ac356",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Interface/Vision/CVisionComm.cs",
+      "windowsSha256": "5534448198c3a9db2dd6342cd0e3f2fdc2c30e0cb86326d4ade8d5ed8e09123f",
+      "gitSha256": "bf02378ca573a464953fbfbe37cdc9ec7eaa97423ccc16b258025259862cbe31",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Log/CLogManager.cs",
+      "windowsSha256": "9212676723d170166d61a6d7baeafeec6cf6b660d2ae5ef59c22de14dc2e3728",
+      "gitSha256": "b20ae1f80b04ba56274d3800f37662befbf116f32f16ff5e4d4aeb1b35a46ec9",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Managers/CAlignKeyMarginSettings.cs",
+      "windowsSha256": "1d5a5568cadfa7d9c22efe92232696811c540a7535f971bc50cdeb845f216f37",
+      "gitSha256": "781e3ceb1a4b2b3da6c659e1fcccd498312ba8882a3c3e90fa667a34f79bdc35",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Managers/CManager.cs",
+      "windowsSha256": "6db41ef7d7938136bce10c0d3acd4d9293a57cc4336ff26dc3a79041db2914f8",
+      "gitSha256": "14dcaf1a9331ce13b2054cd3b83038ee48fd355cf1de1be03432da1a4d21591f",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Managers/CRecipeManager.cs",
+      "windowsSha256": "b8d208d8945081e6a6d500f40d51e3f4fca414124329325c36c7fffedb86c9b9",
+      "gitSha256": "a7159dc17ddcb7212496f839f0f605cbe78656d26bf9e013792eb61f2cd54b55",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Managers/CSettingManager.cs",
+      "windowsSha256": "ab5eedee3d573b21ff626315c37803e06fd4d9d7d0e8709e0bf89e55f838743c",
+      "gitSha256": "0ac6da7d51b90c930bebad7a3f1413a363fa67e9e8e2befef84a65aed3f42046",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Motion/A3200/CA3200Motion.cs",
+      "windowsSha256": "e16429310a91c038f58c371a93e2d2ead2055f417bae4e84c65461f786be7e3c",
+      "gitSha256": "073ce917f153d8276f73021dd9ead84b1d99df8ce436257c750acc3ae80db535",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Motion/ACS/CACSComm.cs",
+      "windowsSha256": "570d3fa9657629d320c56f68be2638a7f6bb43a9ed539b22b9c9dd9ddaaf62d9",
+      "gitSha256": "83dbc2a697a37a8fe3c18ada60d7a32a7e7dbf3d5735c9b9fe7204942143ba92",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Motion/ACS/CACSMotion.cs",
+      "windowsSha256": "1d8c299e54110d0628d1742d551a6ad17718986033e8f89240769216279bf484",
+      "gitSha256": "c57074595bdf044c22ce75ce099344e4eef33fa7907efa060098d9caad0f7015",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Motion/AJIN/CAjinMotion.cs",
+      "windowsSha256": "bc371142e0e1becee83487a41d362c025c88f6d2f29da6e28315aacfd6450e8f",
+      "gitSha256": "d3400a18ab76bde6e8c5221bc3608c80f16ff9b061cd523c7138a756d660089f",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Motion/CMotionManager.cs",
+      "windowsSha256": "893675dbcdfcd93124de264b55511666a561a2dc747eba79a07e13e6c8be02c7",
+      "gitSha256": "88e6f03daeb4d8635279534aaa852df0575614b3f9f2ec90b0a9fc792159a30d",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Motion/PMAC/CPmacMotion.cs",
+      "windowsSha256": "c86eaea23488269858f5f7ab77c38948fc5a547cd5903e2c0ee8dabb50076480",
+      "gitSha256": "759b98f4d3aa212b617936bfc6a5626b646506cc1e9749468e169be4de528f7d",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Motion/UMAC/CUmacMotion.cs",
+      "windowsSha256": "d5fc79f620de589d1c5613bf64313e20ff87a62362313f0352131400f6d03e55",
+      "gitSha256": "e6603293113cfc44ab75e99e0ccd862d93595b1c24f55f768bcbddb7a152e21a",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Motion/XPS/CXpsComm.cs",
+      "windowsSha256": "fb8437e505770f0e968b5f9f4a04c1860f3f79bc3e030c29faa51327a33131c1",
+      "gitSha256": "200ca3da227fcc4267af2ff96450cb025ae5d15cbc90259bc91d9464c7fe1f48",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Motion/XPS/CXpsMotion.cs",
+      "windowsSha256": "12ab7c97f0ebda44599e20f36ca37bf9e24d8c8eaf7c5d6f9cde0d7865b69c5d",
+      "gitSha256": "d56228e8021ac91e85c2b8bdb5ee4496a288a51626844c715546449afd10fdff",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Product/CProductManager.cs",
+      "windowsSha256": "2bf74d7b1467df2ed769d1c20caa241b871981c39407b1e261f9c7009bff4869",
+      "gitSha256": "a0a25859244f8e81340a5b9aeb4edd4d14a405f94282b7e229c2d8ae3f893873",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Recipe/CCellPatternCalculator.cs",
+      "windowsSha256": "2d09557b69d8cf7e03b380e9adf01f5938a8d0b9f7bdf79dff397778013431fd",
+      "gitSha256": "a463bbfaf49c6e041202c8f39ba0dbbde1e996590557a8ae984f5cbe1f1588ae",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Recipe/CShotCoordinatePlanBuilder.cs",
+      "windowsSha256": "142fd432b5de1af2fc70c6e1ecccd3b4d42b85253ecda3e3c0342ae6fec6fa5a",
+      "gitSha256": "1aae4cf012a52ee08305dee90b5f650a61e2b1ca10485815cf9c797cd3795c6e",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Review/CAutoFineReviewCoordinator.cs",
+      "windowsSha256": "de93f27b8070bd8bebd6d4c67ee3147299448bc7eb940da7b83ab9bd2b2dbd7e",
+      "gitSha256": "c3919f0a9b2760e8d9492c8ac6da71e7199ae2b98afe3ef53e8b3374239ee6ba",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Review/CManualInspectionCoordinateBridge.cs",
+      "windowsSha256": "4d1753b71ff3fb62b022b362e94f95c9832452841d3c81f21b38ee3b1c21640c",
+      "gitSha256": "faf320044ebb800f2f5216cf0900c2e23b6d12d8a2cb86e089825bc8d97d9344",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Review/CManualInspectionResultProjection.cs",
+      "windowsSha256": "e2f22bec133f3e26c50c0b04cdbd1dfc827cf714cd75fa862e6b1213fd83b952",
+      "gitSha256": "03223a4c6310d266c0e462fdaf246a6c2da99d58c60419c5c04341f9a5893bcb",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Review/CReviewManager.cs",
+      "windowsSha256": "32bb509070f077f16b22059cb7c2ed815a351b8a7876c4fdd1da75649de255cd",
+      "gitSha256": "01f957542c0049a596e11e4f6741ac98069baac473ce6bc344662c1ab9a09dc4",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Review/CReviewMeasurementOffset.cs",
+      "windowsSha256": "6c9caab67da04f67334a27ed2f6218aceea1f6c4e31d12bd9cf0b9e1881e8693",
+      "gitSha256": "6c9caab67da04f67334a27ed2f6218aceea1f6c4e31d12bd9cf0b9e1881e8693",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Review/CReviewResultLevelSettings.cs",
+      "windowsSha256": "2e2d5efacbed39982d3eb49b8137ee70d1a18546f11dae358822584ee0e95c39",
+      "gitSha256": "a692640412b5585e8a4b6712121150f2005cbb550a25714df9446d85bff6538f",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Review/CReviewRulePlanBuilder.cs",
+      "windowsSha256": "fec50e7ea6890b4831eeed538aee7eff6c6570e4f1d7ea3f009368fa2bafb84b",
+      "gitSha256": "18c89aca416226efdcd590c9e8ffca0dcb62a079fd9ce6b589ffaecc347d1748",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Review/CZeroDefenceRecipePlan.cs",
+      "windowsSha256": "2e2845eaeefb78debf2e3eae3e71ae7a8dab3a2001a77c93678fa69dc5662008",
+      "gitSha256": "096f29270cd3726f4f16100d97680cd0d3206290c530a8b10022a3553b75b07e",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs",
+      "windowsSha256": "5cb5a0cdca1ea9a528c57d38a783bc60934af9fd960c621bdd017528cd9588de",
+      "gitSha256": "5cb5a0cdca1ea9a528c57d38a783bc60934af9fd960c621bdd017528cd9588de",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs",
+      "windowsSha256": "bfc6826a45e01af83fcfdaa66a5016a70b385bde2a1d08a616a87c2c7516ec32",
+      "gitSha256": "bfc6826a45e01af83fcfdaa66a5016a70b385bde2a1d08a616a87c2c7516ec32",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
+      "windowsSha256": "ab8c1d28e431d7ad42d8160ca91ea7196019ef61524740bdf6de98020f513bde",
+      "gitSha256": "ab8c1d28e431d7ad42d8160ca91ea7196019ef61524740bdf6de98020f513bde",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Station/CStageReviewSequences.cs",
+      "windowsSha256": "49e1a43341978bc8ae28013cebce4827cb99e933b04df32aab4ad74d5a9402a7",
+      "gitSha256": "dc6b23b087399d5dff853ed47628c5edf156168df9ce9d971d02de1b7bfef179",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Station/CStationManager.cs",
+      "windowsSha256": "0d239bcb1b55c4a0653a684b3e2f7e8235917dbee1a61d0cace96489442db63b",
+      "gitSha256": "a972125b7ae16abdbd835dd18024ef3e05ad88c6f758c675b794479ffe7596d8",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Station/CStationProcess.cs",
+      "windowsSha256": "7e5b1fd549370e222890c0882624bd116e1375ae160cb55e0d94cf3513f8b917",
+      "gitSha256": "ff825601fc478a866fdd16d8d0cbf88ebd9c1183a1d4dec81928a88789140565",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.Common/Threading/CtrlThread.cs",
+      "windowsSha256": "072b00b00719220875cbf64c016f85320d0262f45f10e5f599a4abb7e673a5a3",
+      "gitSha256": "14993cb3f127a2099d78d8fdedcb4aa8cd77430263bc420f6f1b48580df73e78",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.File/Correction/CAlignOffsetLogFile.cs",
+      "windowsSha256": "d54f0d5549ef3e6e1e267335827bed9c80245464d87c9d23091f7bb76b39330d",
+      "gitSha256": "2e4ef6db5876a38a8e381804f10d70bb7dff07fda15d428abd50803ebd6f08e0",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.File/Drilling.File.csproj",
+      "windowsSha256": "0da8fcca8cb81f0c9d9c69b9e5b40ca65cd70c77d2b65d02ecf49d5032f9230a",
+      "gitSha256": "c8fee178fd4225ba9304ccceb6f72ce6600a160bf3591a89c5f3ee90ef1b2599",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.File/JHMI/CAlarmListFile.cs",
+      "windowsSha256": "e1ab39a913b23d45f32c7fcb783f38814d5c289dbf7e5eafbb827877d8cbef3d",
+      "gitSha256": "6dc3037cb25e2abf8f1300570647cba0e7da60bd3d6ce31b9f6e8c89256fd58a",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.File/JHMI/CBETFile.cs",
+      "windowsSha256": "b44f86162fa4efb0ad73a858a5d29f19cc0776602e15b77f12a7b6e4aa4d3268",
+      "gitSha256": "4e4de8d793286acc3eb863a01aea0508410ccb8b83dd292a9f905ad86e02df28",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.File/JHMI/CConfigStructureFile.cs",
+      "windowsSha256": "6703e663836345c24527cde64ebec2994fa59443f19285374abff3f62ac379be",
+      "gitSha256": "47396ce26731f551cc65fe87000d5da8e0155879abb91ff8312a8c5bfa3bc12d",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.File/JHMI/CInterfaceFile.cs",
+      "windowsSha256": "3046cea2bed6865cf48591ecedf5b5806bdb0add4df1414a37247b8d6f9e9419",
+      "gitSha256": "60b6f472c356ca9e45a8fafc2a23e262227b4e79f65dc967f71d551089f65b4b",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.File/JHMI/CJhmiRecipeFile.cs",
+      "windowsSha256": "83965473a623f54f27fccf5d963e476d696721927341629e26b0a525581bada4",
+      "gitSha256": "5e36ff954ce61b7cc9ac8e7bec82cff927055b2ea9de8fae4682230089e88f0d",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.File/JHMI/CManualScanFile.cs",
+      "windowsSha256": "3cf04c34acd3b3296ef02e6be2df05f48aed3b244d5a4ac467d9bcd9445bda91",
+      "gitSha256": "4087124e82aeb9840618441dcede128540b0353d8b2ac44466d58953df23416b",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.File/JHMI/CMelsecMapFile.cs",
+      "windowsSha256": "af5bdafc70abcd66e7a8b1490a535eab6d841bcc487154c1efb4292773fd9e56",
+      "gitSha256": "fd5764952f913d37d07e1fce2ae70c44b47f8391871df04fb9d5ed9f49cf85b8",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.File/JHMI/CMotorFile.cs",
+      "windowsSha256": "6c15069ce8ffb94f3ff897f253f0859745cca339e66847a2f046c55fa7a50887",
+      "gitSha256": "34a6db545950a9f8051bd2f1d16fcfc80f6ab37dbf562d747b5ccdd7acb84403",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.File/JHMI/CSettingFile.cs",
+      "windowsSha256": "c049c9c77518b5df70fe76f234c4c5d952c9ef880aed3cd8cdd8845be89c0ab4",
+      "gitSha256": "ca654a1d250fba3ed58566e9fa04937bc7c3eeba5b0895c2e9852424c61332a1",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.File/Parser/CCsvParser.cs",
+      "windowsSha256": "8d9850f57f3552310d7aec82c11c7a08ab13b30c9a0e6daf8ee9e649077fb644",
+      "gitSha256": "2ff4e22f666d931d9718e7ba5b33fdbe6d2e17d44b15827ebfe5f6f57b19e557",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.File/PowerTable/CPowerTableFile.cs",
+      "windowsSha256": "464dfb6cb7f8623591fba5bcda068159015f1f9181ff3bb02be7c3fd82365646",
+      "gitSha256": "6789d0797939dd73c4f7ec1d7a05b02a2b2db218eea55084de416e02a12d2f00",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.File/Product/CProductFile.cs",
+      "windowsSha256": "450b06158f48549c563ec41a8ef58a22614382b29effa8361879af0bcf1d2900",
+      "gitSha256": "b07124a27feb0137c95f4276abe2dfe0a32ef0e1071803e9e3e419202f848091",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.File/ReviewOffset/CReviewOffsetFile.cs",
+      "windowsSha256": "56ebca90c0cd29ded87d6a41f9e6bacf7077baabbfd9371fbcad1f112aa7c1db",
+      "gitSha256": "59280178c7d2f420a32e145284afe054fa586c2b6b6cbd0030a322da829f44bf",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.File/ReviewResult/CReviewResultFile.Catalog.cs",
+      "windowsSha256": "62c91dbbe4eb79d3c06d029eba2f74922a821d6894662af9bab29a52d5f2e69e",
+      "gitSha256": "95e849273bb800324a1d76077a1dccea63e6d28f1cd5714efc4c93f18a5dec36",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.File/ReviewResult/CReviewResultFile.cs",
+      "windowsSha256": "48d76ca790635663fc3f247f5e88483dbb9c318d6f1a1bd8ecec4761005ee3cc",
+      "gitSha256": "fe57ec9538f0032480b6fd73b32b4c93633bd095fe11ca05123ce07fa71292d0",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.File/Script/CAutomation1ScriptFile.cs",
+      "windowsSha256": "1681351dcfa412fcae7313a2ff470b23be816cad1047ee586e3fb79f35850ac4",
+      "gitSha256": "4fcdad08a5b332d664e074edf2a65455752a4cc68f5d8c6645ca42011193d43b",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/App.xaml",
+      "windowsSha256": "34b55a666684d02ffc18dcb66313415e72629a7f027e5a5d42ecb0357df82357",
+      "gitSha256": "feccc4d5db89c114b17b1ad196d9e0749911e5c5c18f19f3db0cb428bd7a4c31",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/AssemblyInfo.cs",
+      "windowsSha256": "a16ce13dff7d5acc5639df94e84d59811f2e53547fc5a324a1febbb082abf2b0",
+      "gitSha256": "4e8d4036dd10c33d2eb41cf3f26d78a56d403807c0e81bff0313e07f332e8079",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/CApp.xaml.cs",
+      "windowsSha256": "9690a272cdb61d231b85decbd9bfaf354e81d09c7bbab7671264d5fc3e11a7ee",
+      "gitSha256": "8ace74c26649354f07b1d495e27caa79d61b6fefe374abbdadf21734d4877756",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/CAppStartup.cs",
+      "windowsSha256": "98e8716b093e6970d73233f8488d538acf7fa02f5d140ab1baebd9e8abdcd9b9",
+      "gitSha256": "46d352bbd8c4b4e04da5293f0d139dc773b11c8c0deb383b1f9004a70d8258d0",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/CPreviewCoordinateBehavior.cs",
+      "windowsSha256": "766dbce15e8dd64b80d342370294b0a2c29c27a5aa3e538ba51b6814d8b85b13",
+      "gitSha256": "81bd91b4778fdcdf5eef6e28a4aac1b3fc5d4fa58c1821aa89892a138d55038b",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/CRootView.cs",
+      "windowsSha256": "d6834c39b212da80a085576fea93b68d310e0bb0713331396309126af101e154",
+      "gitSha256": "10e4810cc1d84e4973680b8fab567df85f81d229a126c46002cbc6e32392face",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/CRootView.xaml",
+      "windowsSha256": "f9444c37a4690ed735419e1ce74549d11d4bdac1b1b337ae1f51b20dd8783478",
+      "gitSha256": "7c13ba0935d9c50f5ccc3f0271bde9e3f9ed36dd19c7d7b64e7696cd018d7446",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/CSignalBlink.cs",
+      "windowsSha256": "ef65f7a39d9a9b3b61ec94acf6d473c4a53b6a86e10302d4d5c85b81d03aa325",
+      "gitSha256": "98a645b3dd7b81f6f3086f96284785ca2f815b5e426ab35096e03828d26fba2c",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/CThemeManager.cs",
+      "windowsSha256": "62cfa74dec098d8e3ce6ead2d3fc803b88fa20ede22e2871cd394e70f66c1931",
+      "gitSha256": "1822242d1187742dadff47ad66819c768a2b8c60e0784462f7ab9b5f00b77468",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/CUiLogService.cs",
+      "windowsSha256": "e26730fb54b010598ad048992b59d5537b05e268bf8f8b7e3a478a0e8d633cf7",
+      "gitSha256": "212a45b78444b4484bc29e4bea21a2114dffd6b412a69e58f4dd7ba7464ace77",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Drilling.UI.csproj",
+      "windowsSha256": "7e13ec2099a5a037ff5c030552d586f8af09e6c9fc81f4a076a3a3fc5b0bf92f",
+      "gitSha256": "d8b415f9a878bbf5be8b33a63bb0812640a83e79dd78ba9f63bb3e4872864207",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Menu/CBindingBase.cs",
+      "windowsSha256": "7ee36a35d9f2245fb0207f302e75751ba8b3f02e211631d5a474b0d9946988ac",
+      "gitSha256": "43521ecd883c4a603f6915e1e2185a78d75fe074280a107e6a752de022b43ea9",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Menu/CButtonCommand.cs",
+      "windowsSha256": "0670811aea72aaf0eec286af14a298c5308ded85f4c7677e4953c85f46ecc856",
+      "gitSha256": "415d205ff945df83a94912531a6af0a77e37e04e150d1181beca5aea20c6a29f",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CAlarmCauseAnalysis.cs",
+      "windowsSha256": "fb9a8f1f07a8aa9c53c455b2db44e2dd39ace8b00cc33f5efab5736239555dd9",
+      "gitSha256": "44070407ce1e08499896343b350541bd61caa6520466cce5379765af49f22ef0",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CCellPreviewDrawing.cs",
+      "windowsSha256": "e8d1e770ca290e624ac07f1b8a323d7fa8f49ee5081261953a633331679f2962",
+      "gitSha256": "d59414abf36092907f5195d83c9333695b52ecf04a7d3bb88ea17545394d2030",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CCoordinateOffsetPreviewDrawing.cs",
+      "windowsSha256": "8d2a3f1e2aa8de3a7f87950633058eb294c7145af6ddfcbceb2b0904dde75439",
+      "gitSha256": "10ee4a85f09c3278a6812faac5144cd95e11bea57dbc5a444d55845a35e768b0",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CCoordinateShotMapPreviewDrawing.cs",
+      "windowsSha256": "d3b041057f97f293e1e40e189c5e655ae966c8c8430c73148b6cb20c0fedc931",
+      "gitSha256": "1ce71b7c33bae2586b2afe9648a9683193be68d9558cdc3406bcb9c62e544beb",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CHeadAssignmentPreviewBuilder.cs",
+      "windowsSha256": "ef3282c96c44f07071d06b6f9a2cfed5da7c3867bafed66a79c680df8f72df6f",
+      "gitSha256": "bcfd0e4bc69fc10ef197779acaa92d94170c1311f98769c08af05b4c327921be",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs",
+      "windowsSha256": "4778599a2f897aedcbb2a43e5bf958be7e2b951f270c46ab456ebd965a5c7332",
+      "gitSha256": "28a090fb83c0084a811ffd4e742c7745db241046e209b5aa99efa44aae87e1be",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CManualInspectionController.cs",
+      "windowsSha256": "64c2a6c7fe8acb186588b77f6c8ce09661482dbe8bf34bf30a436ef2a601f781",
+      "gitSha256": "64c2a6c7fe8acb186588b77f6c8ce09661482dbe8bf34bf30a436ef2a601f781",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs",
+      "windowsSha256": "a7e6849d10bf5baebbe56d56084f74bdfb852289b30c571d9908f0a244855228",
+      "gitSha256": "a7e6849d10bf5baebbe56d56084f74bdfb852289b30c571d9908f0a244855228",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CManualInspectionUpdateMonitor.cs",
+      "windowsSha256": "a5d8854aea32ae9eb9cf4cfa05c99cf6ab0548dddcebd7fa32a94335ab94a1e0",
+      "gitSha256": "a5d8854aea32ae9eb9cf4cfa05c99cf6ab0548dddcebd7fa32a94335ab94a1e0",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CManualPowerMeasurePanel.cs",
+      "windowsSha256": "7d6454fd95114d882d16a1e517b791bf2abb8cc8f7d0469db433271f4127246b",
+      "gitSha256": "e3ff889558f79c3e3a1b76d5435a42eefdc628bd8d984a3552780dfcee624993",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CManualPowerStagePanel.cs",
+      "windowsSha256": "efec9cad32b02c68f4007a4491772b41960b0e3fbf4856c0aa2bdb373be73e55",
+      "gitSha256": "543e907d01e4ab285e063f8db6572d707bbdcc9d60da16def39412fe087e3c82",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMenuAlarm.cs",
+      "windowsSha256": "07a42cddff502aa5fbbfd6307875e5166b943dc369cbb4b00d5a0536b842d694",
+      "gitSha256": "5d8a2e363da2d6e81942d02f5e0af1b69ffb2c855837d5cadef789beb2829a2e",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMenuBase.cs",
+      "windowsSha256": "31fc7fd5d1bc8a106d960e109ec096c8b31569f20f8cefb2480daf82d4302047",
+      "gitSha256": "e390a8d760cab7ba668ce7984333f8657f3338afd3a61be0f17907cf49f477bc",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMenuCorrection.ManualInspection.cs",
+      "windowsSha256": "eca5d22d7496210c5ad853cc010059a070eefce716da33227c5c4d8c43293047",
+      "gitSha256": "12af934e028a18f1b714d7be9a3e777434f6b21e66b16184e294b5acccbe17df",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Display.cs",
+      "windowsSha256": "d8d2bcf72b26adb6ef00ec04f3dc0b1e4cae885c706852e0f9cc98eaf219f6a5",
+      "gitSha256": "1e14a8540f87e1c2ae2f1ff640a326a43868b9df2a0f7a0d554dd6475aeea3e4",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Edit.cs",
+      "windowsSha256": "2b07373e13aa12a83477f7ef7708a6a5c790b19e45ec55a0938b8701526be6b3",
+      "gitSha256": "5701654122061b7c0a08162d8c8e06ef2f96565948ecab6eef4d69572001c0c7",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Offset.cs",
+      "windowsSha256": "0ec33aefb0847d2886301be4fb5db0d73db47dd45c45342d71d8678a14f6b0ea",
+      "gitSha256": "5ff8a61dd58d0d638b539e4cb786fa74668e2dfd18091e49ec57ffc532c642f2",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Reinspection.cs",
+      "windowsSha256": "f5ba162be1fb07f05954469f04a5cb959a3f47734f6ec0babd36e170762b91ff",
+      "gitSha256": "1ceed2f675cb54dbe8a00a61a45cbe14e47666118ce34b425085b632b1ca976d",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.cs",
+      "windowsSha256": "47cf020a2a387c2e5e5de3cd210df897a852675eb600dc7041b456b9c6398907",
+      "gitSha256": "6901ed9b744815cfe096cfda5f1192eb429c176e9464e05d716d4b8899445451",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMenuCorrection.cs",
+      "windowsSha256": "388dda336057dbf57eff598d5c3648491ae9972ec387db25498f0cf4f4bbdb52",
+      "gitSha256": "cc087483070fd71066938112e2dd33b866e0715efbd7aadc5bbb7d0503da8c7c",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMenuMain.cs",
+      "windowsSha256": "3485c150c0dc3db9e11c362bc8e8073e2271380d250c79788896db50e2992ecb",
+      "gitSha256": "fbaa928b4f4031c23afce517d9e6f2dda9498826e6c54a717fd4ff037bcfdab6",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMenuManual.cs",
+      "windowsSha256": "5388b0e131f67c29c83cc2c5e8c5695226a1cc7764080a5e92b0510afdcc49f7",
+      "gitSha256": "0ab1b49fef5d56366d26a62db34c057d4f284414577e35bc190a0813a569cdc7",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMenuMonitor.cs",
+      "windowsSha256": "14ba9cc6682157c3b7a72bc8e6b57c1830a4618bceb10b45f33911dc2a7399f5",
+      "gitSha256": "8e938f58a0dcffa04e37c0428c7fefde038fcf92fd8afc9f0742b096382672c6",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMenuPm.cs",
+      "windowsSha256": "1393394dca1a9500052acf8e9238a1ce0db7006515a36cc5c68d3d88fccb3258",
+      "gitSha256": "9c8e1556a9d5057c879a246f7ad649e2cbdb48e3a582d6e5c2ab0aa64773dc79",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMenuRecipe.cs",
+      "windowsSha256": "5c3d300be071074a77763e5ae1d8a74f92c0879723ecbf4fcc46a3003a96a8a3",
+      "gitSha256": "02aaf32cd83fd58e577cc4dcec98d2aedd801bb998dae3b87e0d9884b94135f9",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMenuReview.cs",
+      "windowsSha256": "6bd252e598a2748bb393a0607d32ac786f36cfb0c4e377330cf44e1964388376",
+      "gitSha256": "7686b3f55b103791e154915d5b18d12bd6a332b8f68ab5c0676d842f89e737fa",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMenuSetting.cs",
+      "windowsSha256": "0e4f1b5b0d411d973a36aef3b0526650d3c6bb3c08dd3e83b90b9802864c1cd4",
+      "gitSha256": "8a3fc0042d0b9139d4698157dd792e63ee8bc63eeda964e07258abc5ec4263fc",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMonitorLogViewerPanel.cs",
+      "windowsSha256": "5d06e93a3ba16a27c93f45c6825f5ef8324b118a9c80bb7ef241987423a8c303",
+      "gitSha256": "4b21b3527b7ac59b22e0081e4d38775a66d7f4b1190f4b9e4243ce121e48687c",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMonitorStatusPollingService.cs",
+      "windowsSha256": "0d6e2a5a06d85d5eb080923fa2ce8f837d2ecdf3da6f45ae7c489026fcbef15f",
+      "gitSha256": "7fe4050aa61e3f61f0d9a3cb6b7d95107b93866803672b64558085e043497a0f",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CRecipeCellPatternPreviewDrawing.cs",
+      "windowsSha256": "4f0734c7e46f77a225b37aa296ce98ed47c2af052d912739bc4661e6eb52b852",
+      "gitSha256": "184d7eae3870dbdbca60ad7e84c1bb301cf1df7b9a9ef1ccea8c40c18d4d9784",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CReviewGlassPreviewBuilder.cs",
+      "windowsSha256": "141e3b12b439092785cb9f41f3565aa688d69bac23e5bd4bb884893d9c6b4992",
+      "gitSha256": "264a97c749ec9131311b24447b21a01182e71c298a2afacd441ad0df80e8d4f1",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CReviewOffsetDisplaySnapshot.cs",
+      "windowsSha256": "7ddb55f332e36f7ce3b3b597f9ba3bba5415cd19e538b2dc958e9a6fe1f27b83",
+      "gitSha256": "789b5e3d4b8e2d8bf6db455cb4bc7a459ddf920ba59a21431de129c07ab5e4e3",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CScannerStatusSnapshotReader.cs",
+      "windowsSha256": "973c837fe9fa3cc3b209e09522b760012ec8382b04a71f7cd158aa566e86bb30",
+      "gitSha256": "4aedac353199736e0765eeb4b3798a0bdbd956a8392aaa799bfceab67ebb9451",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CAlarmCauseAnalysisDialog.xaml",
+      "windowsSha256": "918e769f0c8073fe41738a8fc8a19382c84d159a8e538e22791df2048c7d5bb1",
+      "gitSha256": "511dde4a01840fa9600ac2cf014c687f4577f6ff3f356d6058a1ab5965dbbb2d",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CAlarmCauseAnalysisDialog.xaml.cs",
+      "windowsSha256": "71a00f66738e1f87fbb411a2657b4a1c61ce145703a47e03c3a70d971511f288",
+      "gitSha256": "49bb87367b81e2e9da076d3dd9398d1219fd7d38a279d5850e4bf664002ad3b8",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CAlarmPopupDialog.xaml",
+      "windowsSha256": "8003162339d9a2b9f372ebfb7bcac0063bc85c352def5f4cc8171e8638f69729",
+      "gitSha256": "5877536d5eafc8a2a8ae2cbec26c84f1e8c8aacf7caea5c7eb20f4bafa374119",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CAlarmPopupDialog.xaml.cs",
+      "windowsSha256": "e1ffed980afb9a56e23d8f6ebbe252a93a7eeaed75e9276537dddd3773fc62f9",
+      "gitSha256": "23ecb5cd9ae959e24b1c8b21c1eae926047e2092708fc84b5d7e6e93446be132",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CAlignBaseEditDialog.xaml",
+      "windowsSha256": "1bfd1c7297e1d7ec29c5d14f981a27f19f6750406248042061df04396bd6aef6",
+      "gitSha256": "f784c6832809b76ee11d39e1c3966b46697470c812d9c61de19c443d69bc1597",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CAlignBaseEditDialog.xaml.cs",
+      "windowsSha256": "2f5f3957d5333f8bda9392bb9df84a0be03e512cc7a7cf5f249ec07c955d9d3f",
+      "gitSha256": "4dbd590a4ddb9571d1a64c91e36331f9887bb6919b949c04272e70984ec80536",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CAlignOffsetToleranceDialog.xaml",
+      "windowsSha256": "b2af863a958f9b2676aa11776962ecd7766663268bfab80446188d1f58d7fd50",
+      "gitSha256": "2a4f883eca3795f2457ad8f0813dfbd25b62cf25f42b5fa62fac1e370d2e96fd",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CAlignOffsetToleranceDialog.xaml.cs",
+      "windowsSha256": "4ac3b11f95de998c5e16193cfb2ea6e4086d8babac6d32fc94857218cc72c049",
+      "gitSha256": "b90ba18af06a8cc02c822ffb97bd0a203a980790b009cec1d5c510b72cfcbd95",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CAlignOffsetViewerDialog.xaml",
+      "windowsSha256": "1c8c49e33729584a244fc635fcb170dece2268e4fa288f51f27df2e2764df711",
+      "gitSha256": "8dd564e9c41954a30e5b59f7a827e6a87f306bb9feb67293c6cea541e6cf525c",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CAlignOffsetViewerDialog.xaml.cs",
+      "windowsSha256": "b8cdd252f3ef53e97d90b864b65703f45217b454dc59a437d2ef26317f7ff3af",
+      "gitSha256": "791b60e98765d1d4a2cffec6d3857945a681c156dc2bdf232e17655fd444d800",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CAutoReviewMonitorDialog.xaml",
+      "windowsSha256": "ef6044d463c19a14d800f6e3690bc0851bb8a4e9eb761c6d3100543d4d0a98ce",
+      "gitSha256": "b2ec464e6254597c16214c3ef6aea920ae13db27ef6e5d6c6174f9f47f3c286e",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CAutoReviewMonitorDialog.xaml.cs",
+      "windowsSha256": "29f6b45cf9d2ac3f7e5054dda47233a941d2ca4d00d5fba61ea30fd01a61c8ca",
+      "gitSha256": "b92add1a82da77de7b6f18cfafa2e48cf9d44d98d20706d973bd3f8a20427906",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CCellPlacementWizardDialog.xaml",
+      "windowsSha256": "4acc26710bfce902504f7fcee38e39d5b8239871b9a6cb7f7d362905e28768ce",
+      "gitSha256": "cf545ee7ba8394849e403930066b81984f96dbf94984b64708b4979187fc8bb5",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CCellPlacementWizardDialog.xaml.cs",
+      "windowsSha256": "9bb8fc8be490c371c1a9ac95f52c4de752d58cd48c9f7f903d197b3e0186e595",
+      "gitSha256": "20844357fbc9f14c4e6aa2f13efe95bef2a59bb23e2d99acbda2f1e7f5db4af1",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CColorPickerDialog.xaml",
+      "windowsSha256": "714ae8b17abfcfbcdff85afb9c2d731328c52143ae2d69fe441cedad74cbe10b",
+      "gitSha256": "77758fab8bdeb18e938fbfbdc0573eb8956de8f01652580a0c1499ecd417abe6",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CColorPickerDialog.xaml.cs",
+      "windowsSha256": "208deb9d594a450aecd78fe90dfd57632bb00b6efad605e65c78c0b6d976bd9e",
+      "gitSha256": "bd08e4211ab2d70e007d01335f4e7c3b154fa62282a66379762893a0ca264a35",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CControllerResetSequenceDialog.xaml",
+      "windowsSha256": "4400d0f6c4eb8d59ea35d09db817ce8e7e5e79d1600615c78056f4d8ca11cfa5",
+      "gitSha256": "05ef29772e40cdd7705d4cc24e955f3db62d4fa3c8633f7e8c458b6a04b9e253",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CControllerResetSequenceDialog.xaml.cs",
+      "windowsSha256": "cc146b6aaeadced9e271f13f370eb4d120ece8b9b948570b6e009c83c5dedcb9",
+      "gitSha256": "628d8edf87f567166d542d0ada5c73233c9ba6d81992388f47afac7ffec29673",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CFineLineDetailsDialog.xaml",
+      "windowsSha256": "6d5eb9454b6dcfa95fd52e07c9b354c013e5507583b42ef2d70cfde9f7f09783",
+      "gitSha256": "92a6ae01ecdebbd4a07c51e85e15b56e30403e933ae670cd1241b8f217049222",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CFineLineDetailsDialog.xaml.cs",
+      "windowsSha256": "d7e937843f35c4c2564b40485fecae44f968cf7f84d59337807737768a37d510",
+      "gitSha256": "6f1a0051d47031825e68c4a80af1612e352c016812303af00901b9a6abbf03db",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CInterfaceStatusDialog.xaml",
+      "windowsSha256": "6df1559a2ba260131591727b4fe9ef4cd37d24e57a9a886ff1b933d716e4715a",
+      "gitSha256": "0a964cd8be13a729ec4f6b364b23682ebc6018eaf68dc5128785fe5b06203d70",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CInterfaceStatusDialog.xaml.cs",
+      "windowsSha256": "0bc80bb0e523800765696d6ba42266ec811ac3406ac211aba5a6dec104a7e1b4",
+      "gitSha256": "55ff37ddc0a9e7aca6154da3e7e5ad7abef3f32adeeae1fe5e6c4a6952120f51",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CInterlockDetailsDialog.xaml",
+      "windowsSha256": "931ff30471a5103cecbc33d6b46da018c686a8acd9d88bd5c32d9bb9098bb911",
+      "gitSha256": "e65940b88f00f929d5fdb6d68bee07a4e3189336fc930f83bcc9653dbd2d85d1",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CInterlockDetailsDialog.xaml.cs",
+      "windowsSha256": "67d1fcd11cf57ceb4b6f2b9bf458a8d537a5a1e903930bdcdfe534d9ae62183a",
+      "gitSha256": "8dfbc705a7bedfa5d35fbe3b34ed6fd9aaf548b5e259a7228828016b71a7679b",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CManualHomeSpeedDialog.xaml",
+      "windowsSha256": "5e93871e942db3639a5354c2556e422accb7d129d80e8225167e6dda355a9774",
+      "gitSha256": "ba08582b27bebe421ed01de6fcead60d4d06e4fa7cb55e125b24e34de2f9290a",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CManualHomeSpeedDialog.xaml.cs",
+      "windowsSha256": "6ae2caa86af2587ec98e39d758af9f18225694a257933e35a8d13d069aa300ec",
+      "gitSha256": "58a02c32cde749f8782a5056c940b025731e61df466be7e5bed29bd2f7b74805",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CMelsecStageSimulationDialog.xaml",
+      "windowsSha256": "a334c0d89d733bf7fa5e87f398a7039e6e0a1afa80af82b4d6509a0f38451a58",
+      "gitSha256": "fb4ecab261aa1c8986d3e2380f90eca7f86c1185cbc3361fa60830e06a047007",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CMelsecStageSimulationDialog.xaml.cs",
+      "windowsSha256": "4d63ccb44f16c33e57672fa63f88dd46a9ab26a9a27f490d41048f26bec8e712",
+      "gitSha256": "ffbff8e714222d50e8ff4c275c93657a2d83ef538ffd2c838565d124ff35c0e1",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CMofDisableDialog.xaml",
+      "windowsSha256": "c811b4c78d32769dc85e92b0bff6aaacedac81fb2dd4c3af4b26562f8d6aa267",
+      "gitSha256": "f33047588b36985fd5f877692274eac7468eb5ccc92b0a4c3c784e375b6c2471",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CMofDisableDialog.xaml.cs",
+      "windowsSha256": "5ca1c0079a53dde13cdc4bbc7d920d0d3d82d1f9d6842fadfa64c389ecd93db6",
+      "gitSha256": "ff2e2f58b9472d34805c1284d235221005fdf76983cfb0e421b5e76ad58e8408",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CPasswordInputDialog.xaml",
+      "windowsSha256": "95d9ead6a17308d80af0aacc3afd9ec5bb384404811081903a68353052fb70ed",
+      "gitSha256": "20133547f90743e21a60cabb230c2dbd3717f69e4b85893da71184d597134868",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CPasswordInputDialog.xaml.cs",
+      "windowsSha256": "605f668c0559885fd5eeff71c6db76017f29a2b8ed3aadc0175ebeb4c3b0576b",
+      "gitSha256": "8c4dd594529530c41186958edc719f941a585088c4e50c23c9e2a5c232c35aca",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CProtectWindowRequestDialog.xaml",
+      "windowsSha256": "0150e5be80ae15679d2d0a69c5e0f27eb691789bd234b3abc23e4be3c04fc91b",
+      "gitSha256": "3bdcae1c783c69fbfdaaca1f8ebf58c015d4ebd960449e60a621703dfaf23e0b",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CProtectWindowRequestDialog.xaml.cs",
+      "windowsSha256": "01b6fb02245335c153d26ac244fda71d7d2b56e74ffde769294ca6d5f435719d",
+      "gitSha256": "484efc7d1528c96b985c486ed2b1c093f17e413aaf971c29639a795ad62d8fcd",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CRecipeConfirmDialog.xaml",
+      "windowsSha256": "10728bf28eacfdb31cf95f206c780fb5d348a2158baf9813aac3537d9faa6f61",
+      "gitSha256": "d2b2517528ab227f3da50914ccb7538aa761262a8ad89b470ae4cad64a6f91c8",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CRecipeConfirmDialog.xaml.cs",
+      "windowsSha256": "7a383ef12d6fda215d2a83a04258002665f40ce18f8bd5caca61fbaaf93210b6",
+      "gitSha256": "00684e5f8fd0a9fc95adb9652059ca63907cf372480ff20a1a604bc3d7e3eaef",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CRecipeNameDialog.xaml",
+      "windowsSha256": "a79490cb778bdda195db4367f6c3941e6a4a140c580ad0795292885dba1c44c0",
+      "gitSha256": "bc133b6c96c6d9da1c9b9e72e23c852560a9458a3d6a0c73827a92600a88df4c",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CRecipeNameDialog.xaml.cs",
+      "windowsSha256": "07e9020cb1b26dcf10c4d0cb82ab83adfe413dc34237bd8668e954e2ed1d025b",
+      "gitSha256": "f4406ba9b60a8173bc0212e0df2c07b1380699f09aaa4f110a2468fe2d17de16",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CReviewBeamPositionsDialog.xaml",
+      "windowsSha256": "d62fc3dfb1ba5c8b5abb3113612e5d048dd1d94cad63cb1ed87c301e3772d292",
+      "gitSha256": "a3677ad49fdd59b8c803ebdba9d62346d183708fb973b3cf7e4fa1eb214dc1b3",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CReviewBeamPositionsDialog.xaml.cs",
+      "windowsSha256": "025172aa31a59f231db8dfa4b13a88f8bc31075b8683c145a8784a2471839c97",
+      "gitSha256": "3ba1723c2292c1a4d0603929605cb585b26bcce42196f01d7cfbf953fb1e93d3",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CReviewDataOffsetApplyDialog.xaml",
+      "windowsSha256": "2c7fe317bf108c2ea5d9e3cbc89132690a183d78c070a2bbdd9bc26a30bd1faa",
+      "gitSha256": "d0a3c1420a18919d7f559157d5db83fa7ac819ffd6df931a4186b8327bb86a2f",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CReviewDataOffsetApplyDialog.xaml.cs",
+      "windowsSha256": "3742c6502d2bb6239b48667075e9888516f95b2effce223b8cd48e4130a40303",
+      "gitSha256": "0fd2de0c68537f85e18ac9b9e8893791a18e3ea55c32eb64adadcfeb5484f3bf",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CReviewShiftOffsetDialog.xaml",
+      "windowsSha256": "cde91bd4847b3308c3fb3b3846d38287d6dfc1acda0b5cbc42a4a991badc70be",
+      "gitSha256": "ca45ba2e352526e35b1f90d51ada3d10bdbdf8e60c094062195259d188408656",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CReviewShiftOffsetDialog.xaml.cs",
+      "windowsSha256": "6f961d1de43a787ad7de42be1b0f4d0e0347b2f0a8c1b44bbda57c9a57f65a2d",
+      "gitSha256": "7cf71b53658de85f59e468e870963dea18f7f90268344490b5db22625826f064",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CSelectedReviewShotsDialog.xaml",
+      "windowsSha256": "ec015dca7dc96ce026d9723e727edaebbbdd102e054b58a0b9cf6455ac02f909",
+      "gitSha256": "02b0b00cd179004add206c6d74bd0de3d90ac0433bf2a15ba047c94846bd82df",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CSelectedReviewShotsDialog.xaml.cs",
+      "windowsSha256": "ab5577450474404f94f346ec8745af3cb5e4df29128302c486e0a6de450d2298",
+      "gitSha256": "9c11547e786fc67d1bb2582e294fec3a0120b2a22fd1e38fb3a256f0e34db887",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CShiftOffsetDialog.xaml",
+      "windowsSha256": "3791f671d1bc83a935b0beea53b351b6dc57047fb5ec32f168bad22b811fd222",
+      "gitSha256": "ba08d494febd59c7d4fdee7dd87440c4d960c4738bab50233b33ff1ce1c07636",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CShiftOffsetDialog.xaml.cs",
+      "windowsSha256": "6da348dcf0687c8c85b5e241eb570146077fd861f7f80f92d77b596ffcc59a53",
+      "gitSha256": "d334519a7eceb75ec8c097d9016e807fdd2b66c3c3749098d31d1e166767d0dd",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CValueInputDialog.xaml",
+      "windowsSha256": "304abe666aab54bd6d5618650ab78176bb7e67f32cde9cba4b36bb1116df67a5",
+      "gitSha256": "b552fc742b5fe99493b021ace7d900f7fef4664bec2b908eacabf9f6df3e59bd",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CValueInputDialog.xaml.cs",
+      "windowsSha256": "2b05f6cf626e622daefee01b894f4aba1909dbcd11b77da23e4cda5caf502166",
+      "gitSha256": "6b826dd55f07ab8926a40ad6deb32095e1678d143028a2023e3d66e4316d5953",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CZeroLineResultsDialog.xaml",
+      "windowsSha256": "971f46239c618e0c716cca79c4989107ce4763ec51706f962bf0d5e8b408f69a",
+      "gitSha256": "ad23b5559b71c56ac64defb7689f80775868b147ada34b43df836390f3322d4d",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Popup/CZeroLineResultsDialog.xaml.cs",
+      "windowsSha256": "2d5de5f7fdf4d970ab6ff9496dbeadc5f6a6c6f2a5563075b7038a588f2987e0",
+      "gitSha256": "9c097137ed75a6403f3eb4448c33b1fd9a42a8996d4eb5133ae859eb337f8956",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Themes/ThemeDark.xaml",
+      "windowsSha256": "08bc81877f8766d2198e515f869e6b06f74f4b4c6eb7a1a9d8093234f11b2e4c",
+      "gitSha256": "bb53eab5db186fe7e6518160778a899398fa6c202bd37758f4b5140d57432232",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Themes/ThemeLight.xaml",
+      "windowsSha256": "2a3d9bc68816fd0c25360ae10c3d344354ac494c5ec03fc7f7077adaff99ea87",
+      "gitSha256": "9608a176db70fa14f67d769d41030e9f9a359681148843e381902628fe851d7c",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CAlarmView.xaml",
+      "windowsSha256": "13837ed24a1751d6cf813ac2dfd3dc1b8a5124fed885711e23c9ca0d5af8ff2f",
+      "gitSha256": "c8b45611634615efeadbb68d2bd62e09c5869baca5620b0d035ef7b095488934",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CAlarmView.xaml.cs",
+      "windowsSha256": "c223923c38672cb36f2b15c3ce09f37f79d51ea6a1815e297d311eb248efb05b",
+      "gitSha256": "21f798a254de8e74b5195218e308a7d8d50fc66eae050bf8ad53b43b739ecad0",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CAlignDistortionView.xaml",
+      "windowsSha256": "de45e4e36fe1c7eec80467af8808139345203351aebb110509599571249023a9",
+      "gitSha256": "8aea436c66e8786f4fcf10b6cc4fadecb33b926fe8e8f086e33f3d9616081c61",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CAlignDistortionView.xaml.cs",
+      "windowsSha256": "274e999463ceecd888056c6e05ac0a2f693fc443828d811a875a1001a7c66c8e",
+      "gitSha256": "eb54cb1bb2a577b10b117f95dfeebb75f0e6dc9a4c8339bdde2c3b527c9f8b4b",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CAutomationControllerStatusView.xaml",
+      "windowsSha256": "90ab6c96e79714cd4c03ad1c22f9aab5fa558d70c47f028dca4fc88d67c4dc6f",
+      "gitSha256": "b3082e475098f2582c564439cb1180dede6634ef44d2bf33a6a02ded9a87e560",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CAutomationControllerStatusView.xaml.cs",
+      "windowsSha256": "396a81dad5902e8a497f64839e93903191ef5624b4a3cb63bd7c067ea644a8f0",
+      "gitSha256": "b2927d7bd644940b5a53137f94a7c7b5eb4c0cb17e762cfc683a63a978340d7b",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CCorrectionView.xaml",
+      "windowsSha256": "850404c76dda72d2d741b74f07a8161966f6cd55d173697bebaf619ee79e296c",
+      "gitSha256": "ae9f6bbd40970212f2788a06d6e8fb5499496a153bb0d8e05a07f8b6850ae4f6",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CCorrectionView.xaml.cs",
+      "windowsSha256": "aad7dd20f74ecfb6876c917e11ae1ef2e6494aad5d5c9ada9fb4ac9596c4e980",
+      "gitSha256": "b963c5748d9da1342a527f8b946c93ffcf4e483ed1568ecc514b2816fd1a1fec",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CDefaultOffsetView.xaml",
+      "windowsSha256": "0a2a3ccf2862b0207f857502f6c6945a6f36c1ab4260c7f241a90a625448ac19",
+      "gitSha256": "2dd6bf24057e2f692e850969cae05f46f1aae7d52ec01915e1f9d408d5ea3a24",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CDefaultOffsetView.xaml.cs",
+      "windowsSha256": "c9bbf573db3ad2daf7010f437df04fd305f212a3b0960e8ffad05d986239f2a7",
+      "gitSha256": "7f20eab5120280bfcf0afe70e5b1033dffb4a3c376be3d8a10e612cd50676c15",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CExitView.xaml",
+      "windowsSha256": "4dbf93721be16c65bc16e3f185fa4f2a183105d5f0dd2a2f880730e2d64b4221",
+      "gitSha256": "77f2e0c67fa5c5579fb31f9ad6028658e124e2cb14e920ced92d47302f889b0d",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CExitView.xaml.cs",
+      "windowsSha256": "5ddcffafd2c5bdcb9b0d53f78a6f7424402ce24fbf73b766b4ddefeff0b93753",
+      "gitSha256": "5efc3fc1bc0dded511dc8043a10853a9cabaeec510e28202391c6e19a0b5ccec",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CFineCorrectionView.xaml",
+      "windowsSha256": "5f0f25219a4f37ebc3db57b7f4d7542a2064a39b7ea7c15c42848ece8270c093",
+      "gitSha256": "f64e3b85fd5987c29e6cc44ee6abf188cb8dc5a265de4529dc2a4a2f98f27791",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CFineCorrectionView.xaml.cs",
+      "windowsSha256": "5a42b4eec6c61eec684511980cd891ee95f6e2ff5431226e9c4604d2ab42ed81",
+      "gitSha256": "436ea8a1f8f93968d6a0076015f3ca09a3cd59081649d1d4c43c9041ceb1319c",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CFineGlassPreviewView.xaml",
+      "windowsSha256": "3886d8af4edc1bb05aa89a2904b4a184ef5dc2e8bf7d36a95cc4edf9d595d56c",
+      "gitSha256": "a002ba14d4e813972a08e01ba7e52f940952bb0f5e65061c15d331a94d2878c0",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CFineGlassPreviewView.xaml.cs",
+      "windowsSha256": "82308283f0f7fbab5bd9ac3c5aa54f0b4ce2966a9655eeaf85bc87dbf4805a41",
+      "gitSha256": "ad557e84bf9ce4679558430914d64bc07caa3c8f60b7f10331c62098d2242bb3",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CMainProtectWindowView.xaml",
+      "windowsSha256": "3a14609e7354804555f3d4b0f318a4d4bcd3309bdaf10759b04b0b412a7cac8d",
+      "gitSha256": "2a5299de9f0651401c4136bc8409e1343667f12444bed1d121ddbbfb96b9bb66",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CMainProtectWindowView.xaml.cs",
+      "windowsSha256": "afd0a73e645c8b45d24346b86ab2aad6d9ac4e7a6e822dfa826df4b8bab94eed",
+      "gitSha256": "6d33bbcbcd80b01a0bfc6c77d71212d111f9f705c67732c4727f8b2844dbb1b4",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CMainRunOptionView.xaml",
+      "windowsSha256": "5cef5a4e1591211b8dbef4df476f83b5bf5a0c4dcbd3c6c69fe278db3541fe1e",
+      "gitSha256": "e833cb5233f62356bd0a1e44602296dfef57cfb6081834314bffe6397146dbe9",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CMainRunOptionView.xaml.cs",
+      "windowsSha256": "5920b403940f4627678ebe83678f2bb4fb8fd2225197591f2984d2d1e7eb4ae9",
+      "gitSha256": "c43a9dd579abf8f7dde3ef7cc65f69d8c7677eee27c9c0f733ce4c9b292c6f88",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CMainSequenceStatusView.xaml",
+      "windowsSha256": "8bb8e78b35047b9190eda18c56a569881270b44cffbad013577a1cc7098ac32c",
+      "gitSha256": "b9a709a4faad7aaf1f60b7eebd5408327588cd382b653536a6e27b42ea08cc66",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CMainSequenceStatusView.xaml.cs",
+      "windowsSha256": "24738e16d0d32d1742dd269fc659bf5a3890141c727a4f05caf060613315419e",
+      "gitSha256": "2292e98cb97d35c2e82c7ee79e3284fabea20c0f8f6e429ab67b7b0fd454bf52",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CMainView.xaml",
+      "windowsSha256": "c80452177574a135609caa6bb5e691faa193009840b4affb96c80d91b311b794",
+      "gitSha256": "d1111196fd6f26d6981f50678d5c8c68a031279a92fd3fd9faf464ae5fdcd8cc",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CMainView.xaml.cs",
+      "windowsSha256": "07820c2ab6d3b94b466c68f2ee3561100ce5af1be2c67fc32fabeb589ec39b00",
+      "gitSha256": "9750b00a612feb47c4932e6392a99f9869c04069a635bc09fdf9c42fd23bf453",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CManualInspectionMapControl.cs",
+      "windowsSha256": "72964a4fef45bcd344d403af945a1f5a091d100745549d3caeaaddfb0af2f806",
+      "gitSha256": "a0e7be0e76a3ca18dba397f53e5078343573dd453588564f7d284c86a394aa5a",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CManualInspectionScatterControl.cs",
+      "windowsSha256": "1cc3fb7be94547c2e714d8809906f2df6018e5805b6ed44ecc9fd2c398e6a0bb",
+      "gitSha256": "696f69435b79a1cc8322f960e1d95e9f58fe2f149878c62b7e9e9fe163d7635e",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CManualInspectionUiContract.cs",
+      "windowsSha256": "422f30502a1d904f47df7a864d87f98527217f30a9359f82f75962303a6102cd",
+      "gitSha256": "422f30502a1d904f47df7a864d87f98527217f30a9359f82f75962303a6102cd",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CManualInspectionView.xaml",
+      "windowsSha256": "de85a569823fcadf344ce1a8d7840e5c49f4982bed9910b712f3c8d79cbb43f3",
+      "gitSha256": "0075a8941c54ddcc379a6b15baac458f0fb020042198a5efedd1ef4f4f9cc64b",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CManualInspectionView.xaml.cs",
+      "windowsSha256": "740f8db69c572e07e04f7745c320ed6c75801e302da693a96e94ef13865bc297",
+      "gitSha256": "0d30b1114ccca6f57006e56afa8e9d1c89c97ae3993b77023ded657db2857eea",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CManualMofStageView.xaml",
+      "windowsSha256": "2574cdc6a4a11ddbd836b57bedb126d2d4c4873e1656108c08378aaa6da5953c",
+      "gitSha256": "0aa587c49283baf9a4e8aea9c16d4a777d3f456c876a4c9d19ac4ab443d11396",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CManualMofStageView.xaml.cs",
+      "windowsSha256": "a0ddb6f18fc139638e1f9d2feb4d4b7ed07bdf12af68a834e6f123b8aa91d9b8",
+      "gitSha256": "e3e903d0d2142312e8ae98b599a15882d3ce2fbf9a4ececd9bdfb5a8adce4c61",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CManualMofView.xaml",
+      "windowsSha256": "3ce1d7a4d3281ddf5c8ddfa08ec963db4290071a52dd74af6c321098d25c2fc5",
+      "gitSha256": "9bc416c6f26d07a8c52bf4d75e5c26cc322bd9fff8b7e9af2538b9ab8552586e",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CManualMofView.xaml.cs",
+      "windowsSha256": "8dca38d642205125b987195e1b7797628ad8406001ce494af68bf55f743d69e1",
+      "gitSha256": "7527637ae94424c32e43d5fb236baa2b32f5c8e22e60bfba94f257c9501f86e5",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CManualPowerMeasureView.xaml",
+      "windowsSha256": "166fe76a3ae11df7e528e56d7aab66e56cdc745a0224350e7c8f72b40947dd22",
+      "gitSha256": "b2c55cfb064d050f30c1da65eb4ced934cd705dcaeae795a4f40ed2697513b35",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CManualPowerMeasureView.xaml.cs",
+      "windowsSha256": "df6f5ea261a763f08f0b7ad8e614a52a38d078be2ec4e93404c38082c96ca7b5",
+      "gitSha256": "12c71a3f7b8bf723592d36515408bb4df039668ee826f8c53f247427e7fd0583",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CManualPowerStageView.xaml",
+      "windowsSha256": "5aa3f6b52d2641f21ed1116201833ad91216c30e4f74f9eb2fbe41bb82c2060b",
+      "gitSha256": "833ebc14dc7ae2c591eb738ae3ecf1a16250f071dc0e58b34d6fc952e7039957",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CManualPowerStageView.xaml.cs",
+      "windowsSha256": "9e448e7e3ffacf4ad1ef776fae61f375601b38828f1c4e59694386aa0aa2e452",
+      "gitSha256": "4462289df96123c15df6b2e2d8a8b29443f06c412740fb511a1ee023467369c3",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CManualView.xaml",
+      "windowsSha256": "1d9c373bb067bfd0107e333fafc3f93a79cb663f7ff4027731db20f99eb768f8",
+      "gitSha256": "9990febbcfd37cbe575d4a26bc1e17ede35af2f4ac9c10698d42db18cbbabd96",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CManualView.xaml.cs",
+      "windowsSha256": "ab605fcdeeab4496960f7bad74eec9a3fe5c5dc60dcd24b36a6cb262d6ad2636",
+      "gitSha256": "c2b553604857244c14c9c93e1aedecbbbcb54899d6c5cdeb4d75a0e793af37aa",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CMonitorLogViewerView.xaml",
+      "windowsSha256": "10498162e6480c878e2b8a0969170faabfdc6b6fc5419bde8b73276ed66f5581",
+      "gitSha256": "63801d3d2781ea7f45b6048166594066f94f9200677cb787afdd768116858453",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CMonitorLogViewerView.xaml.cs",
+      "windowsSha256": "e1096238698282a8761bea6faa05dce66d1728abe81ffbb1573c716730538094",
+      "gitSha256": "d7330139045fdd66419902cf778f6c4567e0faff9da74e094b6ff25144e78913",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CMonitorView.xaml",
+      "windowsSha256": "1d96067d63dae8d1cf6f1436cb772e78ff7aa5e68d949b35e1ecac706db0ce12",
+      "gitSha256": "7e2680ee22811120826a046287198e16682bde9aca61c9180dea8a5ac2497003",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CMonitorView.xaml.cs",
+      "windowsSha256": "ed18bc5081d304c3ae249f70e2c4a09d2324f90efdca71db63686116b5f4453a",
+      "gitSha256": "225e82a143390540058de3966febd21eee8deaecd4943c7e3cc26bca846df2cc",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CPicoMotorMonitorView.xaml",
+      "windowsSha256": "1d757532f556e72828c082d869aa3231926671bebe787342c5796c4b4e4a968d",
+      "gitSha256": "7c9e0c52e98c17b5d7533235fe26186f3157f5cf99ae2955ff5db8964a22d1e8",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CPicoMotorMonitorView.xaml.cs",
+      "windowsSha256": "71b53c57cc61b41bc390045668d7c3d12d15ea7db282c75749b741836d516ca0",
+      "gitSha256": "d867730289f754785ea9c8d398ba91d1af65fd3f8471b6b8baacef316b6667a3",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CPmView.xaml",
+      "windowsSha256": "b7f5b808e06c03a319f3cb68003227d75d450a7342dc56af28bcd0a826db8183",
+      "gitSha256": "f4fef3523710d903b93fe8c4689d7f37152e3ea4c7938a1b9da80e92a2da8c2b",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CPmView.xaml.cs",
+      "windowsSha256": "2bc4898263b350dd75b8a7510b2377d23112ee311aab33838794268788959dbd",
+      "gitSha256": "cc816edfb7bf4b3f96becd2b164347802e7bb0d983467300371986be4ee8e5b4",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CRecipeView.xaml",
+      "windowsSha256": "12f20241df43233b1a70df521106cdf4be52f7ca2af3f8862b324330d282cc3c",
+      "gitSha256": "91aa1f4a0f4af307c2fdf85a6945a23b943cef0bb14de527d0e9f8a5f2deed84",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CRecipeView.xaml.cs",
+      "windowsSha256": "c3d27bc81b7f9cdd0b8dd2bad10ef87e51ba22c93e2f192c6897b746e8fe704d",
+      "gitSha256": "2774c4c6a0993819b650477077c2849f8919b803569ae007d3601f34e3ee942e",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CRecipeZeroDefenceView.xaml",
+      "windowsSha256": "b84943075a7eacf71b08226cc94113c216b79999d94646ac1e6aa29c80408a64",
+      "gitSha256": "9bd8405199e46b64f4acb385084188d749e2269bd82effa2d57abc8d33abc5da",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CRecipeZeroDefenceView.xaml.cs",
+      "windowsSha256": "aeeb1c060a89e8d5c90c7e951ad4bb85dd15e856075bcb9e1a95648caa8ee0fe",
+      "gitSha256": "db747d929dc1bd53b6132e03ab820e07a3de3f45c1dcd8c63faf8467f77f7646",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CReviewCameraOverlay.xaml",
+      "windowsSha256": "5c5902728de0b9e738bd8a9e61302eec2eaa5b8787a15e682035de42913348dd",
+      "gitSha256": "8592c14fa697790d5918a9c8017ecb770276f7480bef17a592bc3d980a7ced92",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CReviewCameraOverlay.xaml.cs",
+      "windowsSha256": "fdcc6ef6ce98cd9baef58348be383b0567a0bb398d911cc4383f342184ac7c26",
+      "gitSha256": "803c35f2e714dd8357c7eacbbf5ab4bfce1b0ed73cec0e20f345880343a2e512",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CReviewDataView.xaml",
+      "windowsSha256": "f8e18084f8df71fcbaac42026fcd20249576eaee7bcbfe4791bedd663f5b6b57",
+      "gitSha256": "f093d23c4fe6d8b108a211714b68fa9e757863cd3f2bf4467f725199c2d47714",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CReviewDataView.xaml.cs",
+      "windowsSha256": "cda913ec08362b88f72e77af2cf827694ff81e3c0de244ab4ef70b87e457653a",
+      "gitSha256": "320eebff3ffe0960ed43abd465a90b59c15f96f6ab6ffe3cf3d50a211f59d98d",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CReviewShotMapControl.cs",
+      "windowsSha256": "4b948d74cec87fc29244a8bbec94452a92aa3b70e04a1f1ea6b59876d3bd1223",
+      "gitSha256": "9984a15c94c91245a86a595c0aada55ebfda297c04a4dc81f035e7790d0d0b39",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CReviewView.xaml",
+      "windowsSha256": "f2f28f9ff41dc24eb14f67373d7029c379fc870f4d4a932317d7b0d729174537",
+      "gitSha256": "3837a6d61eb954ef71fd67cf2a3e820a008d8a11f6a9181721639f866afc2ce5",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CReviewView.xaml.cs",
+      "windowsSha256": "0ab06bd9f08351e557d249886da47b070add6ee80358b08fb7ef3da76da0268d",
+      "gitSha256": "7fa4f9b8496bf28eea1382b032740f7146b5bb1a30f29be9b19ba1e4fbb67df9",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CSettingView.xaml",
+      "windowsSha256": "cb1e9d77570c06b60cfd8503078299de4a9ce7ba559a3db9e0e6e475d2c0a60a",
+      "gitSha256": "f28c70b9d74ed7d4d5098a4549ee9f2726f55fae44e23ef0a7d315c00facdcf0",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CSettingView.xaml.cs",
+      "windowsSha256": "41315a13e21fdd45679d75223bb422d2aff28a4eee55c2dfa7b21f617d5cbf91",
+      "gitSha256": "1daa01d6f5ba37c87a4ecf65000acaec0b2c00a19d16d15b16f8cd82c8e6ea82",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CSimpleCorrectionView.xaml",
+      "windowsSha256": "5425655e3db541303168239d60bba5ccd9536438b10d2687c731600d3231700a",
+      "gitSha256": "45a259e841998f3b2e479938a92d0035d1b45212e05c7045c191028347fbe515",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.UI/Views/CSimpleCorrectionView.xaml.cs",
+      "windowsSha256": "629ffaf17c54a3f3da2799dae7fb55b0777a5f289b473105d7146dc062b7da86",
+      "gitSha256": "7ba4bd73c8c8c6cea70e8deb6cdea2afedeb51d32de2e5bbd1d2d99470ce4cbe",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "Drilling.sln",
+      "windowsSha256": "a79624000a1bd9dc4ecda455a34113e614892c277dc962d42a6c212ea2a7b79e",
+      "gitSha256": "53290ad8c6f16d2ac52c7e3c14244e9030b3d2a6e2ff9fdb19cb406d47901185",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/BackendReadHarness/BackendReadHarness.csproj",
+      "windowsSha256": "19b7c81bd945705ad56f78ae13a18dad6d28ccc6b8616afda7dd86aeccf09d41",
+      "gitSha256": "0fee48b2ab4d77f0876b69374c0b2c6e9a830c4b879aa9b07e48014f2608a61b",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/BackendReadHarness/BulkFinalConsistencyCases.cs",
+      "windowsSha256": "1850e661dee5cfd950d4b0e0a7ac0109f1f7c2ee31c019fc7b1c94fa22fe49d4",
+      "gitSha256": "dc41ba83520aa2ead0d11e9fd84e56b7e4dd47f2cc635180021d5c4b5cfe36d9",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/BackendReadHarness/BulkHistoryCases.cs",
+      "windowsSha256": "44eea9a58d8ca75b11771418c4e29d42f387e4921e918d9d6daff490f489ef35",
+      "gitSha256": "854e3340978a1dc24896328f12c775560b3750d20f160c35e7460516da778678",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/BackendReadHarness/CellCsvWorkflowCases.cs",
+      "windowsSha256": "5153999f553cd85698f5cee46f60f9c35b63de351ea6981826fab240c0a9f5f8",
+      "gitSha256": "8f87657218d26a4484e3b3ae70877a1a61b4189cfe6a2eeaf67e8e987a04442f",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/BackendReadHarness/FinalOffsetParityCases.cs",
+      "windowsSha256": "07cf8f5775a13fca2e9eba1c87ac4c6de8b5f95ea522588e9f4a9725f4f8b2d5",
+      "gitSha256": "07cf8f5775a13fca2e9eba1c87ac4c6de8b5f95ea522588e9f4a9725f4f8b2d5",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/BackendReadHarness/FinalOffsetSnapshotCases.cs",
+      "windowsSha256": "d859ca4d934de7d5b1398cfdc8c566a16ab6e3c05b8dadb62facb012ce4448b9",
+      "gitSha256": "d859ca4d934de7d5b1398cfdc8c566a16ab6e3c05b8dadb62facb012ce4448b9",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/BackendReadHarness/MasterCompatibilityCases.cs",
+      "windowsSha256": "c6decb59c0a0536df3ffe36619bc451b34526c205c4335398f992cbd20bfc8fe",
+      "gitSha256": "c6decb59c0a0536df3ffe36619bc451b34526c205c4335398f992cbd20bfc8fe",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/BackendReadHarness/MeasurementStateCases.cs",
+      "windowsSha256": "5a88bef66f6d8859e1cb6a9864939459a33c395f575d8b10364d004d94dee80c",
+      "gitSha256": "49132b3275ca4d82d9d52fac6a737c7cb3babef09a37ba5b2d794aa37a9a0cfd",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/BackendReadHarness/MonitorDisplayCases.cs",
+      "windowsSha256": "7655e96355fd798d75480819d8050ce057076fbf24cea4bb411b7fba1e8caf95",
+      "gitSha256": "b772a323423bb9761630bb884126d299054e2cc486aa3471ba97f5198ead2d71",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/BackendReadHarness/MonitorFinalConsistencyCases.cs",
+      "windowsSha256": "95d2777df6ff3f5182387e3cee5bb3c7f619c03b3c69a4bad9cd72767c56746b",
+      "gitSha256": "019912e2fa40f6c80bfce048bcb11f796b03692cdfea8af5ab87983ed9c00315",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/BackendReadHarness/MonitorShotDetailCases.cs",
+      "windowsSha256": "34be9c8e3c3fdc6359c67789706b90f52a6926a76422da6a8aad08f253c2cd39",
+      "gitSha256": "b27536983f614593d604f0a63cb901419083cfc30145e2d903abaf0518f49b59",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/BackendReadHarness/NativeFirstLoadCases.cs",
+      "windowsSha256": "c36e558ab85ed55ce600c90230c907cc3303f912b1b2e1e8a6eb7f925e6784bb",
+      "gitSha256": "81fc0c2c0b377b6c50fb71601ec53730c1646e9917761ea420c288422add5ea8",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/BackendReadHarness/OffsetCsvTransferCases.cs",
+      "windowsSha256": "b60d9cd03609bf2d3ca0fadc6d69737d2969ca8bcfe8eea92da7bb65ed1bd1a4",
+      "gitSha256": "a2d0cbfd51add673aa8ae59d01343db9ea373c2ba5c2904f0868fe54aea7091d",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/BackendReadHarness/PortableOffsetCases.cs",
+      "windowsSha256": "16c69a4c15f16b9b0976b8a93329af912f58e833147153e7416e2ba782a3c1bb",
+      "gitSha256": "a41699fd0d2cb75ee7ef3c227916313875fbc0817b70ea893ac8f4298d032a8b",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/BackendReadHarness/Program.cs",
+      "windowsSha256": "a790b4920a57bae70d734d8b7197d94b515b5466b7d3b5e5b76ec3d736cea467",
+      "gitSha256": "c4169ddcb50b94763d7602aa80bc7f4c394aecb365f0e8724deca40fc4d262b7",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/BackendReadHarness/RecipeDisplayCases.cs",
+      "windowsSha256": "da8cf56729f7d17cc8a9fefafb8806d4adb71444bcf74edf69980f10f758c06a",
+      "gitSha256": "aff2aa66802188a7e36bc6b325ed5b7a37c8d3e0d416a3a746b25bdaaa72d13e",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/BackendReadHarness/ReplacementWorkflowCsvCases.cs",
+      "windowsSha256": "6d6b32dc762009c52a92207671689945e1412eb127f3803e59d6002aad33d929",
+      "gitSha256": "d686c8a030e877b9aabf562f4d8ae900a8a82a08bab2206ac4b968f69558de6e",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/BackendReadHarness/RepresentativeApplyCsvCases.cs",
+      "windowsSha256": "f8a923f9cc8a3a8f18d365feb70d8600087547b1e9944841907ef0c0930f2e9e",
+      "gitSha256": "1cb5eb2d4e728eba505b3c35cf783c91c07b9c449e869710ee853e59023af83e",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/BackendReadHarness/RepresentativeCases.cs",
+      "windowsSha256": "8516f5169e7429c7413eff6dc50c2b8276bde154ecd4feb7fc43afe4e70a954c",
+      "gitSha256": "bea1b662fb632cd0376afd5b0311fcb456c8195bbb7e315c4190c360978eb3f7",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/BridgeWriterHarness/BridgeWriterHarness.csproj",
+      "windowsSha256": "9571255dfda75d5922f2b6dee494e285528f04328faa97a44dc307a95eb2d07e",
+      "gitSha256": "4319f6ce1e8511d1af37c2fd616f7d24cefb9e0986bb6b4138c8ddba98bec1d4",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/BridgeWriterHarness/Contracts.cs",
+      "windowsSha256": "fa53fda84986c158ddaeb19d6d6362d8a060fb5bfeee798fe3d6d298c3f120e4",
+      "gitSha256": "c0f39f4fa349867eeb8b569f42bc8ba5cb65101d44806cd4ca27339c76106355",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/BridgeWriterHarness/HardeningCases.cs",
+      "windowsSha256": "f8609bf60eee4986e9b1128e15a705ff8dca8213160d74333f324310669078df",
+      "gitSha256": "8d17416db3ad490b51d671f7f25fc4c932f677c5a2b5e342bb88828f70396335",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/BridgeWriterHarness/Program.cs",
+      "windowsSha256": "a90e6db6db9ca0b89841043af8aec7d74ba1108e69ece79060b5d43a6a5ef522",
+      "gitSha256": "ae96a4a89f409f39d4ca94ea130fd0bbf47a37afc48748ecaa5845d8eece76c7",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/BulkHistoryCases.cs",
+      "windowsSha256": "ebf4a40510fa1fd7b263acb4d7183620a8893c716fd1a9058195f9927c78b8ab",
+      "gitSha256": "b9b57af3f936f47ae05a2f01385995eb128ed68e93510669a1d0f04508e67f83",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/CellCsvWorkflowCases.cs",
+      "windowsSha256": "a2201c869a072c6aa6ac4d02766cb3140e0566b5455dbe932f0f32e692ed481d",
+      "gitSha256": "a2201c869a072c6aa6ac4d02766cb3140e0566b5455dbe932f0f32e692ed481d",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/ControllerHarness/BulkFinalVerificationCases.cs",
+      "windowsSha256": "bddeb6c91d2611dea5b29498903d68aec7201245ffd7b113307f8b53a6bd4c57",
+      "gitSha256": "38d219e31c1b0cf70ad14d47cad3c3b34bcf09688c7f3f2cf0f5cf04e7d9be16",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/ControllerHarness/BulkHistoryCases.cs",
+      "windowsSha256": "50e87df44a405ce38b0eabcf1773a056147cb7853f2d23b77ab592fa0ca61eb2",
+      "gitSha256": "74177aa7d4f673e0130efdeab6b07761d534c6ad8ec44b567359f95449ee4c42",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/ControllerHarness/CellCsvWorkflowCases.cs",
+      "windowsSha256": "ce01bdbb9b227c24c4c676405dd9f5cff7dc209b9e68f39cb0b0fb58bc3c3110",
+      "gitSha256": "71d24e830f9c1db7716b99077c2a1b8873ce7aba403f34584a66fd7024699414",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/ControllerHarness/CellOverviewCases.cs",
+      "windowsSha256": "6da296b355cb2620ed7f6805a7955141d19336c261f9989fcefb4a8f4a1d5764",
+      "gitSha256": "b6a40bb2f0003f3d85e0c7d508bad1f038e9bb7f6098e8b06e4416387c9eeac7",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/ControllerHarness/Contracts.cs",
+      "windowsSha256": "d1049774e843915eb7394d108315fa7920fd6de4206a546538e6d18094bfdb1c",
+      "gitSha256": "d1049774e843915eb7394d108315fa7920fd6de4206a546538e6d18094bfdb1c",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/ControllerHarness/ControllerHarness.csproj",
+      "windowsSha256": "be8d04d0942c3e79cf84fbd8dd6a97ed765fd418b449a928de74072e4a85ddea",
+      "gitSha256": "17d64ffd52e0f723bd4f3933bc242d6cfa9eb6bb789789f6c675465c9f498546",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/ControllerHarness/CoverageCases.cs",
+      "windowsSha256": "3a1e9b2423dc66e53ec69d0356e020329260b617cfbae767f0c9107411a4ed16",
+      "gitSha256": "08a3bf879877a1bba1b55bf59372c86b495e3fae9b5f9b4014351121e01ee0ba",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/ControllerHarness/FinalOffsetSyncCases.cs",
+      "windowsSha256": "8ec8ea052ade86e4d53bd60ac20fe1f28858ef7ae363ce826d3c09c34cf19037",
+      "gitSha256": "8ec8ea052ade86e4d53bd60ac20fe1f28858ef7ae363ce826d3c09c34cf19037",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/ControllerHarness/FirstLoadStateCases.cs",
+      "windowsSha256": "20a441347217b84192a09e3d8d6a3f4ca3b8306a754884fdc1756b9c7d1a1530",
+      "gitSha256": "7bc6d1eb51421e4205207d5a91294b80d4ccc834e04785ac15aee479fb93dddf",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/ControllerHarness/HardeningCases.cs",
+      "windowsSha256": "734d8198d8dbee496d51a5b80a276ebc5ade006dd1d52144b1d06445d001f000",
+      "gitSha256": "fb855f6187697882f234701b680a1daec91918923852d97539958806399892c0",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/ControllerHarness/InitRecoveryCases.cs",
+      "windowsSha256": "b1e2d034f38c1065712246f005f6cbdd77098cada12f534353e514e6edc37340",
+      "gitSha256": "b2f5fe83bce29f74828fecddfcae0365010159a250cecaa1f3728980dd41a8d0",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/ControllerHarness/MeasurementWorkflowCases.cs",
+      "windowsSha256": "8660e2d9e6cb8cf7a9f97cf581320cda97c092ea1ae5dd351de9206c3b420035",
+      "gitSha256": "6da864243b730ddd721294c0a08761853ba1e871799835bef3ec6153168569cf",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/ControllerHarness/OffsetInitCases.cs",
+      "windowsSha256": "c50aa1a34144e9bacf020190ff616b2eb51c7fdd00bbb077f9d8910e79840ef8",
+      "gitSha256": "03da34f0bb554eca27c7acdf4c9229e4242ff4925c7cc4d2dbe8e58a2387a050",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/ControllerHarness/PresentationCases.cs",
+      "windowsSha256": "0edbbed3dbd505982f4bdd8f43cd0b7d54a2c3cc460815268f40a7047b007007",
+      "gitSha256": "c97cd2e1fb5067d85cdec656f9d2932bf545c90c6f73d3f2a2f28f5b9befc38c",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/ControllerHarness/Program.cs",
+      "windowsSha256": "ceedddb120886e8de6174eaabdbaaecaecff12e579fa96094be3da33bc00eafd",
+      "gitSha256": "230f7dfe31bb013b1e2155bc76f12ee1bad907eefd872d9628880bafa9fe8d7c",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/ControllerHarness/ReplacementWorkflowCases.cs",
+      "windowsSha256": "cd435b8fa6ec6297cdbeebe95f4f9e396926d255b619f79989e963895eb3ab9f",
+      "gitSha256": "f336639ff7e5c792e112e2f74d9b257d4d679e1b3913103d6bebfbc36cd5a9b1",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/ControllerHarness/RepresentativeApplyCases.cs",
+      "windowsSha256": "e3bc3a9fd6c784bd5f6ad505ef88f5185088aed7e8a54412378e3b3ee5dcd2bd",
+      "gitSha256": "60465410f0d8aedd69bc381848776ee224e48cacc6a42badb6ce4f69518568d0",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/ControllerHarness/RepresentativeCases.cs",
+      "windowsSha256": "636f1a8c7a76c65ec1a6edc23aaaf740834f9ae02a52dd4fa4ec903e204b4d81",
+      "gitSha256": "90d9ab5f8aa87fdec3e6963a007556c3628984ef5509e126fccb6ef8023f8503",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/ControllerHarness/RetryVisibilityCases.cs",
+      "windowsSha256": "8b12e5c004f1151ac13384d84e6e00804e10d94def612f3c93acd309e899d6b4",
+      "gitSha256": "a78efdaacaa1508e912552382899aeb806099620deb7946a812ce6e559539c07",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/ControllerHarness/StartupFinalOffsetsCases.cs",
+      "windowsSha256": "0fd0066a1feaed5666b238cdabf58db8f4c542c1537b8772890b4ae9efa203f2",
+      "gitSha256": "0fd0066a1feaed5666b238cdabf58db8f4c542c1537b8772890b4ae9efa203f2",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/ControllerHarness/SyncCases.cs",
+      "windowsSha256": "311f67d17de6905765a932d78a5ad8289023c4f4afd718155223bb99240335ac",
+      "gitSha256": "2ba20be653446ff1e03cb229d7a2934a35f2af437652cde081086bfe7f08b029",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/ExternalResultsHarness/ExternalResultsHarness.csproj",
+      "windowsSha256": "073c4217281ceaaf970500c555726de2b9fa2325d510b00e7931c77356570a2f",
+      "gitSha256": "95c4b2fcd5e382da3b5aa239b45109f5bfed08a9958870e2f33be93117e8abdb",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/ExternalResultsHarness/HardeningCases.cs",
+      "windowsSha256": "d246996dc4c755a493adb15c7bb2884ec30c00f83f8f1f016bf19f413990798f",
+      "gitSha256": "a76d7308109094745721aa55fa692677137bfa965f3877a7da12f64413309087",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/ExternalResultsHarness/Program.cs",
+      "windowsSha256": "6f5148a81a72ded2daf197c2f43bc170bf6e8bb50b604a4d3fc111a0ce06d37b",
+      "gitSha256": "cfb49fcf9793ce3937e49db3addf7351e26871ba51e25359e96b81630fe3725d",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/FirstLoadStateCases.cs",
+      "windowsSha256": "50d255a86cc7f8ffd9dc0c33ea4bf39da089fed1fb964c1a3e62b00137e9bf2a",
+      "gitSha256": "c6e09983718c0581f4b80007962adbb0d8f7c3aa5f5a8507b9ad355e5ceeb6b7",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/IncrementalLoopHarness/IncrementalLoopHarness.csproj",
+      "windowsSha256": "84d51c39c03c00cd698c8de5a60496a35fb5c3405afe35e99efe9d2a62665e98",
+      "gitSha256": "84d51c39c03c00cd698c8de5a60496a35fb5c3405afe35e99efe9d2a62665e98",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/IncrementalLoopHarness/Program.cs",
+      "windowsSha256": "0deae91ba7785da17d48481369be396ebcd649a4d2ee6bb5d1812c1c736beac4",
+      "gitSha256": "0deae91ba7785da17d48481369be396ebcd649a4d2ee6bb5d1812c1c736beac4",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/InitRecoveryCases.cs",
+      "windowsSha256": "db65524ed9bf2e71f70f55b571995e9747ad061e59bb3445b766b6ec1185c0a1",
+      "gitSha256": "db65524ed9bf2e71f70f55b571995e9747ad061e59bb3445b766b6ec1185c0a1",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/LegacySerializationHarness/generate_and_check.py",
+      "windowsSha256": "08658eb34d52ed755d3e0cda75d25587cd32ce61eecb187893f9cac7790ac2b9",
+      "gitSha256": "0b65d1eb784eaac5a3f3fb66d216854cca684a17b74417d44db83b644e899ede",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/ManualInspection.Tests.csproj",
+      "windowsSha256": "a55dc37b1083194e50d346eca87f74578e217c78057c61e6cdc0946a8b7f998e",
+      "gitSha256": "f1b11fcc7dad871b25ff6c9508197f8033f4cec193f255b41db4f9049bf4e7db",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/MeasurementWorkflowCases.cs",
+      "windowsSha256": "16cf5c5d939956b45dd52170847f874e3c44455ec6e609b34ef0777b14131f29",
+      "gitSha256": "645bda750bdc4b7e21654b2eaecad599c39035c5d28ad185cc5605619d481ea0",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/OffsetAccumulationCases.cs",
+      "windowsSha256": "e79523f47dbf8f5716778c77adb89362574508241e3999c11bf7127e03a78595",
+      "gitSha256": "e79523f47dbf8f5716778c77adb89362574508241e3999c11bf7127e03a78595",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/OffsetInitCases.cs",
+      "windowsSha256": "5b6127b74d9a1a64da80c481246d2d893a7528793715d0aa85c7ffc56a3a9b5c",
+      "gitSha256": "14ac5aea53a454b02272579c3fbad5ccf7f2af87a4bf3bca2ba014280d7d6e13",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/Program.cs",
+      "windowsSha256": "280338f9ec47301e379fdbe2858c778f44e9a571ae3a9712400b58f079c1a7d4",
+      "gitSha256": "4e9af2966c528eb90002dae1e66428265d93619134c51b47d27e42fd6403e36d",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/ReferenceValueCases.cs",
+      "windowsSha256": "53508c9d5d1963d994f883f9f026e4696b5a07ebf98cd3d5ab5d4aad73356062",
+      "gitSha256": "f26eb0cf8ec86e709d6f96c1d1220fb31e1e536b3fa3728cdb22404f0bece991",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/ReplacementWorkflowCases.cs",
+      "windowsSha256": "5e7ae38386bf7d156dde8753443b690fea9aec4d3aa3e69d619837b03cba4923",
+      "gitSha256": "85c546a7712c93b618c4323d58c0436938788c6ad951bda573b53640345fe32c",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/RepresentativeApplyCases.cs",
+      "windowsSha256": "8691f1f8146b4debe431edcd0ba38178104f03d61531ddf232062689e212af8b",
+      "gitSha256": "3f57d1922d59fb32ca3774b870b08f6f71f2d8908ebde433934917508084851d",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/RetryVisibilityCases.cs",
+      "windowsSha256": "18163da9e979912858298d6f38509fbd7d5d92540619e18d841a400ed0dfb216",
+      "gitSha256": "fd0f4c491c97330539a1f0eb398fff8303b3594f86b7f81c152189c557863402",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/StateSequenceCases.cs",
+      "windowsSha256": "02f5e6fb13bd5360a062b003e579f900f83017f569a0c2c21b495b75ee25dd73",
+      "gitSha256": "ad428db66c24142f5ad5f80fb9350817994a4f2df56f982eb15d3d79f99f3668",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/UiHarness/BulkFinalConsistencyCases.cs",
+      "windowsSha256": "42f3e1f5e8ef409504ae3bcea6715bd48c89fb4ce7bc89dd54b8c436c651b738",
+      "gitSha256": "297ef6d0ce3596b82b8fc7691bfb26b30ab1f9e16e47810fe6c9dfa3f2f2dd22",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/UiHarness/BulkHistoryCases.cs",
+      "windowsSha256": "2272ee078eb66b1c7795d96d8cee246b22ddc41fa848e4b4e783b646d16a2c1d",
+      "gitSha256": "7d757b5962cab0f4800c583370dfc87f10bb7ccf97cf8ea0e5bbab0b78c7b215",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/UiHarness/CellCsvWorkflowCases.cs",
+      "windowsSha256": "97381eeb64709ec58fc9beb8cd63798516cf35c599f676f1517d673decfbd1e3",
+      "gitSha256": "2d802f45781d62e098270b2a4ad6f7ae0b24bebcf5aec39e9806e403cd71f8c8",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/UiHarness/CellOverviewCases.cs",
+      "windowsSha256": "726f9f2f980c2f48d737d421efc16a1b5a5fc4f4c8428577b36239bd92592a86",
+      "gitSha256": "94ce0451b5b4123efc8d63c1547271a1f26845f474fb45849a28c8e67590bb04",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/UiHarness/CoverageCompactCases.cs",
+      "windowsSha256": "b944b33cac29d8c1891efe07365ddf3d0accb252cb74a2fd8ac67cd0e36022da",
+      "gitSha256": "2ce4a60740935a3ea4df8ff4ea397203569bef72a409d5dc3b06b8fa8d33d8d1",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/UiHarness/ExistingFinalCsvCases.cs",
+      "windowsSha256": "8f89d10564765ab9d2ab03dbb4e62275aedb27e97baa84b5d714959b3cfd0b11",
+      "gitSha256": "b66e5e1b71fddbd683b78ffdee8b9024ca0545dd2a37a44b96016d8003a30e86",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/UiHarness/FinalOffsetCases.cs",
+      "windowsSha256": "e2ef6cefdc7bac061970b2ee54bcf478559d70926d20a1b0eac6668bbceded12",
+      "gitSha256": "d530493e26648654cc8beb456978be410eb18fdc0d89ae3ae7018c9f07f81533",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/UiHarness/HardeningCases.cs",
+      "windowsSha256": "9a339a0c2820bad73fdd4188af73578d39be9d12fbe89d8ec726b057bef7a1d9",
+      "gitSha256": "8a8897691e502c877c0b8c29296dc72cf68f3d4905287c2cb6f97cbd044422f0",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/UiHarness/ManualInspection.UiHarness.csproj",
+      "windowsSha256": "f8031e831f1a3cd7d6a2cc5b2c8c6b6a60ba1dbd9de1a5db8b582c3d686af673",
+      "gitSha256": "6eb1db5b82165bff6c794c1bebc76dcb4406517c343545998b2afa8845dacba3",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/UiHarness/MapFirstCases.cs",
+      "windowsSha256": "0b37b1a1cfde8052373ec077ba17b570fe3d8e6d93317eae1d003c2188b714b2",
+      "gitSha256": "1803e2ad45a6f768c926117a0567780ecd908ecab1d380c97e9c167615e30d62",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/UiHarness/MeasurementWorkflowCases.cs",
+      "windowsSha256": "fc8fdb96013ccad6eb09d458b3c25590d66c206fe1f9a2ec8185de9934e5f7bd",
+      "gitSha256": "d677f679407627a03cc1c768b6ffef80a4984ba40ffde5549ae9837a62309274",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/UiHarness/OffsetInitCases.cs",
+      "windowsSha256": "a0c9c09338abe75404ff3b53f224721aa89e3f67c74fd18837f61c4eaaa5df99",
+      "gitSha256": "76540ab409a8999a32209b9f3acadff3b96835baac5a42a4c527e5282ff418e0",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/UiHarness/Program.cs",
+      "windowsSha256": "26f34d471a41fdd97f60261f15db7f6439928ed3092a8372e280985a1da38f93",
+      "gitSha256": "07ba560797e61fa424cc2a21e0026d171dac394a5aa4043dba4b181de412f3a2",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/UiHarness/ReplacementWorkflowCases.cs",
+      "windowsSha256": "c11b2a9ac2be6083124e8183915897cedbac4a56de5f281a37fbf291c65075f7",
+      "gitSha256": "67f2b81c5c0aae71cee433aa143a6409c555f924a97baee598042b3f9771ba8b",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/UiHarness/RepresentativeApplyCases.cs",
+      "windowsSha256": "b20896375dabe3736da95359c1b0f283c38b1c21f1a251734bbe3c29d017d223",
+      "gitSha256": "13cec7691e4bb1bc6493ea3ead7cdd0f4d482e21346dd68e63bfacfe3d0ca9ea",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/UiHarness/RepresentativeCases.cs",
+      "windowsSha256": "70d503ccf1503b3cde946bf0a2b4f5207d1cce240fe558fa7aa7212b8b225046",
+      "gitSha256": "66f5c84abcfa55a6e1639ee8a6c0fa0b3d230765755306cbce7130d3f8b7b519",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/UiHarness/SidePanelsCases.cs",
+      "windowsSha256": "7ee454661d0a5fd8db65ae8b34cb2b38f0dd5ffa7ecb1e31c9d2932a32e0cf66",
+      "gitSha256": "dc2e1c5b3d376fc81efd47d12fd63895db5ed69d1940313ec07b4c6bc3ad237c",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/UiHarness/VisualUsabilityCases.cs",
+      "windowsSha256": "03e285e85020a4ab161390c7c5c64a8e49408b2bc7828a1db3c068152a41e3fa",
+      "gitSha256": "95c6ffeb5c01e3389f2f7ada162217155ef527e4351ac48125042e36cd8e175e",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/verify_bulk_final_consistency.py",
+      "windowsSha256": "ea76fc4590a5554d9b3736e8d562b25ca46538f5a3580ef557d0c6ac36d83ea2",
+      "gitSha256": "ea76fc4590a5554d9b3736e8d562b25ca46538f5a3580ef557d0c6ac36d83ea2",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/verify_cell_csv_workflow.py",
+      "windowsSha256": "94f7b48e15c7a3a45f84fcd88e3c2d82d96c6a9a46116935914ffb150831ce83",
+      "gitSha256": "94f7b48e15c7a3a45f84fcd88e3c2d82d96c6a9a46116935914ffb150831ce83",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/verify_existing_final_csv.py",
+      "windowsSha256": "b60fc6c35ce8f77f58d7062cef43a02c934245600fc1a52ba2328c433dde253a",
+      "gitSha256": "b60fc6c35ce8f77f58d7062cef43a02c934245600fc1a52ba2328c433dde253a",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/verify_final_review_offset.py",
+      "windowsSha256": "a7d48895e73e796b95371e7248a8d96adf8e28ff1c68e0e133cf70fceb01446d",
+      "gitSha256": "a7d48895e73e796b95371e7248a8d96adf8e28ff1c68e0e133cf70fceb01446d",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/verify_incremental_overwrite_scope.py",
+      "windowsSha256": "272319c540e9c9de873a868b64bc36b0a9fe4eba504227e7be549bb090abbd35",
+      "gitSha256": "272319c540e9c9de873a868b64bc36b0a9fe4eba504227e7be549bb090abbd35",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/verify_master_integration.py",
+      "windowsSha256": "7ad2d95d237b7ec99cec58f78e321aad991528244b5d6ade3ce3768a820c575c",
+      "gitSha256": "7ad2d95d237b7ec99cec58f78e321aad991528244b5d6ade3ce3768a820c575c",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/verify_replacement_workflow.py",
+      "windowsSha256": "b7facf92de237e4de868e306e207ba945ecd93d0426719dbaf7357bd8ad6d2da",
+      "gitSha256": "333c5bbf7a3f42899c85fa254be365267548afcfaa45516a4fd98b559c680c1b",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/verify_representative_apply.py",
+      "windowsSha256": "3d2906b6f7c6735054f62ed0559c3f3f4e88649b3b6fc674176b9b202a65bd2e",
+      "gitSha256": "3d2906b6f7c6735054f62ed0559c3f3f4e88649b3b6fc674176b9b202a65bd2e",
+      "normalizedIdentical": true
+    },
+    {
+      "path": "tests/ManualInspection/verify_scope.py",
+      "windowsSha256": "4bd1c12989f13a01e47aba739649244bfce3c5d903652433c829512546eae528",
+      "gitSha256": "cde43567365511432edb0b22f46ecae89bc56c2c840be044ace9ca387862d254",
+      "normalizedIdentical": true
+    }
+  ]
+}

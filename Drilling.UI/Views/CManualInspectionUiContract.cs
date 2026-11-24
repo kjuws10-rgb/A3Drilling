@@ -205,6 +205,10 @@ public sealed record CManualInspectionUiSnapshot
     public string SourcePath { get; init; } = "";
     public bool IsSimulation { get; init; }
     public bool IsBusy { get; init; }
+    /// <summary>Presentation-only operation phase. It never asserts motion arrival or a successful save.</summary>
+    public string ProgressStage { get; init; } = "IDLE";
+    public string ProgressText { get; init; } = "";
+    public bool IsProgressIndeterminate { get; init; }
     public bool IsReadOnly { get; init; }
     public bool CanReturnToPreviousWorkspace { get; init; }
     public bool IsOffsetEditPending { get; init; }

@@ -1,0 +1,268 @@
+{
+  "passed": true,
+  "count": 36,
+  "checks": [
+    {
+      "name": "manual_performance_tests_docs_only",
+      "passed": true
+    },
+    {
+      "name": "no_data_config_vendor_theme_mutation",
+      "passed": true
+    },
+    {
+      "name": "program_version",
+      "passed": true
+    },
+    {
+      "name": "portable_version",
+      "passed": true
+    },
+    {
+      "name": "preserved:Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs",
+      "passed": true
+    },
+    {
+      "name": "preserved:Drilling.Common/Review/CManualInspectionCoordinateBridge.cs",
+      "passed": true
+    },
+    {
+      "name": "preserved:Drilling.Common/Review/CReviewManager.cs",
+      "passed": true
+    },
+    {
+      "name": "preserved:Drilling.Common/Review/CAutoFineReviewCoordinator.cs",
+      "passed": true
+    },
+    {
+      "name": "preserved:Drilling.Common/Station/CStageReviewSequences.cs",
+      "passed": true
+    },
+    {
+      "name": "preserved:Drilling.Common/Station/CStationManager.cs",
+      "passed": true
+    },
+    {
+      "name": "preserved:Drilling.Common/Station/CStationProcess.cs",
+      "passed": true
+    },
+    {
+      "name": "preserved:Drilling.Common/Recipe/CShotCoordinatePlanBuilder.cs",
+      "passed": true
+    },
+    {
+      "name": "preserved:Drilling.File/ReviewOffset/CReviewOffsetFile.cs",
+      "passed": true
+    },
+    {
+      "name": "preserved:Drilling.File/Script/CAutomation1ScriptFile.cs",
+      "passed": true
+    },
+    {
+      "name": "preserved:Drilling.UI/CRootView.cs",
+      "passed": true
+    },
+    {
+      "name": "preserved:Drilling.UI/CAppStartup.cs",
+      "passed": true
+    },
+    {
+      "name": "preserved:Drilling.UI/Menu/Menus/CMenuMonitor.cs",
+      "passed": true
+    },
+    {
+      "name": "preserved:Drilling.UI/Menu/Menus/CMenuRecipe.cs",
+      "passed": true
+    },
+    {
+      "name": "preserved:Drilling.UI/Views/CManualInspectionScatterControl.cs",
+      "passed": true
+    },
+    {
+      "name": "preserved:Drilling.UI/Views/CCorrectionView.xaml",
+      "passed": true
+    },
+    {
+      "name": "preserved:Drilling.UI/Menu/Menus/CMenuCorrection.ManualInspection.cs",
+      "passed": true
+    },
+    {
+      "name": "preserved:Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Display.cs",
+      "passed": true
+    },
+    {
+      "name": "preserved:Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Edit.cs",
+      "passed": true
+    },
+    {
+      "name": "preserved:Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Offset.cs",
+      "passed": true
+    },
+    {
+      "name": "preserved:Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Reinspection.cs",
+      "passed": true
+    },
+    {
+      "name": "preserved:Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.cs",
+      "passed": true
+    },
+    {
+      "name": "preserved:Drilling.UI/Menu/Menus/CMenuCorrection.cs",
+      "passed": true
+    },
+    {
+      "name": "math_scope_preserved:BuildMeasurementReplacementCandidate(",
+      "passed": true
+    },
+    {
+      "name": "math_scope_preserved:BuildScopedOffsetReplacementCandidate(",
+      "passed": true
+    },
+    {
+      "name": "checkpoint_still_contains_full_session",
+      "passed": true
+    },
+    {
+      "name": "checkpoint_no_sync_callback_write",
+      "passed": true
+    },
+    {
+      "name": "progress_has_worker_safe_stage_fields",
+      "passed": true
+    },
+    {
+      "name": "line_fence_before_next_motion",
+      "passed": true
+    },
+    {
+      "name": "single_progress_bar",
+      "passed": true
+    },
+    {
+      "name": "progress_not_hidden_in_expander",
+      "passed": true
+    },
+    {
+      "name": "valid_utf8",
+      "passed": true
+    }
+  ],
+  "baseCommit": "26a7db3e27bb17c4b9f141f2831d168965d978d5",
+  "changedPaths": [
+    "Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
+    "Drilling.UI/Drilling.UI.csproj",
+    "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs",
+    "Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs",
+    "Drilling.UI/Views/CManualInspectionMapControl.cs",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs",
+    "Drilling.UI/Views/CManualInspectionView.xaml",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs",
+    "docs/ManualInspection/PERFORMANCE_11.25.0.md",
+    "docs/ManualInspection/README.md",
+    "docs/ManualInspection/validation.json",
+    "docs/ManualInspection/validation/11.25.0/.gitattributes",
+    "docs/ManualInspection/validation/11.25.0/backend-read.json",
+    "docs/ManualInspection/validation/11.25.0/baseline-compile-documents.json",
+    "docs/ManualInspection/validation/11.25.0/baseline-source-manifest-root.json",
+    "docs/ManualInspection/validation/11.25.0/benchmark-baseline-byte-policy.json",
+    "docs/ManualInspection/validation/11.25.0/controller-checkpoint-due-after.json",
+    "docs/ManualInspection/validation/11.25.0/controller-checkpoint-due-before.json",
+    "docs/ManualInspection/validation/11.25.0/controller-performance-after.json",
+    "docs/ManualInspection/validation/11.25.0/controller-performance-before.json",
+    "docs/ManualInspection/validation/11.25.0/controller-performance-comparison.json",
+    "docs/ManualInspection/validation/11.25.0/controller-production.json",
+    "docs/ManualInspection/validation/11.25.0/core-controller-review.json",
+    "docs/ManualInspection/validation/11.25.0/core-results.json",
+    "docs/ManualInspection/validation/11.25.0/final-benchmark-inputs.json",
+    "docs/ManualInspection/validation/11.25.0/incremental-loop.json",
+    "docs/ManualInspection/validation/11.25.0/legacy-serialization.json",
+    "docs/ManualInspection/validation/11.25.0/progress-wait-dark.png",
+    "docs/ManualInspection/validation/11.25.0/progress-wait-light.png",
+    "docs/ManualInspection/validation/11.25.0/qa-performance-review.json",
+    "docs/ManualInspection/validation/11.25.0/root-integration-review.json",
+    "docs/ManualInspection/validation/11.25.0/scope-results.json",
+    "docs/ManualInspection/validation/11.25.0/ui-bulk-final-consistency-results.json",
+    "docs/ManualInspection/validation/11.25.0/ui-bulk-history-results.json",
+    "docs/ManualInspection/validation/11.25.0/ui-cell-csv-workflow-results.json",
+    "docs/ManualInspection/validation/11.25.0/ui-cell-overview-results.json",
+    "docs/ManualInspection/validation/11.25.0/ui-coverage-compact-results.json",
+    "docs/ManualInspection/validation/11.25.0/ui-cross-review.json",
+    "docs/ManualInspection/validation/11.25.0/ui-existing-final-csv-results.json",
+    "docs/ManualInspection/validation/11.25.0/ui-final-offsets-results.json",
+    "docs/ManualInspection/validation/11.25.0/ui-hardening-results.json",
+    "docs/ManualInspection/validation/11.25.0/ui-integration-impact-results.json",
+    "docs/ManualInspection/validation/11.25.0/ui-map-first-results.json",
+    "docs/ManualInspection/validation/11.25.0/ui-measurement-workflow-results.json",
+    "docs/ManualInspection/validation/11.25.0/ui-offset-init-results.json",
+    "docs/ManualInspection/validation/11.25.0/ui-performance-progress-results.json",
+    "docs/ManualInspection/validation/11.25.0/ui-presentation-baseline.json",
+    "docs/ManualInspection/validation/11.25.0/ui-presentation-candidate.json",
+    "docs/ManualInspection/validation/11.25.0/ui-presentation-comparison.json",
+    "docs/ManualInspection/validation/11.25.0/ui-replacement-workflow-results.json",
+    "docs/ManualInspection/validation/11.25.0/ui-representative-apply-results.json",
+    "docs/ManualInspection/validation/11.25.0/ui-representative-results.json",
+    "docs/ManualInspection/validation/11.25.0/ui-results.json",
+    "docs/ManualInspection/validation/11.25.0/ui-side-panels-results.json",
+    "docs/ManualInspection/validation/11.25.0/ui-summary.json",
+    "docs/ManualInspection/validation/11.25.0/ui-sync-levels-results.json",
+    "docs/ManualInspection/validation/11.25.0/ui-visual-usability-results.json",
+    "tests/ManualInspection/BackendReadHarness/NativeIoSchedulingCases.cs",
+    "tests/ManualInspection/BackendReadHarness/PortableOffsetCases.cs",
+    "tests/ManualInspection/BackendReadHarness/Program.cs",
+    "tests/ManualInspection/ControllerHarness/Contracts.cs",
+    "tests/ManualInspection/ControllerHarness/ControllerHarness.csproj",
+    "tests/ManualInspection/ControllerHarness/PerformanceCorrectnessCases.cs",
+    "tests/ManualInspection/ControllerHarness/Program.cs",
+    "tests/ManualInspection/ControllerHarness/RetryVisibilityCases.cs",
+    "tests/ManualInspection/ManualInspection.Tests.csproj",
+    "tests/ManualInspection/PerformanceHarness/PerformanceHarness.csproj",
+    "tests/ManualInspection/PerformanceHarness/Program.cs",
+    "tests/ManualInspection/PerformanceHarness/README.md",
+    "tests/ManualInspection/PerformanceSafetyCases.cs",
+    "tests/ManualInspection/Program.cs",
+    "tests/ManualInspection/README.md",
+    "tests/ManualInspection/UiHarness/ManualInspection.UiHarness.csproj",
+    "tests/ManualInspection/UiHarness/PerformanceProgressCases.cs",
+    "tests/ManualInspection/UiHarness/Program.cs",
+    "tests/ManualInspection/verify_performance_scope.py"
+  ],
+  "badTextPaths": [],
+  "productionSha256": {
+    "Drilling.Common/Recipe/CShotCoordinatePlanBuilder.cs": "142fd432b5de1af2fc70c6e1ecccd3b4d42b85253ecda3e3c0342ae6fec6fa5a",
+    "Drilling.Common/Review/CAutoFineReviewCoordinator.cs": "de93f27b8070bd8bebd6d4c67ee3147299448bc7eb940da7b83ab9bd2b2dbd7e",
+    "Drilling.Common/Review/CManualInspectionCoordinateBridge.cs": "4d1753b71ff3fb62b022b362e94f95c9832452841d3c81f21b38ee3b1c21640c",
+    "Drilling.Common/Review/CReviewManager.cs": "32bb509070f077f16b22059cb7c2ed815a351b8a7876c4fdd1da75649de255cd",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs": "6af6eb882a37e534d431db987182c04a6cba4cd6a77fd85a29dd791b4cda1bda",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs": "40eeebdb71005c81a668d53371ac0a07fea38a9daf59818b15776745109c0529",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs": "6bde9206a739bc15f5e6a45e8208ec73260558bd0f227cdafbd2664a2cde089e",
+    "Drilling.Common/Station/CStageReviewSequences.cs": "49e1a43341978bc8ae28013cebce4827cb99e933b04df32aab4ad74d5a9402a7",
+    "Drilling.Common/Station/CStationManager.cs": "0d239bcb1b55c4a0653a684b3e2f7e8235917dbee1a61d0cace96489442db63b",
+    "Drilling.Common/Station/CStationProcess.cs": "7e5b1fd549370e222890c0882624bd116e1375ae160cb55e0d94cf3513f8b917",
+    "Drilling.File/ReviewOffset/CReviewOffsetFile.cs": "56ebca90c0cd29ded87d6a41f9e6bacf7077baabbfd9371fbcad1f112aa7c1db",
+    "Drilling.File/Script/CAutomation1ScriptFile.cs": "1681351dcfa412fcae7313a2ff470b23be816cad1047ee586e3fb79f35850ac4",
+    "Drilling.UI/CAppStartup.cs": "98e8716b093e6970d73233f8488d538acf7fa02f5d140ab1baebd9e8abdcd9b9",
+    "Drilling.UI/CRootView.cs": "d6834c39b212da80a085576fea93b68d310e0bb0713331396309126af101e154",
+    "Drilling.UI/Drilling.UI.csproj": "233997879a773aebb1a87c3768ebbe35b80202bd7f40a10fa49550fb51497c68",
+    "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs": "b09b37cbf6da100db1c5ec35c89aee8cb0f3161f0295304a9b7a8e2e8c9296bf",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "b2e7a63f587f252701757ad284a807375b0b0eb2a926a0f21ddd3d0ec58635d0",
+    "Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs": "61c1b0a74638d83babd535a9cb2d0d761d1f30255697c8e8f14529a6ca92427e",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.ManualInspection.cs": "eca5d22d7496210c5ad853cc010059a070eefce716da33227c5c4d8c43293047",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Display.cs": "d8d2bcf72b26adb6ef00ec04f3dc0b1e4cae885c706852e0f9cc98eaf219f6a5",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Edit.cs": "2b07373e13aa12a83477f7ef7708a6a5c790b19e45ec55a0938b8701526be6b3",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Offset.cs": "0ec33aefb0847d2886301be4fb5db0d73db47dd45c45342d71d8678a14f6b0ea",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Reinspection.cs": "f5ba162be1fb07f05954469f04a5cb959a3f47734f6ec0babd36e170762b91ff",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.cs": "47cf020a2a387c2e5e5de3cd210df897a852675eb600dc7041b456b9c6398907",
+    "Drilling.UI/Menu/Menus/CMenuCorrection.cs": "388dda336057dbf57eff598d5c3648491ae9972ec387db25498f0cf4f4bbdb52",
+    "Drilling.UI/Menu/Menus/CMenuMonitor.cs": "14ba9cc6682157c3b7a72bc8e6b57c1830a4618bceb10b45f33911dc2a7399f5",
+    "Drilling.UI/Menu/Menus/CMenuRecipe.cs": "5c3d300be071074a77763e5ae1d8a74f92c0879723ecbf4fcc46a3003a96a8a3",
+    "Drilling.UI/Views/CCorrectionView.xaml": "850404c76dda72d2d741b74f07a8161966f6cd55d173697bebaf619ee79e296c",
+    "Drilling.UI/Views/CManualInspectionMapControl.cs": "62842962f1d82f111ebaa84dcf85515e0d8a85e819961289b6296733793ae66a",
+    "Drilling.UI/Views/CManualInspectionScatterControl.cs": "1cc3fb7be94547c2e714d8809906f2df6018e5805b6ed44ecc9fd2c398e6a0bb",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "4f4140229f2a96e667257a3f3e25f38cf208aab141712a3c93f529d59e3892ea",
+    "Drilling.UI/Views/CManualInspectionView.xaml": "bc0a197ddbe3ee1ac693822604f9f4d6f544cd74976bd6b7e5a2ec8cc0aff26b",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "2152d59aa5cf19c09776f1ddafc1f6daeb2d4218a9c095547f19061012cc4028"
+  },
+  "scope": "Manual display, immutable snapshots, checkpoint I/O and progress only; actual B+residual/Init/CSV/sequence formulas retained."
+}

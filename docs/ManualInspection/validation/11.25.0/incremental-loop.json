@@ -1,0 +1,97 @@
+{
+  "passed": true,
+  "count": 21,
+  "failed": 0,
+  "assumptions": [
+    "current B equals offset used for each synthetic machining",
+    "Scale100 percent",
+    "unit linear plant",
+    "synthetic field evaluator, no actual CSV or equipment"
+  ],
+  "tests": [
+    {
+      "name": "cycle1_actual_core_candidate_valid",
+      "passed": true
+    },
+    {
+      "name": "cycle1_unit_plant_next_run_residual_zero",
+      "passed": true
+    },
+    {
+      "name": "cycle1_same_raw_not_added_twice",
+      "passed": true
+    },
+    {
+      "name": "cycle2_actual_core_candidate_valid",
+      "passed": true
+    },
+    {
+      "name": "cycle2_unit_plant_next_run_residual_zero",
+      "passed": true
+    },
+    {
+      "name": "cycle2_same_raw_not_added_twice",
+      "passed": true
+    },
+    {
+      "name": "cycle3_actual_core_candidate_valid",
+      "passed": true
+    },
+    {
+      "name": "cycle3_unit_plant_next_run_residual_zero",
+      "passed": true
+    },
+    {
+      "name": "cycle3_same_raw_not_added_twice",
+      "passed": true
+    },
+    {
+      "name": "cycle4_actual_core_candidate_valid",
+      "passed": true
+    },
+    {
+      "name": "cycle4_unit_plant_next_run_residual_zero",
+      "passed": true
+    },
+    {
+      "name": "cycle4_same_raw_not_added_twice",
+      "passed": true
+    },
+    {
+      "name": "copy_only_stages_no_active_change",
+      "passed": true
+    },
+    {
+      "name": "copied_residual_3_1_adds_to_target_20_5",
+      "passed": true
+    },
+    {
+      "name": "copy_neither_replaces_with_source_final_nor_adds_source_base",
+      "passed": true
+    },
+    {
+      "name": "copy_preserves_original_target_ng_raw",
+      "passed": true
+    },
+    {
+      "name": "copy_does_not_save_source_implicitly",
+      "passed": true
+    },
+    {
+      "name": "saved_copy_not_new_increment",
+      "passed": true
+    },
+    {
+      "name": "recopy_same_source_raw_cannot_accumulate",
+      "passed": true
+    },
+    {
+      "name": "duplicate_attempt_leaves_saved_23_6",
+      "passed": true
+    },
+    {
+      "name": "new_raw_can_add_new_residual_to_current_target",
+      "passed": true
+    }
+  ]
+}

@@ -36,6 +36,13 @@ namespace Drilling.UI.Menu.Menus
             try { activeTargets(keys);await ExecuteFlyingAsync(source,keys,measured,progress,token); }
             finally { activeTargets([]); }
         }
+        async Task ExecuteFlyingAsync(CManualInspectionSource source,IReadOnlyList<string> keys,
+            Action<CManualInspectionMeasurement> measured,Action<string> progress,Action<IReadOnlyList<string>> activeTargets,
+            Func<CancellationToken,Task> afterLine,CancellationToken token)
+        {
+            await ExecuteFlyingAsync(source,keys,measured,progress,activeTargets,token);
+            await afterLine(token);
+        }
         Task<string> SaveAsync(CManualInspectionSource source, IReadOnlyDictionary<string, ST_MANUAL_OFFSET> values,
             string sourceIdentity, IReadOnlyList<ST_MANUAL_CANDIDATE_ROW> measuredRows, CancellationToken token,
             IReadOnlyDictionary<string, string>? consumedMeasurements = null);

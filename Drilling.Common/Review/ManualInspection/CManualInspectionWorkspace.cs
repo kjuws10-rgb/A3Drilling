@@ -37,11 +37,24 @@ public sealed class CManualInspectionWorkspace
     private ST_MANUAL_APPLY_SNAPSHOT? _pendingApply;
     private ST_MANUAL_RESTORE_SNAPSHOT? _pendingRestore;
     private long _generation;
+    private readonly string _operationScopeId=Guid.NewGuid().ToString("N");
+    private long _pointsSnapshotGeneration=-1,_sourceFingerprintGeneration=-1;
+    private IReadOnlyList<ST_MANUAL_POINT>? _pointsSnapshot;
+    private IReadOnlyDictionary<string,ST_MANUAL_OFFSET>? _activeSnapshot;
+    private string? _sourceFingerprintSnapshot;
 
     public ST_MANUAL_CONTEXT? Context { get; private set; }
     public ST_MANUAL_LIMITS? Limits { get; private set; }
-    public IReadOnlyList<ST_MANUAL_POINT> Points => Array.AsReadOnly(_points.Values.ToArray());
-    public IReadOnlyDictionary<string, ST_MANUAL_OFFSET> ActiveOffsets => Freeze(_active);
+    public IReadOnlyList<ST_MANUAL_POINT> Points
+    {
+        get
+        {
+            if(_pointsSnapshot is null||_pointsSnapshotGeneration!=_generation)
+            {_pointsSnapshot=Array.AsReadOnly(_points.Values.ToArray());_pointsSnapshotGeneration=_generation;}
+            return _pointsSnapshot;
+        }
+    }
+    public IReadOnlyDictionary<string, ST_MANUAL_OFFSET> ActiveOffsets => _activeSnapshot??=Freeze(_active);
     public IReadOnlyList<ST_MANUAL_REVISION> Revisions => _revisions.AsReadOnly();
     public int UndoCount => Math.Max(0, _offsetHistoryCursor);
     public int RedoCount => Math.Max(0, _offsetTimeline.Count - 1 - _offsetHistoryCursor);
@@ -110,7 +123,7 @@ public sealed class CManualInspectionWorkspace
             ?? data.Where(point=>point.IsMeasurementOffsetInitialized).Select(point=>point.OffsetKey).Distinct(StringComparer.Ordinal).ToArray();
         ValidateInitializedKeys(initializedKeys,data.ToDictionary(point=>point.Key,StringComparer.Ordinal),values,"현재 파일");
         _points.Clear(); foreach (var point in data) _points.Add(point.Key, point);
-        _active.Clear(); foreach (var pair in values) _active.Add(pair.Key, pair.Value);
+        _activeSnapshot=null; _active.Clear(); foreach (var pair in values) _active.Add(pair.Key, pair.Value);
         if (!sameRun) { _appliedMeasurements.Clear(); _consumedMeasurementHistory.Clear(); _appliedCandidates.Clear(); }
         Context = context; Limits = limits; _fieldEvaluator = fieldEvaluator;
         Candidate = null; Operation = null; _copyUndo = null; _offsetEditPreviousCandidate = null;
@@ -1016,7 +1029,7 @@ public sealed class CManualInspectionWorkspace
             snapshot.IsOffsetReplacement && snapshot.IsMeasurementOffsetInitialization,measurementReplacement:snapshot.IsMeasurementReplacement,
             scopedReplacement:snapshot.ReplacementCellNo.HasValue);
         ValidateInitializedKeys(snapshot.InitializedOffsetKeys, _points, actual, "저장 스냅샷");
-        _active.Clear(); foreach (var pair in actual) _active.Add(pair.Key, pair.Value);
+        _activeSnapshot=null; _active.Clear(); foreach (var pair in actual) _active.Add(pair.Key, pair.Value);
         // Driving and companion tokens were reserved together. Commit never rebuilds the opaque set
         // after file I/O, and a failed write never updates this ledger.
         foreach (var pair in snapshot.ConsumedMeasurements) MarkConsumed(pair.Key, pair.Value);
@@ -1140,7 +1153,7 @@ public sealed class CManualInspectionWorkspace
                 : before) with { HasAppliedOffsetEvidence=!initialized.Contains(before.OffsetKey) };
             if (before != after) { _points[before.Key] = after; AddHistory(before, after, "OFFSET_RESTORED", "저장된 초기화 상태 복원 · 원측정 이력 보존"); }
         }
-        _active.Clear(); foreach (var pair in actual) _active.Add(pair.Key, pair.Value);
+        _activeSnapshot=null; _active.Clear(); foreach (var pair in actual) _active.Add(pair.Key, pair.Value);
         foreach(var pair in snapshot.ConsumedMeasurements) MarkConsumed(pair.Key,pair.Value);
         Context = Context with { RevisionId = newRevisionId };
         _revisions.Add(new(newRevisionId, oldRevision, snapshot.IsRedo?"REDO":"UNDO", reason.Trim(), DateTimeOffset.UtcNow, Freeze(_active))
@@ -1282,7 +1295,7 @@ public sealed class CManualInspectionWorkspace
     public ST_MANUAL_SESSION CaptureSession()
     {
         RequireLoaded();
-        return new(1, Context!, Limits!, Points, Freeze(_active), ReadOnly(_revisions.ToArray()),
+        return new(1, Context!, Limits!, Points, ActiveOffsets, ReadOnly(_revisions.ToArray()),
             Freeze(_appliedMeasurements.Where(pair => _points.ContainsKey(pair.Key))), ReadOnly(_appliedCandidates.OrderBy(id => id, StringComparer.Ordinal).ToArray()),
             Candidate, Operation, ReadOnly(_audit.ToArray()))
         {
@@ -1520,7 +1533,7 @@ public sealed class CManualInspectionWorkspace
         var verified=Context?.RecipeId==expectedContext.RecipeId && Context.RunId==expectedContext.RunId && Context.CoordinateSignature==expectedContext.CoordinateSignature
             ?_verifiedStoredRevisions.Values.Where(proof=>temporary._revisions.Any(revision=>VerifiedRevisionMatches(revision,proof))).ToArray():[];
         _points.Clear(); foreach (var pair in temporary._points) _points.Add(pair.Key, pair.Value);
-        _active.Clear(); foreach (var pair in temporary._active) _active.Add(pair.Key, pair.Value);
+        _activeSnapshot=null; _active.Clear(); foreach (var pair in temporary._active) _active.Add(pair.Key, pair.Value);
         _appliedMeasurements.Clear(); foreach (var pair in temporary._appliedMeasurements) _appliedMeasurements.Add(pair.Key, pair.Value);
         _consumedMeasurementHistory.Clear();
         foreach (var pair in temporary._consumedMeasurementHistory) _consumedMeasurementHistory.Add(pair.Key, new(pair.Value, StringComparer.Ordinal));
@@ -1781,12 +1794,17 @@ public sealed class CManualInspectionWorkspace
     }
     private string MeasurementToken(string key,ST_MANUAL_MEASUREMENT measurement)
         => Digest(new { Context!.RunId, Key=key, measurement.RawToken, measurement.CoordinateSignature });
-    private string SourceFingerprint() => Digest(new
+    private string SourceFingerprint()
     {
-        Context, Limits,
-        Points = _points.Values.OrderBy(point => point.Key, StringComparer.Ordinal).ToArray(),
-        Active = _active.OrderBy(pair => pair.Key, StringComparer.Ordinal).ToArray()
-    });
+        if(_sourceFingerprintSnapshot is null||_sourceFingerprintGeneration!=_generation)
+        {
+            _sourceFingerprintSnapshot=Digest(new{Context,Limits,
+                Points=_points.Values.OrderBy(point=>point.Key,StringComparer.Ordinal).ToArray(),
+                Active=_active.OrderBy(pair=>pair.Key,StringComparer.Ordinal).ToArray()});
+            _sourceFingerprintGeneration=_generation;
+        }
+        return _sourceFingerprintSnapshot;
+    }
     private string Fingerprint() => Digest(new
     {
         Generation = _generation, Source = SourceFingerprint(),
@@ -1797,7 +1815,13 @@ public sealed class CManualInspectionWorkspace
     private string CopyFingerprint(string referenceKey, IEnumerable<string> selection) => Digest(new
     { State = Fingerprint(), ReferenceKey = referenceKey, Selection = selection.OrderBy(key => key, StringComparer.Ordinal).ToArray() });
     private string OperationFingerprint(EN_MANUAL_OPERATION_KIND kind, IEnumerable<string> keys, bool retry) => Digest(new
-    { State = Fingerprint(), Kind = kind, Keys = keys.ToArray(), IsRetry = retry, Incomplete = Operation });
+    {
+        // Operation previews are process-local capabilities, never persisted candidate proofs.
+        // Every source/candidate mutation advances _generation on this owner thread. Including
+        // this workspace identity also rejects a preview copied from an unrelated instance.
+        Scope=_operationScopeId,Generation=_generation,Context,Limits,
+        Kind=kind,Keys=keys.ToArray(),IsRetry=retry,Incomplete=Operation
+    });
     private string[] Select(IEnumerable<string> keys, bool excludeMasked)
     {
         var selected = keys.Distinct(StringComparer.Ordinal).ToArray();

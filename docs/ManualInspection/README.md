@@ -1,8 +1,8 @@
-# MANUAL INSPECTION · 11.24.10
+# MANUAL INSPECTION · 11.25.0
 
-브랜치: `feature/manual-inspection-overwrite-only-20261124.10` · 기준: 11.24.8 `dc3a15e6ebc382c6f14d76a916c6b7c510e25590`. **master 미병합**.
+브랜치: `feature/manual-inspection-performance-20261125.0` · 기준: 11.24.10 `26a7db3e27bb17c4b9f141f2831d168965d978d5`. **master 미병합**.
 
-현재 동작은 [11.24.8 기준 최소 보정 수정](INCREMENTAL_OVERWRITE_FIX_11.24.10.md)과 [검증 manifest](validation.json)를 따른다. 화면 구성은 11.24.8을 유지하며 11.24.9의 추가 설계는 포함하지 않는다. 아래 과거 버전 설명은 당시 기록이다.
+현재 동작은 [응답성·진행 표시 개선](PERFORMANCE_11.25.0.md)과 [검증 manifest](validation.json)를 따른다. 보정·초기화 정책은 [11.24.10](INCREMENTAL_OVERWRITE_FIX_11.24.10.md)을 유지하며, 계산·렌더링 중복과 파일 I/O의 UI 정지를 줄였다. 기다리는 단계는 상단 진행 막대로 알린다. 아래 과거 버전 설명은 당시 기록이다.
 
 ## 현재 사용법
 
@@ -20,6 +20,7 @@
 
 | 버전 | 당시 설명 |
 | --- | --- |
+| 11.24.10 | [실측·대표 누적과 최종 Init](INCREMENTAL_OVERWRITE_FIX_11.24.10.md) |
 | 11.24.8 | [당시 편차 대체·저장 정책](REPLACEMENT_WORKFLOW_11.24.8.md) — 계산과 Init은 .10 정책으로 대체 |
 | 11.24.7 | [현재 Cell·CSV 파일 전송](CELL_CSV_WORKFLOW_11.24.7.md) |
 | 11.24.6 | [CSV 재확인·Monitor 일치](BULK_FINAL_CONSISTENCY_11.24.6.md) |

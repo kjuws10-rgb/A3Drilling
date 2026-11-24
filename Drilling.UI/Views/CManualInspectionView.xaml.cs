@@ -93,6 +93,15 @@ public partial class CManualInspectionView : UserControl
     private IReadOnlyList<CManualInspectionUiPoint>? _scatterProjectedPoints;
     private readonly HashSet<string> _scatterRenderedSelection = new(StringComparer.Ordinal);
     private string _scatterRenderSignature = "";
+    private readonly record struct FilterProjection(int Cell, int Head, string Judge, string Source, string Query, string Sort, string Metric);
+    private IReadOnlyList<CManualInspectionUiPoint>? _filteredSource, _scopedSource, _rowsSource, _rowStatsSource;
+    private IReadOnlyList<CManualInspectionUiPoint> _filteredCache = [], _scopedCache = [], _scatterDisplay = [];
+    private FilterProjection _filterProjection;
+    private int _scopedCell, _scopedHead, _rowsPage = -1;
+    private readonly HashSet<string> _rowsSelection = new(StringComparer.Ordinal);
+    private HashSet<string> _filteredKeys = new(StringComparer.Ordinal);
+    private string _rowsLevelSignature = "", _legendSignature = "";
+    private IReadOnlyList<CManualInspectionUiRevision>? _renderedRevisions;
     private bool? _wideLayout;
     private string? _focusKey;
     private string? _representativeKey;
@@ -277,7 +286,8 @@ public partial class CManualInspectionView : UserControl
     }
 
     private CManualInspectionUiPoint? FocusPoint => _focusKey is not null && _points.TryGetValue(_focusKey, out var point)
-        ? point : _snapshot.Points.FirstOrDefault(p => _selected.Contains(p.Key)) ?? _filtered.FirstOrDefault(p => !p.IsMasked) ?? _filtered.FirstOrDefault();
+        ? point : (_selected.Count == 0 ? null : _snapshot.Points.FirstOrDefault(p => _selected.Contains(p.Key)))
+            ?? _filtered.FirstOrDefault(p => !p.IsMasked) ?? _filtered.FirstOrDefault();
 
     private void Refresh()
     {
@@ -356,9 +366,14 @@ public partial class CManualInspectionView : UserControl
             RefreshFinalOffsetInfo();
             if (_localMessageVersion != _snapshot.Version) _localMessage = "";
             RefreshMessage();
-            var scoped = _snapshot.Points.Where(p => (_cell == 0 || p.CellNo == _cell) && (_head == 0 || p.HeadNo == _head)).ToArray();
+            if (!ReferenceEquals(_scopedSource, _snapshot.Points) || _scopedCell != _cell || _scopedHead != _head)
+            {
+                _scopedSource = _snapshot.Points; _scopedCell = _cell; _scopedHead = _head;
+                _scopedCache = _snapshot.Points.Where(p => (_cell == 0 || p.CellNo == _cell) && (_head == 0 || p.HeadNo == _head)).ToArray();
+            }
+            var scoped = _scopedCache;
             PositionMap.Configure(_snapshot, scoped, _filtered, _selected, _focusKey, _representativeKey, "level", $"{_cell}|{_head}", showCellOverview: _cell == 0);
-            var visibleSelection = _filtered.Count(p => _selected.Contains(p.Key));
+            var visibleSelection = _selected.Count(key => _filteredKeys.Contains(key));
             var hiddenSelection = _selected.Count - visibleSelection;
             SelectionCountText.Text = $"선택 {_selected.Count:N0}점" + (hiddenSelection > 0 ? $" · 숨김 {hiddenSelection:N0}점" : "") + $" · 지도 {_filtered.Count:N0}점";
             SelectionCountText.ToolTip = $"선택 집합 전체 {_selected.Count:N0}점 = 현재 지도에서 보이는 선택 {visibleSelection:N0}점 + 다른 Cell/Head·필터로 숨겨진 선택 {hiddenSelection:N0}점.\n지도 {_filtered.Count:N0} / 전체 {_snapshot.Points.Count:N0}점. 우클릭 동작의 확인창에서 실제 실행 대상을 다시 확인합니다.";
@@ -384,6 +399,8 @@ public partial class CManualInspectionView : UserControl
     private static void SelectValue(ComboBox combo, string value) => combo.SelectedItem = combo.Items.OfType<Choice>().FirstOrDefault(x => x.Value == value);
     private IReadOnlyList<CManualInspectionUiPoint> FilteredPoints()
     {
+        var projection = new FilterProjection(_cell, _head, _judge, _source, _query, _sort, _snapshot.LevelMetric);
+        if (ReferenceEquals(_filteredSource, _snapshot.Points) && _filterProjection == projection) return _filteredCache;
         var points = _snapshot.Points.Where(p => (_cell == 0 || p.CellNo == _cell) && (_head == 0 || p.HeadNo == _head)
             && (_judge == "ALL" || _judge == "MEASURED" && p.HasMeasurementHistory
                 || _judge == "UNMEASURED" && !p.IsMasked && !p.HasMeasurementHistory && p.WorkingJudge is not ("NG" or "ERROR")
@@ -391,13 +408,16 @@ public partial class CManualInspectionView : UserControl
                 || _judge is not ("MEASURED" or "UNMEASURED" or "OK") && p.WorkingJudge == _judge)
             && (_source == "ALL" || (p.IsProxy ? "MANUAL" : p.MeasurementSourceCode) == _source)
             && (_query.Length == 0 || (p.Key + " " + p.Identity).Contains(_query, StringComparison.OrdinalIgnoreCase)));
-        return (_sort switch
+        _filteredCache = (_sort switch
         {
             "cell" => points.OrderBy(p => p.CellNo).ThenBy(p => p.HeadNo).ThenBy(p => p.ShotNo).ThenBy(p => p.BeamNo),
             "error" => points.OrderByDescending(p => CManualInspectionLevels.Metric(p.MeasurementXUm,p.MeasurementYUm,_snapshot.LevelMetric)
                 ?? double.NegativeInfinity).ThenBy(p => p.Key, StringComparer.Ordinal),
             _ => points.OrderBy(p => p.ShotNo).ThenBy(p => p.CellNo).ThenBy(p => p.HeadNo).ThenBy(p => p.BeamNo)
         }).ToArray();
+        _filteredSource = _snapshot.Points; _filterProjection = projection;
+        _filteredKeys = _filteredCache.Select(p => p.Key).ToHashSet(StringComparer.Ordinal);
+        return _filteredCache;
     }
 
 
@@ -430,11 +450,30 @@ public partial class CManualInspectionView : UserControl
     private void RefreshRows()
     {
         var pages = Math.Max(1, (int)Math.Ceiling(_filtered.Count / (double)PageSize)); _page = Math.Clamp(_page, 0, pages - 1);
-        ResultGrid.ItemsSource = _filtered.Skip(_page * PageSize).Take(PageSize)
-            .Select(point => new GridRow(point, _selected.Contains(point.Key), RowCheckChanged, CManualInspectionDrawing.Level(point,_snapshot))).ToArray();
+        var levels = _snapshot.LevelMetric + "|" + string.Join("|", _snapshot.LevelBoundsUm.Select(value => value.ToString("R", CultureInfo.InvariantCulture)));
+        if (!ReferenceEquals(_rowsSource, _filtered) || _rowsPage != _page || _rowsLevelSignature != levels || !_rowsSelection.SetEquals(_selected))
+        {
+            _rowsSource = _filtered; _rowsPage = _page; _rowsLevelSignature = levels;
+            _rowsSelection.Clear(); _rowsSelection.UnionWith(_selected);
+            ResultGrid.ItemsSource = _filtered.Skip(_page * PageSize).Take(PageSize)
+                .Select(point => new GridRow(point, _selected.Contains(point.Key), RowCheckChanged, CManualInspectionDrawing.Level(point,_snapshot))).ToArray();
+        }
         PageText.Text = $"{_page + 1} / {pages} 페이지";
         PreviousPageButton.IsEnabled = _page > 0; NextPageButton.IsEnabled = _page + 1 < pages;
-        ResultStatsText.Text = $"측정됨 {_filtered.Count(p => p.HasMeasurementHistory):N0} · OK {_filtered.Count(p => p.HasMeasurementHistory && p.WorkingJudge == "OK"):N0} · NG {_filtered.Count(p => p.WorkingJudge == "NG"):N0} · 최근 오류 {_filtered.Count(p => p.WorkingJudge == "ERROR"):N0} · 값 없음 {_filtered.Count(p => !p.IsMasked && !p.HasMeasurementHistory):N0}";
+        if (!ReferenceEquals(_rowStatsSource, _filtered))
+        {
+            _rowStatsSource = _filtered;
+            var measured = 0; var ok = 0; var ng = 0; var errors = 0; var missing = 0;
+            foreach (var point in _filtered)
+            {
+                var history = point.HasMeasurementHistory;
+                if (history) { measured++; if (point.WorkingJudge == "OK") ok++; }
+                if (point.WorkingJudge == "NG") ng++;
+                if (point.WorkingJudge == "ERROR") errors++;
+                if (!point.IsMasked && !history) missing++;
+            }
+            ResultStatsText.Text = $"측정됨 {measured:N0} · OK {ok:N0} · NG {ng:N0} · 최근 오류 {errors:N0} · 값 없음 {missing:N0}";
+        }
     }
 
     private void RefreshReference()
@@ -470,7 +509,9 @@ public partial class CManualInspectionView : UserControl
             : "측정·복사 후 현재 Cell 일괄 보정에서 CSV에 저장합니다.";
         SaveStatusText.ToolTip=_snapshot.OffsetSummaryText+"\n"+_snapshot.FinalOffsetStatusText;
         CorrectionSection.Header=_snapshot.IsOffsetEditPending ? $"Cell {pendingCell} 작업 저장" : "현재 Cell CSV 저장";
-        RevisionItems.ItemsSource=_snapshot.Revisions.Take(8).ToArray();
+        if (!ReferenceEquals(_renderedRevisions,_snapshot.Revisions) && (_renderedRevisions is null || !_renderedRevisions.SequenceEqual(_snapshot.Revisions)))
+            RevisionItems.ItemsSource=_snapshot.Revisions.Take(8).ToArray();
+        _renderedRevisions=_snapshot.Revisions;
         var signature=FormattableString.Invariant($"{_snapshot.DeltaLimitUm:R}|{_snapshot.TotalLimitUm:R}|{_snapshot.ScannerFieldMm:R}");
         if(_lastLimitsVersion!=_snapshot.Version && _lastLimitsSignature!=signature)
         {
@@ -495,9 +536,8 @@ public partial class CManualInspectionView : UserControl
         PointErrorText.ToolTip=p is null?"":p.MeasurementBasisText+(p.IsOperatorResult?"\n"+p.OperatorReason:"");
         PointDetailsText.Text=p is null?"":$"설계 X / Y  {p.DesignXmm:0.###} / {p.DesignYmm:0.###} mm\n측정 출처: {(string.IsNullOrWhiteSpace(p.DisplayedMeasurementOrigin)?p.MeasurementBasisText:p.DisplayedMeasurementOrigin)}\n{p.MeasurementSourcePath}\n{p.Key}";
         PointDetailsText.ToolTip=p?.Details;
-        var selected=_snapshot.Points.Where(point=>_selected.Contains(point.Key)).ToArray();
-        var visibleKeys=_filtered.Select(point=>point.Key).ToHashSet(StringComparer.Ordinal);
-        var hidden=selected.Count(point=>!visibleKeys.Contains(point.Key));
+        var selected=_selected.Select(key=>_points.GetValueOrDefault(key)).OfType<CManualInspectionUiPoint>().ToArray();
+        var hidden=selected.Count(point=>!_filteredKeys.Contains(point.Key));
         PointScopeText.Text=p is null?"포커스 위치 없음":$"선택 {selected.Length:N0}점"+(hidden>0?$" · 숨김 {hidden:N0}점":"");
         SelectionSummaryText.Text=$"선택 {selected.Length:N0}점 · 숨김 {hidden:N0}점\n유효 편차 {selected.Count(point=>point.HasMeasurementHistory):N0}점";
         var levels=selected.Select(point=>CManualInspectionDrawing.Level(point,_snapshot)).ToArray();
@@ -507,10 +547,28 @@ public partial class CManualInspectionView : UserControl
         LastMeasurementText.Visibility=string.IsNullOrWhiteSpace(_snapshot.LastMeasurementText)?Visibility.Collapsed:Visibility.Visible;
         var latest=_snapshot.LastMeasuredPointKey is {} latestKey && _points.TryGetValue(latestKey,out var latestPoint)?latestPoint:null;
         LastMeasurementText.SetResourceReference(TextBlock.ForegroundProperty,latest?.WorkingJudge=="NG"?"ButtonDangerBrush":latest?.WorkingJudge=="ERROR"?"ButtonWarningBrush":"AccentTextBrush");
-        JobProgressText.Text=Busy?$"진행 {_snapshot.CompletedCount:N0} / {_snapshot.TotalCount:N0}점":_snapshot.HasIncomplete?$"잔여 {_snapshot.RemainingCount:N0}점":"";
-        JobProgressBar.Visibility=Busy?Visibility.Visible:Visibility.Collapsed;
-        JobProgressBar.Value=_snapshot.TotalCount>0?100d*_snapshot.CompletedCount/_snapshot.TotalCount:0;
+        RefreshProgress();
         RetryButton.Visibility=_snapshot.HasIncomplete?Visibility.Visible:Visibility.Collapsed;
+    }
+
+    private void RefreshProgress()
+    {
+        var busy=Busy;
+        var stage=_snapshot.ProgressStage;
+        var phase=!string.IsNullOrWhiteSpace(_snapshot.ProgressText)?_snapshot.ProgressText:stage switch
+        {
+            "PREPARING"=>"준비 중", "MOVING"=>"이동 중", "MEASURING"=>"측정 응답 대기",
+            "SAVING"=>"저장 중", "REFRESHING"=>"결과 확인 중", "STOPPING"=>"중지 정리 중", _=>"처리 중"
+        };
+        var counts=_snapshot.TotalCount>0 && (stage is "MOVING" or "MEASURING" or "IDLE");
+        JobProgressText.Text=busy?phase+(counts?$" · {_snapshot.CompletedCount:N0}/{_snapshot.TotalCount:N0}점":"")
+            :_snapshot.HasIncomplete?$"잔여 {_snapshot.RemainingCount:N0}점":"";
+        JobProgressPanel.Visibility=busy?Visibility.Visible:Visibility.Collapsed;
+        StatusText.Visibility=busy?Visibility.Collapsed:Visibility.Visible;
+        JobProgressPanel.ToolTip=_snapshot.StatusText;
+        JobProgressBar.IsIndeterminate=busy && (_snapshot.IsProgressIndeterminate || stage=="IDLE" || _snapshot.TotalCount<=0);
+        JobProgressBar.Visibility=busy?Visibility.Visible:Visibility.Collapsed;
+        JobProgressBar.Value=_snapshot.TotalCount>0?Math.Clamp(100d*_snapshot.CompletedCount/_snapshot.TotalCount,0,100):0;
     }
 
     private void RefreshButtons()
@@ -558,6 +616,10 @@ public partial class CManualInspectionView : UserControl
     }
     private void RefreshMapLegend()
     {
+        var signature=_snapshot.LevelMetric+"|"+string.Join("|",_snapshot.LevelNames)+"|"
+            +string.Join("|",_snapshot.LevelBoundsUm.Select(value=>value.ToString("R",CultureInfo.InvariantCulture)));
+        if(_legendSignature==signature) return;
+        _legendSignature=signature;
         MapLegendItems.Children.Clear();
         var colors=new[]{"#2E9076","#B88B2A","#CA754A","#BE4F68"};
         for(var i=0;i<4;i++)
@@ -583,12 +645,23 @@ public partial class CManualInspectionView : UserControl
             +"|"+_scatterFollowSelection+"|"+string.Join(",",_scatterCells.OrderBy(cell=>cell));
         var contextIdentity=FormattableString.Invariant($"{_snapshot.Version}|{_snapshot.RecipeId}|{_snapshot.RunId}");
         ScatterPlot.UpdateInteractionContext(_focusKey,contextIdentity,signature);
-        if(ReferenceEquals(_scatterProjectedPoints,_snapshot.Points) && _scatterRenderSignature==signature && _scatterRenderedSelection.SetEquals(_selected)) return;
+        var samePopulation=ReferenceEquals(_scatterProjectedPoints,_snapshot.Points) && _scatterRenderSignature==signature;
+        if(samePopulation && _scatterRenderedSelection.SetEquals(_selected)) return;
+        if(samePopulation)
+        {
+            // Selection changes repaint the same population. They do not re-clone original
+            // records, recompute statistics or rebuild the Cell/Head controls and legends.
+            _scatterRenderedSelection.Clear();_scatterRenderedSelection.UnionWith(_selected);
+            ScatterPlot.Configure(_scatterDisplay,_selected,_scatterScope=="HEAD",_snapshot.ToleranceXUm,_snapshot.ToleranceYUm,
+                _scatterScope=="CELLS" && _scatterCells.Count==0?"산포도를 볼 Cell을 선택하세요.":"이 범위에 유효한 측정 편차가 없습니다.",_focusKey,contextIdentity,signature,kind);
+            return;
+        }
         _scatterProjectedPoints=_snapshot.Points;_scatterRenderSignature=signature;
         _scatterRenderedSelection.Clear();_scatterRenderedSelection.UnionWith(_selected);
         var range=_snapshot.Points.Where(point=>_scatterScope=="CELL"?point.CellNo==currentCell:_scatterScope=="HEAD"?_scatterHead==0 || point.HeadNo==_scatterHead:_scatterCells.Contains(point.CellNo)).ToArray();
         var display=_scatterOriginal?range.Select(point=>point with {WorkingJudge=point.OriginalJudge,WorkingXUm=point.OriginalXUm,WorkingYUm=point.OriginalYUm,
             IsProxy=false,IsOperatorResult=false,OperatorReason="",HasAppliedOffset=false,IsMeasurementOffsetInitialized=false,IsMeasurementStateCleared=false,CanUseImportedForCorrection=false}).ToArray():range;
+        _scatterDisplay=display;
         ScatterPlot.Configure(display,_selected,_scatterScope=="HEAD",_snapshot.ToleranceXUm,_snapshot.ToleranceYUm,
             _scatterScope=="CELLS" && _scatterCells.Count==0?"산포도를 볼 Cell을 선택하세요.":"이 범위에 유효한 측정 편차가 없습니다.",_focusKey,contextIdentity,signature,kind);
         RefreshScatterAxis();var m=ScatterPlot.Metrics;

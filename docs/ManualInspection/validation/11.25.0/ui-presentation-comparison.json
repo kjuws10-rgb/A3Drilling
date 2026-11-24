@@ -1,0 +1,52 @@
+{
+  "version": "11.25.0",
+  "pointCount": 8000,
+  "sameBenchmarkProgramSha256": "dec5ed75a33842812555876b629dad74256f3ce64672a463f6ee865845143c16",
+  "beforeAndAfter": {
+    "baseline": {
+      "report": "D:\\CodexWork\\A3_Manual_Inspection_20261125_0_Performance\\ui-presentation-baseline.json",
+      "sha256": "6596e0fcc1e3a5c1d0526bd708c6e1b73e6779d73d390935ff1307d3d7b6cf18",
+      "firstBusyTransition": {
+        "milliseconds": 64.2733,
+        "allocatedBytes": 4172240
+      },
+      "statusOnly": {
+        "sampleCount": 24,
+        "p50Ms": 70.2738,
+        "p95Ms": 93.4053,
+        "maximumMs": 102.8823
+      },
+      "selection": {
+        "sampleCount": 12,
+        "p50Ms": 67.537,
+        "p95Ms": 87.5444,
+        "maximumMs": 87.5444
+      },
+      "dllSha256": "46f0000669c05d034f6d36905a86e9734e4de92791bfd0deed5c4b370a2f0e6b",
+      "buildLogSha256": "62623f1f378a96e8796178fac2fce70048913f22028fd2966dafe0fcd926378f"
+    },
+    "candidate": {
+      "report": "D:\\CodexWork\\A3_Manual_Inspection_20261125_0_Performance\\ui-presentation-candidate.json",
+      "sha256": "a763d99c17577afee12c4f9f3e1347649b8ba2d2d6a560867d408b2c256b9c95",
+      "firstBusyTransition": {
+        "milliseconds": 18.1533,
+        "allocatedBytes": 184576
+      },
+      "statusOnly": {
+        "sampleCount": 24,
+        "p50Ms": 1.7166,
+        "p95Ms": 2.367,
+        "maximumMs": 2.4266
+      },
+      "selection": {
+        "sampleCount": 12,
+        "p50Ms": 50.6609,
+        "p95Ms": 66.177,
+        "maximumMs": 66.177
+      },
+      "dllSha256": "79b6e295e71ff0096d38673a6975954d53488ff7753e98a8ef6a55c12c8c6e82",
+      "buildLogSha256": "1b0bd73d8afecd4a5135ac5348c86617122257427aeb850467b250c1fddaf6a6"
+    }
+  },
+  "scope": "One local wall-time/allocation diagnostic with exact preserved .10 UI vs candidate UI; identical synthetic records/actions/resources. Status and selection time includes frame enqueue plus Dispatcher pump, not device latency or real FPS. Same production enum extracted for standalone keypad compilation; no compatibility DTO or actual equipment manager used. Timing is observational and not a deterministic pass threshold."
+}

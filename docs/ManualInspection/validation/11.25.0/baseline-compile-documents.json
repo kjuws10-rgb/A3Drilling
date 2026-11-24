@@ -1,0 +1,50 @@
+[
+  {
+    "path": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\PerformanceHarness\\Program.cs",
+    "sha256": "d4dd7151e1ad7bc23aa6a6406c7b62583850d992eb3d64f8a252fb4683a16283"
+  },
+  {
+    "path": "D:\\CodexWork\\A3_Manual_Inspection_20261125_0_Performance\\baseline-source\\tests\\ManualInspection\\ControllerHarness\\Contracts.cs",
+    "sha256": "d1049774e843915eb7394d108315fa7920fd6de4206a546538e6d18094bfdb1c"
+  },
+  {
+    "path": "D:\\CodexWork\\A3_Manual_Inspection_20261125_0_Performance\\baseline-source\\Drilling.Common\\Review\\ManualInspection\\CManualInspectionModels.cs",
+    "sha256": "5cb5a0cdca1ea9a528c57d38a783bc60934af9fd960c621bdd017528cd9588de"
+  },
+  {
+    "path": "D:\\CodexWork\\A3_Manual_Inspection_20261125_0_Performance\\baseline-source\\Drilling.Common\\Review\\ManualInspection\\CManualInspectionOffsetBundle.cs",
+    "sha256": "bfc6826a45e01af83fcfdaa66a5016a70b385bde2a1d08a616a87c2c7516ec32"
+  },
+  {
+    "path": "D:\\CodexWork\\A3_Manual_Inspection_20261125_0_Performance\\baseline-source\\Drilling.Common\\Review\\ManualInspection\\CManualInspectionWorkspace.cs",
+    "sha256": "ab8c1d28e431d7ad42d8160ca91ea7196019ef61524740bdf6de98020f513bde"
+  },
+  {
+    "path": "D:\\CodexWork\\A3_Manual_Inspection_20261125_0_Performance\\baseline-source\\Drilling.UI\\Menu\\Menus\\CManualInspectionController.cs",
+    "sha256": "64c2a6c7fe8acb186588b77f6c8ce09661482dbe8bf34bf30a436ef2a601f781"
+  },
+  {
+    "path": "D:\\CodexWork\\A3_Manual_Inspection_20261125_0_Performance\\baseline-source\\Drilling.UI\\Menu\\Menus\\CManualInspectionReplayBackend.cs",
+    "sha256": "a7e6849d10bf5baebbe56d56084f74bdfb852289b30c571d9908f0a244855228"
+  },
+  {
+    "path": "D:\\CodexWork\\A3_Manual_Inspection_20261125_0_Performance\\baseline-source\\Drilling.UI\\Menu\\Menus\\CManualInspectionUpdateMonitor.cs",
+    "sha256": "a5d8854aea32ae9eb9cf4cfa05c99cf6ab0548dddcebd7fa32a94335ab94a1e0"
+  },
+  {
+    "path": "D:\\CodexWork\\A3_Manual_Inspection_20261125_0_Performance\\baseline-source\\Drilling.UI\\Views\\CManualInspectionUiContract.cs",
+    "sha256": "422f30502a1d904f47df7a864d87f98527217f30a9359f82f75962303a6102cd"
+  },
+  {
+    "path": "D:\\CodexWork\\A3_Manual_Inspection_20261125_0_Performance\\baseline-bench-build\\obj\\Release\\net8.0-windows\\PerformanceHarness.GlobalUsings.g.cs",
+    "sha256": "fe45ea572aadfd1a9b54cf7251405cfa11b748ca88b034f06a724d49758ced2d"
+  },
+  {
+    "path": "D:\\CodexWork\\A3_Manual_Inspection_20261125_0_Performance\\baseline-bench-build\\obj\\Release\\net8.0-windows\\.NETCoreApp,Version=v8.0.AssemblyAttributes.cs",
+    "sha256": "f7a5d9789c863625e139ff99e1113a503830f6b85a88f6129916df83ac76b49e"
+  },
+  {
+    "path": "D:\\CodexWork\\A3_Manual_Inspection_20261125_0_Performance\\baseline-bench-build\\obj\\Release\\net8.0-windows\\PerformanceHarness.AssemblyInfo.cs",
+    "sha256": "1dac5aee9e5d4133ee5e6880d34403d7b33c16967e4a5b0a244b12d99accd8df"
+  }
+]

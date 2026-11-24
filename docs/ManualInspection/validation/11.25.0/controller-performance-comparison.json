@@ -1,0 +1,195 @@
+{
+  "schema": "a3-manual-inspection-controller-performance-comparison/1",
+  "passed": true,
+  "generatedAtUtc": "2026-11-24T22:29:31.511282+00:00",
+  "baselineCommit": "26a7db3e27bb17c4b9f141f2831d168965d978d5",
+  "finalControllerSha256": "b2e7a63f587f252701757ad284a807375b0b0eb2a926a0f21ddd3d0ec58635d0",
+  "sameHarnessSha256": "d4dd7151e1ad7bc23aa6a6406c7b62583850d992eb3d64f8a252fb4683a16283",
+  "exclusiveSequentialRun": true,
+  "normalSizes": [
+    1000,
+    10000,
+    20000,
+    32000
+  ],
+  "samplesPerSize": 3,
+  "warmupExcluded": true,
+  "reports": {
+    "controller-performance-before.json": {
+      "sha256": "b7c94c81699fe7a5d06e94d19664dcfdfdfda1657fa10be4fc3fc744278a8acf",
+      "assemblySha256": "36ac85636976d59ec26c48f5745ede4d3f8fac7c91dca56fc629e9f68f276ad6",
+      "diagnostic": false,
+      "scales": {
+        "1000": {
+          "iterations": 3,
+          "wallMs": [
+            68.9085,
+            60.5282,
+            75.6451
+          ],
+          "medianWallMs": 68.9085,
+          "medianDispatcherGapMs": 68.8715,
+          "maxDispatcherGapMs": 75.5011,
+          "medianAllocatedBytes": 12989360,
+          "allStateAssertionsPassed": true
+        },
+        "10000": {
+          "iterations": 3,
+          "wallMs": [
+            630.3636,
+            407.7121,
+            332.9684
+          ],
+          "medianWallMs": 407.7121,
+          "medianDispatcherGapMs": 407.6525,
+          "maxDispatcherGapMs": 630.3271,
+          "medianAllocatedBytes": 168315400,
+          "allStateAssertionsPassed": true
+        },
+        "20000": {
+          "iterations": 3,
+          "wallMs": [
+            691.2411,
+            555.2463,
+            682.8166
+          ],
+          "medianWallMs": 682.8166,
+          "medianDispatcherGapMs": 682.7954,
+          "maxDispatcherGapMs": 691.217,
+          "medianAllocatedBytes": 354816088,
+          "allStateAssertionsPassed": true
+        },
+        "32000": {
+          "iterations": 3,
+          "wallMs": [
+            1071.7008,
+            1112.9524,
+            994.147
+          ],
+          "medianWallMs": 1071.7008,
+          "medianDispatcherGapMs": 1071.6746,
+          "maxDispatcherGapMs": 1112.926,
+          "medianAllocatedBytes": 451852424,
+          "allStateAssertionsPassed": true
+        }
+      }
+    },
+    "controller-performance-after.json": {
+      "sha256": "0656ea9c5d61d6327f085cbcd520d0eb4f197e23f19817f8a77d8f426dbc3965",
+      "assemblySha256": "2f73d8875066879a10c8055b557cb1d8f27816e3a7210822db53f0e676e6edef",
+      "diagnostic": false,
+      "scales": {
+        "1000": {
+          "iterations": 3,
+          "wallMs": [
+            25.7639,
+            37.3342,
+            37.8095
+          ],
+          "medianWallMs": 37.3342,
+          "medianDispatcherGapMs": 15.7946,
+          "maxDispatcherGapMs": 19.8588,
+          "medianAllocatedBytes": 2890656,
+          "allStateAssertionsPassed": true
+        },
+        "10000": {
+          "iterations": 3,
+          "wallMs": [
+            197.8604,
+            170.5294,
+            166.5177
+          ],
+          "medianWallMs": 170.5294,
+          "medianDispatcherGapMs": 21.6583,
+          "maxDispatcherGapMs": 24.7432,
+          "medianAllocatedBytes": 49084680,
+          "allStateAssertionsPassed": true
+        },
+        "20000": {
+          "iterations": 3,
+          "wallMs": [
+            348.4477,
+            282.7895,
+            276.7966
+          ],
+          "medianWallMs": 282.7895,
+          "medianDispatcherGapMs": 21.6146,
+          "maxDispatcherGapMs": 27.2752,
+          "medianAllocatedBytes": 48147592,
+          "allStateAssertionsPassed": true
+        },
+        "32000": {
+          "iterations": 3,
+          "wallMs": [
+            432.2885,
+            409.5593,
+            390.6653
+          ],
+          "medianWallMs": 409.5593,
+          "medianDispatcherGapMs": 20.6907,
+          "maxDispatcherGapMs": 27.7598,
+          "medianAllocatedBytes": 124646320,
+          "allStateAssertionsPassed": true
+        }
+      }
+    },
+    "controller-checkpoint-due-before.json": {
+      "sha256": "7ce98953e63a3e3d08c68c670da140de79db30a076189cb0e0f1ed23175d797b",
+      "assemblySha256": "36ac85636976d59ec26c48f5745ede4d3f8fac7c91dca56fc629e9f68f276ad6",
+      "diagnostic": true,
+      "scales": {
+        "32000": {
+          "iterations": 3,
+          "wallMs": [
+            1215.6126,
+            1236.9896,
+            1343.5414
+          ],
+          "medianWallMs": 1236.9896,
+          "medianDispatcherGapMs": 1236.9552,
+          "maxDispatcherGapMs": 1343.5085,
+          "medianAllocatedBytes": 547328776,
+          "allStateAssertionsPassed": true
+        }
+      }
+    },
+    "controller-checkpoint-due-after.json": {
+      "sha256": "da1bfa52347de4a736c059aea268d956a5051647fc800e0df2a7da402e297464",
+      "assemblySha256": "2f73d8875066879a10c8055b557cb1d8f27816e3a7210822db53f0e676e6edef",
+      "diagnostic": true,
+      "scales": {
+        "32000": {
+          "iterations": 3,
+          "wallMs": [
+            682.09,
+            501.6373,
+            479.9334
+          ],
+          "medianWallMs": 501.6373,
+          "medianDispatcherGapMs": 26.9058,
+          "maxDispatcherGapMs": 33.3988,
+          "medianAllocatedBytes": 176765896,
+          "allStateAssertionsPassed": true
+        }
+      }
+    }
+  },
+  "summary32k": {
+    "normalBeforeMedianWallMs": 1071.7008,
+    "normalAfterMedianWallMs": 409.5593,
+    "normalBeforeMedianDispatcherGapMs": 1071.6746,
+    "normalAfterMedianDispatcherGapMs": 20.6907,
+    "dueBeforeMedianDispatcherGapMs": 1236.9552,
+    "dueAfterMedianDispatcherGapMs": 26.9058,
+    "normalBeforeMedianAllocatedBytes": 451852424,
+    "normalAfterMedianAllocatedBytes": 124646320
+  },
+  "scope": "Actual source-linked Controller/Core plus actual temp checkpoint JSON serialization and file writes. Synthetic current-position response with Task.Yield, no injected sleep; 45 Cells; baseline and final sources frozen separately. UI heartbeat is real STA Dispatcher Input scheduling.",
+  "excluded": [
+    "native Recipe/Setting/CSV IO",
+    "real Vision/motion/equipment latency",
+    "production UIView/map/table/scatter rendering"
+  ],
+  "diagnosticNote": "checkpoint_due results age only _lastCheckpoint immediately before a synthetic response; they prove the real due-checkpoint path yields to UI and preserve state, not a real hardware measurement delay.",
+  "interpretation": "The measured command still waits for complete checkpoint persistence. Lower dispatcher gaps demonstrate UI responsiveness separately from overall completion time. These host-specific small repeated samples are not a claim about whole-equipment speed."
+}

@@ -1,0 +1,380 @@
+{
+  "schema": "a3-manual-inspection-controller-performance/1",
+  "passed": true,
+  "generatedAtUtc": "2026-11-24T22:28:24.296989+00:00",
+  "sizes": [
+    1000,
+    10000,
+    20000,
+    32000
+  ],
+  "iterations": 3,
+  "checkpointDueDiagnostic": false,
+  "measurements": [
+    {
+      "kind": "load",
+      "count": 1000,
+      "timing": {
+        "Phase": "load",
+        "WallMs": 16.9068,
+        "MaxDispatcherGapMs": 16.9044,
+        "MaxDispatcherQueueDelayMs": 0,
+        "HeartbeatPulses": 0,
+        "TotalAllocatedBytes": 4041240,
+        "UiThreadAllocatedBytes": 1964464,
+        "Gen0": 0,
+        "Gen1": 0,
+        "Gen2": 0
+      },
+      "publications": 5,
+      "pointsRebuilt": 2
+    },
+    {
+      "kind": "current_position_measure",
+      "count": 1000,
+      "iteration": 1,
+      "timing": {
+        "Phase": "Measure",
+        "WallMs": 25.7639,
+        "MaxDispatcherGapMs": 19.8588,
+        "MaxDispatcherQueueDelayMs": 0.1919,
+        "HeartbeatPulses": 1,
+        "TotalAllocatedBytes": 2356344,
+        "UiThreadAllocatedBytes": 199656,
+        "Gen0": 0,
+        "Gen1": 0,
+        "Gen2": 0
+      },
+      "publications": 10,
+      "pointsRebuilt": 1,
+      "backendCurrentChecks": 1,
+      "backendMeasures": 1,
+      "backendSaves": 0,
+      "passed": true
+    },
+    {
+      "kind": "current_position_measure",
+      "count": 1000,
+      "iteration": 2,
+      "timing": {
+        "Phase": "Measure",
+        "WallMs": 37.3342,
+        "MaxDispatcherGapMs": 13.3376,
+        "MaxDispatcherQueueDelayMs": 0.7113,
+        "HeartbeatPulses": 2,
+        "TotalAllocatedBytes": 2890656,
+        "UiThreadAllocatedBytes": 218320,
+        "Gen0": 1,
+        "Gen1": 1,
+        "Gen2": 1
+      },
+      "publications": 10,
+      "pointsRebuilt": 1,
+      "backendCurrentChecks": 2,
+      "backendMeasures": 2,
+      "backendSaves": 0,
+      "passed": true
+    },
+    {
+      "kind": "current_position_measure",
+      "count": 1000,
+      "iteration": 3,
+      "timing": {
+        "Phase": "Measure",
+        "WallMs": 37.8095,
+        "MaxDispatcherGapMs": 15.7946,
+        "MaxDispatcherQueueDelayMs": 0.0887,
+        "HeartbeatPulses": 2,
+        "TotalAllocatedBytes": 3930856,
+        "UiThreadAllocatedBytes": 219064,
+        "Gen0": 1,
+        "Gen1": 1,
+        "Gen2": 1
+      },
+      "publications": 10,
+      "pointsRebuilt": 1,
+      "backendCurrentChecks": 3,
+      "backendMeasures": 3,
+      "backendSaves": 0,
+      "passed": true
+    },
+    {
+      "kind": "load",
+      "count": 10000,
+      "timing": {
+        "Phase": "load",
+        "WallMs": 165.3653,
+        "MaxDispatcherGapMs": 58.4029,
+        "MaxDispatcherQueueDelayMs": 45.9302,
+        "HeartbeatPulses": 7,
+        "TotalAllocatedBytes": 45997944,
+        "UiThreadAllocatedBytes": 18315136,
+        "Gen0": 6,
+        "Gen1": 5,
+        "Gen2": 4
+      },
+      "publications": 5,
+      "pointsRebuilt": 2
+    },
+    {
+      "kind": "current_position_measure",
+      "count": 10000,
+      "iteration": 1,
+      "timing": {
+        "Phase": "Measure",
+        "WallMs": 197.8604,
+        "MaxDispatcherGapMs": 24.7432,
+        "MaxDispatcherQueueDelayMs": 9.9814,
+        "HeartbeatPulses": 13,
+        "TotalAllocatedBytes": 56437096,
+        "UiThreadAllocatedBytes": 1155104,
+        "Gen0": 1,
+        "Gen1": 1,
+        "Gen2": 1
+      },
+      "publications": 10,
+      "pointsRebuilt": 1,
+      "backendCurrentChecks": 1,
+      "backendMeasures": 1,
+      "backendSaves": 0,
+      "passed": true
+    },
+    {
+      "kind": "current_position_measure",
+      "count": 10000,
+      "iteration": 2,
+      "timing": {
+        "Phase": "Measure",
+        "WallMs": 170.5294,
+        "MaxDispatcherGapMs": 21.6583,
+        "MaxDispatcherQueueDelayMs": 0.611,
+        "HeartbeatPulses": 10,
+        "TotalAllocatedBytes": 22901224,
+        "UiThreadAllocatedBytes": 1138448,
+        "Gen0": 2,
+        "Gen1": 1,
+        "Gen2": 1
+      },
+      "publications": 10,
+      "pointsRebuilt": 1,
+      "backendCurrentChecks": 2,
+      "backendMeasures": 2,
+      "backendSaves": 0,
+      "passed": true
+    },
+    {
+      "kind": "current_position_measure",
+      "count": 10000,
+      "iteration": 3,
+      "timing": {
+        "Phase": "Measure",
+        "WallMs": 166.5177,
+        "MaxDispatcherGapMs": 17.0012,
+        "MaxDispatcherQueueDelayMs": 2.2135,
+        "HeartbeatPulses": 11,
+        "TotalAllocatedBytes": 49084680,
+        "UiThreadAllocatedBytes": 1181392,
+        "Gen0": 3,
+        "Gen1": 2,
+        "Gen2": 2
+      },
+      "publications": 10,
+      "pointsRebuilt": 1,
+      "backendCurrentChecks": 3,
+      "backendMeasures": 3,
+      "backendSaves": 0,
+      "passed": true
+    },
+    {
+      "kind": "load",
+      "count": 20000,
+      "timing": {
+        "Phase": "load",
+        "WallMs": 339.5827,
+        "MaxDispatcherGapMs": 99.7072,
+        "MaxDispatcherQueueDelayMs": 88.5276,
+        "HeartbeatPulses": 15,
+        "TotalAllocatedBytes": 96778216,
+        "UiThreadAllocatedBytes": 40258864,
+        "Gen0": 5,
+        "Gen1": 4,
+        "Gen2": 1
+      },
+      "publications": 5,
+      "pointsRebuilt": 2
+    },
+    {
+      "kind": "current_position_measure",
+      "count": 20000,
+      "iteration": 1,
+      "timing": {
+        "Phase": "Measure",
+        "WallMs": 348.4477,
+        "MaxDispatcherGapMs": 17.6027,
+        "MaxDispatcherQueueDelayMs": 2.7099,
+        "HeartbeatPulses": 23,
+        "TotalAllocatedBytes": 48147592,
+        "UiThreadAllocatedBytes": 2201928,
+        "Gen0": 2,
+        "Gen1": 1,
+        "Gen2": 1
+      },
+      "publications": 10,
+      "pointsRebuilt": 1,
+      "backendCurrentChecks": 1,
+      "backendMeasures": 1,
+      "backendSaves": 0,
+      "passed": true
+    },
+    {
+      "kind": "current_position_measure",
+      "count": 20000,
+      "iteration": 2,
+      "timing": {
+        "Phase": "Measure",
+        "WallMs": 282.7895,
+        "MaxDispatcherGapMs": 27.2752,
+        "MaxDispatcherQueueDelayMs": 12.515,
+        "HeartbeatPulses": 18,
+        "TotalAllocatedBytes": 114609560,
+        "UiThreadAllocatedBytes": 2185864,
+        "Gen0": 2,
+        "Gen1": 2,
+        "Gen2": 1
+      },
+      "publications": 10,
+      "pointsRebuilt": 1,
+      "backendCurrentChecks": 2,
+      "backendMeasures": 2,
+      "backendSaves": 0,
+      "passed": true
+    },
+    {
+      "kind": "current_position_measure",
+      "count": 20000,
+      "iteration": 3,
+      "timing": {
+        "Phase": "Measure",
+        "WallMs": 276.7966,
+        "MaxDispatcherGapMs": 21.6146,
+        "MaxDispatcherQueueDelayMs": 6.2763,
+        "HeartbeatPulses": 18,
+        "TotalAllocatedBytes": 46207024,
+        "UiThreadAllocatedBytes": 2173032,
+        "Gen0": 3,
+        "Gen1": 1,
+        "Gen2": 1
+      },
+      "publications": 10,
+      "pointsRebuilt": 1,
+      "backendCurrentChecks": 3,
+      "backendMeasures": 3,
+      "backendSaves": 0,
+      "passed": true
+    },
+    {
+      "kind": "load",
+      "count": 32000,
+      "timing": {
+        "Phase": "load",
+        "WallMs": 355.0931,
+        "MaxDispatcherGapMs": 123.043,
+        "MaxDispatcherQueueDelayMs": 105.5136,
+        "HeartbeatPulses": 14,
+        "TotalAllocatedBytes": 118555648,
+        "UiThreadAllocatedBytes": 49633352,
+        "Gen0": 9,
+        "Gen1": 5,
+        "Gen2": 3
+      },
+      "publications": 5,
+      "pointsRebuilt": 2
+    },
+    {
+      "kind": "current_position_measure",
+      "count": 32000,
+      "iteration": 1,
+      "timing": {
+        "Phase": "Measure",
+        "WallMs": 432.2885,
+        "MaxDispatcherGapMs": 27.7598,
+        "MaxDispatcherQueueDelayMs": 6.503,
+        "HeartbeatPulses": 28,
+        "TotalAllocatedBytes": 141456808,
+        "UiThreadAllocatedBytes": 3652704,
+        "Gen0": 2,
+        "Gen1": 2,
+        "Gen2": 1
+      },
+      "publications": 10,
+      "pointsRebuilt": 1,
+      "backendCurrentChecks": 1,
+      "backendMeasures": 1,
+      "backendSaves": 0,
+      "passed": true
+    },
+    {
+      "kind": "current_position_measure",
+      "count": 32000,
+      "iteration": 2,
+      "timing": {
+        "Phase": "Measure",
+        "WallMs": 409.5593,
+        "MaxDispatcherGapMs": 19.9911,
+        "MaxDispatcherQueueDelayMs": 2.9769,
+        "HeartbeatPulses": 26,
+        "TotalAllocatedBytes": 107914088,
+        "UiThreadAllocatedBytes": 3637800,
+        "Gen0": 3,
+        "Gen1": 1,
+        "Gen2": 1
+      },
+      "publications": 10,
+      "pointsRebuilt": 1,
+      "backendCurrentChecks": 2,
+      "backendMeasures": 2,
+      "backendSaves": 0,
+      "passed": true
+    },
+    {
+      "kind": "current_position_measure",
+      "count": 32000,
+      "iteration": 3,
+      "timing": {
+        "Phase": "Measure",
+        "WallMs": 390.6653,
+        "MaxDispatcherGapMs": 20.6907,
+        "MaxDispatcherQueueDelayMs": 5.748,
+        "HeartbeatPulses": 26,
+        "TotalAllocatedBytes": 124646320,
+        "UiThreadAllocatedBytes": 3634704,
+        "Gen0": 5,
+        "Gen1": 4,
+        "Gen2": 2
+      },
+      "publications": 10,
+      "pointsRebuilt": 1,
+      "backendCurrentChecks": 3,
+      "backendMeasures": 3,
+      "backendSaves": 0,
+      "passed": true
+    }
+  ],
+  "sourceFiles": {
+    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs": "6bde9206a739bc15f5e6a45e8208ec73260558bd0f227cdafbd2664a2cde089e",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs": "6af6eb882a37e534d431db987182c04a6cba4cd6a77fd85a29dd791b4cda1bda",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "b2e7a63f587f252701757ad284a807375b0b0eb2a926a0f21ddd3d0ec58635d0",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "4f4140229f2a96e667257a3f3e25f38cf208aab141712a3c93f529d59e3892ea",
+    "tests/ManualInspection/ControllerHarness/Contracts.cs": "9eb608b7106a38367ace9e34b658de1280113fab7db432a029fb91704bc8375b"
+  },
+  "assemblySha256": "2f73d8875066879a10c8055b557cb1d8f27816e3a7210822db53f0e676e6edef",
+  "runtime": "8.0.33",
+  "process64Bit": true,
+  "scope": "Source-linked actual Core/Controller plus actual checkpoint JSON/temp-file I/O. Generic STA WPF Application with a coalesced 10 ms Input dispatcher heartbeat. Synthetic async no-device backend uses Task.Yield, never artificial sleep. This excludes native Recipe/Setting/Review CSV I/O, real Vision latency, physical motion and production UIView rendering.",
+  "cautions": [
+    "Wall time includes real local temp-file I/O and GC. Scheduler/disk noise remains; compare repeated same-size samples.",
+    "No queued heartbeat sample does not prove a sub-millisecond UI stall. Longest dispatch gap includes measurement start/end boundaries.",
+    "Source-only and actual-assembly correctness suites are separate; timing samples must not be added to their case totals.",
+    "When checkpointDueDiagnostic=true, the fake response ages only the Controller checkpoint timestamp immediately before returning. This is a scheduling-state diagnostic without sleeping, not a real Vision time or normal speed-improvement sample."
+  ]
+}

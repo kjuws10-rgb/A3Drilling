@@ -1,0 +1,344 @@
+{
+  "schemaVersion": "a3-manual-performance-core-controller-review/1",
+  "version": "2026.11.25.0",
+  "status": "final_source_benchmark_and_production_integration_verified",
+  "passed": true,
+  "productionSourceChangedByThisReview": false,
+  "verification": {
+    "core": {
+      "report": "core-results.json",
+      "passed": true,
+      "count": 294,
+      "baselineCasesRetained": 286,
+      "addedPublicSafetyCases": 8
+    },
+    "sourceLinkedController": {
+      "report": "controller-source.json",
+      "passed": true,
+      "count": 293,
+      "actualProductionDll": false,
+      "assemblySha256": "38b28aa9c193b002d6705b1af7cf9b73064f85acfc47236b93e2237f27cbc041",
+      "loadedVendorAssemblies": []
+    },
+    "actualProductionIntegration": {
+      "status": "verified",
+      "solutionBuild": {
+        "configuration": "Release",
+        "warnings": 0,
+        "errors": 0,
+        "console": "release-build-console.log",
+        "log": "release-build.log"
+      },
+      "controller": {
+        "report": "controller-production.json",
+        "passed": true,
+        "count": 296,
+        "failed": 0,
+        "assembly": "Drilling.UI",
+        "assemblySha256": "c2651f848e90e1846713712c1e2d9124ece35c37fe9687c0a1447f783ff5b7bf",
+        "loadedVendorAssemblies": [],
+        "scope": "Actual new production Controller+Common+UI contract; synthetic async fake Backend. Generic WPF Application/STA only; Drilling.UI.App/Root/device Manager not constructed. No SDK/motion/PLC/Vision executed."
+      },
+      "backend": {
+        "report": "backend-read.json",
+        "passed": true,
+        "count": 189,
+        "failed": 0,
+        "nativeIoSchedulingAddedCases": 5,
+        "scope": "Actual UI production adapter + actual pure Review/Recipe/Setting managers, parser/writer; synthetic temp data; no equipment Manager/App/Root or vendor objects."
+      },
+      "productionAssemblyChecks": [
+        {
+          "name": "Drilling.UI",
+          "path": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BackendReadHarness\\bin\\Release\\net8.0-windows\\Drilling.UI.dll",
+          "reportedSha256": "c2651f848e90e1846713712c1e2d9124ece35c37fe9687c0a1447f783ff5b7bf",
+          "actualSha256": "c2651f848e90e1846713712c1e2d9124ece35c37fe9687c0a1447f783ff5b7bf",
+          "matches": true
+        },
+        {
+          "name": "Drilling.Common",
+          "path": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BackendReadHarness\\bin\\Release\\net8.0-windows\\Drilling.Common.dll",
+          "reportedSha256": "9f6a3c333da0eb1bad129e01aa0c7007775f584686599da8d342c87ed974e8e0",
+          "actualSha256": "9f6a3c333da0eb1bad129e01aa0c7007775f584686599da8d342c87ed974e8e0",
+          "matches": true
+        }
+      ],
+      "mainReleaseAssemblies": {
+        "DrillingUI": {
+          "path": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\Drilling.UI\\bin\\Release\\net8.0-windows\\Drilling.UI.dll",
+          "sha256": "c2651f848e90e1846713712c1e2d9124ece35c37fe9687c0a1447f783ff5b7bf"
+        },
+        "DrillingCommon": {
+          "path": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\Drilling.Common\\bin\\Release\\net8.0\\Drilling.Common.dll",
+          "sha256": "9f6a3c333da0eb1bad129e01aa0c7007775f584686599da8d342c87ed974e8e0"
+        }
+      },
+      "wpfUi": {
+        "report": "ui-final/validation.json",
+        "passed": true,
+        "modes": 20,
+        "checks": 1075,
+        "sourceInputsChecked": 30,
+        "sourceMismatches": [],
+        "sourceLinked": true,
+        "equipmentAppLaunched": false
+      },
+      "incrementalLoop": {
+        "report": "incremental-loop.json",
+        "passed": true,
+        "count": 21
+      },
+      "legacySerializer": {
+        "report": "legacy-serialization.json",
+        "passed": true,
+        "count": 37
+      },
+      "noDuplicateCountAggregation": true
+    },
+    "benchmark": {
+      "report": "controller-performance-comparison.json",
+      "passed": true,
+      "baselineCommit": "26a7db3e27bb17c4b9f141f2831d168965d978d5",
+      "summary32k": {
+        "normalBeforeMedianWallMs": 1071.7008,
+        "normalAfterMedianWallMs": 409.5593,
+        "normalBeforeMedianDispatcherGapMs": 1071.6746,
+        "normalAfterMedianDispatcherGapMs": 20.6907,
+        "dueBeforeMedianDispatcherGapMs": 1236.9552,
+        "dueAfterMedianDispatcherGapMs": 26.9058,
+        "normalBeforeMedianAllocatedBytes": 451852424,
+        "normalAfterMedianAllocatedBytes": 124646320
+      },
+      "sameHarnessSha256": "d4dd7151e1ad7bc23aa6a6406c7b62583850d992eb3d64f8a252fb4683a16283",
+      "exclusiveSequentialRun": true,
+      "sizes": [
+        1000,
+        10000,
+        20000,
+        32000
+      ],
+      "samplesPerSize": 3,
+      "warmupExcluded": true
+    }
+  },
+  "reviewFindings": [
+    {
+      "priority": "verified",
+      "subject": "일시 작업 미리보기 권한",
+      "evidence": "Workspace:1199,1797-1824 / PerformanceSafetyCases.cs",
+      "conclusion": "Workspace ID와 단조 generation으로 일시 Preview를 검증합니다. 다른 Workspace, 같은 프레임 Load/Restore, 측정·한계·중단·후보 변경 후 낡은 미리보기를 거절합니다. 영속 Candidate의 전체 SHA 근거는 유지합니다."
+    },
+    {
+      "priority": "verified",
+      "subject": "읽기 캐시 불변성",
+      "evidence": "Workspace:48-57,1295-1301 / Core 추가 8회귀",
+      "conclusion": "읽기 전용 활성 Offset과 불변 Point 목록을 재사용합니다. 저장/Init/Undo 뒤 새 값을 반환하며 이전에 반환한 목록과 값은 바뀌지 않습니다."
+    },
+    {
+      "priority": "verified",
+      "subject": "Owner 스레드·보관 순서",
+      "evidence": "Controller:1449-1496 / due-fence·STOP regressions",
+      "conclusion": "엔진 변경과 Bundle 캡처는 소유 Dispatcher에 남깁니다. 캡처 뒤 직렬화·원자 파일 쓰기만 worker로 보내고 gate와 최종 await로 Stop/Busy 해제를 보관 완료 뒤로 유지합니다. JSON 공백만 축소하고 원시 결과·기하·원복 데이터는 생략하지 않습니다."
+    },
+    {
+      "priority": "verified",
+      "subject": "대기 진행·Idle Stop",
+      "evidence": "Controller:951-1018,1199-1220 / performance_idle_stop_does_not_leave_stopping_stage_on_the_next_measurement",
+      "conclusion": "준비/측정/저장/정지 정리 단계를 실제 기다리는 동안 게시합니다. Idle Stop의 STOPPING 잔류는 한 조건 수정으로 해결했고 새 측정 PREPARING 재개 회귀가 통과했습니다."
+    },
+    {
+      "priority": "verified",
+      "subject": "Native I/O·후속 동작 fence 독립 읽기",
+      "evidence": "Backend:555-584,825-867,915-983 / CRecipeManager:40-69",
+      "conclusion": "순수 Recipe/최신 CSV 읽기·보관 I/O만 worker로 옮깁니다. 선택 Recipe, Setting/좌표, Run, SIM 및 최신 SHA는 await 뒤 소유 컨텍스트에서 재검사합니다. 정상 Flying 결과 저장과 전수 응답 뒤 line fence를 await하고 다음 line 전 오류를 전달합니다. writer 직전 Guard/CAS를 유지합니다. 확인한 변경 범위에서 추가 확정 결함은 없습니다."
+    },
+    {
+      "priority": "verified",
+      "subject": "기존 보정 보호",
+      "evidence": "기존 Core286+추가8 / Controller293",
+      "conclusion": ".10 대상 현재 B + 실측/복사 편차, 같은 Shot 공유와 원자료/수동 driving 토큰 소비, NG·Init·Cell·CAS·Undo를 유지합니다. 가공 Basis/Scale 또는 새 UI 기능을 도입하지 않습니다."
+    },
+    {
+      "priority": "verified",
+      "subject": "최종 실제 DLL 대조",
+      "evidence": "controller-production.json / backend-read.json / release-build-console.log",
+      "conclusion": "최종 Release 0경고/0오류. actual Controller296와 Backend189가 같은 Drilling.UI SHA로 실행됐고 현재 Release 파일과 일치합니다. Native I/O 추가5개는 취소/선택전환/오류 비캐시/동일경로·시각 SHA변경 거절을 검증합니다. 설비 Guard 전체 실행 또는 실제 장비속도 검증을 의미하지 않습니다."
+    }
+  ],
+  "intermediateFindings": [
+    {
+      "kind": "measured",
+      "finding": "첫 최적화의 2초 due 응답 동기 checkpoint가 32k Dispatcher를 297~603ms 막았습니다.",
+      "resolution": "due 표시 후 P2P 응답/정상 Flying line 뒤 await fence로 교체. 최종 due-after 중앙값26.9058ms이며 실패/Stop 후 다음 line0 회귀 통과."
+    },
+    {
+      "kind": "measured",
+      "finding": "변하지 않은 Point record에도 준비/상태마다 새 바깥 목록을 만들어 전체 UI 갱신을 유발했습니다.",
+      "resolution": "순서와 record 참조가 모두 같으면 이전 바깥 목록도 재사용. 진행 중 참조 불변성 회귀 통과."
+    },
+    {
+      "kind": "measured_rejected_experiment",
+      "finding": "UI DrawingGroup/Visual 실험은 선택 성능 회귀가 나왔습니다.",
+      "resolution": "UI 소유자가 실험을 제거하고 기존 OnRender와 보수적 상태 캐시로 종료했습니다. 실험 결과를 최종 개선으로 합산하지 않습니다."
+    }
+  ],
+  "limits": [
+    "Controller 벤치는 실제 source-linked Core/Controller와 임시 checkpoint 직렬화/파일 I/O만 포함합니다. 실제 Vision/모션/설비 지연, Native Recipe/CSV I/O 및 production View/Map/Table/Scatter 렌더링은 제외합니다.",
+    "각 크기 3회, warmup 제외의 이 PC 측정값입니다. 전체 설비 속도나 상주 메모리/VRAM 수치가 아닙니다. 할당량은 GC.GetTotalAllocatedBytes입니다.",
+    "due 진단은 응답 직전 checkpoint 경과시각만 오래되게 한 재현이며 실제 장비 측정시간을 주입하거나 측정한 결과가 아닙니다.",
+    "큰 모델 최초 전체 로딩/투영은 약160ms UI 공백이 관측됩니다. 모든 조작의 무정지/실시간 보장을 주장하지 않습니다.",
+    "Source Controller293는 source-linked 보조 결과로 actual Controller296와 중복 합산하지 않습니다. Backend189·Core294·UI20모드1075는 서로 다른 검증 범위로 구분합니다."
+  ],
+  "equipmentExecution": false,
+  "operationalCsvModifiedOrCopied": false,
+  "gitMutationsByThisAgent": false,
+  "generatedAtUtc": "2026-11-24T22:45:18.2879042Z",
+  "sourceHashes": [
+    {
+      "path": "Drilling.Common\\Review\\ManualInspection\\CManualInspectionWorkspace.cs",
+      "sha256": "6bde9206a739bc15f5e6a45e8208ec73260558bd0f227cdafbd2664a2cde089e",
+      "frozenShaMatches": true
+    },
+    {
+      "path": "Drilling.UI\\Menu\\Menus\\CManualInspectionController.cs",
+      "sha256": "b2e7a63f587f252701757ad284a807375b0b0eb2a926a0f21ddd3d0ec58635d0",
+      "frozenShaMatches": true
+    },
+    {
+      "path": "Drilling.UI\\Menu\\Menus\\CManualInspectionReplayBackend.cs",
+      "sha256": "61c1b0a74638d83babd535a9cb2d0d761d1f30255697c8e8f14529a6ca92427e",
+      "frozenShaMatches": true
+    }
+  ],
+  "coreReportSourceChecks": [
+    {
+      "path": "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs",
+      "reportSha256": "6af6eb882a37e534d431db987182c04a6cba4cd6a77fd85a29dd791b4cda1bda",
+      "actualSha256": "6af6eb882a37e534d431db987182c04a6cba4cd6a77fd85a29dd791b4cda1bda",
+      "matches": true
+    },
+    {
+      "path": "Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs",
+      "reportSha256": "40eeebdb71005c81a668d53371ac0a07fea38a9daf59818b15776745109c0529",
+      "actualSha256": "40eeebdb71005c81a668d53371ac0a07fea38a9daf59818b15776745109c0529",
+      "matches": true
+    },
+    {
+      "path": "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
+      "reportSha256": "6bde9206a739bc15f5e6a45e8208ec73260558bd0f227cdafbd2664a2cde089e",
+      "actualSha256": "6bde9206a739bc15f5e6a45e8208ec73260558bd0f227cdafbd2664a2cde089e",
+      "matches": true
+    }
+  ],
+  "benchmarkReportSourceChecks": [
+    {
+      "path": "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
+      "reportSha256": "6bde9206a739bc15f5e6a45e8208ec73260558bd0f227cdafbd2664a2cde089e",
+      "actualSha256": "6bde9206a739bc15f5e6a45e8208ec73260558bd0f227cdafbd2664a2cde089e",
+      "matches": true
+    },
+    {
+      "path": "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs",
+      "reportSha256": "6af6eb882a37e534d431db987182c04a6cba4cd6a77fd85a29dd791b4cda1bda",
+      "actualSha256": "6af6eb882a37e534d431db987182c04a6cba4cd6a77fd85a29dd791b4cda1bda",
+      "matches": true
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CManualInspectionController.cs",
+      "reportSha256": "b2e7a63f587f252701757ad284a807375b0b0eb2a926a0f21ddd3d0ec58635d0",
+      "actualSha256": "b2e7a63f587f252701757ad284a807375b0b0eb2a926a0f21ddd3d0ec58635d0",
+      "matches": true
+    },
+    {
+      "path": "Drilling.UI/Views/CManualInspectionUiContract.cs",
+      "reportSha256": "4f4140229f2a96e667257a3f3e25f38cf208aab141712a3c93f529d59e3892ea",
+      "actualSha256": "4f4140229f2a96e667257a3f3e25f38cf208aab141712a3c93f529d59e3892ea",
+      "matches": true
+    },
+    {
+      "path": "tests/ManualInspection/ControllerHarness/Contracts.cs",
+      "reportSha256": "9eb608b7106a38367ace9e34b658de1280113fab7db432a029fb91704bc8375b",
+      "actualSha256": "9eb608b7106a38367ace9e34b658de1280113fab7db432a029fb91704bc8375b",
+      "matches": true
+    }
+  ],
+  "artifacts": {
+    "core-results.json": {
+      "sha256": "c7201a3b4546f7d19cd09c1450741bc2a139314b4719226874a5cfa947d4e28f",
+      "bytes": 35838
+    },
+    "core-final.log": {
+      "sha256": "6ed44e818141cf760acf10a59cbf4e42133a0cb2b75c1a32f29b3e3e44fb7ce9",
+      "bytes": 20666
+    },
+    "controller-source.json": {
+      "sha256": "36ac762d8bafce5ae0e66597a20d375197a05ae422fe3a8248e72325a3caaef7",
+      "bytes": 38069
+    },
+    "controller-source.log": {
+      "sha256": "875af755ed7a17b1b4727c21738d6fd84f2754afe4cbc592456eb5b5dcf224a5",
+      "bytes": 23020
+    },
+    "controller-performance-before.json": {
+      "sha256": "b7c94c81699fe7a5d06e94d19664dcfdfdfda1657fa10be4fc3fc744278a8acf",
+      "bytes": 11484
+    },
+    "controller-performance-after.json": {
+      "sha256": "0656ea9c5d61d6327f085cbcd520d0eb4f197e23f19817f8a77d8f426dbc3965",
+      "bytes": 11420
+    },
+    "controller-checkpoint-due-before.json": {
+      "sha256": "7ce98953e63a3e3d08c68c670da140de79db30a076189cb0e0f1ed23175d797b",
+      "bytes": 4525
+    },
+    "controller-checkpoint-due-after.json": {
+      "sha256": "da1bfa52347de4a736c059aea268d956a5051647fc800e0df2a7da402e297464",
+      "bytes": 4502
+    },
+    "controller-performance-comparison.json": {
+      "sha256": "2b4a6aadd7a29e08be00ce4ecb4dd1d9c5c8efdee17e0c0027f9e993669b5c56",
+      "bytes": 6888
+    },
+    "release-build-console.log": {
+      "sha256": "c6cea78b51ce183d8935cd9ee49448b0b6ec110ee0958a116c87a815a55446fb",
+      "bytes": 580
+    },
+    "release-build.log": {
+      "sha256": "c4e1af1ea1ef4815c0c6f26aed2ac5c3d5233bd80788ed709ce57864fc2c5b4f",
+      "bytes": 1501710
+    },
+    "controller-production.json": {
+      "sha256": "8b905ae0cc7fe4dbe1ec9b536d120f331a66818ef59c858f83e555125bac377e",
+      "bytes": 38411
+    },
+    "controller-production-final.log": {
+      "sha256": "2679c8e20d4a8aa3dba7959877321f7cb29c6bac059ed4347a8048e2c2d0d107",
+      "bytes": 23225
+    },
+    "backend-read.json": {
+      "sha256": "67876e4d78235cd9c978afa51aa00f4f783bce91513523501d4670f8d784993e",
+      "bytes": 25876
+    },
+    "backend-read-final.log": {
+      "sha256": "01fc1c12b8dbe13ddf0b5efdb27079970f40db56c132f84b71d3489c2e98ec97",
+      "bytes": 15757
+    },
+    "ui-final\\validation.json": {
+      "sha256": "a21d43e1e0e85bc962b0bdefc56f4c2e0fecfecf03fc467ef824cf18c4a083a7",
+      "bytes": 41620
+    },
+    "ui-presentation-comparison.json": {
+      "sha256": "7793edbb618150ac757aa7454dbfb1df2d930f5411f055832f75dee5dd163caa",
+      "bytes": 2218
+    },
+    "incremental-loop.json": {
+      "sha256": "7b4e551e3c792b2254f56c42da58ac1debcdfdf0413e000ed5c922734dfdd600",
+      "bytes": 2227
+    },
+    "legacy-serialization.json": {
+      "sha256": "2050efee50c3e3d6135a94b3d3ef1b7934991b660528c38675be15e596769204",
+      "bytes": 5934
+    }
+  },
+  "nativeBackendSourceSha256": "b09b37cbf6da100db1c5ec35c89aee8cb0f3161f0295304a9b7a8e2e8c9296bf"
+}

@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net8.0-windows</TargetFramework><UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <SourceRoot Condition="'$(SourceRoot)' == ''">$(MSBuildThisFileDirectory)..\..\..</SourceRoot>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="$(SourceRoot)/tests/ManualInspection/ControllerHarness/Contracts.cs" Link="Contracts.cs" />
+    <Compile Include="$(SourceRoot)/Drilling.Common/Review/ManualInspection/*.cs" Link="Production/%(Filename)%(Extension)" />
+    <Compile Include="$(SourceRoot)/Drilling.UI/Menu/Menus/CManualInspectionController.cs" Link="Production/CManualInspectionController.cs" />
+    <Compile Include="$(SourceRoot)/Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs" Link="Production/CManualInspectionReplayBackend.cs" />
+    <Compile Include="$(SourceRoot)/Drilling.UI/Menu/Menus/CManualInspectionUpdateMonitor.cs" Link="Production/CManualInspectionUpdateMonitor.cs" />
+    <Compile Include="$(SourceRoot)/Drilling.UI/Views/CManualInspectionUiContract.cs" Link="Production/CManualInspectionUiContract.cs" />
+  </ItemGroup>
+</Project>
