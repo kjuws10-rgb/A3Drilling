@@ -1,6 +1,8 @@
 # Manual Inspection 독립 검증
 
-현재 `11.23.0`의 일괄 보정·10단계 Undo/Redo·모든 Review Init 없음 표시는 [BULK_HISTORY_QA.md](BULK_HISTORY_QA.md)를 따른다. 이전 [11.21.2](MEASUREMENT_WORKFLOW_QA.md)와 [11.21.1](OFFSET_INIT_QA.md) 검증 기록은 당시 범위로 보존한다.
+현재 `11.24.6`의 일괄보정 → 최종 CSV → Manual 지도/Monitor 일치 검증은 [원인·범위·결과](../../docs/ManualInspection/BULK_FINAL_CONSISTENCY_11.24.6.md)와 [manifest](../../docs/ManualInspection/validation.json)를 따른다. 새 Backend CSV/Monitor 18개, 실제 Controller 후속 8개, WPF 후속 49개를 포함한다. 생산 저장 경로의 장비 Manager 가드는 실행하지 않는다.
+
+이전 `11.23.0`의 일괄 보정·10단계 Undo/Redo·모든 Review Init 없음 표시는 [BULK_HISTORY_QA.md](BULK_HISTORY_QA.md)를 따른다. 이전 [11.21.2](MEASUREMENT_WORKFLOW_QA.md)와 [11.21.1](OFFSET_INIT_QA.md) 검증 기록은 당시 범위로 보존한다.
 
 이 폴더의 Common 회귀는 새 프로그램의 실제 `Drilling.Common/Review/ManualInspection/*.cs`를 직접 Include한 .NET 8 콘솔입니다. 별도의 SDK나 장비 연결이 필요하지 않으며 실제 장비 프로그램을 시작하지 않습니다.
 

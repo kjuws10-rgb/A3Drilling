@@ -100,6 +100,8 @@ namespace Drilling.UI.Menu.Menus
         private bool _coordinateReviewOffsetRefreshRunning;
         private string _coordinateReviewOffsetVersion = "";
         private string _coordinateReviewOffsetError = "";
+        private string _coordinateReviewSavedInfo = "";
+        private string _coordinateReviewSavedToolTip = "";
         private static readonly string[] MonitorTabs = ["PRODUCT", "LASER", "ATTENUATOR", "BET", "MELSEC", "XPS", "PICO MOTOR", "COORDINATE VIEWER", "LOG VIEWER"];
         private static readonly string[] HomeTypeOptions = ["1: Current Position as HOME", "4: Negative End Limit as HOME", "5: End Run Offset Init (Service)"];
         public IReadOnlyList<ST_SCREEN_SECTION> DeviceTabs { get; private set; } = [];
@@ -169,6 +171,11 @@ namespace Drilling.UI.Menu.Menus
         public string CoordinateShotCoordinateSummary { get; private set; } = "Select a cell to view all shot coordinates.";
         public string CoordinateGlassPreviewSummary { get; private set; } = "0 Cells / 0 Shot Centers";
         public string CoordinateCalculationSummary { get; private set; } = "Select a cell and shot.";
+        public string CoordinateReviewSavedInfoText => string.IsNullOrEmpty(_coordinateReviewOffsetError)
+            ? _coordinateReviewSavedInfo ?? ""
+            : "CSV 갱신 실패 · 이전 표시값 유지\n" + (_coordinateReviewSavedInfo ?? "");
+        public string CoordinateReviewSavedInfoToolTip => (_coordinateReviewSavedToolTip ?? "")
+            + (string.IsNullOrEmpty(_coordinateReviewOffsetError) ? "" : "\n갱신 오류: " + _coordinateReviewOffsetError);
         public ImageSource? CoordinateOffsetPreviewImage { get; private set; }
         public string CoordinateOffsetPreviewSummary { get; private set; } = "Select a shot to compare its basis position.";
         public string CoordinateOffsetPreviewMinimumText
@@ -1055,36 +1062,51 @@ namespace Drilling.UI.Menu.Menus
         private async Task RefreshCoordinateReviewOffsets(CancellationToken token)
         {
             if (_coordinateReviewOffsetRefreshRunning) return;
+            var selectedRecipe = (_selectedRecipeIdProvider() ?? "").Trim();
             _coordinateReviewOffsetRefreshRunning = true;
+            bool StillSelected() => NormalizeMonitorScreenTab(_selectedTabAccessor()) == "COORDINATE VIEWER"
+                && selectedRecipe.Equals((_selectedRecipeIdProvider() ?? "").Trim(), StringComparison.OrdinalIgnoreCase);
             try
             {
-                var selectedRecipe = (_selectedRecipeIdProvider() ?? "").Trim();
                 var recipe = await LoadSelectedCoordinateRecipe(token);
-                if (recipe is null) return;
-                var saved = await Task.Run(() => _reviewOffsetFile.LoadLatest(recipe.Id, token), token);
-                token.ThrowIfCancellationRequested();
-                if (NormalizeMonitorScreenTab(_selectedTabAccessor()) != "COORDINATE VIEWER"
-                    || !selectedRecipe.Equals((_selectedRecipeIdProvider() ?? "").Trim(), StringComparison.OrdinalIgnoreCase)) return;
-                var version = CoordinateReviewOffsetVersion(recipe.Id, saved);
-                if (version == _coordinateReviewOffsetVersion)
+                if (recipe is null)
                 {
-                    // A successful unchanged read ends an earlier error episode as well.
-                    _coordinateReviewOffsetError = "";
+                    if (StillSelected() && _coordinateReviewOffsetVersion != UnavailableCoordinateRecipeVersion(selectedRecipe))
+                        await _refreshCurrentScreen();
                     return;
                 }
-                await _refreshCurrentScreen();
+                var saved = await Task.Run(() => _reviewOffsetFile.LoadLatest(recipe.Id, token), token);
+                token.ThrowIfCancellationRequested();
+                if (!StillSelected()) return;
+                var version = CoordinateReviewOffsetVersion(recipe.Id, saved);
+                if (version != _coordinateReviewOffsetVersion)
+                    await _refreshCurrentScreen();
+                if (!StillSelected()) return;
+                // A successful unchanged read ends an earlier error episode as well.
                 _coordinateReviewOffsetError = "";
+                NotifyCoordinateReviewSavedInfo();
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
             catch (Exception error)
             {
-                // Keep the last good display, report a failed read once, and retry on the next tick.
+                // An old model/tab's delayed failure must not label the new selection as stale.
+                if (!StillSelected()) return;
                 if (_coordinateReviewOffsetError != error.Message)
                     _setStatusMessage("Review Offset 화면 갱신 실패: " + error.Message);
                 _coordinateReviewOffsetError = error.Message;
+                NotifyCoordinateReviewSavedInfo();
             }
             finally { _coordinateReviewOffsetRefreshRunning = false; }
         }
+
+        private void NotifyCoordinateReviewSavedInfo()
+        {
+            OnPropertyChanged(nameof(CoordinateReviewSavedInfoText));
+            OnPropertyChanged(nameof(CoordinateReviewSavedInfoToolTip));
+        }
+
+        private static string UnavailableCoordinateRecipeVersion(string selectedRecipe)
+            => "UNAVAILABLE|" + selectedRecipe.Trim().ToUpperInvariant();
 
         internal static string CoordinateReviewOffsetVersion(string recipeId, ST_REVIEW_OFFSET_FILE_DATA file)
             => CReviewOffsetDisplaySnapshot.GetRevisionIdentity(recipeId, file);
@@ -3146,38 +3168,26 @@ namespace Drilling.UI.Menu.Menus
 
         private async Task<ST_MONITOR_COORDINATE_VIEWER_DATA> BuildCoordinateViewerData(CancellationToken cancellationToken)
         {
-            var recipe = await LoadSelectedCoordinateRecipe(cancellationToken);
+            var requestedSelection = (_selectedRecipeIdProvider() ?? "").Trim();
+            bool SameSelection() => requestedSelection.Equals((_selectedRecipeIdProvider() ?? "").Trim(), StringComparison.OrdinalIgnoreCase);
+            ST_MONITOR_COORDINATE_VIEWER_DATA SelectionChanged() => BuildUnavailableCoordinateViewerData(
+                (_selectedRecipeIdProvider() ?? "").Trim(), selectionChanged: true);
+            ST_RECIPE_DEFINITION? recipe;
+            try { recipe = await LoadSelectedCoordinateRecipe(cancellationToken); }
+            catch (Exception) when (!cancellationToken.IsCancellationRequested && !SameSelection()) { return SelectionChanged(); }
+            if (!SameSelection()) return SelectionChanged();
             var settings = new List<ST_SYSTEM_PARAMETER>();
             settings.AddRange(_settingManager.LoadSection(EN_SETTING_TAB.Option, cancellationToken));
             settings.AddRange(_settingManager.LoadSection(EN_SETTING_TAB.Motor, cancellationToken));
             var basis = NormalizeCoordinateBasis(_coordinateBasis);
             _coordinateBasis = string.IsNullOrWhiteSpace(basis) ? "DESIGN" : basis;
-            if (recipe is null)
-            {
-                return new ST_MONITOR_COORDINATE_VIEWER_DATA(
-                    CreateCoordinateBasisOptions(_coordinateBasis), 
-                    [new("RECIPE", "SELECTED", "Recipe", "-", "", "No recipe is loaded.")], 
-                    null, 
-                    [], 
-                    [], 
-                    null, 
-                    680.0, 
-                    420.0, 
-                    [], 
-                    [],
-                    null,
-                    "0 Cells / 0 Shot Centers", 
-                    "Select a cell and shot.", 
-                    "Select a cell to view all shot coordinates.",
-                    "Select a shot to compare its basis position.",
-                    "-", 
-                    GetCoordinateBasisName(_coordinateBasis), 
-                    GetCoordinateBasisDescription(_coordinateBasis)
-                );
-            }
+            if (recipe is null) return BuildUnavailableCoordinateViewerData(requestedSelection);
 
             var parameterMap = BuildCoordinateParameterMap(recipe, settings);
-            var reviewOffsetFile = await _reviewOffsetFile.LoadLatest(recipe.Id, cancellationToken);
+            ST_REVIEW_OFFSET_FILE_DATA reviewOffsetFile;
+            try { reviewOffsetFile = await _reviewOffsetFile.LoadLatest(recipe.Id, cancellationToken); }
+            catch (Exception) when (!cancellationToken.IsCancellationRequested && !SameSelection()) { return SelectionChanged(); }
+            if (!SameSelection()) return SelectionChanged();
             // The latest model file is authoritative. Validate its model and rows before drawing;
             // never let Recipe/Setting preview values become a second Review Offset store.
             parameterMap = CReviewOffsetDisplaySnapshot.Create(recipe.Id, reviewOffsetFile).ApplyToCopy(parameterMap);
@@ -3347,7 +3357,10 @@ namespace Drilling.UI.Menu.Menus
                 parameterMap,
                 cellCount,
                 currentCellNo);
+            if (!SameSelection()) return SelectionChanged();
             _coordinateReviewOffsetVersion = CoordinateReviewOffsetVersion(recipe.Id, reviewOffsetFile);
+            _coordinateReviewOffsetError = "";
+            var reviewInfo = BuildCoordinateReviewSavedInfo(recipe, reviewOffsetFile, selectedShot, parameterMap);
             return new ST_MONITOR_COORDINATE_VIEWER_DATA(
                 CreateCoordinateBasisOptions(_coordinateBasis), 
                 valueRows, 
@@ -3367,7 +3380,25 @@ namespace Drilling.UI.Menu.Menus
                 $"{recipe.Id} / {recipe.Name}", 
                 GetCoordinateBasisName(_coordinateBasis), 
                 GetCoordinateBasisDescription(_coordinateBasis)
-            );
+            ) { ReviewSavedInfoText = reviewInfo.Text, ReviewSavedInfoToolTip = reviewInfo.ToolTip };
+        }
+
+        private ST_MONITOR_COORDINATE_VIEWER_DATA BuildUnavailableCoordinateViewerData(string requested, bool selectionChanged = false)
+        {
+            _coordinateReviewOffsetVersion = selectionChanged ? "" : UnavailableCoordinateRecipeVersion(requested);
+            _coordinateReviewOffsetError = "";
+            var info = selectionChanged ? "모델 전환 중 · 이전 모델의 CSV를 표시하지 않습니다. 다음 갱신에서 다시 확인합니다."
+                : requested.Length == 0 ? "선택된 모델 없음 · 저장 CSV를 연결하지 않았습니다."
+                : $"선택 모델 {requested}을 찾을 수 없습니다 · 다른 모델의 CSV를 연결하지 않았습니다.";
+            return ST_MONITOR_COORDINATE_VIEWER_DATA.Empty with
+            {
+                BasisOptions = CreateCoordinateBasisOptions(_coordinateBasis),
+                ValueRows = [new("RECIPE", "SELECTED", "Recipe", "-", "", info)],
+                BasisName = GetCoordinateBasisName(_coordinateBasis),
+                BasisDescription = GetCoordinateBasisDescription(_coordinateBasis),
+                ReviewSavedInfoText = info,
+                ReviewSavedInfoToolTip = "현재 선택: " + requested + "\n현재 선택 모델을 다시 확인하세요. 이전 모델의 저장값은 표시하지 않습니다."
+            };
         }
 
         private async Task<ST_RECIPE_DEFINITION?> LoadSelectedCoordinateRecipe(CancellationToken cancellationToken)
@@ -3384,7 +3415,9 @@ namespace Drilling.UI.Menu.Menus
                 return recipe.Name.Equals(selectedRecipeId, StringComparison.OrdinalIgnoreCase);
             }
 
-            return recipes.FirstOrDefault(MatchesItem) ?? recipes.FirstOrDefault(MatchesItem2) ?? recipes.FirstOrDefault();
+            // An explicit missing selection must not borrow the first model's CSV.
+            return recipes.FirstOrDefault(MatchesItem) ?? recipes.FirstOrDefault(MatchesItem2)
+                ?? (selectedRecipeId.Length == 0 ? recipes.FirstOrDefault() : null);
         }
 
         private static Dictionary<string, string> BuildCoordinateParameterMap(ST_RECIPE_DEFINITION recipe, IReadOnlyList<ST_SYSTEM_PARAMETER> settings)
@@ -3828,6 +3861,8 @@ namespace Drilling.UI.Menu.Menus
             CoordinateOffsetPreviewImage = data.OffsetPreviewImage;
             CoordinateGlassPreviewSummary = data.GlassPreviewSummary;
             CoordinateCalculationSummary = data.CalculationSummary;
+            _coordinateReviewSavedInfo = data.ReviewSavedInfoText;
+            _coordinateReviewSavedToolTip = data.ReviewSavedInfoToolTip;
             CoordinateOffsetPreviewSummary = data.OffsetPreviewSummary;
             CoordinateSelectedRecipeName = data.RecipeName;
             CoordinateSelectedBasisName = data.BasisName;
@@ -3860,7 +3895,9 @@ namespace Drilling.UI.Menu.Menus
                 nameof(CoordinateOffsetPreviewMaximumText),
                 nameof(CoordinateOffsetPreviewGridText),
                 nameof(CoordinateGlassPreviewSummary), 
-                nameof(CoordinateCalculationSummary), 
+                nameof(CoordinateCalculationSummary),
+                nameof(CoordinateReviewSavedInfoText),
+                nameof(CoordinateReviewSavedInfoToolTip),
                 nameof(CoordinateOffsetPreviewSummary),
                 nameof(CoordinateHasCalculationRows), 
                 nameof(CoordinateIsGlassPreviewVisible), 
@@ -4276,6 +4313,34 @@ namespace Drilling.UI.Menu.Menus
             var recipe = CScannerAxisTransform.ScannerOffsetToDesign(parameters, point.HeadNo, point.RecipeOffsetX, point.RecipeOffsetY);
             var review = CScannerAxisTransform.ScannerOffsetToDesign(parameters, point.HeadNo, point.ReviewOffsetX, point.ReviewOffsetY);
             return (point.DesignX + recipe.X + review.X, point.DesignY + recipe.Y + review.Y);
+        }
+
+        private static (string Text, string ToolTip) BuildCoordinateReviewSavedInfo(
+            ST_RECIPE_DEFINITION recipe, ST_REVIEW_OFFSET_FILE_DATA saved, ST_HEAD_SHOT_POINT? point,
+            IReadOnlyDictionary<string, string> parameters)
+        {
+            var hasFile = !string.IsNullOrWhiteSpace(saved.FilePath);
+            var shortSha = string.IsNullOrWhiteSpace(saved.ContentSha256) ? "확인 필요"
+                : saved.ContentSha256[..Math.Min(12, saved.ContentSha256.Length)];
+            var source = hasFile ? $"CSV {saved.FileName} · SHA {shortSha}" : "저장된 Review CSV 없음";
+            var toolTip = $"모델 {recipe.Id} / {recipe.Name}\n파일: {(hasFile ? saved.FilePath : "없음")}\nSHA-256: {saved.ContentSha256}";
+            if (point is null) return (source + "\nCell/Shot을 선택하면 저장 원값과 적용 기여분을 비교합니다.", toolTip);
+            var prefix = CoordinateReviewOffsetPrefix(point);
+            var shot = CReviewShotNameFormatter.ToMatrixName(point.CellShotNo, point.GroupCountX);
+            toolTip += $"\nCell {point.CellNo} / Shot {shot} / Head {point.HeadNo:00}";
+            if (!CReviewOffsetData.HasMeasurementValue(parameters, prefix))
+                return (source + "\n측정 보정값 없음 / Offset Init · 좌표 계산 중립값 0", toolTip);
+            var storedX = ReadCoordinateDouble(parameters, 0, prefix + "X");
+            var storedY = ReadCoordinateDouble(parameters, 0, prefix + "Y");
+            var isDesign = CReviewOffsetData.IsDesignCoordinate(parameters, prefix);
+            var design = CReviewOffsetData.ToDesign(parameters, point.HeadNo, storedX, storedY, isDesign);
+            var scale = ReadCoordinateDouble(parameters, 100, "REVIEW_OFFSET_SCALE");
+            string Um(double value) => (value * 1000).ToString("0.000", CultureInfo.InvariantCulture);
+            string Mm(double value) => value.ToString("F6", CultureInfo.InvariantCulture);
+            toolTip += $"\n원본 좌표계 {(isDesign ? "DESIGN" : "SCANNER")} / mm: X {Mm(storedX)} / Y {Mm(storedY)}"
+                + "\n저장 원값과 Scale 적용 기여분은 합산 대상이 서로 다릅니다. 아래 REVIEW OFFSET은 현재 선택 좌표계의 mm입니다.";
+            return (source + $"\n저장 DESIGN µm: X {Um(design.X)} / Y {Um(design.Y)}"
+                + $"\n적용 SCANNER mm: X {Mm(point.ReviewOffsetX)} / Y {Mm(point.ReviewOffsetY)} · Scale {scale.ToString("0.###", CultureInfo.InvariantCulture)}%", toolTip);
         }
 
         private static string CoordinateReviewOffsetPrefix(ST_HEAD_SHOT_POINT point)
@@ -6867,6 +6932,8 @@ namespace Drilling.UI.Menu.Menus
         string BasisDescription
     )
     {
+        public string ReviewSavedInfoText { get; init; } = "";
+        public string ReviewSavedInfoToolTip { get; init; } = "";
         public static ST_MONITOR_COORDINATE_VIEWER_DATA Empty { get; } = new([], [], null, [], [], null, 680.0, 420.0, [], [], null, "0 Cells / 0 Shot Centers", "Select a cell and shot.", "Select a cell to view all shot coordinates.", "Select a shot to compare its basis position.", "-", "Design", "Recipe design coordinate from Align Key / Glass");
     }
 

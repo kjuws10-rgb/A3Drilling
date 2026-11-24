@@ -386,8 +386,8 @@ public partial class CManualInspectionView : UserControl
             MapLegendText.ToolTip = MapLegendText.Text;
             MapLegendItems.ToolTip = MapLegendText.Text;
             RefreshMapLegend();
-            ColorDescriptionText.Text = _color == "applied" ? "저장된 최종 누적 Review 보정량 · 실측 잔차 아님" : _color == "level" ? "측정 편차 Level · NG 빨강 · 초기화/미측정 회색" : "OK/NG · 초기화/미측정 회색";
-            ColorDescriptionText.ToolTip = "최종 보정 보기는 저장된 활성 파일만 표시합니다. 미저장 초안·미적용 측정은 제외하며 보정량이 작다고 가공 정밀도가 좋다는 뜻은 아닙니다. 측정 편차 보기에서는 직접 측정 편차가 우선입니다. 원편차가 없는 보정 이력은 보정 기반 값으로 표시하며, 초기화한 점은 새 측정 전까지 회색입니다.";
+            ColorDescriptionText.Text = _color == "applied" ? "최종 CSV 누적값 F · DESIGN µm · 측정 편차와 다름" : _color == "level" ? "이번 측정 편차 Δ · NG 빨강 · 초기화/미측정 회색" : "OK/NG · 초기화/미측정 회색";
+            ColorDescriptionText.ToolTip = "직접 측정은 기존 보정 B + 이번 편차 Δ = 최종 CSV F로 저장합니다. 대표값 복사는 대표의 최종 F를 그대로 지정합니다. 따라서 측정 편차 Level과 최종 보정 Level은 서로 다를 수 있습니다. 최종 보정 보기는 CSV의 원저장값을 DESIGN µm로 표시하며 Monitor의 적용 기여분은 좌표계·mm 단위·REVIEW_OFFSET_SCALE에 따라 달라질 수 있습니다. 미저장 초안은 제외하며 초기화/저장 행 없음은 회색입니다.";
             RefreshRows(); RefreshReference(); RefreshCorrection(); RefreshDetails(); RefreshScatter(); RefreshButtons();
         }
         finally { _updating = false; }
@@ -454,9 +454,11 @@ public partial class CManualInspectionView : UserControl
         FinalOffsetFileText.Text = hasFile ? _snapshot.FinalOffsetFileName : known ? "아직 저장된 최종 보정 파일 없음" : "최종 저장값 확인 대기";
         FinalOffsetFileText.ToolTip = hasFile ? _snapshot.FinalOffsetFilePath + "\nSHA-256 " + _snapshot.FinalOffsetContentSha256 : _snapshot.FinalOffsetStatusText;
         FinalOffsetInfoText.Text = hasFile
-            ? $"{_snapshot.FinalOffsetSavedAt:yyyy-MM-dd HH:mm:ss} · {_snapshot.FinalOffsetRowCount:N0} Shot\n초기화 {_snapshot.FinalOffsetInitializedRowCount:N0} · DESIGN µm 표시"
-            : _snapshot.FinalOffsetStatusText;
-        FinalOffsetInfoText.ToolTip = _snapshot.FinalOffsetStatusText;
+            ? $"{_snapshot.FinalOffsetSavedAt:MM-dd HH:mm:ss} · {_snapshot.FinalOffsetRowCount:N0} Shot · Init {_snapshot.FinalOffsetInitializedRowCount:N0}\nDESIGN µm · "
+                + (string.IsNullOrWhiteSpace(_snapshot.LastSaveVerificationText) ? "저장된 최종값" : _snapshot.LastSaveVerificationText)
+            : string.IsNullOrWhiteSpace(_snapshot.LastSaveVerificationText) ? _snapshot.FinalOffsetStatusText
+                : _snapshot.LastSaveVerificationText + "\n최종 CSV 재조회 필요 · DESIGN µm";
+        FinalOffsetInfoText.ToolTip = _snapshot.FinalOffsetStatusText + "\n" + _snapshot.LastSaveVerificationText;
         ShowFinalOffsetsButton.IsEnabled = known;
         // This is the SAME authoritative CSV selected by LoadLatest for machining/monitoring.
         // Keep its identity visible with the side panels closed; never create another store.
@@ -471,9 +473,14 @@ public partial class CManualInspectionView : UserControl
 
     private void ShowFinalOffsets_Click(object sender, RoutedEventArgs e)
     {
+        UseSavedFinalView();
+        Refresh();
+    }
+
+    private void UseSavedFinalView()
+    {
         _color = "applied";
         _scatterFinalOffsets = true; _scatterOriginal = false; _scatterOffsets = false;
-        Refresh();
     }
 
     private void RefreshRows()
@@ -1062,7 +1069,7 @@ public partial class CManualInspectionView : UserControl
                     $"대표 {frozen.ReferenceKey}\n선택한 {frozen.Keys.Distinct(StringComparer.Ordinal).Count():N0}점에 대표의 최종 Offset과 상태를 복사합니다.\n"+
                     "유효한 OK 결과는 보정 한계와 Field를 확인한 뒤 같은 모델의 새 누적 CSV로 저장하고 지도를 갱신합니다.\nNG·미측정 대표는 상태만 복사하며 실제 보정 파일은 바꾸지 않습니다.\n같은 Shot의 Beam은 보정값을 공유합니다. 원측정은 보존하며 저장 후 되돌릴 수 있습니다."),
                 EN_MANUAL_INSPECTION_UI_ACTION.BulkApply => ("일괄 보정 적용 확인", "일괄 보정 적용",
-                    $"현재 모델 전체의 유효한 측정 {current.BulkEligibleCount:N0}점에 보정을 적용합니다.\n{current.BulkSummaryText}\n선택·화면 필터와 관계없이 새 OK 측정과 대표값 복사 결과를 적용합니다.\nNG·미측정·이미 적용한 결과는 제외합니다.\n하드웨어·Default·First Beam·Distortion Offset은 유지하며, 저장 후 최대 10회 되돌릴 수 있습니다."),
+                    $"모델 {current.RecipeId} 전체의 유효한 측정 {current.BulkEligibleCount:N0}점에 보정을 적용합니다.\n{current.BulkSummaryText}\n직접 측정은 기존 B + 이번 편차 Δ = 최종 F, 대표값은 복사한 최종 F를 저장합니다.\n증감 한계 {current.DeltaLimitUm:0.###} / 누적 한계 {current.TotalLimitUm:0.###} µm를 넘는 점은 제외합니다.\n선택·화면 필터와 관계없이 새 OK 결과를 같은 모델의 새 최종 CSV로 저장합니다.\nNG·미측정·이미 적용한 결과는 제외합니다.\n저장 후 CSV를 다시 읽어 확인하며 최종 보정 지도로 전환합니다.\n하드웨어·Default·First Beam·Distortion Offset은 유지하며, 저장 후 최대 10회 되돌릴 수 있습니다."),
                 EN_MANUAL_INSPECTION_UI_ACTION.Calculate => ("선택점 보정 계산 확인", "보정 후보 계산",
                     $"선택한 {frozen.Keys.Distinct(StringComparer.Ordinal).Count():N0}점의 유효한 측정값으로 보정 후보를 계산합니다.\n현재 보정값에 측정 편차를 더한 후보이며, 기존 후보가 있으면 새 계산으로 바뀝니다.\n이 단계에서는 모델 Offset 파일에 저장하지 않습니다."),
                 EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets => ("선택점 보정 확인", "선택점 보정 적용",
@@ -1098,6 +1105,17 @@ public partial class CManualInspectionView : UserControl
         {
             await _controller.ExecuteAsync(action, frozen);
             var after = _controller.Snapshot;
+            // Change views only after this action committed a NEW file and that exact saved
+            // revision was read back. Editing a measurement or failing to save must never
+            // repaint the final map as though the working error had become a stored offset.
+            if ((action is EN_MANUAL_INSPECTION_UI_ACTION.BulkApply or EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets
+                    or EN_MANUAL_INSPECTION_UI_ACTION.Apply or EN_MANUAL_INSPECTION_UI_ACTION.CopyReference
+                    or EN_MANUAL_INSPECTION_UI_ACTION.UndoOffsets or EN_MANUAL_INSPECTION_UI_ACTION.RedoOffsets)
+                && after.LastSaveVerificationCode == "VERIFIED"
+                && after.LastSavedRevisionId != current.LastSavedRevisionId
+                && after.LastSavedRevisionId == after.FinalOffsetRevisionId
+                && after.HasFinalOffsetSnapshot)
+                UseSavedFinalView();
             if (action == EN_MANUAL_INSPECTION_UI_ACTION.LoadResultFile && after.CanReturnToPreviousWorkspace && (!current.CanReturnToPreviousWorkspace || _workspaceViewBookmark is null))
                 _workspaceViewBookmark = beforeFile;
             if ((action is EN_MANUAL_INSPECTION_UI_ACTION.ReturnToPreviousWorkspace or EN_MANUAL_INSPECTION_UI_ACTION.Refresh or EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe)

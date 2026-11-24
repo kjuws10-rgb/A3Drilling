@@ -1,0 +1,62 @@
+[
+  {
+    "scenario": "normal_B_plus_delta",
+    "baseUm": [
+      18,
+      -3
+    ],
+    "deltaUm": [
+      5,
+      1
+    ],
+    "workingLevel": 1,
+    "finalUm": [
+      23,
+      -2
+    ],
+    "csvMm": [
+      0.023,
+      -0.002
+    ],
+    "monitorDesignUm": [
+      23,
+      -2
+    ],
+    "finalLevel": 4,
+    "status": "\uC77C\uAD04 \uBCF4\uC815 1\uC810 \uC800\uC7A5 \u00B7 NG 0 / \uBBF8\uCE21\uC815 63 / \uC218\uCE58\uD55C\uACC4 0 / \uC801\uC6A9\uB428 0\uC810 \uC81C\uC678 \u00B7 \uC800\uC7A5\u00B7CSV \uD655\uC778 \uC644\uB8CC"
+  },
+  {
+    "scenario": "legacy_B_over_200_excluded",
+    "baseUm": [
+      500,
+      -700
+    ],
+    "deltaUm": [
+      5,
+      1
+    ],
+    "eligible": 0,
+    "saves": 0,
+    "status": "\uC77C\uAD04 \uBCF4\uC815\uD560 \uACB0\uACFC\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4. NG 0 / \uBBF8\uCE21\uC815 63 / \uC218\uCE58\uD55C\uACC4 1 / \uC774\uBBF8 \uC801\uC6A9 0\uC810 \uC81C\uC678"
+  },
+  {
+    "scenario": "stale_reconnect_rejected",
+    "saves": 0,
+    "finalUm": 30,
+    "activeUm": 30,
+    "status": "\uBAA8\uB378\u00B7\uAC00\uACF5 \uD68C\uCC28\u00B7\uC88C\uD45C \uB610\uB294 \uD65C\uC131 Offset\uC774 \uBC14\uB00C\uC5B4 \uC0C8 \uAE30\uC900\uC73C\uB85C \uC5F0\uACB0\uD588\uC2B5\uB2C8\uB2E4. \uB300\uC0C1\uC744 \uB2E4\uC2DC \uD655\uC778\uD558\uACE0 \uCE21\uC815\uD558\uC138\uC694."
+  },
+  {
+    "scenario": "saved_readback_failed_then_recovered",
+    "saves": 1,
+    "finalUm": 12,
+    "verification": "VERIFIED"
+  },
+  {
+    "scenario": "saved_then_other_csv",
+    "saves": 1,
+    "ourCommittedUm": 12,
+    "latestFinalUm": 25,
+    "verification": "SUPERSEDED"
+  }
+]

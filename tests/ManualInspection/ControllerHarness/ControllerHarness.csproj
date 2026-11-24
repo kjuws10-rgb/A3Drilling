@@ -23,6 +23,7 @@
     <Compile Include="InitRecoveryCases.cs" />
     <Compile Include="StartupFinalOffsetsCases.cs" />
     <Compile Include="RepresentativeApplyCases.cs" />
+    <Compile Include="BulkFinalVerificationCases.cs" />
   </ItemGroup>
   <ItemGroup Condition="'$(UseActualAssemblies)' != 'true'">
     <Compile Include="Contracts.cs" />

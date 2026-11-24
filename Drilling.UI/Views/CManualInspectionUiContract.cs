@@ -197,6 +197,11 @@ public sealed record CManualInspectionUiSnapshot
     public int FinalOffsetRowCount { get; init; }
     public int FinalOffsetInitializedRowCount { get; init; }
     public string FinalOffsetStatusText { get; init; } = "최종 저장 보정 확인 전";
+    // A successful CSV commit and its later read-back are separate outcomes. Never invite
+    // another accumulation merely because a committed file cannot currently be displayed.
+    public string LastSaveVerificationCode { get; init; } = "NONE";
+    public string LastSaveVerificationText { get; init; } = "";
+    public string LastSavedRevisionId { get; init; } = "";
     public string SourcePath { get; init; } = "";
     public bool IsSimulation { get; init; }
     public bool IsBusy { get; init; }

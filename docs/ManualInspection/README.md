@@ -1,10 +1,18 @@
-# MANUAL INSPECTION · 11.24.5
+# MANUAL INSPECTION · 11.24.6
 
-브랜치: `feature/manual-inspection-representative-apply-20261124.5`
+브랜치: `feature/manual-inspection-bulk-final-consistency-20261124.6`
 
-기준 Commit: `c0a169548edef5975ea454389071dd7c22c625bd` · 11.24.4
+기준 Commit: `0103581022bfba6fe7a7b050cd357ceefbee7143` · 11.24.5
 
 **master에는 병합하지 않는다.** 기존 테마와 지도 중심 구성을 유지한다.
+
+## 11.24.6 · 일괄보정 CSV 재확인·Monitor 일치
+
+일괄/선택 보정 저장 뒤 새 CSV를 다시 읽어 저장 Revision·전체 값·Init 상태를 대조한다. 새 파일 확인이 끝나면 최종 보정 지도로 전환하며, 파일 저장과 재조회 실패는 구분한다. 외부 CSV 교체 후 재연결된 최종 지도와 Monitor의 잘못된 모델 대체·모델 전환 중 늦은 응답도 수정했다.
+
+측정 편차 Δ와 누적 최종 F는 다를 수 있다. Monitor Shot Detail에 같은 CSV의 원저장값(DESIGN µm)과 실제 적용 기여분(mm)을 구분해 표시한다. **NG·미측정·중복·수치/Field 한계 보호는 유지한다.**
+
+[원인·합성 재현 결과·확인 방법](BULK_FINAL_CONSISTENCY_11.24.6.md) · [현재 검증 기록](validation.json)
 
 ## 11.24.5 · 대표값 실제 저장·수동 OK·기존 키패드
 

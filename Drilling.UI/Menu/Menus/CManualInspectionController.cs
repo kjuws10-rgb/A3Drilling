@@ -59,6 +59,8 @@ public sealed class CManualInspectionController : IManualInspectionController
     private readonly SemaphoreSlim _finalOffsetReadGate=new(1,1);
     private bool _finalOffsetReadQueued,_finalOffsetFollowupScheduled;
     private string _finalOffsetStatus="최종 저장 보정 확인 전";
+    private ST_MANUAL_CONTEXT? _lastSavedContext;
+    private string _lastSaveVerificationCode="NONE",_lastSaveVerificationText="";
     private Dictionary<string, CManualInspectionImportedResult> _displayedImports = new(StringComparer.Ordinal);
     public CManualInspectionUiSnapshot Snapshot { get; private set; } = new();
     public event EventHandler? Changed;
@@ -163,11 +165,46 @@ public sealed class CManualInspectionController : IManualInspectionController
         }
         finally
         {
-            _finalOffsetReadGate.Release();
-            if(publishCancelledRead) Publish(reusePoints:true);
-            else ScheduleFinalOffsetFollowup();
+            try { VerifyLastSavedOffsets(); }
+            finally
+            {
+                _finalOffsetReadGate.Release();
+                if(publishCancelledRead) Publish(reusePoints:true);
+                else ScheduleFinalOffsetFollowup();
+            }
         }
     }
+
+    private bool HasCurrentSaveConfirmation => _source is not null && _lastSavedContext is { } saved
+        && saved.RecipeId==_source.Context.RecipeId && saved.RunId==_source.Context.RunId
+        && saved.CoordinateSignature==_source.Context.CoordinateSignature;
+    private void BeginSaveConfirmation()
+    {
+        _lastSavedContext=_engine.Context;
+        _lastSaveVerificationCode="PENDING";_lastSaveVerificationText="CSV 저장됨 · 재확인 중";
+    }
+    private void VerifyLastSavedOffsets()
+    {
+        if(!HasCurrentSaveConfirmation) return;
+        if(_finalOffsets is not { } final)
+        {
+            _lastSaveVerificationCode=_finalOffsetStatus.StartsWith("이 연결은",StringComparison.Ordinal)?"UNSUPPORTED":"READ_FAILED";
+            _lastSaveVerificationText=_lastSaveVerificationCode=="UNSUPPORTED"?"CSV 저장됨 · 조회 미지원":"CSV 저장됨 · 재확인 실패";
+            return;
+        }
+        if(final.RevisionId!=_lastSavedContext!.RevisionId)
+        { _lastSaveVerificationCode="SUPERSEDED";_lastSaveVerificationText="CSV 저장됨 · 최신값 변경";return; }
+        var values=_engine.ActiveOffsets;
+        var offsets=_engine.Points.Select(p=>p.OffsetKey).ToHashSet(StringComparer.Ordinal);
+        var initialized=_engine.ActiveInitializedOffsetKeys.ToHashSet(StringComparer.Ordinal);
+        var same=_engine.Context?.RevisionId==_lastSavedContext.RevisionId
+            && values.All(p=>final.ValuesByPointKey.TryGetValue(p.Key,out var actual)
+                && Math.Abs(p.Value.XUm-actual.XUm)<=1e-7 && Math.Abs(p.Value.YUm-actual.YUm)<=1e-7)
+            && initialized.SetEquals(final.InitializedOffsetKeys.Where(offsets.Contains));
+        _lastSaveVerificationCode=same?"VERIFIED":"MISMATCH";
+        _lastSaveVerificationText=same?"저장·CSV 확인 완료":"CSV 저장됨 · 내용 불일치";
+    }
+    private string SaveConfirmationSuffix => HasCurrentSaveConfirmation ? " · "+_lastSaveVerificationText : "";
 
     private void ScheduleFinalOffsetFollowup()
     {
@@ -814,6 +851,8 @@ public sealed class CManualInspectionController : IManualInspectionController
         ReconcileDisplayedImports(_source!);_stageX=_stageY=double.NaN;
         _synchronizationText="현재 모델 기준 재연결 · 이전 출처는 보존하며 새 측정 가능합니다.";
         _loadFailureRecovered=true;
+        if(!same){_finalOffsets=null;_finalOffsetStatus="새 작업 기준의 최종 저장 보정 확인 중";}
+        await RefreshFinalOffsets(token,true);
         if (!same) throw new InvalidOperationException("모델·가공 회차·좌표 또는 활성 Offset이 바뀌어 새 기준으로 연결했습니다. 대상을 다시 확인하고 측정하세요.");
     }
 
@@ -980,7 +1019,7 @@ public sealed class CManualInspectionController : IManualInspectionController
                 if(!validation.Ok) throw new InvalidOperationException("대표값을 작업화면에 복사했지만 보정 파일을 저장하지 않았습니다.\n"+string.Join("\n",validation.Errors));
                 await Apply(token,sourceVerified:true);
             }
-            _status=$"대표 {preview.Targets.Count:N0}점 복사 · {eligible.Keys.Count:N0}점 모델 저장 · NG {eligible.ExcludedNg:N0} / 미측정 {eligible.ExcludedUnmeasured:N0} / 수치한계 {eligible.ExcludedNumeric:N0} / 동일 적용값 {eligible.ExcludedUnchanged:N0}점 제외 · 원측정 보존";
+            _status=$"대표 {preview.Targets.Count:N0}점 복사 · {eligible.Keys.Count:N0}점 모델 저장 · NG {eligible.ExcludedNg:N0} / 미측정 {eligible.ExcludedUnmeasured:N0} / 수치한계 {eligible.ExcludedNumeric:N0} / 동일 적용값 {eligible.ExcludedUnchanged:N0}점 제외 · 원측정 보존"+(eligible.Keys.Count>0?SaveConfirmationSuffix:"");
         }
     }
 
@@ -1006,7 +1045,7 @@ public sealed class CManualInspectionController : IManualInspectionController
         var validation=_engine.ValidateCandidate(_allowManual);
         if(!validation.Ok) throw new InvalidOperationException("일괄 보정을 저장하지 않았습니다.\n"+string.Join("\n",validation.Errors));
         await Apply(token, sourceVerified: true);
-        _status=$"일괄 보정 {preview.Keys.Count:N0}점 저장 · NG {preview.ExcludedNg:N0} / 미측정 {preview.ExcludedUnmeasured:N0} / 수치한계 {preview.ExcludedNumeric:N0} / 적용됨 {preview.ExcludedConsumed+preview.ExcludedUnchanged:N0}점 제외";
+        _status=$"일괄 보정 {preview.Keys.Count:N0}점 저장 · NG {preview.ExcludedNg:N0} / 미측정 {preview.ExcludedUnmeasured:N0} / 수치한계 {preview.ExcludedNumeric:N0} / 적용됨 {preview.ExcludedConsumed+preview.ExcludedUnchanged:N0}점 제외"+SaveConfirmationSuffix;
     }
 
     private async Task ApplySelectedOffsets(IReadOnlyList<string> keys, CancellationToken token)
@@ -1023,13 +1062,14 @@ public sealed class CManualInspectionController : IManualInspectionController
         var validation = _engine.ValidateCandidate(_allowManual);
         if (!validation.Ok) throw new InvalidOperationException("선택점 보정을 저장하지 않았습니다.\n" + string.Join("\n", validation.Errors));
         await Apply(token, sourceVerified: true);
-        _status = $"선택점 보정 {preview.Keys.Count:N0}점 저장 · NG {preview.ExcludedNg:N0} / 미측정 {preview.ExcludedUnmeasured:N0} / 수치한계 {preview.ExcludedNumeric:N0} / 이미 적용 {preview.ExcludedConsumed+preview.ExcludedUnchanged:N0}점 제외";
+        _status = $"선택점 보정 {preview.Keys.Count:N0}점 저장 · NG {preview.ExcludedNg:N0} / 미측정 {preview.ExcludedUnmeasured:N0} / 수치한계 {preview.ExcludedNumeric:N0} / 이미 적용 {preview.ExcludedConsumed+preview.ExcludedUnchanged:N0}점 제외"+SaveConfirmationSuffix;
     }
 
     private async Task Apply(CancellationToken token, bool sourceVerified = false)
     {
         if (!sourceVerified) await Current(token);
         var snapshot = _engine.CreateApplySnapshot(_allowManual);
+        var committed=false;
         try
         {
             SaveLocalSession(); Publish(reusePoints: true);
@@ -1054,6 +1094,7 @@ public sealed class CManualInspectionController : IManualInspectionController
                 : await _backend.SaveAsync(_source!, snapshot.ValuesByPointKey, identity, snapshot.Rows, token, snapshot.ConsumedMeasurements);
             _engine.CommitApplied(snapshot, revision, "Manual Inspection 검증된 보정 적용",
                 _backend.LastSavedValues.Count > 0 ? _backend.LastSavedValues : null);
+            committed=true;
             var written = snapshot.IsOffsetReplacement ? changedShots
                 : snapshot.Rows.Select(r=>r.OffsetKey).ToHashSet(StringComparer.Ordinal);
             _source = _source! with
@@ -1063,15 +1104,17 @@ public sealed class CManualInspectionController : IManualInspectionController
                 AppliedOffsetKeys = snapshot.IsOffsetReplacement && !snapshot.IsMeasurementOffsetInitialization || snapshot.InitializeAllReviewRows ? _source.Points.Select(p=>p.Key).ToHashSet(StringComparer.Ordinal)
                     : _source.AppliedOffsetKeys.Concat(_source.Points.Where(p => written.Contains(p.OffsetKey)).Select(p => p.Key)).ToHashSet(StringComparer.Ordinal)
             };
-            _status = "모델 통합 Offset 저장 완료 · 최신 누적값 하나로 반영 · 보호 Offset·기존 파일/원측정 이력 보존";
+            BeginSaveConfirmation();
             await RefreshFinalOffsets(CancellationToken.None,true);
+            _status = "모델 통합 Offset 저장 완료 · 보호 Offset·기존 파일/원측정 이력 보존"+SaveConfirmationSuffix;
         }
-        catch { _engine.AbortApply(snapshot); throw; }
+        catch { if(!committed)_engine.AbortApply(snapshot);throw; }
     }
 
     private async Task Restore(CancellationToken token,bool redo)
     {
         await Current(token); var snapshot = redo?_engine.CreateRestoreNextSnapshot():_engine.CreateRestorePreviousSnapshot();
+        var committed=false;
         try
         {
             SaveLocalSession(); Publish(reusePoints: true);
@@ -1080,13 +1123,15 @@ public sealed class CManualInspectionController : IManualInspectionController
                     snapshot.InitializedOffsetKeys,snapshot.InitializationOffsetKeys }), [], token,snapshot.ConsumedMeasurements);
             _engine.CommitRestored(snapshot, revision, redo?"사용자 요청 · 보정 다시 적용":"사용자 요청 · 보정 되돌리기",
                 _backend.LastSavedValues.Count > 0 ? _backend.LastSavedValues : null);
+            committed=true;
             _source = _source! with { Context = _engine.Context!, Values = _engine.ActiveOffsets,Points=_engine.Points.ToArray(),
                 StoredInitializedOffsetKeys=_engine.ActiveInitializedOffsetKeys.ToHashSet(StringComparer.Ordinal) };
             ClearMeasurementReceipt();
-            _status=(redo?"보정을 다시 적용했습니다.":"이전 보정으로 되돌렸습니다.")+$" 되돌리기 {_engine.UndoCount}/10 · 다시 적용 {_engine.RedoCount}회 · 원측정 이력 보존";
+            BeginSaveConfirmation();
             await RefreshFinalOffsets(CancellationToken.None,true);
+            _status=(redo?"보정을 다시 적용했습니다.":"이전 보정으로 되돌렸습니다.")+$" 되돌리기 {_engine.UndoCount}/10 · 다시 적용 {_engine.RedoCount}회 · 원측정 이력 보존"+SaveConfirmationSuffix;
         }
-        catch { _engine.AbortRestore(snapshot); throw; }
+        catch { if(!committed)_engine.AbortRestore(snapshot);throw; }
     }
 
     public void RequestStop()
@@ -1401,6 +1446,9 @@ public sealed class CManualInspectionController : IManualInspectionController
             FinalOffsetFilePath=final?.FilePath??"",FinalOffsetFileName=final?.FileName??"",FinalOffsetSavedAt=final?.SavedAt,
             FinalOffsetContentSha256=final?.ContentSha256??"",FinalOffsetRevisionId=final?.RevisionId??"",
             FinalOffsetRowCount=final?.RowCount??0,FinalOffsetInitializedRowCount=final?.InitializedRowCount??0,FinalOffsetStatusText=_finalOffsetStatus,
+            LastSavedRevisionId=HasCurrentSaveConfirmation?_lastSavedContext!.RevisionId:"",
+            LastSaveVerificationCode=HasCurrentSaveConfirmation?_lastSaveVerificationCode:"NONE",
+            LastSaveVerificationText=HasCurrentSaveConfirmation?_lastSaveVerificationText:"",
             CanReturnToPreviousWorkspace=_previousWorkspace is not null,
             IsOffsetEditPending=offsetEdit,OffsetInitPending=offsetEdit&&candidate!.IsMeasurementOffsetInitialization,
             MeasurementSequence=_measurementSequence,LastMeasuredPointKey=_lastMeasuredPointKey,LastMeasurementText=_lastMeasurementText,

@@ -1,0 +1,331 @@
+{
+  "passed": true,
+  "tests": 58,
+  "failures": 0,
+  "checks": [
+    {
+      "name": "copy_popup_cancel_is_inert_before_dispatch",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "copy_popup_names_reference_target_count_and_storage_effect",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "copy_popup_explains_non_motion_and_original_measurement_preservation",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "copy_popup_nested_second_click_does_not_dispatch_twice",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "copy_accepted_request_freezes_reference_targets_and_current_version",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "copy_popup_external_version_change_rejects_stale_accept",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "copy_popup_controller_replaced_at_same_version_is_rejected",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "copy_popup_exception_restores_idle_controls_without_dispatch",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "copy_saved_reply_immediately_updates_default_final_map_and_csv_caption",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "copy_view_never_fabricates_original_raw_from_saved_reply",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "copy_ng_reference_still_requires_confirm_and_describes_state_only",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "copy_unmeasured_reference_confirms_state_only_without_inventing_numeric_value",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "real_copy_confirmation_inherits_current_theme_Dark",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "real_copy_confirmation_cancel_never_dispatches_or_edits_Dark",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "real_copy_confirmation_inherits_current_theme_Light",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "real_copy_confirmation_cancel_never_dispatches_or_edits_Light",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "copy_write_pending_blocks_second_confirmation_and_second_dispatch",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "copy_write_completion_releases_ui_command_gate",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "keypad_cancel_x_does_not_ask_y_or_change_work",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "keypad_cancel_y_does_not_commit_partial_x",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "keypad_confirm_dispatches_one_force_action_with_explicit_design_um",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "keypad_confirm_never_dispatches_motion_measurement_or_apply",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "keypad_invalid_input_is_not_invented_zero_blank",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "keypad_invalid_input_is_not_invented_zero_NaN",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "keypad_invalid_input_is_not_invented_zero_Infinity",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "keypad_invalid_input_is_not_invented_zero_not-a-number",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "keypad_missing_values_start_blank_and_explicit_typed_zero_is_allowed",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "keypad_explicit_zero_does_not_create_original_camera_raw",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "keypad_external_source_change_rejects_pair_before_dispatch",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "keypad_controller_swap_at_same_version_cannot_dispatch_into_new_controller",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "keypad_nested_double_open_is_blocked_during_modal_pair",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "keypad_exception_restores_idle_without_partial_dispatch",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "context_force_ok_dispatches_selected_keys_without_motion_or_implicit_save",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "context_direct_input_edits_focus_only_and_passes_explicit_pair",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "manual_ok_reply_is_labeled_operator_while_original_ng_stays_preserved",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "manual_ok_source_filter_lists_operator_result_without_promoting_raw",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "manual_ok_working_reply_does_not_change_saved_csv_identity",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "operator_final_only_never_invents_base_or_zero_as_residual",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "operator_final_only_is_not_a_working_scatter_sample_but_saved_B_remains_visible",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "operator_final_only_shows_captured_F_instead_of_unrelated_active_B",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "pending_operator_final_is_completed_history_without_fabricated_residual",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "pending_operator_final_filters_are_consistent_and_both_unsaved_scatter_populations_stay_empty",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "context_force_opened_before_source_change_does_not_dispatch",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "point_double_click_opens_numeric_input_instead_of_fitting_or_executing",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "blank_double_click_retains_fit_without_manual_or_device_action",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "modified_double_click_does_not_open_numeric_editor_Control",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "modified_double_click_does_not_open_numeric_editor_Alt",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "busy_point_double_click_cannot_open_another_editor",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "pending_offset_edit_point_double_click_is_blocked",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_double_click_keeps_fit_without_numeric_input",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_first_release_then_second_down_does_not_accidentally_edit",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "keypad_uses_exact_production_recipe_data_type_enum",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "real_keypad_missing_initial_value_stays_blank_Dark",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "real_keypad_accepts_signed_decimal_with_existing_ui_Dark",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "real_keypad_cancel_keeps_missing_value_empty_Dark",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "real_keypad_missing_initial_value_stays_blank_Light",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "real_keypad_accepts_signed_decimal_with_existing_ui_Light",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "real_keypad_cancel_keeps_missing_value_empty_Light",
+      "passed": true,
+      "details": null
+    }
+  ],
+  "observations": [
+    {
+      "copyConfirmations": 2,
+      "copyCalls": 4
+    },
+    {
+      "typedCalls": 3,
+      "typedAction": "ForceMeasurement",
+      "sourceRawUntouched": true
+    },
+    {
+      "manualContextCalls": 2,
+      "numericRequests": 1
+    },
+    {
+      "theme": "Dark",
+      "keypadAssembly": "ManualInspection.UiHarness"
+    },
+    {
+      "theme": "Light",
+      "keypadAssembly": "ManualInspection.UiHarness"
+    }
+  ],
+  "sourceHashes": {
+    "Views/CManualInspectionView.xaml": "847ea76f4d3de58a8a795f5af415de3e0c07e0f2976fcfd667170ca1eb5bc0be",
+    "Views/CManualInspectionView.xaml.cs": "15d9097acb550408d13ffa7a273fe95f0ccde6f5be003599fb5f841793d61f87",
+    "Views/CManualInspectionUiContract.cs": "823e68eda6dae8d410c762c62d77b01f3ae5a37193d64df59d9ddaf6aec3f32f",
+    "Views/CManualInspectionMapControl.cs": "72964a4fef45bcd344d403af945a1f5a091d100745549d3caeaaddfb0af2f806",
+    "Views/CManualInspectionScatterControl.cs": "1cc3fb7be94547c2e714d8809906f2df6018e5805b6ed44ecc9fd2c398e6a0bb",
+    "Popup/CValueInputDialog.xaml": "304abe666aab54bd6d5618650ab78176bb7e67f32cde9cba4b36bb1116df67a5",
+    "Popup/CValueInputDialog.xaml.cs": "2b05f6cf626e622daefee01b894f4aba1909dbcd11b77da23e4cda5caf502166",
+    "../Drilling.Common/Managers/CRecipeManager.cs": "b8d208d8945081e6a6d500f40d51e3f4fca414124329325c36c7fffedb86c9b9"
+  },
+  "scope": "Source-linked actual WPF Manual controls and actual numeric keypad; actual Common data-type enum is extracted at build time. Immutable synthetic points, fake Controller only: no production App/Root/Manager, equipment, vendor, Vision, motion, CSV save or actual correction executes. Core/Controller saving is tested separately."
+}

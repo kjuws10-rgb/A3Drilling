@@ -1,0 +1,110 @@
+{
+  "schemaVersion": "a3-bulk-final-independent-review/1",
+  "status": "complete_final_source_and_production_dll_reports_matched",
+  "sourceHashes": [
+    {
+      "path": "Drilling.UI/Views/CManualInspectionView.xaml.cs",
+      "sha256": "15d9097acb550408d13ffa7a273fe95f0ccde6f5be003599fb5f841793d61f87"
+    },
+    {
+      "path": "Drilling.UI/Views/CManualInspectionUiContract.cs",
+      "sha256": "823e68eda6dae8d410c762c62d77b01f3ae5a37193d64df59d9ddaf6aec3f32f"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMenuMonitor.cs",
+      "sha256": "14ba9cc6682157c3b7a72bc8e6b57c1830a4618bceb10b45f33911dc2a7399f5"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CReviewOffsetDisplaySnapshot.cs",
+      "sha256": "7ddb55f332e36f7ce3b3b597f9ba3bba5415cd19e538b2dc958e9a6fe1f27b83"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CManualInspectionController.cs",
+      "sha256": "bb373affca00cf45cef3f28552a629bd92ba4cc43541d0755338f74e3b697a59"
+    },
+    {
+      "path": "Drilling.UI/CRootView.cs",
+      "sha256": "d1b229746ae3fa204af774a5718970be70abc2ea8da8f1e5be4a534ec4cabe1d"
+    }
+  ],
+  "checks": [
+    {
+      "name": "verified_new_revision_only_auto_view",
+      "status": "pass_source",
+      "evidence": "CManualInspectionView Execute compares VERIFIED, changed LastSavedRevisionId, matching FinalOffsetRevisionId, HasFinalOffsetSnapshot; Force/noop/failed-read do not claim a new confirmed file"
+    },
+    {
+      "name": "missing_init_ng_display",
+      "status": "pass_source",
+      "evidence": "FinalOffsetPoint uses saved map and authoritative Init set; unavailable final is empty/gray; original NG judge remains separate; no residual zero/raw fabrication"
+    },
+    {
+      "name": "monitor_csv_vs_scaled_component",
+      "status": "pass_source_and_synthetic_csv",
+      "evidence": "Monitor saved info explicitly shows raw DESIGN um and scaled SCANNER mm; actual Bulk synthetic 18,-3 + 5,1 writes 23,-2 um and scale100 monitor matches"
+    },
+    {
+      "name": "monitor_strict_selected_model_and_poll_frame",
+      "status": "pass_source",
+      "evidence": "Explicit missing selection returns no fallback model; poll checks same selected model/tab before and after async refresh; revision identity includes path/time/SHA"
+    },
+    {
+      "name": "monitor_build_selection_change_during_read",
+      "status": "resolved_source_and_final_backend_report_pass",
+      "evidence": "Monitor owner captures selection and rechecks after recipe/file awaits and before publication; stale successful/error reads return neutral Empty data and empty version so next poll retries without stale model CSV or artificial cancellation"
+    },
+    {
+      "name": "save_commit_vs_readback",
+      "status": "pass_source_and_controller_8_cases",
+      "evidence": "Successful engine commit is never aborted on later readback failure; actual values/initialized keys/revision checked; readfailed/superseded/mismatch statuses retain committed consumption and do not repeat save"
+    },
+    {
+      "name": "read_gate_release_on_verification_exception",
+      "status": "source_hardened_and_source_controller_266_pass",
+      "evidence": "Nested finally guarantees semaphore release and publish/schedule even if verification throws; committed guard prevents post-commit Abort/reaccumulation"
+    },
+    {
+      "name": "stale_current_reconnect_latest_final",
+      "status": "pass_actual_csv_seam",
+      "evidence": "Current source revision mismatch reconnects to latest model, clears old final cache, awaits fresh saved read, then rejects the stale operation without writing"
+    }
+  ],
+  "validation": {
+    "controllerSourceReport": "controller-source.json",
+    "actualCsvReport": "backend-read.json",
+    "syntheticValueTrace": "bulk-csv-trace.json",
+    "newActualCsvCases": 5,
+    "equipmentManagerConstructed": false,
+    "vendorExecuted": false,
+    "actualProductionSaveCoreExecuted": false,
+    "gitMutationByThisAgent": false,
+    "operationalCsvModified": false
+  },
+  "finalValidation": {
+    "backend": {
+      "report": "backend-read.json",
+      "passed": true,
+      "count": 152,
+      "failed": 0
+    },
+    "controllerActual": {
+      "report": "controller-production.json",
+      "passed": true,
+      "count": 269,
+      "failed": 0
+    },
+    "controllerSource": {
+      "report": "controller-source.json",
+      "passed": true,
+      "count": 266,
+      "countedAgain": false
+    },
+    "uiAssemblySha256": "2cb27b0cfd8e67de69c1e35c65caef978fe2b4409a736e190c1254dffc894561",
+    "commonAssemblySha256": "64ccf7dbe8fac57bfbfddd2dabf4a507bcdf497ea347cc692759f14e62087f99",
+    "sourceHashesMatched": true,
+    "reportDllHashesMatchCurrentProduction": true,
+    "newCsvCasesPassed": 5,
+    "loadedVendorAssemblies": [],
+    "scope": "Independent read-only source and report/hash audit. Parent executed final production build/harnesses; source-linked and actual Controller counts are not summed."
+  }
+}

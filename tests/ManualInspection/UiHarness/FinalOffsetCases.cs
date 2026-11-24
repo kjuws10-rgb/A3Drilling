@@ -69,7 +69,7 @@ internal static partial class Program
         Set(view,"_cell",0);Set(view,"_head",0);Set(view,"_scatterScope","HEAD");Set(view,"_scatterHead",0);Refresh();
         Test("final_color_and_scatter_modes_are_explicit",Find<ComboBox>("ColorFilter").Items.Count==3&&Find<ComboBox>("ScatterDataCombo").Items.Count==4);
         Test("final_metadata_file_path_and_sha_visible",Find<TextBlock>("FinalOffsetFileText").Text==state.FinalOffsetFileName&&Find<TextBlock>("FinalOffsetFileText").ToolTip.ToString()!.Contains(state.FinalOffsetFilePath)&&Find<TextBlock>("FinalOffsetFileText").ToolTip.ToString()!.Contains(state.FinalOffsetContentSha256));
-        Test("final_metadata_model_row_counts_and_unit",Find<TextBlock>("FinalOffsetInfoText").Text.Contains("7 Shot")&&Find<TextBlock>("FinalOffsetInfoText").Text.Contains("초기화 1")&&Find<TextBlock>("FinalOffsetInfoText").Text.Contains("DESIGN µm"));
+        Test("final_metadata_model_row_counts_and_unit",Find<TextBlock>("FinalOffsetInfoText").Text.Contains("7 Shot")&&Find<TextBlock>("FinalOffsetInfoText").Text.Contains("Init 1")&&Find<TextBlock>("FinalOffsetInfoText").Text.Contains("DESIGN µm"));
         Find<Button>("ShowFinalOffsetsButton").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();
         Test("final_map_shortcut_selects_saved_color_mode_without_controller_call",Field<string>(view,"_color")=="applied"&&fake.Calls.Count==0);
         var projected=Field<IReadOnlyList<CManualInspectionUiPoint>>(Find<CManualInspectionMapControl>("PositionMap"),"_all");
