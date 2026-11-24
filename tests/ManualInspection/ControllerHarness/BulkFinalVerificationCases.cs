@@ -35,7 +35,7 @@ internal static partial class Program
         await Check("offset_init_final_verification_checks_initialized_state_not_only_numeric_zero",async()=>
         {
             var(f,_)=Fixture();var b=new FinalBackend(f){UseCurrent=true};var c=new CManualInspectionController(b);await c.EnsureLoaded();
-            b.UseCurrent=false;b.Saved=Saved(f.Source,"REV-1",0);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Apply);
+            b.UseCurrent=false;b.Saved=Saved(f.Source,"REV-1",0);await StageLegacyInitDraft(c);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Apply);
             True(f.Saves==1&&c.Snapshot.Points.All(p=>p.IsMeasurementOffsetInitialized)&&c.Snapshot.LastSaveVerificationCode=="MISMATCH"&&c.Snapshot.LastSavedRevisionId=="REV-1");
         });
         await Check("offset_undo_redo_refresh_their_own_verified_revision_without_extra_measurement",async()=>
@@ -47,7 +47,7 @@ internal static partial class Program
         await Check("generic_saved_read_unsupported_and_force_only_never_pretend_a_new_verified_csv",async()=>
         {
             var(f,c)=await Loaded();await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply);True(c.Snapshot.LastSaveVerificationCode=="UNSUPPORTED"&&f.Saves==1);var revision=c.Snapshot.LastSavedRevisionId;
-            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ForceMeasurement,["P1"],r=>r with{Reason="working state only"});True(c.Snapshot.LastSavedRevisionId==revision&&c.Snapshot.LastSaveVerificationCode=="UNSUPPORTED"&&f.Saves==1);
+            await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ForceMeasurement,["P1"],r=>r with{Reason="same consumed observation cannot create another application"}));True(c.Snapshot.LastSavedRevisionId==revision&&c.Snapshot.LastSaveVerificationCode=="UNSUPPORTED"&&f.Saves==1);
             f.FailSave=true;await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ForceMeasurement,["P1"],r=>r with{ForcedXUm=1,ForcedYUm=0,Reason="new unsaved operator value"});
             await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P1"]));True(c.Snapshot.LastSavedRevisionId==revision&&f.Saves==1);
         });

@@ -6,16 +6,16 @@ internal static partial class Program
     {
         static void Commit(CManualInspectionWorkspace w,string id,bool manual=false)
         {True(w.ValidateCandidate(manual).Ok);var snapshot=w.CreateApplySnapshot(manual);w.CommitApplied(snapshot,id,"synthetic Manual replacement");}
-        Check("manual_replacement_stores_current_measurement_not_base_plus_measurement",()=>
+        Check("manual_measurement_adds_current_deviation_to_saved_base_once",()=>
         {
             var p=Point(1,3,1);var w=Workspace([p],new(){[p.Key]=new(20,5)});var c=w.BuildMeasurementReplacementCandidate([p.Key]);
-            True(c.IsMeasurementReplacement&&!c.IsOffsetReplacement);Offset(c.Rows.Single().Final,3,1);Offset(c.Rows.Single().Delta,-17,-4);
-            Commit(w,"REPLACE-1");Offset(w.ActiveOffsets[p.Key],3,1);True(w.GetPoint(p.Key).OriginalMeasurement==p.OriginalMeasurement&&w.PreviewMeasurementReplacement().Keys.Count==0);
+            True(c.IsMeasurementReplacement&&!c.IsOffsetReplacement);Offset(c.Rows.Single().Final,23,6);Offset(c.Rows.Single().Delta,3,1);
+            Commit(w,"REPLACE-1");Offset(w.ActiveOffsets[p.Key],23,6);True(w.GetPoint(p.Key).OriginalMeasurement==p.OriginalMeasurement&&w.PreviewMeasurementReplacement().Keys.Count==0);
         });
-        Check("manual_replacement_discards_large_old_base_but_keeps_input_limit",()=>
+        Check("manual_measurement_keeps_existing_base_and_both_input_total_limits",()=>
         {
-            var p=Point(1,5,1);var w=Workspace([p],new(){[p.Key]=new(500,-700)});True(w.PreviewMeasurementReplacement().Keys.SequenceEqual([p.Key]));
-            w.BuildMeasurementReplacementCandidate([p.Key]);Commit(w,"LARGE-BASE");Offset(w.ActiveOffsets[p.Key],5,1);
+            var p=Point(1,5,1);var w=Workspace([p],new(){[p.Key]=new(500,-700)});True(w.PreviewMeasurementReplacement().ExcludedNumeric==1);
+            w.BuildMeasurementReplacementCandidate([p.Key]);True(!w.ValidateCandidate(false).Ok);Offset(w.ActiveOffsets[p.Key],500,-700);
             foreach(var x in new[]{30.0006,201d}){var bad=Workspace([Point(1,x,0)]);True(bad.PreviewMeasurementReplacement().ExcludedNumeric==1);bad.BuildMeasurementReplacementCandidate([Key(1)]);True(!bad.ValidateCandidate(false).Ok);}
         });
         Check("manual_measurement_reference_stages_error_xy_only_and_defers_file_commit",()=>
@@ -23,7 +23,7 @@ internal static partial class Program
             var a=Point(1,3,1);var b=Point(2);var w=Workspace([a,b],new(){[a.Key]=new(10,-2),[b.Key]=new(20,5)});
             var copy=w.PreviewMeasurementReferenceCopy(a.Key,[b.Key]);Offset(copy.Final,3,1);w.ConfirmMeasurementReferenceCopy(copy,[b.Key],"measurement XY only");
             True(w.Candidate is null&&w.CanUndoReferenceCopy&&w.UndoCount==0);Offset(w.ActiveOffsets[b.Key],20,5);Offset(w.GetPoint(b.Key).ProxySource!.FinalOffset,3,1);
-            w.BuildMeasurementReplacementCandidate([b.Key]);Commit(w,"COPY-BULK",true);Offset(w.ActiveOffsets[b.Key],3,1);True(w.PreviewMeasurementReplacement([b.Key]).Keys.Count==0);
+            w.BuildMeasurementReplacementCandidate([b.Key]);Commit(w,"COPY-BULK",true);Offset(w.ActiveOffsets[b.Key],23,6);True(w.PreviewMeasurementReplacement([b.Key]).Keys.Count==0);
         });
         Check("legacy_proxy_and_operator_final_do_not_leak_old_base_into_measurement_policy",()=>
         {
@@ -39,12 +39,12 @@ internal static partial class Program
             var copy=w.PreviewMeasurementReferenceStateCopy(a.Key,[b.Key]);w.ConfirmReferenceStateCopy(copy,[b.Key],"no residual invented");
             True(w.GetPoint(b.Key).IsMeasurementStateCleared&&w.GetPoint(b.Key).ErrorXUm is null&&w.GetPoint(b.Key).Judge=="UNMEASURED");Offset(w.ActiveOffsets[b.Key],20,5);True(w.PreviewMeasurementReplacement([b.Key]).Keys.Count==0);
         });
-        Check("replacement_policy_flag_cannot_reapprove_legacy_accumulation_candidate",()=>
+        Check("manual_policy_preserves_valid_accumulation_but_rejects_old_absolute_deviation_candidate",()=>
         {
             var p=Point(1,3,1);var w=Workspace([p],new(){[p.Key]=new(10,-2)});w.BuildDirectCandidate([p.Key]);
             var s=w.CaptureSession();s=s with{Candidate=s.Candidate! with{IsMeasurementReplacement=true}};var loaded=Workspace([p],new(){[p.Key]=new(10,-2)});
-            loaded.RestoreSession(s,Initial,loaded.Points,loaded.ActiveOffsets,InsideField);True(!loaded.ValidateCandidate(false).Ok);
-            w.BuildMeasurementReplacementCandidate([p.Key]);s=w.CaptureSession();s=s with{Candidate=s.Candidate! with{IsMeasurementReplacement=false}};
+            loaded.RestoreSession(s,Initial,loaded.Points,loaded.ActiveOffsets,InsideField);True(loaded.ValidateCandidate(false).Ok);
+            w.BuildMeasurementReplacementCandidate([p.Key]);s=w.CaptureSession();s=s with{Candidate=s.Candidate! with{Rows=s.Candidate.Rows.Select(r=>r with{Final=new(3,1),Delta=new(-7,3)}).ToArray()}};
             loaded.RestoreSession(s,Initial,loaded.Points,loaded.ActiveOffsets,InsideField);True(!loaded.ValidateCandidate(false).Ok);
         });
         Check("replacement_roundtrip_preserves_policy_and_zero_raw_duplicate_guard",()=>
@@ -58,7 +58,7 @@ internal static partial class Program
             var a=Point(1,3,1);var b=Point(1,cell:2);var w=Workspace([a,b],new(){[a.Key]=new(5,0),[b.Key]=new(500,-700)},evaluator:(p,v,_)=>new(p.CellNo==1,"outside legacy field"));
             var imported=w.ActiveOffsets.ToDictionary(p=>p.Key,_=>new ST_MANUAL_OFFSET(7,2));var c=w.BuildScopedOffsetReplacementCandidate(1,imported,new HashSet<string>(),"current Cell import");
             True(c.ReplacementCellNo==1&&c.Rows.Single(r=>r.Key==b.Key).Source=="OFFSET_KEEP");Commit(w,"CELL-IMPORT");
-            Offset(w.ActiveOffsets[a.Key],7,2);Offset(w.ActiveOffsets[b.Key],500,-700);True(w.GetPoint(b.Key)==b&&w.PreviewMeasurementReplacement([b.Key]).Keys.Count==1);
+            Offset(w.ActiveOffsets[a.Key],7,2);Offset(w.ActiveOffsets[b.Key],500,-700);True(w.GetPoint(b.Key)==b&&w.PreviewMeasurementReplacement([b.Key]).ExcludedNumeric==1);
         });
         Check("scoped_init_is_value_absence_and_outside_measured_zero_stays_measured",()=>
         {
@@ -90,7 +90,7 @@ internal static partial class Program
         {
             var p=Point(1,3,1);var w=Workspace([p],new(){[p.Key]=new(20,5)});w.BuildMeasurementReplacementCandidate([p.Key]);Commit(w,"FIRST");
             var undo=w.CreateRestorePreviousSnapshot();w.CommitRestored(undo,"UNDO","undo");Offset(w.ActiveOffsets[p.Key],20,5);
-            var redo=w.CreateRestoreNextSnapshot();w.CommitRestored(redo,"REDO","redo");Offset(w.ActiveOffsets[p.Key],3,1);
+            var redo=w.CreateRestoreNextSnapshot();w.CommitRestored(redo,"REDO","redo");Offset(w.ActiveOffsets[p.Key],23,6);
         });
         Check("copied_measurement_in_other_cell_remains_staged_after_first_cell_commit",()=>
         {
@@ -107,17 +107,19 @@ internal static partial class Program
             var restored=new CManualInspectionWorkspace();restored.RestoreSession(w.CaptureSession(),w.Context!,w.Points,w.ActiveOffsets,InsideField);w=restored;
             True(w.PreviewMeasurementReplacement().Keys.Count==0&&w.PreviewMeasurementReplacement().ExcludedConsumed==1);
             w.BuildMeasurementReplacementCandidate([p.Key]);True(!w.ValidateCandidate(true).Ok);
-            w.RecordMeasurementOperatorResults([p.Key],3,1,"explicit new measurement policy");Offset(w.GetPoint(p.Key).OperatorResult!.FinalOffset,3,1);
-            w.BuildMeasurementReplacementCandidate([p.Key]);Commit(w,"EXPLICIT-REPLACE",true);Offset(w.ActiveOffsets[p.Key],3,1);
+            w.RecordMeasurementOperatorResults([p.Key],3,1,"same input is not new permission");True(w.PreviewMeasurementReplacement().Keys.Count==0);
+            w.RecordMeasurementOperatorResults([p.Key],2,1,"explicit changed deviation");Offset(w.GetPoint(p.Key).OperatorResult!.FinalOffset,2,1);
+            w.BuildMeasurementReplacementCandidate([p.Key]);Commit(w,"EXPLICIT-REPLACE",true);Offset(w.ActiveOffsets[p.Key],15,0);
         });
-        Check("already_applied_legacy_proxy_is_excluded_but_a_new_copy_is_not_blocked_by_same_numeric_old_final",()=>
+        Check("already_applied_legacy_proxy_and_same_source_recopy_are_excluded_until_fresh_measurement",()=>
         {
             var a=Point(1,3,1);var b=Point(2);var w=Workspace([a,b],new(){[a.Key]=new(10,-2),[b.Key]=new(20,5)});
             var old=w.PreviewReferenceCopy(a.Key,[b.Key]);w.ConfirmReferenceCopy(old,[b.Key],"legacy proxy");Commit(w,"LEGACY-COPY",true);
             var restored=new CManualInspectionWorkspace();restored.RestoreSession(w.CaptureSession(),w.Context!,w.Points,w.ActiveOffsets,InsideField);w=restored;
             True(w.PreviewMeasurementReplacement([b.Key]).Keys.Count==0);Offset(w.ActiveOffsets[b.Key],13,-1);
-            var copy=w.PreviewMeasurementReferenceCopy(a.Key,[b.Key]);w.ConfirmMeasurementReferenceCopy(copy,[b.Key],"explicit new copy");
-            True(w.PreviewMeasurementReplacement([b.Key]).Keys.SequenceEqual([b.Key]));w.BuildMeasurementReplacementCandidate([b.Key]);Commit(w,"NEW-COPY",true);Offset(w.ActiveOffsets[b.Key],3,1);
+            Throws(()=>w.PreviewMeasurementReferenceCopy(a.Key,[b.Key]));w.RecordMeasurement(a.Key,Measurement(2,1,raw:"FRESH-REPRESENTATIVE"));
+            var copy=w.PreviewMeasurementReferenceCopy(a.Key,[b.Key]);w.ConfirmMeasurementReferenceCopy(copy,[b.Key],"fresh measurement copy");
+            True(w.PreviewMeasurementReplacement([b.Key]).Keys.SequenceEqual([b.Key]));w.BuildMeasurementReplacementCandidate([b.Key]);Commit(w,"NEW-COPY",true);Offset(w.ActiveOffsets[b.Key],15,0);
         });
         Check("pending_legacy_same_final_without_applied_transition_remains_a_valid_measurement_stage",()=>
         {

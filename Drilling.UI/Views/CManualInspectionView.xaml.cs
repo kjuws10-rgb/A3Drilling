@@ -371,7 +371,7 @@ public partial class CManualInspectionView : UserControl
             MapLegendItems.ToolTip = MapLegendText.Text;
             RefreshMapLegend();
             ColorDescriptionText.Text = "측정 편차 Δ · NG 빨강 · 초기화/미측정 회색";
-            ColorDescriptionText.ToolTip = "지도와 표는 현재 측정·복사 편차를 보여줍니다. 대표 복사는 작업값만 바꾸며, 현재 Cell 일괄 보정에서 그 편차로 Review Offset을 대체하고 CSV에 저장합니다. 기존 Review Offset에 더하지 않습니다.";
+            ColorDescriptionText.ToolTip = "지도와 표는 현재 측정·복사 편차를 보여줍니다. 실측과 대표 복사 모두 현재 Cell 일괄 보정에서 각 점의 기존 Review Offset에 이번 편차를 반영합니다. 같은 편차라도 기존값에 따라 최종값은 달라집니다.";
             RefreshRows(); RefreshReference(); RefreshCorrection(); RefreshDetails(); RefreshScatter(); RefreshButtons();
         }
         finally { _updating = false; }
@@ -447,8 +447,8 @@ public partial class CManualInspectionView : UserControl
                 : reference.CanCopyReferenceState ? "빈 측정 상태 · CSV 저장 전 작업 상태만 복사" : "복사할 측정 편차 없음");
         ReferenceText.SetResourceReference(TextBlock.ForegroundProperty, reference?.WorkingJudge == "NG" ? "ButtonDangerBrush" : "AccentTextBrush");
         var count = _selected.Count(key => key != _representativeKey && _points.TryGetValue(key, out var target) && !target.IsMasked);
-        CopyReferenceButton.Content = $"대표 편차로 대체 · {count}점";
-        CopyReferenceButton.ToolTip = "선택점의 작업 편차와 상태를 대표 편차로 대체합니다. 기존 Offset에 더하지 않으며 아직 CSV에는 저장하지 않습니다. 현재 Cell 일괄 보정에서 저장하세요.";
+        CopyReferenceButton.Content = $"대표 편차 복사 · {count}점";
+        CopyReferenceButton.ToolTip = "선택점에 대표 편차와 상태를 복사합니다. 아직 CSV에는 저장하지 않습니다. 현재 Cell 일괄 보정에서 각 대상의 기존 Review Offset에 복사한 편차를 반영합니다.";
     }
 
     private (double? X, double? Y) ReferenceValues(CManualInspectionUiPoint point)
@@ -525,12 +525,12 @@ public partial class CManualInspectionView : UserControl
         FilesButton.IsEnabled=idle;
         BulkApplyButton.IsEnabled=writable && pendingHere;
         BulkApplyButton.Content=_cell>0?$"Cell {_cell} 일괄 보정 · CSV 저장":"현재 Cell 일괄 보정 · CSV 저장";
-        BulkApplyButton.ToolTip=_cell<=0?"먼저 보정할 Cell 하나를 열어주세요.":!pendingHere?$"Cell {_snapshot.PendingOffsetCellNo} 작업을 먼저 저장하거나 취소하세요.":"현재 Cell의 편차를 Review Offset으로 대체해 CSV에 저장합니다. 다른 Cell과 보호 Offset은 유지합니다.";
+        BulkApplyButton.ToolTip=_cell<=0?"먼저 보정할 Cell 하나를 열어주세요.":!pendingHere?$"Cell {_snapshot.PendingOffsetCellNo} 작업을 먼저 저장하거나 취소하세요.":"현재 Cell 각 점의 기존 Review Offset에 유효한 측정·복사 편차를 반영해 CSV에 저장합니다. 다른 Cell과 보호 Offset은 유지합니다.";
         BulkSummaryText.Text=_cell>0?CellBulkSummary(_snapshot,_cell):"전체 Cell 보기 · 보정할 Cell 하나를 선택하세요.";
         OffsetInitButton.IsEnabled=writable && (_snapshot.IsOffsetEditPending || _cell>0);
         OffsetInitButton.Content=_snapshot.IsOffsetEditPending?$"Cell {_snapshot.PendingOffsetCellNo} 작업 취소":_cell>0?$"Cell {_cell} Offset Init":"현재 Cell Offset Init";
         OffsetInitButton.Tag=_snapshot.IsOffsetEditPending?"CancelOffsetEdit":"InitializeOffsets";
-        OffsetInitButton.ToolTip=_snapshot.IsOffsetEditPending?"가져오기/초기화 전 작업값으로 돌아갑니다. CSV는 바꾸지 않습니다.":"현재 Cell의 측정 기반 Offset을 값 없음으로 준비합니다. CSV 저장은 일괄 보정에서 합니다.";
+        OffsetInitButton.ToolTip=_snapshot.IsOffsetEditPending?"미저장 Offset 작업 전의 작업값으로 돌아갑니다. CSV는 바꾸지 않습니다.":"현재 Cell의 마지막 저장 Review Offset까지 값 없음으로 즉시 저장합니다. 다음 보정은 기존값 0부터 시작합니다. 다른 Cell과 보호 Offset은 유지합니다.";
         RollbackButton.IsEnabled=operate && _snapshot.CanUndoOffsets; RollbackButton.Content=$"되돌리기 ({_snapshot.UndoOffsetCount})";
         RedoOffsetsButton.IsEnabled=operate && _snapshot.CanRedoOffsets; RedoOffsetsButton.Content=$"다시 적용 ({_snapshot.RedoOffsetCount})";
         OffsetHistoryText.Text=_snapshot.OffsetHistoryText;
@@ -898,12 +898,12 @@ public partial class CManualInspectionView : UserControl
                 panel.Children.Add(Label($"대표 {reference.Key} · {reference.ReferenceValueJudge} · 편차 Δ {CManualInspectionUiPoint.Pair(x,y)} µm"));
             }
             var title = copying ? "대표 편차 복사 확인" : "현재 Cell 일괄 보정 확인";
-            var confirmText = copying ? "작업 편차 대체" : "현재 Cell CSV 저장";
+            var confirmText = copying ? "편차 복사" : "현재 Cell CSV 저장";
             panel.Children.Add(Label(copying
-                ? $"선택한 {frozen.Keys.Distinct(StringComparer.Ordinal).Count():N0}점의 작업 편차와 상태를 대표값으로 대체합니다.\n기존 Offset에 더하지 않습니다. 원측정 기록은 유지합니다.\n아직 CSV에는 저장하지 않습니다. 현재 Cell 일괄 보정에서 유효한 OK만 저장합니다.\nNG·빈 측정 상태도 작업 상태에 복사되며 보정 저장 대상에서는 제외됩니다."
+                ? $"선택한 {frozen.Keys.Distinct(StringComparer.Ordinal).Count():N0}점에 대표 편차와 상태를 복사합니다.\n저장할 때 각 대상의 기존 Review Offset에 복사한 편차를 반영하므로, 기존값이 다르면 최종값도 다릅니다. 원측정 기록은 유지합니다.\n아직 CSV에는 저장하지 않습니다. 현재 Cell 일괄 보정에서 유효한 OK만 저장합니다.\nNG·빈 측정 상태도 작업 상태에 복사되며 보정 저장 대상에서는 제외됩니다."
                 : $"모델 {current.RecipeId} · 현재 Cell {frozen.CurrentCellNo}\n{CellBulkSummary(current,frozen.CurrentCellNo!.Value)}\n"
                     + (current.OffsetInitPending ? "현재 Cell의 측정 기반 Offset을 값 없음으로 저장합니다. 0 측정으로 만들지 않습니다.\n"
-                        : "현재 Cell의 작업 편차 Δ를 Review Offset에 대체하여 CSV에 저장합니다. 기존 B에 Δ를 더하지 않습니다.\n")
+                        : "실측·대표 복사의 편차 Δ는 각 점의 기존 Review Offset B에 반영합니다(F = B + Δ). 가져온 최종 Offset 파일은 파일값으로 저장합니다.\n")
                     + $"입력 편차 한계 {current.DeltaLimitUm:0.###} / 저장값 한계 {current.TotalLimitUm:0.###} µm 및 Scanner Field를 확인합니다.\nNG·미측정·한계 초과 결과는 제외합니다. 필터·선택과 관계없이 현재 Cell만 저장하며 다른 Cell은 유지합니다.\n같은 Shot의 Beam은 보정값을 공유합니다. 보호 Offset과 원측정은 유지하며, 저장 후 최대 10회 되돌릴 수 있습니다.\n저장한 CSV를 다시 읽어 확인합니다."));
             panel.Children.Add(Label("장비를 이동하지 않습니다. 취소하면 작업값과 CSV는 바뀌지 않습니다."));
             bool accepted;
@@ -986,7 +986,7 @@ public partial class CManualInspectionView : UserControl
         EN_MANUAL_INSPECTION_UI_ACTION.Validate => "현재 Cell CSV 저장 사용",
         EN_MANUAL_INSPECTION_UI_ACTION.RetryRemaining => "남은 위치만 재측정",
         EN_MANUAL_INSPECTION_UI_ACTION.UndoCopy => "직전 복사 취소",
-        EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets => "Offset Init · 화면 초기화",
+        EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets => "Offset Init · 저장 보정 초기화",
         EN_MANUAL_INSPECTION_UI_ACTION.CancelOffsetEdit => "Offset 편집 취소",
         _ => action.ToString()
     };
@@ -996,12 +996,12 @@ public partial class CManualInspectionView : UserControl
         EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe => snapshot.CanReturnToPreviousWorkspace
             ? "파일 불러오기 전 작업으로 돌아갑니다. 현재 활성 보정과 실제 Stage 위치는 원복하지 않습니다."
             : "현재 Recipe의 측정 결과와 활성 보정값을 다시 확인합니다. 장비 이동이나 보정 저장은 실행하지 않습니다.",
-        EN_MANUAL_INSPECTION_UI_ACTION.Calculate => "현재 Cell 일괄 보정에서 작업 편차를 Review Offset에 대체하여 저장합니다.",
+        EN_MANUAL_INSPECTION_UI_ACTION.Calculate => "현재 Cell 일괄 보정에서 각 점의 기존 Review Offset에 측정·복사 편차를 반영하여 저장합니다.",
         EN_MANUAL_INSPECTION_UI_ACTION.Validate => "현재 Cell 일괄 보정에서 수치와 기준을 검증하고 CSV를 저장합니다.",
         EN_MANUAL_INSPECTION_UI_ACTION.RetryRemaining => $"미완료 {snapshot.RemainingCount:N0}점만 이동 후 재측정합니다. 이미 완료된 점은 유지하며 중지됐던 자동 보정은 재개하지 않습니다.",
         EN_MANUAL_INSPECTION_UI_ACTION.UndoCopy => "직전 대표값 복사를 취소해 작업값·후보를 이전 상태로 돌립니다. 원측정과 활성 보정 파일은 변경하지 않습니다. 복사 이후 기준이 달라졌으면 취소가 거부됩니다.",
-        EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets => "현재 Cell의 측정 기반 Offset을 값 없음으로 준비합니다. 하드웨어·Default·First Beam·Distortion과 다른 Cell은 유지합니다. 현재 Cell 일괄 보정으로 CSV를 저장하기 전에는 기존 파일을 바꾸지 않습니다.",
-        EN_MANUAL_INSPECTION_UI_ACTION.CancelOffsetEdit => "초기화하거나 통합 Offset 파일을 가져오기 전의 화면 작업·측정값·후보로 돌아갑니다. 저장되지 않은 통합 Offset 편집만 취소하며, 실제 활성 모델 보정과 기존 파일은 변경하지 않습니다.",
+        EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets => "현재 Cell의 마지막 저장 Review Offset까지 값 없음으로 즉시 저장합니다. 다음 보정은 기존값 0부터 시작합니다. 하드웨어·Default·First Beam·Distortion과 다른 Cell은 유지합니다. 저장에 실패하면 기존 보정값을 유지합니다.",
+        EN_MANUAL_INSPECTION_UI_ACTION.CancelOffsetEdit => "통합 Offset 파일을 가져오기 전의 화면 작업·측정값·후보로 돌아갑니다. 저장되지 않은 통합 Offset 편집만 취소하며, 실제 활성 모델 보정과 기존 파일은 변경하지 않습니다.",
         _ => "선택한 동작을 확인한 뒤 진행합니다."
     };
 

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
+    <ManualSourceRoot Condition="'$(ManualSourceRoot)' == ''">$(MSBuildThisFileDirectory)..\..\..\</ManualSourceRoot>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(ManualSourceRoot)/Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs" Link="Production/Models.cs" />
+    <Compile Include="$(ManualSourceRoot)/Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs" Link="Production/Workspace.cs" />
+    <Compile Include="$(ManualSourceRoot)/Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs" Link="Production/OffsetBundle.cs" />
+  </ItemGroup>
+</Project>

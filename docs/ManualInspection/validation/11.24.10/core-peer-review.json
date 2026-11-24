@@ -1,0 +1,151 @@
+{
+  "schemaVersion": "a3-overwrite-only-core-peer-review/1",
+  "version": "2026.11.24.10",
+  "passed": true,
+  "status": "final_source_and_production_artifacts_independently_verified",
+  "productionSourceEditedByReviewer": false,
+  "sources": [
+    {
+      "path": "Drilling.Common\\Review\\ManualInspection\\CManualInspectionWorkspace.cs",
+      "sha256": "AC4122E96C67314FFC34F8AE5E298D728208072FE7C3EC9DE84243EEE480EBB6"
+    },
+    {
+      "path": "Drilling.UI\\Menu\\Menus\\CManualInspectionController.cs",
+      "sha256": "72878047422C27044F2945B7C7D1DFD9B337537885378FF403A778F4FBBDF97B"
+    },
+    {
+      "path": "Drilling.UI\\Menu\\Menus\\CManualInspectionBackend.cs",
+      "sha256": "4778599A2F897AEDCBB2A43E5BF958BE7E2B951F270C46AB456EBD965A5C7332"
+    }
+  ],
+  "checks": [
+    {
+      "name": "manual direct and copied residual both apply target current B plus delta",
+      "passed": true
+    },
+    {
+      "name": "generic absolute copy, file import and Init numeric meaning unchanged in Core",
+      "passed": true
+    },
+    {
+      "name": "companion original raw and manual driving tokens are separately reserved and committed",
+      "passed": true
+    },
+    {
+      "name": "copied token target is Cell/Shot and visible sibling Beam receipts propagate",
+      "passed": true
+    },
+    {
+      "name": "same input source token, same keypad group and old committed provenance reject duplicate",
+      "passed": true
+    },
+    {
+      "name": "immediate current Cell Init writes through existing validated scoped snapshot and CAS",
+      "passed": true
+    },
+    {
+      "name": "committed or uncertain Init outcome is reread before any pre-reset restore",
+      "passed": true
+    },
+    {
+      "name": "Init Stop waits for writer cleanup, and no equipment Stop is fabricated for idle file write",
+      "passed": true
+    }
+  ],
+  "findings": [
+    {
+      "id": "INIT_UNCHANGED_INCOMPLETE_RESTORE",
+      "priority": "P2",
+      "status": "resolved_minimal_initPrepared_guard_with_public_regression",
+      "trigger": "Public InitializeOffsets with an existing stopped remaining queue; invalid scope or Field preflight fails before any real engine reset",
+      "cause": "Recovery unconditionally RestoreSession(beforeInit) when authoritative file remains unchanged. Core prohibits restoring over current same-Run incomplete operation, even though no state changed. Recovery then incorrectly marks source ReadOnly.",
+      "minimalRemedy": "Do not call RestoreSession for an unchanged preflight failure; keep authority recheck and restore only after actual reset entry.",
+      "privateLegacyFixtureLimitation": "Existing invalid-scope/Field queue tests invoke StageLegacyInitDraft helper, not the public immediate action.",
+      "validationBasis": "Pre-fix defect established by source control-flow inference, not a pre-fix runtime reproduction. Post-fix public action regression executes invalid Cell and Field failure while queue remains incomplete, checks no reload/save, then successfully measures new P3.",
+      "fixControllerSha256": "72878047422C27044F2945B7C7D1DFD9B337537885378FF403A778F4FBBDF97B"
+    }
+  ],
+  "testEvidence": [
+    {
+      "path": "core-results.json",
+      "sha256": "0ACF80C77EAB348F64510E43C7896C8309DABD02F41267A2731F12ED77717DCB",
+      "passed": true,
+      "count": 286,
+      "scope": "source-linked Core synthetic values; no device execution"
+    },
+    {
+      "path": "controller-source.json",
+      "sha256": "72A10715D588A6E13FFA215E9E34787B103795240059CE7E3DDC1D1249C7A84D",
+      "passed": true,
+      "count": 289,
+      "scope": "source-linked Controller; final public Init regression, not actual final DLL test"
+    },
+    {
+      "path": "incremental-loop.json",
+      "sha256": "7B4E551E3C792B2254F56C42DA58AC1DEBCDFDF0413E000ED5C922734DFDD600",
+      "passed": true,
+      "count": 21,
+      "scope": "actual Core and assumed plant; no equipment accuracy claim"
+    },
+    {
+      "path": "legacy-serialization.json",
+      "sha256": "4E494AB0FCAD2640485FE8597C51BA80A7D0FF95CA3790117A73B770802A9415",
+      "passed": true,
+      "count": 37,
+      "scope": "actual older serializer fixture compatibility; not a device workflow"
+    },
+    {
+      "path": "controller-production.json",
+      "sha256": "7D9716C05BF614DCC99765EAEA825D6FE165E1D5B0885BFC85F16F4B06009F0B",
+      "passed": true,
+      "count": 292,
+      "scope": "Actual new production Controller+Common+UI contract; synthetic async fake Backend. Generic WPF Application/STA only; Drilling.UI.App/Root/device Manager not constructed. No SDK/motion/PLC/Vision executed."
+    },
+    {
+      "path": "backend-read.json",
+      "sha256": "8729E16B5B7DE7E75C19963166D9BB6F28720BCFAD28A185556E9075D1DC8EE9",
+      "passed": true,
+      "count": 184,
+      "scope": "Actual UI production adapter + actual pure Review/Recipe/Setting managers, parser/writer; synthetic temp data; no equipment Manager/App/Root or vendor objects."
+    }
+  ],
+  "deviceExecution": false,
+  "preservedUiEvidence": {
+    "path": "ui-cross-review.json",
+    "sha256": "F809821C492DCAC0A8E63EA7855539D9CA615B426CFF63BBC49A0C1CE5DF5412",
+    "passed": true,
+    "runtimeTests": 124,
+    "runtimeModes": 3,
+    "staticChecks": 181,
+    "staticProtectedSources": 158,
+    "scope": "UI-agent-authored source preservation/render review; reviewer did not independently open images"
+  },
+  "finalRuntimeStatus": "Final production DLL Controller292/292 and Backend184/184 passed; loaded DLL bytes match recorded SHA and both harnesses used the same UI assembly. Source-linked Controller289 overlaps actual Controller coverage and is not additive.",
+  "scopeConclusion": "Production changes are limited to current-B residual addition, duplicate receipts, immediate current-Cell Init with safe outcome recovery, and related version/status/confirmation wording. No .9 processing basis, schema fields, Station, graphical layout or theme redesign.",
+  "finalAssemblyVerification": {
+    "loadedAssemblies": [
+      {
+        "assembly": "Drilling.UI",
+        "path": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BackendReadHarness\\bin\\Release\\net8.0-windows\\Drilling.UI.dll",
+        "expected": "3aa5d04064a1492e652ed0a7ff6e276e4abff50d8d2f34904ff7a023c7c9bf5d",
+        "actual": "3AA5D04064A1492E652ED0A7FF6E276E4ABFF50D8D2F34904FF7A023C7C9BF5D",
+        "passed": true
+      },
+      {
+        "assembly": "Drilling.Common",
+        "path": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BackendReadHarness\\bin\\Release\\net8.0-windows\\Drilling.Common.dll",
+        "expected": "d199031a84557b8b3348d76170d7075829b23cbc4d3175038bbb44c55a63fe20",
+        "actual": "D199031A84557B8B3348D76170D7075829B23CBC4D3175038BBB44C55A63FE20",
+        "passed": true
+      }
+    ],
+    "controllerAndBackendSameUiDll": true
+  },
+  "finalBuild": {
+    "path": "release-build.log",
+    "sha256": "C58A7AAC77BDE03DC1DE692796A6A12645FBACDCC55E007596768838748A6E28",
+    "warnings": 0,
+    "errors": 0,
+    "observed": true
+  }
+}

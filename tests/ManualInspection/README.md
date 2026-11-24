@@ -1,6 +1,13 @@
 ﻿# Manual Inspection 독립 검증
 
-현재 `11.24.8`의 측정편차 대체·복사 stage-only·현재 Cell 일괄 CSV 저장 검증은 [동작·범위](../../docs/ManualInspection/REPLACEMENT_WORKFLOW_11.24.8.md)와 [manifest](../../docs/ManualInspection/validation.json)를 따른다. `UiHarness --replacement-workflow`와 `verify_replacement_workflow.py`를 사용한다. 기존 generic 엔진의 B+Δ 시험은 다른 메뉴 호환 검증이며 Manual 대체 정책과 구분한다. 생산 저장 경로의 장비 Manager 가드는 실행하지 않는다.
+현재 `11.24.10`은 `.8` 기준에서 실측·대표 편차를 대상의 기존 B에 반영하고, 현재 Cell Init은 최종 CSV까지 즉시 비운다. [동작·범위](../../docs/ManualInspection/INCREMENTAL_OVERWRITE_FIX_11.24.10.md)와 [manifest](../../docs/ManualInspection/validation.json)를 따른다. `IncrementalLoopHarness`, `verify_incremental_overwrite_scope.py`, 기존 Core·실제 DLL Controller·BackendReadHarness와 관련 UI 3모드를 검증한다. 이전 `.8`의 F=편차 대체·Init 초안 정책은 당시 기록으로 보존한다. `.9` 가공 기준·Station 설계는 포함하지 않는다. 생산 저장 경로의 장비 Manager 가드는 실행하지 않는다.
+
+```powershell
+dotnet run --project tests/ManualInspection/IncrementalLoopHarness/IncrementalLoopHarness.csproj -c Release -- --report incremental-loop.json
+python tests/ManualInspection/verify_incremental_overwrite_scope.py --report scope-results.json
+```
+
+새 가공/새 raw의 폐루프는 현재 B가 실제 가공 기준과 같고 Scale 100%·단위 응답이라는 가정이다. 실제 설비 정밀도를 입증하지 않는다. 같은 대표/원측정 중복, 동일 Shot의 Beam 공유, 초기화 저장 후 B0·미측정, 실제 CSV 재조회/Monitor/A1 텍스트 일치를 구분한다. 이전 Init 초안의 세션 호환 가드 시험은 private stager로 명시 재현하고, public Init 즉시 저장 검사는 별도로 실행한다. UI 전체 19모드 재실행으로 과장하지 않는다.
 
 이전 `11.24.6`의 일괄보정 → 최종 CSV → Manual 지도/Monitor 일치 검증은 [원인·범위·결과](../../docs/ManualInspection/BULK_FINAL_CONSISTENCY_11.24.6.md)에 보존한다.
 

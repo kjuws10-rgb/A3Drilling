@@ -32,19 +32,19 @@ internal static partial class Program
             True(c.Snapshot.CellBulkEligibleCounts[1]==0&&c.Snapshot.CellBulkEligibleCounts[2]==1&&c.Snapshot.CellBulkSummaryTexts[1].Contains("NG 2"));
             await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply,[],r=>r with{CurrentCellNo=1}));True(f.Saves==0&&c.Snapshot.Points.All(p=>p.BaseXUm==0));
         });
-        await Check("representative_measured_review_f_replaces_nonzero_target_and_repeated_copy_does_not_save_twice",async()=>
+        await Check("representative_residual_adds_once_to_each_nonzero_target_and_repeated_copy_does_not_save_twice",async()=>
         {
             var(f,c)=Fixture();f.Source=f.Source with{Values=new Dictionary<string,ST_MANUAL_OFFSET>{{"P1",new(10,-2)},{"P2",new(20,5)},{"P3",new(0,0)}}};await c.EnsureLoaded();
             var reference=c.Snapshot.Points.Single(p=>p.Key=="P1");True(reference.ReferenceFinalXUm==3&&reference.ReferenceFinalYUm==-1);
-            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,["P2"],r=>r with{ReferenceKey="P1",Reason="absolute target replacement"});
+            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,["P2"],r=>r with{ReferenceKey="P1",Reason="copy residual into target working state"});
             True(f.Saves==0&&f.Source.Values["P2"].XUm==20);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply);
-            Near(c.Snapshot.Points.Single(p=>p.Key=="P2").BaseXUm,reference.ReferenceFinalXUm!.Value);Near(f.Source.Values["P2"].YUm,-1);
-            True(f.Saves==1&&f.Source.Values["P2"].XUm==3&&f.Source.Values["P2"].XUm!=33);
-            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,["P2"],r=>r with{ReferenceKey="P1",Reason="same absolute final"});True(f.Saves==1);
+            Near(c.Snapshot.Points.Single(p=>p.Key=="P2").BaseXUm,23);Near(f.Source.Values["P2"].YUm,4);
+            True(f.Saves==1&&f.Source.Values["P2"].XUm==23&&f.Source.Values["P2"].XUm!=33&&f.Source.Values["P2"].XUm!=13);
+            await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,["P2"],r=>r with{ReferenceKey="P1",Reason="same residual already used"}));True(f.Saves==1);
         });
         await Check("current_offset_csv_export_uses_latest_saved_api_and_preserves_pending_init_draft",async()=>
         {
-            var(f,_)=Fixture();var b=new ControllerCsvBackend(f);var c=new CManualInspectionController(b);await c.EnsureLoaded();await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets);
+            var(f,_)=Fixture();var b=new ControllerCsvBackend(f);var c=new CManualInspectionController(b);await c.EnsureLoaded();await StageLegacyInitDraft(c);
             var candidate=c.Snapshot.CandidateRows.ToArray();var guards=f.Guards;var file=System.IO.Path.Combine(f.StateDirectory,"saved_export.csv");
             await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ExportCurrentOffsetCsv,[],r=>r with{ResultPath=file});
             True(b.CsvExports==1&&b.ExportPath==file&&c.Snapshot.IsOffsetEditPending&&c.Snapshot.CandidateRows.SequenceEqual(candidate)&&f.Saves==0&&f.Guards==guards&&f.Executed.Count==0);

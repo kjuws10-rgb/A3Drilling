@@ -310,7 +310,7 @@ public sealed class CManualInspectionController : IManualInspectionController
             or EN_MANUAL_INSPECTION_UI_ACTION.Measure or EN_MANUAL_INSPECTION_UI_ACTION.RetryRemaining
             or EN_MANUAL_INSPECTION_UI_ACTION.Apply or EN_MANUAL_INSPECTION_UI_ACTION.Rollback
             or EN_MANUAL_INSPECTION_UI_ACTION.BulkApply or EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets
-            or EN_MANUAL_INSPECTION_UI_ACTION.CopyReference
+            or EN_MANUAL_INSPECTION_UI_ACTION.CopyReference or EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets
             or EN_MANUAL_INSPECTION_UI_ACTION.UndoOffsets or EN_MANUAL_INSPECTION_UI_ACTION.RedoOffsets;
         _cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var token = _cancellation.Token;
@@ -355,15 +355,49 @@ public sealed class CManualInspectionController : IManualInspectionController
                 case EN_MANUAL_INSPECTION_UI_ACTION.ExportCsv: await ExportCsv(token); break;
                 case EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets:
                     await Current(token);
-                    InitializeOffsets(request);
-                    var initialCheck=_engine.ValidateCandidate(false);
-                    if(!initialCheck.Ok)
+                    var beforeInit=_engine.CaptureSession();var beforeInitAllowManual=_allowManual;var initPrepared=false;
+                    try
                     {
-                        _engine.CancelOffsetReplacement();
-                        throw new InvalidOperationException("Offset Init을 적용하지 않았습니다. 기존 작업으로 돌아갔으며 이동·측정할 수 있습니다.\n"+string.Join("\n",initialCheck.Errors));
+                        InitializeOffsets(request);
+                        initPrepared=true;
+                        var initialCheck=_engine.ValidateCandidate(false);
+                        if(!initialCheck.Ok)throw new InvalidOperationException("Offset Init을 적용하지 않았습니다.\n"+string.Join("\n",initialCheck.Errors));
+                        _allowManual=false;await Apply(token,sourceVerified:true);
+                        _status=$"Cell #{request.CurrentCellNo} Offset Init 저장 완료 · 최신 Review Offset 값 없음 · 다른 Cell·보호 Offset 유지"+SaveConfirmationSuffix;
                     }
-                    _status=initialCheck.Ok ? $"Cell #{request.CurrentCellNo} 초기화 초안 · 값 없음 · 현재 Cell 일괄 보정 전까지 실제 활성값·기존 파일은 유지됩니다."
-                        : "Offset Init 초안 · 저장 검사 필요: "+string.Join("\n",initialCheck.Errors);
+                    catch
+                    {
+                        // A failed call is not proof that disk did not commit. Re-read the
+                        // authoritative source before restoring any pre-reset working state.
+                        if(initPrepared&&_engine.Context?.RevisionId==beforeInit.Context.RevisionId)
+                        {
+                            try
+                            {
+                                var actual=await _backend.LoadAsync(_explicitResultView?_source!.SourcePath:null,CancellationToken.None,beforeInit.Points.Select(p=>p.Key).ToArray());
+                                var same=actual.Context==beforeInit.Context&&actual.Values.Count==beforeInit.ActiveValuesByPointKey.Count
+                                    &&actual.Values.All(pair=>beforeInit.ActiveValuesByPointKey.TryGetValue(pair.Key,out var value)&&value==pair.Value)
+                                    &&(actual.StoredInitializedOffsetKeys??new HashSet<string>()).SetEquals(_engine.ActiveInitializedOffsetKeys);
+                                if(same)
+                                {
+                                    _engine.RestoreSession(beforeInit,actual.Context,actual.Points,actual.Values,actual.FieldEvaluator,actual.StoredInitializedOffsetKeys);
+                                    _allowManual=beforeInitAllowManual;
+                                }
+                                else
+                                {
+                                    _engine.CancelOffsetReplacement();
+                                    await LoadSource(_explicitResultView?_source!.SourcePath:null,CancellationToken.None,keepBackend:true);
+                                }
+                            }
+                            catch(Exception recoveryError)
+                            {
+                                if(_engine.HasPendingOffsetEdit)_engine.CancelOffsetReplacement();
+                                if(_source is not null)_source=_source with{ReadOnly=true};
+                                _finalOffsets=null;
+                                throw new InvalidOperationException("Offset Init 저장 상태를 확인할 수 없습니다. 기존값으로 복원하지 않았습니다. 최신 활성 CSV를 다시 확인하세요.",recoveryError);
+                            }
+                        }
+                        throw;
+                    }
                     break;
                 case EN_MANUAL_INSPECTION_UI_ACTION.CancelOffsetEdit:
                     _engine.CancelOffsetReplacement();
@@ -1519,7 +1553,7 @@ public sealed class CManualInspectionController : IManualInspectionController
             IsMeasurementInProgress=_isMeasurementInProgress,ActiveMeasurementPointKey=_activeMeasurementPointKey,
             ActiveMeasurementPointKeys=_activeMeasurementPointKeys,
             OffsetSummaryText=offsetEdit?"현재 Cell 작업값 · 미저장 · 현재 Cell 일괄 보정으로 저장 · 다른 Cell/보호 Offset 유지"
-                :"Manual 측정편차를 Review Offset으로 교체 · 현재 Cell 일괄 보정으로 저장 · 다른 Review/보호 Offset 유지",
+                :"Manual 측정편차를 기존 Review Offset에 반영 · 현재 Cell 일괄 보정으로 저장 · 다른 Review/보호 Offset 유지",
             CellLayouts=_source?.CellLayouts ?? [],GlassWidthMm=_source?.GlassWidthMm ?? 0,GlassHeightMm=_source?.GlassHeightMm ?? 0,
             Version=++_version,RecipeId=c?.RecipeId ?? "—",RunId=c?.RunId ?? "—",CoordinateSignature=c?.CoordinateSignature ?? "",ActiveRevisionId=c?.RevisionId ?? "—",
             SourcePath=_source?.SourcePath ?? "",IsSimulation=_backend.IsSimulation,IsBusy=IsBusy,

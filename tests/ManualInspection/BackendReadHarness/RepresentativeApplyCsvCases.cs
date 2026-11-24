@@ -73,8 +73,12 @@ internal static partial class Program
         public string StateDirectory=>fixture.Backend.StateDirectory;
         public IReadOnlyList<string> WatchRoots=>[];
         public IReadOnlyDictionary<string,ST_MANUAL_OFFSET> LastSavedValues {get;private set;}=new Dictionary<string,ST_MANUAL_OFFSET>();
+        public IReadOnlyList<KeyValuePair<string,string>> ConsumedMeasurements=>fixture.Backend.ConsumedMeasurements;
         public CManualInspectionSource? LastSource {get;private set;}
         public int SuccessfulSaves,DeviceCalls,SyntheticGuards;
+        public string LastReceiptPath { get; private set; } = "";
+        public IReadOnlyList<ST_MANUAL_CANDIDATE_ROW> LastDrivingRows { get; private set; } = [];
+        public IReadOnlyDictionary<string,string> LastCompanionTokens { get; private set; } = new Dictionary<string,string>();
         public Func<Task>? BeforeWrite;
         public async Task<CManualInspectionSource> LoadAsync(string? path,CancellationToken token,IReadOnlyList<string>? displayKeys=null)
             =>LastSource=await fixture.Backend.LoadAsync(path,token,displayKeys);
@@ -100,6 +104,7 @@ internal static partial class Program
             var receipt=Path.Combine(StateDirectory,"SyntheticCsvSeam",Guid.NewGuid().ToString("N")+".json");Directory.CreateDirectory(Path.GetDirectoryName(receipt)!);await System.IO.File.WriteAllTextAsync(receipt,identity,token);
             if(BeforeWrite is { } before){BeforeWrite=null;await before();}
             var saved=await fixture.Offsets.SaveNewIfUnchanged(source.Context.RecipeId,previous.FilePath,finalRows,receipt,token,expectedLatestContentSha256:previous.ContentSha256);
+            LastReceiptPath=receipt;LastDrivingRows=rows.ToArray();LastCompanionTokens=new Dictionary<string,string>(consumedMeasurements??new Dictionary<string,string>());
             LastSource=await fixture.Backend.LoadAsync(null,token);LastSavedValues=LastSource.Values;SuccessfulSaves++;
             True(saved.FilePath==LastSource.SavedOffsets!.FilePath);return LastSource.Context.RevisionId;
         }

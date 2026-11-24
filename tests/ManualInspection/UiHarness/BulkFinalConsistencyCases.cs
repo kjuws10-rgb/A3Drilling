@@ -75,7 +75,7 @@ internal static partial class Program
             ((Button)view.FindName("BulkApplyButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Pump();
             Test("bulk_final_cancel_preserves_user_mode_and_does_not_dispatch", confirms == 1 && fake.Calls.Count == 0 && MeasurementMapMode(view) == "level" && !(((CManualInspectionScatterControl)view.FindName("ScatterPlot")).DataKind=="OFFSETS"));
             Test("bulk_final_confirmation_identifies_actual_model_and_current_cell_scope", seen.Contains(state.RecipeId) && seen.Contains("Cell 1") && seen.Contains("필터") && seen.Contains("다른 Cell"));
-            Test("bulk_final_confirmation_explains_delta_replacement_without_B_addition",seen.Contains("대체")&&seen.Contains("더하지")&&seen.Contains("편차 Δ"));
+            Test("bulk_final_confirmation_explains_target_base_plus_measured_or_copied_error",seen.Contains("F = B + Δ")&&seen.Contains("실측·대표 복사")&&seen.Contains("편차 Δ"));
             Test("bulk_final_confirmation_lists_numeric_limits_and_storage_readback", seen.Contains("31") && seen.Contains("402") && seen.Contains("µm") && seen.Contains("CSV") && seen.Contains("다시 읽"));
             Test("bulk_final_confirmation_retains_ng_unmeasured_and_protected_offsets", seen.Contains("NG") && seen.Contains("미측정") && seen.Contains("보호 Offset"));
             var rawBefore = BulkFinalRaw(state); var verified = BulkFinalVerified(state);
@@ -93,7 +93,7 @@ internal static partial class Program
             var plot = (CManualInspectionScatterControl)view.FindName("ScatterPlot");
             Test("bulk_final_scatter_uses_current_measurement_population_including_NG",plot.DataKind=="WORKING"&&plot.Metrics.Count==2&&plot.Metrics.MeanX==5.5&&plot.Metrics.MeanY==3);
             Test("bulk_final_verified_file_and_readback_status_are_current", ((TextBlock)view.FindName("FinalOffsetFileText")).Text == verified.FinalOffsetFileName && ((TextBlock)view.FindName("FinalOffsetInfoText")).Text.Contains(verified.LastSaveVerificationText));
-            Test("bulk_final_map_explains_measurement_delta_replacement",((TextBlock)view.FindName("ColorDescriptionText")).ToolTip.ToString()!.Contains("대체"));
+            Test("bulk_final_map_explains_measured_and_copied_error_accumulation",((TextBlock)view.FindName("ColorDescriptionText")).ToolTip.ToString()!.Contains("기존 Review Offset에 이번 편차를 반영"));
             Test("bulk_final_apply_changes_display_basis_without_rewriting_raw_measurement", BulkFinalRaw(fake.Snapshot) == rawBefore && state.Points[0].BaseXUm == 4 && state.FinalOffsetPoints[state.Points[0].Key].XUm == 4);
             observations.Add(new { verifiedModel = fake.Snapshot.RecipeId, fake.Snapshot.LastSaveVerificationCode, fake.Snapshot.LastSavedRevisionId, plot.Metrics.MeanX, plot.Metrics.MeanY });
         }

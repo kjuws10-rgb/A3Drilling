@@ -24,7 +24,7 @@ internal static partial class Program
         });
         await Check("final_saved_refresh_during_offset_init_preserves_pending_replacement",async()=>
         {
-            var(f,b,c)=await LoadedFinal();await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets);var before=c.Snapshot.CandidateRows.ToArray();
+            var(f,b,c)=await LoadedFinal();await StageLegacyInitDraft(c);var before=c.Snapshot.CandidateRows.ToArray();
             b.Saved=Saved(f.Source,"SIMPLE-WHILE-INIT",9);await c.NotifyExternalReviewChangedAsync();
             True(c.Snapshot.IsOffsetEditPending&&c.Snapshot.OffsetInitPending&&c.Snapshot.CandidateRows.SequenceEqual(before));
             Near(c.Snapshot.FinalOffsetPoints["P1"].XUm,9);True(f.Saves==0&&f.Executed.Count==0);
@@ -90,7 +90,7 @@ internal static partial class Program
         });
         await Check("final_export_ignores_pending_draft_and_keeps_candidate_unchanged",async()=>
         {
-            var(f,b,c)=await LoadedFinal();await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets);var before=c.Snapshot.CandidateRows.ToArray();
+            var(f,b,c)=await LoadedFinal();await StageLegacyInitDraft(c);var before=c.Snapshot.CandidateRows.ToArray();
             b.Saved=Saved(f.Source,"EXPORT-NEWEST",16);var path=Path.Combine(f.StateDirectory,"final.json");
             await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ExportFinalOffsets,null,r=>r with { ResultPath=path });
             True(b.Exports==1&&b.ExportedPath==path&&c.Snapshot.IsOffsetEditPending&&c.Snapshot.CandidateRows.SequenceEqual(before)&&f.Saves==0);

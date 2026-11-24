@@ -19,6 +19,7 @@
     <Compile Include="RepresentativeApplyCases.cs" />
     <Compile Include="CellCsvWorkflowCases.cs" />
     <Compile Include="ReplacementWorkflowCases.cs" />
+    <Compile Include="OffsetAccumulationCases.cs" />
     <Compile Include="../../Drilling.Common/Review/ManualInspection/*.cs" Link="Production/%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

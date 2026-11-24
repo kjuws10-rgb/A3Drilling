@@ -142,7 +142,7 @@ public sealed record ST_MANUAL_CANDIDATE(
 {
     [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
     public bool IsOffsetReplacement { get; init; }
-    /// <summary>Manual-only policy: validated measurement XY is the absolute Review F, never B + XY.</summary>
+    /// <summary>Manual residual policy: F = current B + validated measurement XY. Historical serialized flag name is retained.</summary>
     [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
     public bool IsMeasurementReplacement { get; init; }
     /// <summary>A staged file/Init edit affects this Cell only; every outside row is exact OFFSET_KEEP.</summary>
@@ -201,7 +201,7 @@ public sealed record ST_MANUAL_APPLY_SNAPSHOT(
     public bool IsMeasurementOffsetInitialization => InitializeAllReviewRows || InitializationOffsetKeys.Count>0;
     /// <summary>
     /// Opaque native raw tokens whose Shot correction basis is consumed by this write, including Beam
-    /// siblings. Durable storage records all entries, but only MEASURED driving rows are duplicate-gated.
+    /// siblings. Durable storage also records nonempty driving row tokens for measured/copied residuals.
     /// A previously consumed companion token must not block a new driving measurement of its sibling.
     /// </summary>
     public IReadOnlyDictionary<string, string> ConsumedMeasurements { get; init; }

@@ -121,7 +121,7 @@ internal static partial class Program
             var seen = ""; view.ConfirmationForTesting = (_, text, _) => { seen = text; return false; };
             void Copy() { ((Button)view.FindName("CopyReferenceButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Pump(); }
             Copy(); Test("cell_csv_reference_cancel_never_changes_offset_or_dispatches", fake.Calls.Count == 0 && fake.Snapshot.FinalOffsetPoints[target.Key].XUm == 101);
-            Test("cell_csv_reference_confirmation_explains_absolute_replacement", seen.Contains("대체") && seen.Contains("기존") && seen.Contains("더하지"));
+            Test("cell_csv_reference_confirmation_explains_target_base_plus_copied_error", seen.Contains("기존 Review Offset") && seen.Contains("복사한 편차를 반영") && seen.Contains("최종값도 다릅니다"));
             var saved = state with {Version=706,Points=state.Points.Select(point=>point.Key==target.Key?point with{WorkingXUm=2,WorkingYUm=1,IsProxy=true,ReferenceKey=reference.Key}:point).ToArray()};
             view.ConfirmationForTesting = (_, _, _) => true; fake.OnExecute = (action, _) => { if (action == EN_MANUAL_INSPECTION_UI_ACTION.CopyReference) fake.Replace(saved); }; Copy();
             Test("cell_csv_reference_dispatch_identifies_source_target_and_version", fake.Calls.Count == 1 && fake.Calls[0].Action == EN_MANUAL_INSPECTION_UI_ACTION.CopyReference && fake.Calls[0].Request.ReferenceKey == reference.Key && fake.Calls[0].Request.Keys.SequenceEqual([target.Key]) && fake.Calls[0].Request.ExpectedVersion == 700);

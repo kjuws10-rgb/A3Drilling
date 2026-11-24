@@ -74,7 +74,7 @@ internal static partial class Program
             }
             return point;
         }
-        await Check("replacement_csv_copy_only_stages_original_delta_then_current_cell_bulk_writes_delta_not_B_plus_delta",async()=>
+        await Check("replacement_csv_copy_only_stages_original_delta_then_current_cell_bulk_adds_once_to_each_B",async()=>
         {
             var f=TwoCells();var s=await f.Backend.LoadAsync(null,default);var points=CellPoints(s,1);var reference=points[0];var target=points[1];var other=CellPoints(s,2)[0];
             var old=await f.Offsets.SaveNew("QA",[Row(f,reference,10,-2),Row(f,target,20,5),Row(f,other,37,-8)]);var bytes=System.IO.File.ReadAllBytes(old.FilePath);
@@ -85,20 +85,20 @@ internal static partial class Program
             True(writer.SuccessfulSaves==0&&(await f.Offsets.LoadLatest("QA")).FilePath==old.FilePath&&Ui(c,target.Key).WorkingXUm==3&&Ui(c,target.Key).WorkingYUm==1);
             True(Ui(c,target.Key).OriginalXUm is null&&Ui(c,reference.Key).OriginalXUm==3);SameObservation(untouched,Ui(c,other.Key));
             await Send(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply);var final=await f.Offsets.LoadLatest("QA");
-            True(writer.SuccessfulSaves==1&&Stored(f,final,reference).ReviewOffsetX==.003&&Stored(f,final,target).ReviewOffsetX==.003&&Stored(f,final,target).ReviewOffsetY==.001);
-            True(Stored(f,final,other)==Stored(f,old,other)&&c.Snapshot.FinalOffsetPoints[target.Key]==new CManualInspectionUiOffset(3,1));
+            True(writer.SuccessfulSaves==1&&Stored(f,final,reference).ReviewOffsetX==.013&&Stored(f,final,target).ReviewOffsetX==.023&&Stored(f,final,target).ReviewOffsetY==.006);
+            True(Stored(f,final,other)==Stored(f,old,other)&&c.Snapshot.FinalOffsetPoints[target.Key]==new CManualInspectionUiOffset(23,6));
             SameObservation(untouched,Ui(c,other.Key));True(c.Snapshot.CellBulkEligibleCounts[2]==1&&System.IO.File.ReadAllBytes(old.FilePath).SequenceEqual(bytes));
-            await Monitor(f,target,3,1);await Reject(()=>Send(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply));True(writer.SuccessfulSaves==1);
+            await Monitor(f,target,23,6);await Reject(()=>Send(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply));True(writer.SuccessfulSaves==1);
         });
-        await Check("replacement_csv_operator_delta_replaces_legacy_B500_with_5_without_increment_limit_false_rejection",async()=>
+        await Check("replacement_csv_operator_delta_cannot_bypass_total_limit_with_legacy_B500",async()=>
         {
             var f=new Fixture();var s=await f.Backend.LoadAsync(null,default);var p=CellPoints(s,1)[0];
             var old=await f.Offsets.SaveNew("QA",[Row(f,p,500,-400)]);var writer=new CsvWriterSeam(f);var c=new CManualInspectionController(new ReplacementCsvSeam(f,writer));await c.EnsureLoaded();
             await Send(c,EN_MANUAL_INSPECTION_UI_ACTION.ForceMeasurement,[p.Key],edit:r=>r with{ForcedXUm=5,ForcedYUm=-4,Reason="explicit raw correction value"});
             True(Ui(c,p.Key).OriginalXUm is null&&Ui(c,p.Key).WorkingXUm==5&&writer.SuccessfulSaves==0);
-            await Send(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply);var saved=await f.Offsets.LoadLatest("QA");
-            True(writer.SuccessfulSaves==1&&Stored(f,saved,p).ReviewOffsetX==.005&&Stored(f,saved,p).ReviewOffsetY==-.004&&c.Snapshot.LastSaveVerificationCode=="VERIFIED");
-            True(Ui(c,p.Key).BaseXUm==5&&Ui(c,p.Key).OriginalXUm is null&&c.Snapshot.FinalOffsetPoints[p.Key].XUm==5);await Monitor(f,p,5,-4);
+            await Reject(()=>Send(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply));var saved=await f.Offsets.LoadLatest("QA");
+            True(writer.SuccessfulSaves==0&&saved.FilePath==old.FilePath&&Stored(f,saved,p).ReviewOffsetX==.500&&Stored(f,saved,p).ReviewOffsetY==-.400);
+            True(Ui(c,p.Key).BaseXUm==500&&Ui(c,p.Key).OriginalXUm is null&&Ui(c,p.Key).WorkingXUm==5&&c.Snapshot.FinalOffsetPoints[p.Key].XUm==500);await Monitor(f,p,500,-400);
         });
         await Check("replacement_csv_ng_missing_and_saved_B_only_do_not_become_fake_raw_or_new_corrections",async()=>
         {
@@ -109,14 +109,14 @@ internal static partial class Program
             await Send(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,[a[0].Key]);await Send(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,[a[1].Key]);
             True(Ui(c,a[2].Key).MeasurementXUm is null&&Ui(c,a[2].Key).OriginalXUm is null&&Ui(c,a[3].Key).MeasurementXUm is null);
             await Send(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply);var file=await f.Offsets.LoadLatest("QA");
-            True(writer.SuccessfulSaves==1&&Stored(f,file,a[0]).ReviewOffsetX==.003&&Stored(f,file,a[1])==Stored(f,old,a[1])&&Stored(f,file,a[2])==Stored(f,old,a[2]));
+            True(writer.SuccessfulSaves==1&&Stored(f,file,a[0]).ReviewOffsetX==.013&&Stored(f,file,a[1])==Stored(f,old,a[1])&&Stored(f,file,a[2])==Stored(f,old,a[2]));
             True(!file.Rows.Any(r=>r.CellId==a[3].CellNo&&r.ShotId==Matrix(f,a[3]))&&Ui(c,a[1].Key).WorkingJudge=="NG"&&Ui(c,a[1].Key).OriginalXUm==50);
         });
         await Check("replacement_csv_import_stages_current_cell_only_and_bulk_preserves_other_cell_measured_zero_raw_ledger_and_hidden_rows",async()=>
         {
             var f=TwoCells();var s=await f.Backend.LoadAsync(null,default);var one=CellPoints(s,1);var two=CellPoints(s,2);
             var hiddenInside=new ST_REVIEW_OFFSET_ROW(1,"Z99",.123456,-.234567);var hiddenOutside=new ST_REVIEW_OFFSET_ROW(99,"Z99",.345678,-.456789);
-            var old=await f.Offsets.SaveNew("QA",[Row(f,one[0],10,-2),Row(f,one[1],15,4),Row(f,two[0],222,5),Row(f,two[1],0,0),hiddenInside,hiddenOutside]);
+            var old=await f.Offsets.SaveNew("QA",[Row(f,one[0],10,-2),Row(f,one[1],15,4),Row(f,two[0],22,5),Row(f,two[1],0,0),hiddenInside,hiddenOutside]);
             var portable=await f.Offsets.SaveNew("PORTABLE",[Row(f,one[0],7,-3),Row(f,two[0],99,33),Row(f,two[1],0,0) with{IsMeasurementOffsetInitialized=true},hiddenInside,hiddenOutside]);
             var path=Path.Combine(f.Root,"user-import.csv");System.IO.File.Copy(portable.FilePath,path);var input=System.IO.File.ReadAllBytes(path);
             var writer=new CsvWriterSeam(f);var backend=new ReplacementCsvSeam(f,writer);backend.Responses[two[0].Key]=("OK",7,-2);backend.Responses[two[1].Key]=("NG",99,88);
@@ -132,10 +132,10 @@ internal static partial class Program
             True(file.Rows.Single(r=>r.CellId==1&&r.ShotId=="Z99")==old.Rows.Single(r=>r.CellId==1&&r.ShotId=="Z99")&&file.Rows.Single(r=>r.CellId==99)==old.Rows.Single(r=>r.CellId==99));
             SameObservation(outside,Ui(c,two[0].Key));SameObservation(zeroOutside,Ui(c,two[1].Key));True(!c.Snapshot.IsOffsetEditPending&&c.Snapshot.CellBulkEligibleCounts[2]==1&&System.IO.File.ReadAllBytes(path).SequenceEqual(input));
             await Send(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply,cell:2);var next=await f.Offsets.LoadLatest("QA");
-            True(writer.SuccessfulSaves==2&&Stored(f,next,two[0]).ReviewOffsetX==.007&&Stored(f,next,two[1])==Stored(f,old,two[1])&&Stored(f,next,one[0]).ReviewOffsetX==.007);
+            True(writer.SuccessfulSaves==2&&Stored(f,next,two[0]).ReviewOffsetX==.029&&Stored(f,next,two[1])==Stored(f,old,two[1])&&Stored(f,next,one[0]).ReviewOffsetX==.007);
             await Monitor(f,one[0],7,-3);
         });
-        await Check("replacement_csv_current_cell_init_bulk_never_resets_other_cell_measured_zero_or_hidden_history",async()=>
+        await Check("replacement_csv_current_cell_init_immediately_saves_without_resetting_other_cell_measured_zero_or_hidden_history",async()=>
         {
             var f=TwoCells();var s=await f.Backend.LoadAsync(null,default);var one=CellPoints(s,1);var two=CellPoints(s,2);
             var old=await f.Offsets.SaveNew("QA",[Row(f,one[0],500,-400),Row(f,two[0],222,5),Row(f,two[1],0,0),new(1,"Z99",.123,-.234),new(99,"Z99",.345,-.456)]);
@@ -143,16 +143,16 @@ internal static partial class Program
             var c=new CManualInspectionController(backend);await c.EnsureLoaded();await Send(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,[two[0].Key]);await Send(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,[two[1].Key]);
             var outside=Ui(c,two[0].Key);var zero=Ui(c,two[1].Key);
             await Send(c,EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets,edit:r=>r with{OffsetInitScope="CELL",OffsetInitCellNo=1});
-            True(writer.SuccessfulSaves==0&&c.Snapshot.IsOffsetEditPending);SameObservation(outside,Ui(c,two[0].Key));SameObservation(zero,Ui(c,two[1].Key));
-            await Send(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply);var file=await f.Offsets.LoadLatest("QA");
+            True(writer.SuccessfulSaves==1&&!c.Snapshot.IsOffsetEditPending);SameObservation(outside,Ui(c,two[0].Key));SameObservation(zero,Ui(c,two[1].Key));
+            var file=await f.Offsets.LoadLatest("QA");
             True(writer.SuccessfulSaves==1&&file.Rows.Where(r=>r.CellId==1).All(r=>r.ReviewOffsetX==0&&r.ReviewOffsetY==0&&r.IsMeasurementOffsetInitialized));
             True(Stored(f,file,two[0])==Stored(f,old,two[0])&&Stored(f,file,two[1])==Stored(f,old,two[1])&&!Stored(f,file,two[1]).IsMeasurementOffsetInitialized&&file.Rows.Single(r=>r.CellId==99)==old.Rows.Single(r=>r.CellId==99));
-            SameObservation(outside,Ui(c,two[0].Key));SameObservation(zero,Ui(c,two[1].Key));True(c.Snapshot.CellBulkEligibleCounts[2]==1&&Ui(c,one[0].Key).MeasurementXUm is null);
+            SameObservation(outside,Ui(c,two[0].Key));SameObservation(zero,Ui(c,two[1].Key));True(c.Snapshot.CellBulkEligibleCounts[2]==0&&Ui(c,one[0].Key).MeasurementXUm is null);
             await Monitor(f,one[0],null,null);await Monitor(f,two[1],0,0);
         });
         foreach(var operatorSource in new[]{false,true})
         {
-            await Check("replacement_csv_legacy_generic_"+(operatorSource?"operator":"measured")+"_session_uses_captured_error_not_old_final_or_other_cell_candidate",async()=>
+            await Check("replacement_csv_legacy_generic_"+(operatorSource?"operator":"measured")+"_session_adds_captured_error_to_target_B_not_source_final_or_other_cell_candidate",async()=>
             {
                 var f=TwoCells();var initial=await f.Backend.LoadAsync(null,default);var one=CellPoints(initial,1);var other=CellPoints(initial,2)[0];
                 await f.Offsets.SaveNew("QA",[Row(f,one[0],10,-2),Row(f,one[1],20,5),Row(f,other,37,-8)]);var source=await f.Backend.LoadAsync(null,default);
@@ -166,8 +166,8 @@ internal static partial class Program
                 var writer=new CsvWriterSeam(f);var c=new CManualInspectionController(new ReplacementCsvSeam(f,writer));await c.EnsureLoaded();
                 True(Ui(c,one[1].Key).WorkingXUm==3&&writer.SuccessfulSaves==0);
                 await Send(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply);var saved=await f.Offsets.LoadLatest("QA");
-                True(writer.SuccessfulSaves==1&&Stored(f,saved,one[0]).ReviewOffsetX==.003&&Stored(f,saved,one[1]).ReviewOffsetX==.003&&Stored(f,saved,other).ReviewOffsetX==.037);
-                True(Ui(c,one[1].Key).OriginalXUm is null);await Monitor(f,one[1],3,1);
+                True(writer.SuccessfulSaves==1&&Stored(f,saved,one[0]).ReviewOffsetX==.013&&Stored(f,saved,one[1]).ReviewOffsetX==.023&&Stored(f,saved,other).ReviewOffsetX==.037);
+                True(Ui(c,one[1].Key).OriginalXUm is null);await Monitor(f,one[1],23,6);
             });
         }
         await Check("replacement_csv_saved_bulk_init_undo_redo_feed_actual_station_model_and_all_four_A1_text_modes_without_execution",async()=>
@@ -184,13 +184,35 @@ internal static partial class Program
             True(Math.Abs(after.ScannerGx-before.ScannerGx-(after.ReviewOffsetX-before.ReviewOffsetX))<1e-10
                 &&Math.Abs(after.ScannerGy-before.ScannerGy-(after.ReviewOffsetY-before.ReviewOffsetY))<1e-10
                 &&(Math.Abs(after.ScannerGx-before.ScannerGx)>.0001||Math.Abs(after.ScannerGy-before.ScannerGy)>.0001));
-            var saved=await f.Offsets.LoadLatest("QA");True(Stored(f,saved,one[1]).ReviewOffsetX==.003&&Stored(f,saved,other).ReviewOffsetX==.037);
-            await Send(c,EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets);var initDraft=await GeneratedScript(f,one[1],"init-stage");
-            True(initDraft.ScannerGx==after.ScannerGx&&initDraft.ScannerGy==after.ScannerGy);
-            await Send(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply);var init=await GeneratedScript(f,one[1],"init-saved");True(init.ReviewOffsetX==0&&init.ReviewOffsetY==0);
+            var saved=await f.Offsets.LoadLatest("QA");True(Stored(f,saved,one[1]).ReviewOffsetX==.023&&Stored(f,saved,other).ReviewOffsetX==.037);
+            await Send(c,EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets);var init=await GeneratedScript(f,one[1],"init-immediately-saved");True(init.ReviewOffsetX==0&&init.ReviewOffsetY==0&&!c.Snapshot.IsOffsetEditPending&&writer.SuccessfulSaves==2);
+            await Reject(()=>Send(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply));True(writer.SuccessfulSaves==2);
             await Send(c,EN_MANUAL_INSPECTION_UI_ACTION.UndoOffsets);var undo=await GeneratedScript(f,one[1],"undo-saved");True(undo.ScannerGx==after.ScannerGx&&undo.ScannerGy==after.ScannerGy);
             await Send(c,EN_MANUAL_INSPECTION_UI_ACTION.RedoOffsets);var redo=await GeneratedScript(f,one[1],"redo-saved");True(redo.ScannerGx==init.ScannerGx&&redo.ScannerGy==init.ScannerGy);
             var final=await f.Offsets.LoadLatest("QA");True(Stored(f,final,other)==Stored(f,old,other)&&System.IO.File.ReadAllBytes(old.FilePath).SequenceEqual(original)&&writer.SuccessfulSaves==4);
+        });
+        await Check("increment_csv_restart_reads_both_target_raw_and_copy_driving_receipts_and_rejects_same_copy",async()=>
+        {
+            var f=new Fixture();var source=await f.Backend.LoadAsync(null,default);var points=CellPoints(source,1);
+            var reference=points[0];var target=points[1];
+            var old=await f.Offsets.SaveNew("QA",[Row(f,reference,10,-2),Row(f,target,20,5)]);var oldBytes=System.IO.File.ReadAllBytes(old.FilePath);
+            var writer=new CsvWriterSeam(f);var c=new CManualInspectionController(new ReplacementCsvSeam(f,writer));await c.EnsureLoaded();
+            await Send(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,[reference.Key]);await Send(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,[target.Key]);
+            await Send(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,[target.Key],edit:r=>r with{ReferenceKey=reference.Key,Reason="capture residual, retain target original"});
+            await Send(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply);var saved=await f.Offsets.LoadLatest("QA");
+            True(Stored(f,saved,reference).ReviewOffsetX==.013&&Stored(f,saved,target).ReviewOffsetX==.023&&writer.SuccessfulSaves==1);
+            var driving=writer.LastDrivingRows.ToDictionary(r=>r.Key,r=>r.MeasurementToken);
+            True(writer.LastCompanionTokens.TryGetValue(target.Key,out var rawToken)&&driving[target.Key]!=rawToken);
+            var receipts=writer.LastCompanionTokens.Concat(driving).Distinct().ToArray();
+            True(receipts.Count(p=>p.Key==target.Key)==2&&await f.Offsets.FindCommittedSourceApplication("QA",writer.LastReceiptPath) is not null);
+            // Seed exact native reservation files after the real writer commit. Native SaveCore and its equipment guard are not executed.
+            var context=writer.LastSource!.Context;var directory=Path.Combine(f.Backend.StateDirectory,"ApplySources",CManualInspectionBackend.Digest(context.RunId));Directory.CreateDirectory(directory);
+            foreach(var pair in receipts)await System.IO.File.WriteAllTextAsync(Path.Combine(directory,"point-"+CManualInspectionBackend.Digest(context.RunId+pair.Key+pair.Value)+".json"),JsonSerializer.Serialize(new{SourcePath=writer.LastReceiptPath,BaseRevision=source.Context.RevisionId,RunId=context.RunId,PointKey=pair.Key,MeasurementToken=pair.Value}));
+            await f.Backend.LoadAsync(null,default);True(receipts.All(pair=>f.Backend.ConsumedMeasurements.Contains(pair)));
+            var nextWriter=new CsvWriterSeam(f);var reopened=new CManualInspectionController(new ReplacementCsvSeam(f,nextWriter));await reopened.EnsureLoaded();
+            await Reject(()=>Send(reopened,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,[target.Key],edit:r=>r with{ReferenceKey=reference.Key,Reason="same source residual after restart"}));
+            await Reject(()=>Send(reopened,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply));
+            True(nextWriter.SuccessfulSaves==0&&System.IO.File.ReadAllBytes(old.FilePath).SequenceEqual(oldBytes)&&(await f.Offsets.LoadLatest("QA")).FilePath==saved.FilePath);
         });
         await Check("replacement_csv_ng_reference_copy_is_working_state_only_and_never_writes_correction",async()=>
         {
@@ -208,6 +230,7 @@ internal static partial class Program
         public readonly Dictionary<string,(string Judge,double X,double Y)> Responses=new(StringComparer.Ordinal);
         public bool IsSimulation=>false;public string StateDirectory=>inner.StateDirectory;
         public IReadOnlyDictionary<string,ST_MANUAL_OFFSET> LastSavedValues=>inner.LastSavedValues;
+        public IReadOnlyList<KeyValuePair<string,string>> ConsumedMeasurements=>inner.ConsumedMeasurements;
         public IReadOnlySet<string> ImportedInitializedOffsetKeys=>f.Backend.ImportedInitializedOffsetKeys;
         public string ImportedOffsetDescription=>f.Backend.ImportedOffsetDescription;
         public Task<CManualInspectionSource> LoadAsync(string? path,CancellationToken token,IReadOnlyList<string>? keys=null)=>inner.LoadAsync(path,token,keys);

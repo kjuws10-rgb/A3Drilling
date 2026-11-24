@@ -82,7 +82,7 @@ internal static partial class Program
             var(f,c)=await Loaded();f.FailKey="P2";await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1","P2"]));var checkpoint=Checkpoint(f);
             foreach(var request in new[]{new CManualInspectionUiRequest{ReferenceKey="MISSING",Keys=["P3"],Reason="bad"},new(){ReferenceKey="P1",Keys=["MISSING"],Reason="bad"},new(){ReferenceKey="P1",Keys=["P3"],Reason=" "}})
                 {await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,request.Keys,r=>request with{ExpectedVersion=r.ExpectedVersion}));True(c.Snapshot.HasIncomplete&&c.Snapshot.RemainingCount==1);}
-            await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets,null,r=>r with{CurrentCellNo=99}));True(c.Snapshot.HasIncomplete&&!c.Snapshot.IsOffsetEditPending&&!File.ReadAllText(checkpoint).Contains("OP_RECOVERED_IDLE"));
+            await Throws(()=>StageLegacyInitDraft(c,null,r=>r with{CurrentCellNo=99}));True(c.Snapshot.HasIncomplete&&!c.Snapshot.IsOffsetEditPending&&!File.ReadAllText(checkpoint).Contains("OP_RECOVERED_IDLE"));
         });
         await Check("first_load_explicit_copy_preflights_post_retirement_reference_and_never_uses_old_raw",async()=>
         {
@@ -91,7 +91,7 @@ internal static partial class Program
         });
         await Check("first_load_explicit_init_can_leave_stopped_queue_but_does_not_save_or_change_base",async()=>
         {
-            var(f,c)=await Loaded();f.FailKey="P2";await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1","P2"]));await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets);
+            var(f,c)=await Loaded();f.FailKey="P2";await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1","P2"]));await StageLegacyInitDraft(c);
             True(!c.Snapshot.HasIncomplete&&c.Snapshot.IsOffsetEditPending&&f.Saves==0&&f.Executed.Count==2);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CancelOffsetEdit);True(!c.Snapshot.IsOffsetEditPending&&!c.Snapshot.HasIncomplete);
         });
         await Check("first_load_foreign_model_does_not_import_captured_blank_state",async()=>

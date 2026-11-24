@@ -1,0 +1,140 @@
+{
+  "schema": "a3-manual-inspection-ui-targeted-arithmetic-wording/1",
+  "version": "11.24.10",
+  "generatedAtUtc": "2026-11-24T13:42:28.257665+00:00",
+  "passed": true,
+  "modeCount": 3,
+  "tests": 124,
+  "failures": 0,
+  "build": {
+    "configuration": "Release",
+    "warnings": 0,
+    "errors": 0,
+    "kind": "source-linked standalone STA WPF harness; no ProjectReference; BuildProjectReferences=false; private output",
+    "dll": "private source-linked STA WPF harness only",
+    "sha256": "a5b9a91dd7510076d004a7367dbd34632adaadcb59b741e7ce9d57383f19cdb8"
+  },
+  "sourceHashMismatches": [],
+  "sourceInputs": {
+    "tests/ManualInspection/UiHarness/ManualInspection.UiHarness.csproj": "f8031e831f1a3cd7d6a2cc5b2c8c6b6a60ba1dbd9de1a5db8b582c3d686af673",
+    "tests/ManualInspection/UiHarness/Program.cs": "26f34d471a41fdd97f60261f15db7f6439928ed3092a8372e280985a1da38f93",
+    "tests/ManualInspection/UiHarness/CoverageCompactCases.cs": "b944b33cac29d8c1891efe07365ddf3d0accb252cb74a2fd8ac67cd0e36022da",
+    "tests/ManualInspection/UiHarness/HardeningCases.cs": "9a339a0c2820bad73fdd4188af73578d39be9d12fbe89d8ec726b057bef7a1d9",
+    "tests/ManualInspection/UiHarness/VisualUsabilityCases.cs": "03e285e85020a4ab161390c7c5c64a8e49408b2bc7828a1db3c068152a41e3fa",
+    "tests/ManualInspection/UiHarness/MapFirstCases.cs": "0b37b1a1cfde8052373ec077ba17b570fe3d8e6d93317eae1d003c2188b714b2",
+    "tests/ManualInspection/UiHarness/CellOverviewCases.cs": "726f9f2f980c2f48d737d421efc16a1b5a5fc4f4c8428577b36239bd92592a86",
+    "tests/ManualInspection/UiHarness/OffsetInitCases.cs": "a0c9c09338abe75404ff3b53f224721aa89e3f67c74fd18837f61c4eaaa5df99",
+    "tests/ManualInspection/UiHarness/MeasurementWorkflowCases.cs": "fc8fdb96013ccad6eb09d458b3c25590d66c206fe1f9a2ec8185de9934e5f7bd",
+    "tests/ManualInspection/UiHarness/BulkHistoryCases.cs": "2272ee078eb66b1c7795d96d8cee246b22ddc41fa848e4b4e783b646d16a2c1d",
+    "tests/ManualInspection/UiHarness/RepresentativeCases.cs": "70d503ccf1503b3cde946bf0a2b4f5207d1cce240fe558fa7aa7212b8b225046",
+    "tests/ManualInspection/UiHarness/SidePanelsCases.cs": "7ee454661d0a5fd8db65ae8b34cb2b38f0dd5ffa7ecb1e31c9d2932a32e0cf66",
+    "tests/ManualInspection/UiHarness/FinalOffsetCases.cs": "e2ef6cefdc7bac061970b2ee54bcf478559d70926d20a1b0eac6668bbceded12",
+    "tests/ManualInspection/UiHarness/ExistingFinalCsvCases.cs": "8f89d10564765ab9d2ab03dbb4e62275aedb27e97baa84b5d714959b3cfd0b11",
+    "tests/ManualInspection/UiHarness/RepresentativeApplyCases.cs": "b20896375dabe3736da95359c1b0f283c38b1c21f1a251734bbe3c29d017d223",
+    "tests/ManualInspection/UiHarness/BulkFinalConsistencyCases.cs": "42f3e1f5e8ef409504ae3bcea6715bd48c89fb4ce7bc89dd54b8c436c651b738",
+    "tests/ManualInspection/UiHarness/CellCsvWorkflowCases.cs": "97381eeb64709ec58fc9beb8cd63798516cf35c599f676f1517d673decfbd1e3",
+    "tests/ManualInspection/UiHarness/ReplacementWorkflowCases.cs": "c11b2a9ac2be6083124e8183915897cedbac4a56de5f281a37fbf291c65075f7",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "94c07c0d7faed65042d47c209dae457386e4df7611a221fb935807aaa0beafd8",
+    "Drilling.UI/Views/CManualInspectionMapControl.cs": "72964a4fef45bcd344d403af945a1f5a091d100745549d3caeaaddfb0af2f806",
+    "Drilling.UI/Views/CManualInspectionScatterControl.cs": "1cc3fb7be94547c2e714d8809906f2df6018e5805b6ed44ecc9fd2c398e6a0bb",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "740f8db69c572e07e04f7745c320ed6c75801e302da693a96e94ef13865bc297",
+    "Drilling.UI/Views/CManualInspectionView.xaml": "de85a569823fcadf344ce1a8d7840e5c49f4982bed9910b712f3c8d79cbb43f3",
+    "Drilling.UI/Popup/CValueInputDialog.xaml.cs": "2b05f6cf626e622daefee01b894f4aba1909dbcd11b77da23e4cda5caf502166",
+    "Drilling.UI/Popup/CValueInputDialog.xaml": "304abe666aab54bd6d5618650ab78176bb7e67f32cde9cba4b36bb1116df67a5",
+    "Drilling.UI/Themes/ThemeDark.xaml": "08bc81877f8766d2198e515f869e6b06f74f4b4c6eb7a1a9d8093234f11b2e4c",
+    "Drilling.UI/Themes/ThemeLight.xaml": "2a3d9bc68816fd0c25360ae10c3d344354ac494c5ec03fc7f7077adaff99ea87",
+    "Drilling.UI/App.xaml": "34b55a666684d02ffc18dcb66313415e72629a7f027e5a5d42ecb0357df82357",
+    "Drilling.Common/Managers/CRecipeManager.cs": "b8d208d8945081e6a6d500f40d51e3f4fca414124329325c36c7fffedb86c9b9"
+  },
+  "inputCount": 29,
+  "results": [
+    {
+      "mode": "replacement-workflow",
+      "passed": true,
+      "count": 48,
+      "path": "validation/11.24.10/ui-replacement-workflow-results.json",
+      "sha256": "24fde8457c2b1b4ad19c03a0599d943cc7820dc879129b5eba0077c247fd4798"
+    },
+    {
+      "mode": "cell-csv-workflow",
+      "passed": true,
+      "count": 27,
+      "path": "validation/11.24.10/ui-cell-csv-workflow-results.json",
+      "sha256": "9dc171f3a28fccc1d64b134722c2b08902f0aabcad1c372415e0b4424c4d0f06"
+    },
+    {
+      "mode": "bulk-final-consistency",
+      "passed": true,
+      "count": 49,
+      "path": "validation/11.24.10/ui-bulk-final-consistency-results.json",
+      "sha256": "5ea827c552c2cbe391b42efe6ff550ae400b7d33e4ba496188a32c62a11e15c7"
+    }
+  ],
+  "images": [
+    {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_10_OverwriteOnly\\ui-final\\bulk-final-consistency\\bulk-final-notebook-dark.png",
+      "sha256": "a41d1dfcb1c7d474acf3fbfc6202d2abd020f7c32dda399c1d070dda0bf9ec2d"
+    },
+    {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_10_OverwriteOnly\\ui-final\\bulk-final-consistency\\bulk-final-notebook-light.png",
+      "sha256": "c617a5cfcf42e62f839ddc6ecc80f56c60ee7876bf61b9f17012c6eb04ef3359"
+    },
+    {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_10_OverwriteOnly\\ui-final\\bulk-final-consistency\\bulk-final-wide-dark.png",
+      "sha256": "5507f1f54e309ffc47c958e8e4a30cf645496fceb03afdfe4fe093bb1379e08a"
+    },
+    {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_10_OverwriteOnly\\ui-final\\bulk-final-consistency\\bulk-final-wide-light.png",
+      "sha256": "a7dfcb50bf659ad863185afaec81d99f3732958c7549657c5b05167b9da1a2c0"
+    },
+    {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_10_OverwriteOnly\\ui-final\\cell-csv-workflow\\cell-csv-menu-dark.png",
+      "sha256": "d86e7fa9513374713ba027af394549235d173f3673509b723c59f10f367308cb"
+    },
+    {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_10_OverwriteOnly\\ui-final\\cell-csv-workflow\\cell-csv-menu-light.png",
+      "sha256": "9cbf70770e80ede9fe719e16f9e89128dcbeeafad650b915f1e2d7caf9a544f9"
+    },
+    {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_10_OverwriteOnly\\ui-final\\cell-csv-workflow\\cell-csv-popup-active-dark.png",
+      "sha256": "087a71c594d18d5f6307ab5c9f6fc8a42c5ca74967547b237c4c7ae7f3118a19"
+    },
+    {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_10_OverwriteOnly\\ui-final\\cell-csv-workflow\\cell-csv-popup-active-light.png",
+      "sha256": "6a21374ae10dc46aa470ba2a253f3e5b3134d64b28a8f8270c1c2ec588302ea3"
+    },
+    {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_10_OverwriteOnly\\ui-final\\cell-csv-workflow\\cell-csv-popup-dark.png",
+      "sha256": "b782d0a5c3996632196a3eed82494ff195c0cd2e1e0689285472ed92319c6ba7"
+    },
+    {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_10_OverwriteOnly\\ui-final\\cell-csv-workflow\\cell-csv-popup-light.png",
+      "sha256": "503ebcd445697c42362a054fa9d3a7f59d58e7abbd35f71e2950e6e121e9cc59"
+    },
+    {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_10_OverwriteOnly\\ui-final\\replacement-workflow\\replacement-notebook-dark.png",
+      "sha256": "92ac6d0620771f103380be574c14f18c46a5fbe6de45e88555d76263125ef20f"
+    },
+    {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_10_OverwriteOnly\\ui-final\\replacement-workflow\\replacement-notebook-light.png",
+      "sha256": "caabe03efaa8ca161cf837d7271e1c23414aac6fd0da27b14fa0b806e1b24588"
+    },
+    {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_10_OverwriteOnly\\ui-final\\replacement-workflow\\replacement-wide-dark.png",
+      "sha256": "113b51b08eff46faa69d1cc88cf2487ea1ceb4e548c29ce4f81fcaeeb66a8cc9"
+    },
+    {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_10_OverwriteOnly\\ui-final\\replacement-workflow\\replacement-wide-light.png",
+      "sha256": "83a7f6692aad6d2732639bcddd266c7173d580605b7db179c22c2497dcfaa813"
+    }
+  ],
+  "comparisonOnly": {
+    "report": "D:\\CodexWork\\A3_Manual_Inspection_20261124_10_OverwriteOnly\\ui-preservation-review.json",
+    "sha256": "5f47da14689bf3ee5bc9a41896cd9c1db4013c2dc4fbd67f9e9c4790bdc20a85",
+    "checks": 181,
+    "protectedUiSources": 158,
+    "scope": "Static .8 preservation comparison, not additional runtime UI tests."
+  },
+  "scope": "Only the three existing UI modes affected by wording edits were rerun. All 19 modes were not rerun in .10. FakeController snapshots prove UI dispatch/confirmations, not production arithmetic or saved equipment results. The historical synthetic InitPending fixture is a pending-state UI guard test; actual immediate Init persistence is tested separately through the real Controller.",
+  "equipment": "No equipment App, native manager graph, vendor SDK, motion, Vision, operating CSV or real device execution."
+}

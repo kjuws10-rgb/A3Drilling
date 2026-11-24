@@ -1,0 +1,1190 @@
+{
+  "schemaVersion": "a3-manual-inspection-controller-tests/1",
+  "passed": true,
+  "count": 292,
+  "failed": 0,
+  "tests": [
+    {
+      "name": "constructor_has_no_implicit_backend_operation",
+      "passed": true
+    },
+    {
+      "name": "load_projects_current_native_source",
+      "passed": true
+    },
+    {
+      "name": "stale_ui_version_rejects_before_side_effect",
+      "passed": true
+    },
+    {
+      "name": "calculate_and_validate_do_not_save",
+      "passed": true
+    },
+    {
+      "name": "legacy_apply_forwards_to_current_cell_bulk_with_internal_validation",
+      "passed": true
+    },
+    {
+      "name": "save_success_updates_active_and_revision",
+      "passed": true
+    },
+    {
+      "name": "failed_save_preserves_active_and_can_revalidate",
+      "passed": true
+    },
+    {
+      "name": "changed_backend_context_prevents_save",
+      "passed": true
+    },
+    {
+      "name": "legacy_readonly_source_reconnects_for_fresh_current_measurement_without_old_raw_promotion",
+      "passed": true
+    },
+    {
+      "name": "ng_reference_stages_working_and_preserves_original_without_a_candidate",
+      "passed": true
+    },
+    {
+      "name": "confirmed_manual_copy_stages_then_explicit_correction_saves",
+      "passed": true
+    },
+    {
+      "name": "new_reference_measurement_changes_durable_manual_source_identity",
+      "passed": true
+    },
+    {
+      "name": "move_only_changes_position_not_measurement",
+      "passed": true
+    },
+    {
+      "name": "current_position_measure_rejects_multiple_targets",
+      "passed": true
+    },
+    {
+      "name": "removed_move_measure_correct_rejects_before_any_motion_or_save",
+      "passed": true
+    },
+    {
+      "name": "fresh_ng_move_measure_never_saves",
+      "passed": true
+    },
+    {
+      "name": "partial_error_preserves_remaining_and_blocks_old_candidate",
+      "passed": true
+    },
+    {
+      "name": "retry_remaining_recovers_without_implicit_auto_correction",
+      "passed": true
+    },
+    {
+      "name": "concurrent_command_rejected_and_stop_waits_for_cleanup",
+      "passed": true
+    },
+    {
+      "name": "flying_expands_only_same_cell_head_row_and_beam",
+      "passed": true
+    },
+    {
+      "name": "simulation_example_is_rejected_in_real_backend",
+      "passed": true
+    },
+    {
+      "name": "level_display_change_preserves_judge_and_offsets",
+      "passed": true
+    },
+    {
+      "name": "level_duplicate_names_are_rejected",
+      "passed": true
+    },
+    {
+      "name": "level_zero_and_nonfinite_boundaries_are_rejected",
+      "passed": true
+    },
+    {
+      "name": "csv_export_distinguishes_original_working_and_active",
+      "passed": true
+    },
+    {
+      "name": "rollback_creates_new_revision_and_restores_base",
+      "passed": true
+    },
+    {
+      "name": "export_import_incomplete_session_keeps_remaining_without_motion",
+      "passed": true
+    },
+    {
+      "name": "roundtrip_session_retains_duplicate_raw_guard",
+      "passed": true
+    },
+    {
+      "name": "replay_application_does_not_remake_holes_in_same_run",
+      "passed": true
+    },
+    {
+      "name": "show_point_exposes_preserved_raw_and_full_history",
+      "passed": true
+    },
+    {
+      "name": "native_load_defers_incomplete_disk_session_without_implicit_motion",
+      "passed": true
+    },
+    {
+      "name": "corrupt_local_session_allows_reconnect_and_fresh_current_measurement",
+      "passed": true
+    },
+    {
+      "name": "saved_candidate_session_drops_approval_but_current_cell_bulk_validates_fresh",
+      "passed": true
+    },
+    {
+      "name": "fresh_controller_seeds_committed_receipts_without_session_file",
+      "passed": true
+    },
+    {
+      "name": "initial_session_write_failure_releases_operation_and_keeps_retry",
+      "passed": true
+    },
+    {
+      "name": "alarm_stop_does_not_wait_for_information_dialog",
+      "passed": true
+    },
+    {
+      "name": "actual_single_line_flying_requests_pass_existing_manager_contract",
+      "passed": true
+    },
+    {
+      "name": "common_level_inclusive_boundaries_and_sign",
+      "passed": true
+    },
+    {
+      "name": "active_offsets_color_unmeasured_points_without_inventing_results",
+      "passed": true
+    },
+    {
+      "name": "missing_active_row_is_not_a_zero_level_measurement",
+      "passed": true
+    },
+    {
+      "name": "external_new_measurement_sync_is_imported_and_has_provenance",
+      "passed": true
+    },
+    {
+      "name": "notification_during_load_is_replayed_after_first_snapshot",
+      "passed": true
+    },
+    {
+      "name": "explicit_file_view_is_not_replaced_by_live_sync",
+      "passed": true
+    },
+    {
+      "name": "cancelled_sync_retries_current_context_without_permanent_readonly_mode",
+      "passed": true
+    },
+    {
+      "name": "older_external_measurement_does_not_replace_native_raw",
+      "passed": true
+    },
+    {
+      "name": "same_revision_external_measurement_does_not_authorize_old_candidate",
+      "passed": true
+    },
+    {
+      "name": "external_revision_sync_colors_every_point_with_fresh_actual_values",
+      "passed": true
+    },
+    {
+      "name": "external_sync_keeps_incomplete_and_does_not_reload_backend",
+      "passed": true
+    },
+    {
+      "name": "external_sync_during_busy_does_not_reenter_load_or_clear_remaining",
+      "passed": true
+    },
+    {
+      "name": "external_revision_with_candidate_preserves_work_and_blocks_stale_write",
+      "passed": true
+    },
+    {
+      "name": "applied_candidate_does_not_permanently_block_external_refresh",
+      "passed": true
+    },
+    {
+      "name": "level_change_recolors_offsets_and_preserves_original_measurement",
+      "passed": true
+    },
+    {
+      "name": "representative_copy_colors_target_cells_only_after_actual_apply",
+      "passed": true
+    },
+    {
+      "name": "import_merge_preserves_native_when_own_saved_values_are_identical",
+      "passed": true
+    },
+    {
+      "name": "import_merge_newer_value_invalidates_candidate_and_keeps_ledger",
+      "passed": true
+    },
+    {
+      "name": "import_merge_rejects_wrong_geometry_or_run_before_mutation",
+      "passed": true
+    },
+    {
+      "name": "import_merge_edited_value_does_not_invent_original_or_direct_anchor",
+      "passed": true
+    },
+    {
+      "name": "edited_observation_timestamp_blocks_older_values_after_session_restore",
+      "passed": true
+    },
+    {
+      "name": "import_merge_does_not_erase_incomplete_operation",
+      "passed": true
+    },
+    {
+      "name": "file_monitor_coalesces_csv_updates_and_ignores_unrelated_files",
+      "passed": true
+    },
+    {
+      "name": "file_monitor_handles_initially_missing_root_and_disposal",
+      "passed": true
+    },
+    {
+      "name": "file_monitor_observes_whole_result_directory_moves",
+      "passed": true
+    },
+    {
+      "name": "actual_general_result_writer_preserves_known_simulation_mode",
+      "passed": true
+    },
+    {
+      "name": "actual_legacy_or_mixed_mode_is_unknown_not_assumed_real",
+      "passed": true
+    },
+    {
+      "name": "final_saved_snapshot_is_separate_from_residual_and_engine_baseline",
+      "passed": true
+    },
+    {
+      "name": "final_saved_refresh_preserves_unapplied_candidate_and_native_raw",
+      "passed": true
+    },
+    {
+      "name": "final_saved_refresh_during_offset_init_preserves_pending_replacement",
+      "passed": true
+    },
+    {
+      "name": "final_saved_refresh_preserves_explicit_file_workspace_and_its_candidate",
+      "passed": true
+    },
+    {
+      "name": "final_saved_refresh_during_incomplete_measurement_preserves_remaining",
+      "passed": true
+    },
+    {
+      "name": "final_saved_refresh_during_busy_does_not_reenter_live_adapter",
+      "passed": true
+    },
+    {
+      "name": "final_saved_empty_init_and_real_zero_remain_distinct",
+      "passed": true
+    },
+    {
+      "name": "final_saved_model_frame_mismatch_clears_old_saved_projection",
+      "passed": true
+    },
+    {
+      "name": "final_saved_nonfinite_or_missing_display_key_is_not_published",
+      "passed": true
+    },
+    {
+      "name": "final_saved_same_path_changed_sha_replaces_display_without_raw_rewrite",
+      "passed": true
+    },
+    {
+      "name": "final_saved_successful_apply_and_undo_immediately_update_saved_metadata",
+      "passed": true
+    },
+    {
+      "name": "final_export_ignores_pending_draft_and_keeps_candidate_unchanged",
+      "passed": true
+    },
+    {
+      "name": "final_snapshot_failed_read_does_not_discard_pending_work",
+      "passed": true
+    },
+    {
+      "name": "final_snapshot_read_is_single_flight_and_does_not_starve_on_repeated_notifications",
+      "passed": true
+    },
+    {
+      "name": "final_no_file_snapshot_has_empty_metadata_not_a_saved_zero_file",
+      "passed": true
+    },
+    {
+      "name": "final_own_save_waits_for_old_inflight_read_then_reloads_committed_revision",
+      "passed": true
+    },
+    {
+      "name": "final_delayed_old_frame_read_cannot_replace_new_model_frame_preview",
+      "passed": true
+    },
+    {
+      "name": "final_saved_snapshot_copies_read_values_before_publishing",
+      "passed": true
+    },
+    {
+      "name": "final_coalesced_notification_retries_failed_old_read_in_explicit_file_workspace",
+      "passed": true
+    },
+    {
+      "name": "final_continuous_notifications_yield_after_one_coalesced_read",
+      "passed": true
+    },
+    {
+      "name": "final_cancelled_read_clears_coalesced_pending_without_unrequested_retry",
+      "passed": true
+    },
+    {
+      "name": "existing_corrections_without_residual_are_not_displayed_as_current_measurements",
+      "passed": true
+    },
+    {
+      "name": "displayed_history_cannot_reapply_its_stored_offset_as_new_raw",
+      "passed": true
+    },
+    {
+      "name": "fresh_direct_measurement_overrides_display_fallback_only",
+      "passed": true
+    },
+    {
+      "name": "coverage_export_keeps_original_raw_columns_and_adds_display_basis",
+      "passed": true
+    },
+    {
+      "name": "point_history_explains_correction_coverage_and_keeps_null_original",
+      "passed": true
+    },
+    {
+      "name": "masked_stored_offset_is_excluded_from_measured_coverage",
+      "passed": true
+    },
+    {
+      "name": "hardening_stale_confirmation_after_external_refresh_never_moves",
+      "passed": true
+    },
+    {
+      "name": "hardening_new_product_run_does_not_restore_previous_measurements_or_copy",
+      "passed": true
+    },
+    {
+      "name": "hardening_new_run_can_replace_old_interrupted_run_without_resuming_motion",
+      "passed": true
+    },
+    {
+      "name": "hardening_same_run_revision_change_cannot_silently_clear_interrupted_work",
+      "passed": true
+    },
+    {
+      "name": "hardening_old_run_session_import_is_rejected_before_native_operation",
+      "passed": true
+    },
+    {
+      "name": "hardening_import_native_session_exits_explicit_archive_view_and_resumes_live_sync",
+      "passed": true
+    },
+    {
+      "name": "hardening_throwing_changed_subscriber_does_not_leak_command_or_hide_later_subscribers",
+      "passed": true
+    },
+    {
+      "name": "hardening_throwing_report_observer_does_not_leak_command_gate",
+      "passed": true
+    },
+    {
+      "name": "hardening_throwing_view_during_sync_keeps_external_observation_and_gate_usable",
+      "passed": true
+    },
+    {
+      "name": "hardening_stop_cleanup_survives_throwing_view_observer",
+      "passed": true
+    },
+    {
+      "name": "hardening_external_notification_during_apply_is_deferred_until_committed_revision",
+      "passed": true
+    },
+    {
+      "name": "hardening_backend_stop_failure_does_not_skip_cleanup_wait_or_leak_gate",
+      "passed": true
+    },
+    {
+      "name": "hardening_throwing_cancellation_callback_still_requests_backend_stop_and_waits_cleanup",
+      "passed": true
+    },
+    {
+      "name": "hardening_cancelled_apply_before_persist_does_not_commit_or_allow_duplicate_write",
+      "passed": true
+    },
+    {
+      "name": "hardening_geometry_shrink_requires_current_target_reconfirmation_instead_of_erasing_saved_point",
+      "passed": true
+    },
+    {
+      "name": "hardening_beam_growth_preserves_native_raw_and_shared_offset_revision",
+      "passed": true
+    },
+    {
+      "name": "hardening_real_file_watcher_enable_disable_reenable_never_executes_device",
+      "passed": true
+    },
+    {
+      "name": "hardening_applied_copy_audits_captured_reference_raw_after_reference_remeasurement",
+      "passed": true
+    },
+    {
+      "name": "presentation_flying_burst_coalesces_large_matrix_without_dropping_any_measurement",
+      "passed": true
+    },
+    {
+      "name": "presentation_error_flushes_all_recorded_points_and_preserves_remaining",
+      "passed": true
+    },
+    {
+      "name": "presentation_elapsed_budget_exposes_intermediate_progress_and_immediate_last_result",
+      "passed": true
+    },
+    {
+      "name": "presentation_stop_flushes_pending_points_before_delayed_device_cleanup",
+      "passed": true
+    },
+    {
+      "name": "file_workspace_has_explicit_return_without_implicit_device_work",
+      "passed": true
+    },
+    {
+      "name": "file_workspace_executes_move_measure_and_correction_with_native_interlocks",
+      "passed": true
+    },
+    {
+      "name": "file_workspace_reconnects_legacy_source_and_requires_fresh_measurement_before_correction",
+      "passed": true
+    },
+    {
+      "name": "return_restores_native_candidate_raw_limits_and_level_options",
+      "passed": true
+    },
+    {
+      "name": "return_keeps_copied_native_working_values_and_original_provenance",
+      "passed": true
+    },
+    {
+      "name": "file_open_cannot_replace_interrupted_native_measurement_without_cleanup",
+      "passed": true
+    },
+    {
+      "name": "multiple_file_loads_return_to_first_native_workspace",
+      "passed": true
+    },
+    {
+      "name": "cancelled_file_picker_does_not_create_return_bookmark",
+      "passed": true
+    },
+    {
+      "name": "returned_workspace_invalidates_old_file_confirmation_before_movement",
+      "passed": true
+    },
+    {
+      "name": "new_product_during_file_view_returns_without_promoting_old_raw",
+      "passed": true
+    },
+    {
+      "name": "file_apply_rebases_returned_base_and_invalidates_pre_file_candidate",
+      "passed": true
+    },
+    {
+      "name": "file_apply_does_not_make_old_native_hole_measurement_fresh_again",
+      "passed": true
+    },
+    {
+      "name": "file_checkpoints_cannot_replace_native_saved_session",
+      "passed": true
+    },
+    {
+      "name": "reopening_file_cannot_erase_incomplete_file_measurement_and_bypass_correction_guard",
+      "passed": true
+    },
+    {
+      "name": "failed_first_file_load_preserves_native_candidate_and_does_not_create_return_bookmark",
+      "passed": true
+    },
+    {
+      "name": "offset_init_is_draft_without_file_save_move_or_active_baseline_change",
+      "passed": true
+    },
+    {
+      "name": "offset_init_save_writes_whole_cumulative_replacement_and_clears_working_results",
+      "passed": true
+    },
+    {
+      "name": "offset_init_cancel_restores_previous_candidate_and_no_backend_save",
+      "passed": true
+    },
+    {
+      "name": "offset_init_failed_save_preserves_real_baseline_and_retryable_draft",
+      "passed": true
+    },
+    {
+      "name": "offset_init_stale_backend_blocks_save_and_keeps_draft",
+      "passed": true
+    },
+    {
+      "name": "offset_init_pending_blocks_movement_new_measurement_copy_calculation_and_file_switch",
+      "passed": true
+    },
+    {
+      "name": "offset_init_pending_file_workspace_cannot_return_until_save_or_cancel",
+      "passed": true
+    },
+    {
+      "name": "offset_init_explicitly_retires_incomplete_measurement_but_can_reconnect_current_source",
+      "passed": true
+    },
+    {
+      "name": "offset_bundle_export_of_init_is_draft_zero_and_never_saves_model",
+      "passed": true
+    },
+    {
+      "name": "offset_bundle_export_of_active_values_does_not_readd_measurement_delta",
+      "passed": true
+    },
+    {
+      "name": "offset_bundle_import_stages_absolute_values_and_waits_for_explicit_save",
+      "passed": true
+    },
+    {
+      "name": "offset_bundle_cancelled_picker_never_stages_or_saves",
+      "passed": true
+    },
+    {
+      "name": "offset_init_zero_to_zero_saved_rows_are_explicit_initialized_gray_before_and_after_refresh",
+      "passed": true
+    },
+    {
+      "name": "corrupt_checkpoint_is_archived_as_exact_bytes_before_reconnect_and_fresh_measurement",
+      "passed": true
+    },
+    {
+      "name": "reconnect_preserves_and_restores_target_frame_pending_candidate_checkpoint",
+      "passed": true
+    },
+    {
+      "name": "reconnect_preserves_and_restores_target_frame_partial_measurement_without_auto_resume",
+      "passed": true
+    },
+    {
+      "name": "missing_selected_result_file_reconnects_current_geometry_and_accepts_fresh_measurement",
+      "passed": true
+    },
+    {
+      "name": "old_recipe_selected_file_falls_back_to_new_model_with_reconfirmation_before_motion",
+      "passed": true
+    },
+    {
+      "name": "failed_file_to_model_reconnect_keeps_file_mode_and_native_checkpoint_until_recovery_succeeds",
+      "passed": true
+    },
+    {
+      "name": "cell_init_stages_only_cell_and_all_shared_shot_beams",
+      "passed": true
+    },
+    {
+      "name": "manual_init_uses_current_cell_including_all_heads_and_shared_beams",
+      "passed": true
+    },
+    {
+      "name": "scoped_init_missing_unknown_or_unsupported_scope_rejects_without_draft",
+      "passed": true
+    },
+    {
+      "name": "scoped_init_save_carries_metadata_and_keeps_outside_values",
+      "passed": true
+    },
+    {
+      "name": "scoped_init_save_failure_preserves_native_baseline_and_draft_scope",
+      "passed": true
+    },
+    {
+      "name": "scoped_init_saved_reload_retains_initialized_gray_state_without_clearing_other_raw",
+      "passed": true
+    },
+    {
+      "name": "initial_load_and_move_only_never_create_latest_measurement_notice",
+      "passed": true
+    },
+    {
+      "name": "move_then_measure_immediately_publishes_zero_ok_result_without_saving",
+      "passed": true
+    },
+    {
+      "name": "multi_target_measure_publishes_each_result_and_last_target",
+      "passed": true
+    },
+    {
+      "name": "ng_response_updates_latest_notice_without_automatic_correction",
+      "passed": true
+    },
+    {
+      "name": "failed_response_does_not_publish_fabricated_latest_measurement",
+      "passed": true
+    },
+    {
+      "name": "partial_batch_latest_notice_is_only_successful_completed_point",
+      "passed": true
+    },
+    {
+      "name": "flying_callbacks_publish_latest_measurement_for_each_completed_point",
+      "passed": true
+    },
+    {
+      "name": "refresh_and_existing_file_import_do_not_advance_actual_measurement_sequence",
+      "passed": true
+    },
+    {
+      "name": "current_position_measure_publishes_result_after_existing_arrival_without_moving_again",
+      "passed": true
+    },
+    {
+      "name": "rollback_to_initialized_zero_renews_reset_boundary_in_persisted_identity",
+      "passed": true
+    },
+    {
+      "name": "bulk_apply_uses_entire_model_not_selected_or_filtered_subset",
+      "passed": true
+    },
+    {
+      "name": "bulk_apply_skips_ng_and_unmeasured_without_saving_them_as_zero_results",
+      "passed": true
+    },
+    {
+      "name": "bulk_failed_save_keeps_original_baseline_and_history_then_allows_retry",
+      "passed": true
+    },
+    {
+      "name": "bulk_already_consumed_measurements_do_not_create_another_revision",
+      "passed": true
+    },
+    {
+      "name": "bulk_numeric_exclusion_keeps_invalid_rows_and_saves_valid_points",
+      "passed": true
+    },
+    {
+      "name": "undo_and_redo_restore_actual_written_values_without_motion",
+      "passed": true
+    },
+    {
+      "name": "undo_redo_are_bounded_at_ten_and_never_pass_either_end",
+      "passed": true
+    },
+    {
+      "name": "failed_undo_or_redo_save_preserves_cursor_and_active_value",
+      "passed": true
+    },
+    {
+      "name": "new_bulk_apply_after_undo_truncates_redo_and_uses_restored_base",
+      "passed": true
+    },
+    {
+      "name": "undo_persists_consumption_of_unsaved_results_from_the_old_coordinate_basis",
+      "passed": true
+    },
+    {
+      "name": "pending_offset_init_uses_current_cell_bulk_but_blocks_undo_and_redo_until_save",
+      "passed": true
+    },
+    {
+      "name": "bulk_history_roundtrip_restores_undo_cursor_and_redo_without_automatic_write",
+      "passed": true
+    },
+    {
+      "name": "fresh_model_first_bulk_then_undo_restores_absent_measurement_state",
+      "passed": true
+    },
+    {
+      "name": "return_from_file_after_first_bulk_reconnects_new_nonzero_base_instead_of_stale_init_flag",
+      "passed": true
+    },
+    {
+      "name": "file_open_bulk_and_return_keep_native_and_file_correction_history_in_one_timeline",
+      "passed": true
+    },
+    {
+      "name": "fresh_model_without_measured_offset_accepts_move_then_measure_without_implicit_save",
+      "passed": true
+    },
+    {
+      "name": "saved_offset_init_accepts_new_real_zero_measurement_and_retains_unsaved_model_empty_state",
+      "passed": true
+    },
+    {
+      "name": "saved_offset_init_keeps_masked_point_and_equipment_guard_restrictions",
+      "passed": true
+    },
+    {
+      "name": "bulk_apply_pending_writer_rejects_rapid_repeat_and_same_raw_after_success",
+      "passed": true
+    },
+    {
+      "name": "bulk_apply_cancelled_writer_does_not_consume_measurement_or_leave_command_locked",
+      "passed": true
+    },
+    {
+      "name": "bulk_apply_rechecks_equipment_guard_before_any_write",
+      "passed": true
+    },
+    {
+      "name": "first_model_load_archives_unsaved_offset_init_exact_bytes_without_relocking_measurement",
+      "passed": true
+    },
+    {
+      "name": "automatic_import_draft_recovery_keeps_saved_base_raw_ledger_and_undo_redo_history",
+      "passed": true
+    },
+    {
+      "name": "explicit_session_import_keeps_archived_unsaved_offset_draft_and_live_workspace_edit_stays_pending",
+      "passed": true
+    },
+    {
+      "name": "draft_recovery_backup_failure_never_overwrites_original_checkpoint_and_retry_is_safe",
+      "passed": true
+    },
+    {
+      "name": "failed_draft_backup_only_blocks_its_checkpoint_and_other_recipe_still_saves_measurements",
+      "passed": true
+    },
+    {
+      "name": "legacy_selected_action_forwards_to_current_cell_with_one_context_check",
+      "passed": true
+    },
+    {
+      "name": "selected_correction_excludes_ng_missing_but_masked_or_empty_selection_still_rejects",
+      "passed": true
+    },
+    {
+      "name": "selected_correction_numeric_exclusion_saves_only_valid_companion_points",
+      "passed": true
+    },
+    {
+      "name": "selected_real_zero_first_apply_then_repeat_is_one_save_and_undo_redo_preserve_empty_semantics",
+      "passed": true
+    },
+    {
+      "name": "selected_representative_copy_applies_captured_final_once_without_extra_manual_checkbox",
+      "passed": true
+    },
+    {
+      "name": "selected_correction_failed_writer_can_retry_without_consumption_or_partial_save",
+      "passed": true
+    },
+    {
+      "name": "selected_correction_rapid_repeat_during_write_never_creates_second_save",
+      "passed": true
+    },
+    {
+      "name": "pending_init_save_revalidates_after_limits_change_without_separate_validate_action",
+      "passed": true
+    },
+    {
+      "name": "pending_import_save_runs_validation_and_rejects_unsafe_values_without_write",
+      "passed": true
+    },
+    {
+      "name": "reference_error_without_numeric_error_projects_no_value_without_exception_control_flow",
+      "passed": true
+    },
+    {
+      "name": "reference_projection_marks_missing_imported_and_masked_points_without_faking_copy_values",
+      "passed": true
+    },
+    {
+      "name": "reference_projection_stored_base_is_known_correction_without_fabricating_camera_raw",
+      "passed": true
+    },
+    {
+      "name": "reference_proxy_can_supply_another_copy_after_root_changes_and_only_selected_final_is_saved",
+      "passed": true
+    },
+    {
+      "name": "reference_ng_proxy_reverse_copy_keeps_ng_and_remains_unsavable",
+      "passed": true
+    },
+    {
+      "name": "reference_masked_source_never_enters_masked_motion_or_masked_correction_target",
+      "passed": true
+    },
+    {
+      "name": "reference_unassigned_head_cannot_turn_unproven_camera_values_into_manual_offset",
+      "passed": true
+    },
+    {
+      "name": "retry_failed_queue_does_not_force_old_remaining_when_new_point_is_explicitly_measured",
+      "passed": true
+    },
+    {
+      "name": "retry_remaining_is_still_optional_and_unchanged_until_new_operation_begins",
+      "passed": true
+    },
+    {
+      "name": "retry_stale_or_all_masked_new_request_does_not_erase_existing_queue",
+      "passed": true
+    },
+    {
+      "name": "retry_new_current_measure_or_move_can_leave_stopped_queue_without_applying_old_residual",
+      "passed": true
+    },
+    {
+      "name": "retry_new_ng_response_stays_ng_and_selected_correction_is_rejected",
+      "passed": true
+    },
+    {
+      "name": "active_p2p_target_is_published_before_response_and_is_separate_from_last_measured",
+      "passed": true
+    },
+    {
+      "name": "active_target_stays_inflight_until_stop_cleanup_and_clears_after_stop_or_error",
+      "passed": true
+    },
+    {
+      "name": "active_target_is_never_reported_for_move_only_or_offset_file_write",
+      "passed": true
+    },
+    {
+      "name": "active_flying_batch_contains_only_current_typed_line_and_never_guesses_a_single_point",
+      "passed": true
+    },
+    {
+      "name": "active_flying_failure_clears_line_then_new_p2p_selection_is_not_blocked",
+      "passed": true
+    },
+    {
+      "name": "active_late_flying_callback_cannot_restart_or_clear_another_operations_marker",
+      "passed": true
+    },
+    {
+      "name": "active_invalid_flying_target_is_rejected_before_backend_measurement",
+      "passed": true
+    },
+    {
+      "name": "active_replay_backend_flying_remains_compatible_without_device_calls",
+      "passed": true
+    },
+    {
+      "name": "actual_replay_flying_across_rows_publishes_only_the_current_synthetic_point",
+      "passed": true
+    },
+    {
+      "name": "actual_replay_flying_failure_and_cancellation_always_clear_the_current_target",
+      "passed": true
+    },
+    {
+      "name": "first_load_empty_reference_copies_absent_state_without_save_motion_or_fake_zero",
+      "passed": true
+    },
+    {
+      "name": "first_load_blank_state_preserves_existing_nonzero_base_and_original_then_undo",
+      "passed": true
+    },
+    {
+      "name": "first_load_state_copy_roundtrip_and_fresh_actual_zero_measurement",
+      "passed": true
+    },
+    {
+      "name": "first_load_auto_incomplete_recovery_backs_up_exact_bytes_and_starts_idle",
+      "passed": true
+    },
+    {
+      "name": "first_load_auto_recovery_preserves_completed_consumption_and_offset_history",
+      "passed": true
+    },
+    {
+      "name": "first_load_explicit_session_and_same_workspace_reload_keep_incomplete_queue",
+      "passed": true
+    },
+    {
+      "name": "first_load_recovery_backup_failure_never_overwrites_checkpoint_or_executes",
+      "passed": true
+    },
+    {
+      "name": "first_load_corrupt_operation_is_validated_before_archive_or_idle_release",
+      "passed": true
+    },
+    {
+      "name": "first_load_explicit_invalid_copy_or_init_does_not_discard_incomplete_queue",
+      "passed": true
+    },
+    {
+      "name": "first_load_explicit_copy_preflights_post_retirement_reference_and_never_uses_old_raw",
+      "passed": true
+    },
+    {
+      "name": "first_load_explicit_init_can_leave_stopped_queue_but_does_not_save_or_change_base",
+      "passed": true
+    },
+    {
+      "name": "first_load_foreign_model_does_not_import_captured_blank_state",
+      "passed": true
+    },
+    {
+      "name": "first_load_file_return_after_other_shot_save_keeps_captured_absence_and_new_base",
+      "passed": true
+    },
+    {
+      "name": "first_load_failed_cleared_point_stays_empty_after_explicit_copy_and_startup_recovery",
+      "passed": true
+    },
+    {
+      "name": "immediate_init_invalid_scope_or_field_keeps_interrupted_queue_and_writable_source_without_attempting_restore",
+      "passed": true
+    },
+    {
+      "name": "immediate_init_clears_latest_current_cell_then_fresh_measurement_starts_from_zero_and_keeps_other_cell500",
+      "passed": true
+    },
+    {
+      "name": "immediate_init_failed_uncommitted_save_restores_raw_queue_candidate_and_allows_safe_retry",
+      "passed": true
+    },
+    {
+      "name": "immediate_init_stop_waits_for_cancelled_writer_and_restores_uncommitted_state",
+      "passed": true
+    },
+    {
+      "name": "immediate_init_changed_authoritative_revision_after_write_error_is_reloaded_never_restored_to_old_B",
+      "passed": true
+    },
+    {
+      "name": "immediate_init_unreadable_authority_after_error_reports_unknown_without_false_gray_draft",
+      "passed": true
+    },
+    {
+      "name": "init_recovery_controller_cell_and_head_init_can_save_with_unchanged_legacy_over_limit",
+      "passed": true
+    },
+    {
+      "name": "init_recovery_controller_all_init_saves_large_negative_base_without_raising_limits",
+      "passed": true
+    },
+    {
+      "name": "init_recovery_controller_failed_field_preflight_preserves_previous_candidate_and_measurement_access",
+      "passed": true
+    },
+    {
+      "name": "init_recovery_controller_invalid_scope_and_field_failure_do_not_retire_remaining_queue",
+      "passed": true
+    },
+    {
+      "name": "init_recovery_controller_failed_save_keeps_retry_cancel_and_original_source_bytes",
+      "passed": true
+    },
+    {
+      "name": "init_recovery_controller_limit_edits_do_not_reject_unchanged_keep_but_new_correction_is_checked",
+      "passed": true
+    },
+    {
+      "name": "init_recovery_controller_known_large_history_undo_redo_is_exact_not_a_new_measurement",
+      "passed": true
+    },
+    {
+      "name": "init_recovery_controller_same_frame_ensureloaded_preserves_verified_large_undo_redo",
+      "passed": true
+    },
+    {
+      "name": "init_recovery_controller_old_scoped_draft_startup_archives_but_explicit_import_can_save_after_revalidation",
+      "passed": true
+    },
+    {
+      "name": "init_recovery_controller_explicit_old_field_invalid_draft_requires_cancel_and_never_writes",
+      "passed": true
+    },
+    {
+      "name": "startup_preload_reads_resolved_recipe_final_without_guard_motion_or_save",
+      "passed": true
+    },
+    {
+      "name": "startup_saved_read_failure_is_visible_and_retry_recovers_without_device_action",
+      "passed": true
+    },
+    {
+      "name": "cancelled_startup_preload_releases_command_and_can_retry",
+      "passed": true
+    },
+    {
+      "name": "startup_loaded_manual_apply_reloads_new_saved_revision_without_double_application",
+      "passed": true
+    },
+    {
+      "name": "copy_confirmation_dispatch_saves_known_final_and_refreshes_final_snapshot_without_motion",
+      "passed": true
+    },
+    {
+      "name": "copy_saved_known_offset_with_no_residual_is_applied_as_absolute_f_not_fake_raw",
+      "passed": true
+    },
+    {
+      "name": "copy_ng_and_empty_states_never_save_until_a_separate_operator_acceptance",
+      "passed": true
+    },
+    {
+      "name": "copy_numeric_invalid_target_is_excluded_while_valid_target_is_saved",
+      "passed": true
+    },
+    {
+      "name": "copy_write_failure_keeps_working_proxy_and_allows_one_explicit_retry_without_motion",
+      "passed": true
+    },
+    {
+      "name": "operator_ng_raw_is_preserved_while_manual_ok_is_separately_saved",
+      "passed": true
+    },
+    {
+      "name": "operator_empty_requires_keypad_pair_and_explicit_zero_is_manual_not_camera_measurement",
+      "passed": true
+    },
+    {
+      "name": "operator_unadopted_import_acceptance_keeps_foreign_raw_and_current_context_metadata",
+      "passed": true
+    },
+    {
+      "name": "operator_initial_invalid_multi_request_preserves_remaining_queue_then_explicit_input_can_supersede",
+      "passed": true
+    },
+    {
+      "name": "operator_numeric_limits_are_excluded_per_row_but_field_and_shared_shot_stay_atomic",
+      "passed": true
+    },
+    {
+      "name": "operator_explicit_repeated_values_after_save_do_not_accumulate_twice_and_fresh_camera_replaces_manual",
+      "passed": true
+    },
+    {
+      "name": "operator_file_return_after_external_base_change_preserves_info_but_requires_new_acceptance",
+      "passed": true
+    },
+    {
+      "name": "bulk_final_verification_confirms_new_revision_values_and_status_after_actual_apply",
+      "passed": true
+    },
+    {
+      "name": "bulk_final_readback_error_does_not_abort_committed_values_or_reconsume_raw_and_can_recover",
+      "passed": true
+    },
+    {
+      "name": "bulk_final_followup_revision_is_reported_as_superseded_without_rolling_back_our_commit",
+      "passed": true
+    },
+    {
+      "name": "bulk_final_same_revision_wrong_values_is_not_claimed_verified",
+      "passed": true
+    },
+    {
+      "name": "offset_init_final_verification_checks_initialized_state_not_only_numeric_zero",
+      "passed": true
+    },
+    {
+      "name": "offset_undo_redo_refresh_their_own_verified_revision_without_extra_measurement",
+      "passed": true
+    },
+    {
+      "name": "generic_saved_read_unsupported_and_force_only_never_pretend_a_new_verified_csv",
+      "passed": true
+    },
+    {
+      "name": "stale_current_reconnect_refreshes_latest_final_even_when_the_old_request_is_rejected",
+      "passed": true
+    },
+    {
+      "name": "bulk_current_cell_applies_all_its_points_even_if_request_selection_is_other_cell",
+      "passed": true
+    },
+    {
+      "name": "bulk_requires_explicit_existing_positive_cell_and_never_infers_focus_or_selection",
+      "passed": true
+    },
+    {
+      "name": "bulk_empty_current_cell_does_not_apply_another_eligible_cell",
+      "passed": true
+    },
+    {
+      "name": "representative_residual_adds_once_to_each_nonzero_target_and_repeated_copy_does_not_save_twice",
+      "passed": true
+    },
+    {
+      "name": "current_offset_csv_export_uses_latest_saved_api_and_preserves_pending_init_draft",
+      "passed": true
+    },
+    {
+      "name": "current_offset_csv_export_cancel_or_failure_does_not_mutate_model_or_saved_confirmation",
+      "passed": true
+    },
+    {
+      "name": "native_offset_csv_dialog_defaults_to_current_directory_safe_export_name_and_explicit_overwrite_prompt_without_showing_dialog",
+      "passed": true
+    },
+    {
+      "name": "combined_offset_import_entry_accepts_csv_and_surfaces_unsigned_model_draft_explanation",
+      "passed": true
+    },
+    {
+      "name": "manual_saved_source_keeps_residual_for_new_targets_but_each_target_can_consume_it_only_once",
+      "passed": true
+    },
+    {
+      "name": "manual_copy_stages_current_error_and_current_cell_bulk_adds_once_to_each_base",
+      "passed": true
+    },
+    {
+      "name": "manual_current_cell_csv_stage_displays_file_values_without_fabricating_raw_then_bulk_saves_only_scope",
+      "passed": true
+    },
+    {
+      "name": "manual_current_cell_init_is_gray_draft_saved_by_the_common_bulk_only",
+      "passed": true
+    },
+    {
+      "name": "manual_legacy_save_endpoints_require_explicit_cell_and_forward_to_whole_current_cell",
+      "passed": true
+    },
+    {
+      "name": "manual_old_accumulation_candidate_cannot_use_the_legacy_apply_endpoint",
+      "passed": true
+    },
+    {
+      "name": "manual_saved_base_without_error_stays_gray_and_needs_explicit_xy_before_force",
+      "passed": true
+    },
+    {
+      "name": "manual_large_prior_base_and_repeated_operator_xy_remain_excluded_by_total_limit",
+      "passed": true
+    },
+    {
+      "name": "manual_staged_copy_session_reopens_without_saving_then_uses_current_target_base",
+      "passed": true
+    },
+    {
+      "name": "generic_sta_application_and_no_loaded_vendor_assemblies",
+      "passed": true
+    }
+  ],
+  "presentation": [
+    {
+      "matrixPoints": 4000,
+      "receivedPoints": 120,
+      "fullMatrixPublications": 5,
+      "clock": "deterministic fixed presentation clock",
+      "allMeasurementsRetained": true,
+      "deviceTimingChanged": false
+    }
+  ],
+  "controllerAssembly": "Drilling.UI",
+  "controllerAssemblySha256": "3aa5d04064a1492e652ed0a7ff6e276e4abff50d8d2f34904ff7a023c7c9bf5d",
+  "loadedVendorAssemblies": [],
+  "scope": "Actual new production Controller\u002BCommon\u002BUI contract; synthetic async fake Backend. Generic WPF Application/STA only; Drilling.UI.App/Root/device Manager not constructed. No SDK/motion/PLC/Vision executed."
+}

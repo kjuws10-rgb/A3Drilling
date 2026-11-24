@@ -12,7 +12,7 @@ internal static partial class Program
             var(f,c)=await Loaded();await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,["P2"],r=>r with{ReferenceKey="P1",Reason="explicit confirmed representative"});
             True(f.Saves==0&&c.Snapshot.Points.Single(p=>p.Key=="P2").WorkingXUm==3);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply);
             True(f.Saves==1&&f.Executed.Count==0&&c.Snapshot.Points.Single(p=>p.Key=="P2").BaseXUm==3&&c.Snapshot.UndoOffsetCount==1);
-            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,["P2"],r=>r with{ReferenceKey="P1",Reason="same F again"});True(f.Saves==1);
+            await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,["P2"],r=>r with{ReferenceKey="P1",Reason="same residual again"}));True(f.Saves==1);
         });
         await Check("copy_saved_known_offset_with_no_residual_is_applied_as_absolute_f_not_fake_raw",async()=>
         {
@@ -32,7 +32,7 @@ internal static partial class Program
             var(f,c)=Fixture();f.Source=f.Source with{Values=new Dictionary<string,ST_MANUAL_OFFSET>{{"P1",new(0,0)},{"P2",new(-50,0)},{"P3",new(0,0)}}};await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);
             await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,["P2","P3"],r=>r with{ReferenceKey="P1",Reason="per-target numeric exclusion"});
             True(f.Saves==0);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply);
-            True(f.Saves==1&&c.Snapshot.Points.Single(p=>p.Key=="P2").BaseXUm==3&&c.Snapshot.Points.Single(p=>p.Key=="P3").BaseXUm==3);
+            True(f.Saves==1&&c.Snapshot.Points.Single(p=>p.Key=="P2").BaseXUm==-47&&c.Snapshot.Points.Single(p=>p.Key=="P3").BaseXUm==3);
         });
         await Check("copy_write_failure_keeps_working_proxy_and_allows_one_explicit_retry_without_motion",async()=>
         {

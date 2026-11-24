@@ -1,0 +1,129 @@
+{
+  "schema": "a3-overwrite-only-backend-controller-review/1",
+  "version": "11.24.10",
+  "status": "passed",
+  "generatedAtUtc": "2026-11-24T13:54:31.658579+00:00",
+  "passed": true,
+  "sourceHashes": {
+    "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs": "4778599a2f897aedcbb2a43e5bf958be7e2b951f270c46ab456ebd965a5c7332",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "72878047422c27044f2945b7c7d1dfd9b337537885378ff403a778f4fbbdf97b",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs": "ac4122e96c67314ffc34f8ae5e298d728208072fe7c3ec9de84243eee480ebb6"
+  },
+  "sourceController": {
+    "path": "controller-source.json",
+    "sha256": "72a10715d588a6e13ffa215e9e34787b103795240059ce7e3ddc1d1249c7a84d",
+    "count": 289,
+    "failed": 0
+  },
+  "contract": {
+    "measurement": "F=current target B+validated residual e",
+    "representative": "copy measured residual e; do not add source F; source 10+3=13 and target20+3=23",
+    "keypad": "residual input; identical input under same observation cannot manufacture another consumption right",
+    "fileImport": "absolute current-Cell draft then Bulk",
+    "init": "current Cell immediately saves a new authoritative Init CSV; no pending draft after success; old timestamp history files and other Cell/protected offsets remain"
+  },
+  "newCases": {
+    "controller": 7,
+    "backend": 1,
+    "legacyPendingFixtureCalls": 43
+  },
+  "checks": [
+    "source-linked Controller289 and actual production Controller292 passed; existing cases retained",
+    "Undo cumulative values 1,3,6 and bounded 10 states; failed writes preserve cursor",
+    "NG/missing and saved B-only do not acquire invented residuals",
+    "existing B500 plus valid residual remains over total200 and cannot silently become5",
+    "current Cell Import and Init keep outside Cell numeric/state/hidden rows",
+    "same representative residual can be used on a fresh target only once; source-consumed residual remains usable for a different target",
+    "Native reservation input includes original companion raw plus driving tokens; only MANUAL increment driving tokens propagate to shared Shot sibling points",
+    "driving HashSet and OffsetKey lookup preserve linear collection behavior",
+    "legacy plain source identity remains accepted; optional JSON increment flag governs Shot token fanout",
+    "Init preflight preserves old state; I/O failure restores state only after authoritative re-read matches Context/value map/Init set",
+    "authoritative revision changed after failure reloads new CSV rather than restoring old B",
+    "unreadable post-error authority reports unknown, drops misleading gray draft and prevents applying unverified state",
+    "StopAsync waits for Init writer cancellation and cleanup",
+    "public Init invalid Cell/Field while an interrupted queue exists does not restore an unmodified session; queue/source remain writable and a new point can be measured",
+    "Actual Backend184 includes new reservation reader restart test, real CAS CSV/readback/Monitor and pure four-mode A1 text generation; final UI/Common DLL bytes match actual Controller assembly report"
+  ],
+  "limits": [
+    "Native SaveCore equipment Guard/manager and reservation loop not executed. The extra Backend fixture uses actual CAS writer+actual reservation reader and explicitly seeded reservation files after a real committed source receipt.",
+    "No machining-time B proof is introduced. Current active CSV B is the explicitly requested .8 arithmetic basis; existing hole processing baseline remains unknown.",
+    ".9 Basis/Scale/Station lifecycle/typed-mode extension is excluded.",
+    "An error returned after the writer may be an ambiguous commit. Init restores the old working state only after matching authoritative Context/B/Init state; a changed file is reloaded, unknown authority is reported and no past value is forced back."
+  ],
+  "correctionHistory": [
+    {
+      "finding": "public invalid Init with interrupted queue could enter RestoreSession on an unchanged engine and fail closed unnecessarily",
+      "beforeFixEvidence": "independent source-control analysis; no pre-fix runtime failure log was collected",
+      "fix": "initPrepared flag excludes all sandbox/preflight failures from recovery mutation",
+      "regression": "immediate_init_invalid_scope_or_field_keeps_interrupted_queue_and_writable_source_without_attempting_restore",
+      "status": "sourceController runtime passed"
+    }
+  ],
+  "sourceInventoryMatched": 32,
+  "productionAssemblies": {
+    "Drilling.UI": {
+      "sha256": "3aa5d04064a1492e652ed0a7ff6e276e4abff50d8d2f34904ff7a023c7c9bf5d",
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BackendReadHarness\\bin\\Release\\net8.0-windows\\Drilling.UI.dll"
+    },
+    "Drilling.Common": {
+      "sha256": "d199031a84557b8b3348d76170d7075829b23cbc4d3175038bbb44c55a63fe20",
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BackendReadHarness\\bin\\Release\\net8.0-windows\\Drilling.Common.dll"
+    }
+  },
+  "actualControllerVendorAssemblies": [],
+  "reports": {
+    "controller-source.json": {
+      "sha256": "72a10715d588a6e13ffa215e9e34787b103795240059ce7e3ddc1d1249c7a84d",
+      "passed": true,
+      "count": 289
+    },
+    "controller-production.json": {
+      "sha256": "7d9716c05bf614dcc99765eaea825d6fe165e1d5b0885bfc85f16f4b06009f0b",
+      "passed": true,
+      "count": 292
+    },
+    "backend-read.json": {
+      "sha256": "8729e16b5b7de7e75c19963166d9bb6f28720bcfad28a185556e9075d1dc8ee9",
+      "passed": true,
+      "count": 184
+    },
+    "core-results.json": {
+      "sha256": "0acf80c77eab348f64510e43c7896c8309dabd02f41267a2731f12ed77717dcb",
+      "passed": true,
+      "count": 286
+    },
+    "scope-results.json": {
+      "sha256": "e8734c6079bf84ecfdfe50900cb3f515f17e24c04cbc605aec813e4690e66a22",
+      "passed": true,
+      "count": 36
+    },
+    "legacy-serialization.json": {
+      "sha256": "921961b1309d2e28b7fb36b428939ac67c13ecc8dbe8df1ee25dfb979e4225e0",
+      "passed": true,
+      "count": 37
+    },
+    "incremental-loop.json": {
+      "sha256": "7b4e551e3c792b2254f56c42da58ac1debcdfdf0413e000ed5c922734dfdd600",
+      "passed": true,
+      "count": 21
+    }
+  },
+  "ui": {
+    "path": "ui-final/validation.json",
+    "sha256": "2f567dfbc396572125a242208e55ae7b400fef66fbabcdca32884f68eadce3a0",
+    "passed": true,
+    "modeCount": 3,
+    "testCount": 124,
+    "currentSourceInputsMatched": 29,
+    "scope": "Targeted changed arithmetic/wording modes only; unchanged UI preservation separately checked. Do not claim all prior 19 modes were rerun."
+  },
+  "scopeObservation": "scope36/source32 matched at review time; parent may regenerate only changed documentation path list later",
+  "nativeAdditionalCasePassed": "increment_csv_restart_reads_both_target_raw_and_copy_driving_receipts_and_rejects_same_copy",
+  "initializationCases": {
+    "newPublicImmediateInitCases": 6,
+    "newSourceReuseTargetCase": 1,
+    "totalNewControllerCases": 7,
+    "legacyPendingFixtureCalls": 43,
+    "legacyFixturesMeaning": "Historical .8 pending checkpoints are reconstructed with private existing stager, then ordinary public commands test recovery/export/cancel/guard. They do not represent the current Init button."
+  }
+}

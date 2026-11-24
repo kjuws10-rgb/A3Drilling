@@ -1,0 +1,357 @@
+{
+  "passed": true,
+  "tests": 49,
+  "failures": 0,
+  "checks": [
+    {
+      "name": "bulk_final_cancel_preserves_user_mode_and_does_not_dispatch",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_confirmation_identifies_actual_model_and_current_cell_scope",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_confirmation_explains_target_base_plus_measured_or_copied_error",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_confirmation_lists_numeric_limits_and_storage_readback",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_confirmation_retains_ng_unmeasured_and_protected_offsets",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_accepted_request_uses_frozen_version_and_cell_without_motion",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_verified_csv_does_not_replace_measurement_display_mode",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_cell_apply_does_not_drop_user_ng_filter",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_map_keeps_current_delta_not_old_B",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_table_keeps_measurement_delta",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_scatter_uses_current_measurement_population_including_NG",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_verified_file_and_readback_status_are_current",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_map_explains_measured_and_copied_error_accumulation",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_apply_changes_display_basis_without_rewriting_raw_measurement",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_does_not_switch_without_this_verified_save_PENDING",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_outcome_dispatches_only_requested_non_motion_action_PENDING",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_does_not_switch_without_this_verified_save_UNSUPPORTED",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_outcome_dispatches_only_requested_non_motion_action_UNSUPPORTED",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_does_not_switch_without_this_verified_save_READ_FAILED",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_outcome_dispatches_only_requested_non_motion_action_READ_FAILED",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_unverified_distinguishes_committed_csv_from_readback_failure",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_failed_readback_keeps_measurement_values",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_does_not_switch_without_this_verified_save_SUPERSEDED",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_outcome_dispatches_only_requested_non_motion_action_SUPERSEDED",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_does_not_switch_without_this_verified_save_MISMATCH",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_outcome_dispatches_only_requested_non_motion_action_MISMATCH",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_does_not_switch_without_this_verified_save_NOT_APPLIED",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_outcome_dispatches_only_requested_non_motion_action_NOT_APPLIED",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_does_not_switch_without_this_verified_save_NOOP_PRIOR_VERIFIED",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_outcome_dispatches_only_requested_non_motion_action_NOOP_PRIOR_VERIFIED",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_does_not_switch_without_this_verified_save_SAME_SAVE",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_outcome_dispatches_only_requested_non_motion_action_SAME_SAVE",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_does_not_switch_without_this_verified_save_WRONG_REVISION",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_outcome_dispatches_only_requested_non_motion_action_WRONG_REVISION",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_does_not_switch_without_this_verified_save_NO_FINAL",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_outcome_dispatches_only_requested_non_motion_action_NO_FINAL",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_does_not_switch_without_this_verified_save_THROW",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_outcome_dispatches_only_requested_non_motion_action_THROW",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_operation_failure_unlocks_confirmation_and_preserves_old_csv",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_does_not_switch_without_this_verified_save_FORCE",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_outcome_dispatches_only_requested_non_motion_action_FORCE",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_verified_status_fits_without_displacing_map_Dark_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_status_glyphs_are_not_clipped_inside_height_limit_Dark_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_verified_status_fits_without_displacing_map_Dark_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_status_glyphs_are_not_clipped_inside_height_limit_Dark_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_verified_status_fits_without_displacing_map_Light_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_status_glyphs_are_not_clipped_inside_height_limit_Light_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_verified_status_fits_without_displacing_map_Light_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_final_status_glyphs_are_not_clipped_inside_height_limit_Light_wide",
+      "passed": true,
+      "details": null
+    }
+  ],
+  "observations": [
+    {
+      "verifiedModel": "UI_BULK_MODEL",
+      "LastSaveVerificationCode": "VERIFIED",
+      "LastSavedRevisionId": "SAVED-AFTER",
+      "MeanX": 5.5,
+      "MeanY": 3
+    },
+    {
+      "outcome": "PENDING",
+      "LastSaveVerificationCode": "PENDING",
+      "currentMode": "level"
+    },
+    {
+      "outcome": "UNSUPPORTED",
+      "LastSaveVerificationCode": "UNSUPPORTED",
+      "currentMode": "level"
+    },
+    {
+      "outcome": "READ_FAILED",
+      "LastSaveVerificationCode": "READ_FAILED",
+      "currentMode": "level"
+    },
+    {
+      "outcome": "SUPERSEDED",
+      "LastSaveVerificationCode": "SUPERSEDED",
+      "currentMode": "level"
+    },
+    {
+      "outcome": "MISMATCH",
+      "LastSaveVerificationCode": "MISMATCH",
+      "currentMode": "level"
+    },
+    {
+      "outcome": "NOT_APPLIED",
+      "LastSaveVerificationCode": "NONE",
+      "currentMode": "level"
+    },
+    {
+      "outcome": "NOOP_PRIOR_VERIFIED",
+      "LastSaveVerificationCode": "VERIFIED",
+      "currentMode": "level"
+    },
+    {
+      "outcome": "SAME_SAVE",
+      "LastSaveVerificationCode": "VERIFIED",
+      "currentMode": "level"
+    },
+    {
+      "outcome": "WRONG_REVISION",
+      "LastSaveVerificationCode": "VERIFIED",
+      "currentMode": "level"
+    },
+    {
+      "outcome": "NO_FINAL",
+      "LastSaveVerificationCode": "VERIFIED",
+      "currentMode": "level"
+    },
+    {
+      "outcome": "THROW",
+      "LastSaveVerificationCode": "NONE",
+      "currentMode": "level"
+    },
+    {
+      "outcome": "FORCE",
+      "LastSaveVerificationCode": "VERIFIED",
+      "currentMode": "level"
+    },
+    {
+      "theme": "Dark",
+      "Name": "notebook",
+      "ActualWidth": 800.2800000000001,
+      "ActualHeight": 448.24,
+      "statusHeight": 29.260000000000005
+    },
+    {
+      "theme": "Dark",
+      "Name": "wide",
+      "ActualWidth": 1150.6800000000003,
+      "ActualHeight": 769.84,
+      "statusHeight": 29.260000000000005
+    },
+    {
+      "theme": "Light",
+      "Name": "notebook",
+      "ActualWidth": 800.2800000000001,
+      "ActualHeight": 448.24,
+      "statusHeight": 29.260000000000005
+    },
+    {
+      "theme": "Light",
+      "Name": "wide",
+      "ActualWidth": 1150.6800000000003,
+      "ActualHeight": 769.84,
+      "statusHeight": 29.260000000000005
+    }
+  ],
+  "sourceHashes": {
+    "Views/CManualInspectionView.xaml": "de85a569823fcadf344ce1a8d7840e5c49f4982bed9910b712f3c8d79cbb43f3",
+    "Views/CManualInspectionView.xaml.cs": "740f8db69c572e07e04f7745c320ed6c75801e302da693a96e94ef13865bc297",
+    "Views/CManualInspectionUiContract.cs": "94c07c0d7faed65042d47c209dae457386e4df7611a221fb935807aaa0beafd8",
+    "Views/CManualInspectionMapControl.cs": "72964a4fef45bcd344d403af945a1f5a091d100745549d3caeaaddfb0af2f806",
+    "Views/CManualInspectionScatterControl.cs": "1cc3fb7be94547c2e714d8809906f2df6018e5805b6ed44ecc9fd2c398e6a0bb"
+  },
+  "scope": "Actual source-linked WPF controls/themes and immutable synthetic state transitions through a fake Controller. No production Controller/Manager, real CSV write/readback, monitor transform, motion, Vision, vendor or equipment executes. Persisted readback is independently covered by the Controller/Backend tests."
+}

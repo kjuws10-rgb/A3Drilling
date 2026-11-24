@@ -169,7 +169,7 @@ internal static partial class Program
         });
         await Check("pending_init_save_revalidates_after_limits_change_without_separate_validate_action",async()=>
         {
-            var(f,c)=await Loaded();await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets);
+            var(f,c)=await Loaded();await StageLegacyInitDraft(c);
             await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.UpdateLimits,null,r=>r with { DeltaLimitUm=30,TotalLimitUm=200,ScannerFieldMm=5 });
             True(c.Snapshot.IsOffsetEditPending&&!c.Snapshot.ValidationPassed);var checks=f.Ensures;
             await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Apply);
@@ -189,7 +189,7 @@ internal static partial class Program
     {
         await Check("first_model_load_archives_unsaved_offset_init_exact_bytes_without_relocking_measurement",async()=>
         {
-            var(f,previous)=await Loaded();await Do(previous,EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets);
+            var(f,previous)=await Loaded();await StageLegacyInitDraft(previous);
             var sessionPath=Directory.GetFiles(Path.Combine(f.StateDirectory,"Sessions"),"*.json").Single();var bytes=await File.ReadAllBytesAsync(sessionPath);
             var reopened=new CManualInspectionController(f);await Do(reopened,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);
             var backup=Directory.GetFiles(Path.Combine(f.StateDirectory,"Recovery"),"offset-draft-*.json").Single();
@@ -214,7 +214,7 @@ internal static partial class Program
         });
         await Check("explicit_session_import_keeps_archived_unsaved_offset_draft_and_live_workspace_edit_stays_pending",async()=>
         {
-            var(f,previous)=await Loaded();await Do(previous,EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets);
+            var(f,previous)=await Loaded();await StageLegacyInitDraft(previous);
             var sourcePath=Directory.GetFiles(Path.Combine(f.StateDirectory,"Sessions"),"*.json").Single();var explicitPath=Path.Combine(f.StateDirectory,"explicit-draft.json");
             await File.WriteAllBytesAsync(explicitPath,await File.ReadAllBytesAsync(sourcePath));
             await Throws(()=>Do(previous,EN_MANUAL_INSPECTION_UI_ACTION.Refresh));True(previous.Snapshot.IsOffsetEditPending&&f.Saves==0);
@@ -227,7 +227,7 @@ internal static partial class Program
         });
         await Check("draft_recovery_backup_failure_never_overwrites_original_checkpoint_and_retry_is_safe",async()=>
         {
-            var(f,previous)=await Loaded();await Do(previous,EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets);
+            var(f,previous)=await Loaded();await StageLegacyInitDraft(previous);
             var sessionPath=Directory.GetFiles(Path.Combine(f.StateDirectory,"Sessions"),"*.json").Single();var bytes=await File.ReadAllBytesAsync(sessionPath);
             var recovery=Path.Combine(f.StateDirectory,"Recovery");await File.WriteAllTextAsync(recovery,"synthetic file blocks Recovery directory");
             var reopened=new CManualInspectionController(f);await Throws(()=>Do(reopened,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe));
@@ -240,7 +240,7 @@ internal static partial class Program
         });
         await Check("failed_draft_backup_only_blocks_its_checkpoint_and_other_recipe_still_saves_measurements",async()=>
         {
-            var(f,previous)=await Loaded();await Do(previous,EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets);var sourceA=f.Source;
+            var(f,previous)=await Loaded();await StageLegacyInitDraft(previous);var sourceA=f.Source;
             var pathA=Directory.GetFiles(Path.Combine(f.StateDirectory,"Sessions"),"*.json").Single();var bytesA=await File.ReadAllBytesAsync(pathA);
             var recovery=Path.Combine(f.StateDirectory,"Recovery");await File.WriteAllTextAsync(recovery,"synthetic Recovery directory blocker");
             var reopened=new CManualInspectionController(f);await Throws(()=>Do(reopened,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe));
@@ -315,7 +315,7 @@ internal static partial class Program
         });
         await Check("saved_offset_init_accepts_new_real_zero_measurement_and_retains_unsaved_model_empty_state",async()=>
         {
-            var(f,c)=await Loaded();await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets);
+            var(f,c)=await Loaded();await StageLegacyInitDraft(c);
             await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Apply);var revision=c.Snapshot.ActiveRevisionId;f.NewX=0;f.NewY=0;
             True(!c.Snapshot.IsOffsetEditPending&&c.Snapshot.Points.All(p=>p.IsMeasurementOffsetInitialized));
             await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1"]);
@@ -332,6 +332,17 @@ internal static partial class Program
             f.RejectGuard=true;await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1"]));
             True(f.Executed.Count==0&&f.Saves==0&&!c.IsBusy&&!c.Snapshot.HasIncomplete&&c.Snapshot.Points.All(p=>p.IsMeasurementOffsetInitialized));
         });
+    }
+    // Historical .8 pending-Init checkpoints still exist on disk. Exercise their original
+    // recovery/export/cancel guards without pretending the current Init action remains a draft.
+    // New immediate-Init action cases below use the public Controller command directly.
+    private static async Task StageLegacyInitDraft(CManualInspectionController c,IReadOnlyList<string>? keys=null,Func<CManualInspectionUiRequest,CManualInspectionUiRequest>? edit=null)
+    {
+        var request=new CManualInspectionUiRequest{ExpectedVersion=c.Snapshot.Version,Keys=keys??[],CurrentCellNo=1};
+        try { typeof(CManualInspectionController).GetMethod("InitializeOffsets",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance)!.Invoke(c,[edit?.Invoke(request)??request]); }
+        catch(System.Reflection.TargetInvocationException error) when(error.InnerException is not null)
+        { System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(error.InnerException).Throw();throw; }
+        await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.SetAllowManual,[],r=>r with{AllowManual=false});
     }
     private static Task Do(CManualInspectionController c,EN_MANUAL_INSPECTION_UI_ACTION action,IReadOnlyList<string>?keys=null,Func<CManualInspectionUiRequest,CManualInspectionUiRequest>?edit=null){var r=new CManualInspectionUiRequest{ExpectedVersion=c.Snapshot.Version,Keys=keys??[],CurrentCellNo=1};return c.ExecuteAsync(action,edit?.Invoke(r)??r);}
     private static async Task Prepared(CManualInspectionController c){await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Calculate,["P1"]);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Validate);}

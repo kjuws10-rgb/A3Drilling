@@ -1,0 +1,1594 @@
+{
+  "generatedAtUtc": "2026-11-24T13:41:58.963999+00:00",
+  "task": "11.24.10 UI preservation and arithmetic wording only",
+  "baselineCommit": "dc3a15e6ebc382c6f14d76a916c6b7c510e25590",
+  "currentHead": "dc3a15e6ebc382c6f14d76a916c6b7c510e25590",
+  "policy": "Direct measurement and copied raw residual both produce target current B + residual; imports remain draft-to-Bulk; current Cell Init now immediately persists missing values and removes the latest saved Review values.",
+  "example": "source B10/raw3 saves13; target B20 copies raw3 and saves23",
+  "scope": "Read-only comparisons plus thirteen authorized View explanatory literals and six existing wording assertions; no new UI controls, layout, View control flow, or test scenarios.",
+  "productionSource": {
+    "path": "Drilling.UI/Views/CManualInspectionView.xaml.cs",
+    "sha256": "740f8db69c572e07e04f7745c320ed6c75801e302da693a96e94ef13865bc297",
+    "explanatoryLiteralChanges": 13
+  },
+  "protectedUiSources": [
+    {
+      "path": "Drilling.UI/App.xaml",
+      "sha256": "34b55a666684d02ffc18dcb66313415e72629a7f027e5a5d42ecb0357df82357"
+    },
+    {
+      "path": "Drilling.UI/AssemblyInfo.cs",
+      "sha256": "a16ce13dff7d5acc5639df94e84d59811f2e53547fc5a324a1febbb082abf2b0"
+    },
+    {
+      "path": "Drilling.UI/CApp.xaml.cs",
+      "sha256": "9690a272cdb61d231b85decbd9bfaf354e81d09c7bbab7671264d5fc3e11a7ee"
+    },
+    {
+      "path": "Drilling.UI/CAppStartup.cs",
+      "sha256": "98e8716b093e6970d73233f8488d538acf7fa02f5d140ab1baebd9e8abdcd9b9"
+    },
+    {
+      "path": "Drilling.UI/CPreviewCoordinateBehavior.cs",
+      "sha256": "766dbce15e8dd64b80d342370294b0a2c29c27a5aa3e538ba51b6814d8b85b13"
+    },
+    {
+      "path": "Drilling.UI/CRootView.cs",
+      "sha256": "d6834c39b212da80a085576fea93b68d310e0bb0713331396309126af101e154"
+    },
+    {
+      "path": "Drilling.UI/CRootView.xaml",
+      "sha256": "f9444c37a4690ed735419e1ce74549d11d4bdac1b1b337ae1f51b20dd8783478"
+    },
+    {
+      "path": "Drilling.UI/CSignalBlink.cs",
+      "sha256": "ef65f7a39d9a9b3b61ec94acf6d473c4a53b6a86e10302d4d5c85b81d03aa325"
+    },
+    {
+      "path": "Drilling.UI/CThemeManager.cs",
+      "sha256": "62cfa74dec098d8e3ce6ead2d3fc803b88fa20ede22e2871cd394e70f66c1931"
+    },
+    {
+      "path": "Drilling.UI/CUiLogService.cs",
+      "sha256": "e26730fb54b010598ad048992b59d5537b05e268bf8f8b7e3a478a0e8d633cf7"
+    },
+    {
+      "path": "Drilling.UI/Menu/CBindingBase.cs",
+      "sha256": "7ee36a35d9f2245fb0207f302e75751ba8b3f02e211631d5a474b0d9946988ac"
+    },
+    {
+      "path": "Drilling.UI/Menu/CButtonCommand.cs",
+      "sha256": "0670811aea72aaf0eec286af14a298c5308ded85f4c7677e4953c85f46ecc856"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CAlarmCauseAnalysis.cs",
+      "sha256": "fb9a8f1f07a8aa9c53c455b2db44e2dd39ace8b00cc33f5efab5736239555dd9"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CCellPreviewDrawing.cs",
+      "sha256": "e8d1e770ca290e624ac07f1b8a323d7fa8f49ee5081261953a633331679f2962"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CCoordinateOffsetPreviewDrawing.cs",
+      "sha256": "8d2a3f1e2aa8de3a7f87950633058eb294c7145af6ddfcbceb2b0904dde75439"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CCoordinateShotMapPreviewDrawing.cs",
+      "sha256": "d3b041057f97f293e1e40e189c5e655ae966c8c8430c73148b6cb20c0fedc931"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CHeadAssignmentPreviewBuilder.cs",
+      "sha256": "ef3282c96c44f07071d06b6f9a2cfed5da7c3867bafed66a79c680df8f72df6f"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs",
+      "sha256": "e7e576e48f21101a6c478b717173f5ff4fb0b8f9362d8b63711f44c101a7bad6"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CManualInspectionUpdateMonitor.cs",
+      "sha256": "2f237b8efa8ee47de8aa6af04f4d934474bea4e3bcb759217dfbad1591bb9b8b"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CManualPowerMeasurePanel.cs",
+      "sha256": "7d6454fd95114d882d16a1e517b791bf2abb8cc8f7d0469db433271f4127246b"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CManualPowerStagePanel.cs",
+      "sha256": "efec9cad32b02c68f4007a4491772b41960b0e3fbf4856c0aa2bdb373be73e55"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMenuAlarm.cs",
+      "sha256": "07a42cddff502aa5fbbfd6307875e5166b943dc369cbb4b00d5a0536b842d694"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMenuBase.cs",
+      "sha256": "31fc7fd5d1bc8a106d960e109ec096c8b31569f20f8cefb2480daf82d4302047"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMenuCorrection.ManualInspection.cs",
+      "sha256": "eca5d22d7496210c5ad853cc010059a070eefce716da33227c5c4d8c43293047"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Display.cs",
+      "sha256": "d8d2bcf72b26adb6ef00ec04f3dc0b1e4cae885c706852e0f9cc98eaf219f6a5"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Edit.cs",
+      "sha256": "2b07373e13aa12a83477f7ef7708a6a5c790b19e45ec55a0938b8701526be6b3"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Offset.cs",
+      "sha256": "0ec33aefb0847d2886301be4fb5db0d73db47dd45c45342d71d8678a14f6b0ea"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Reinspection.cs",
+      "sha256": "f5ba162be1fb07f05954469f04a5cb959a3f47734f6ec0babd36e170762b91ff"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.cs",
+      "sha256": "47cf020a2a387c2e5e5de3cd210df897a852675eb600dc7041b456b9c6398907"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMenuCorrection.cs",
+      "sha256": "388dda336057dbf57eff598d5c3648491ae9972ec387db25498f0cf4f4bbdb52"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMenuMain.cs",
+      "sha256": "3485c150c0dc3db9e11c362bc8e8073e2271380d250c79788896db50e2992ecb"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMenuManual.cs",
+      "sha256": "5388b0e131f67c29c83cc2c5e8c5695226a1cc7764080a5e92b0510afdcc49f7"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMenuMonitor.cs",
+      "sha256": "14ba9cc6682157c3b7a72bc8e6b57c1830a4618bceb10b45f33911dc2a7399f5"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMenuPm.cs",
+      "sha256": "1393394dca1a9500052acf8e9238a1ce0db7006515a36cc5c68d3d88fccb3258"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMenuRecipe.cs",
+      "sha256": "5c3d300be071074a77763e5ae1d8a74f92c0879723ecbf4fcc46a3003a96a8a3"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMenuReview.cs",
+      "sha256": "6bd252e598a2748bb393a0607d32ac786f36cfb0c4e377330cf44e1964388376"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMenuSetting.cs",
+      "sha256": "0e4f1b5b0d411d973a36aef3b0526650d3c6bb3c08dd3e83b90b9802864c1cd4"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMonitorLogViewerPanel.cs",
+      "sha256": "5d06e93a3ba16a27c93f45c6825f5ef8324b118a9c80bb7ef241987423a8c303"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CMonitorStatusPollingService.cs",
+      "sha256": "0d6e2a5a06d85d5eb080923fa2ce8f837d2ecdf3da6f45ae7c489026fcbef15f"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CRecipeCellPatternPreviewDrawing.cs",
+      "sha256": "4f0734c7e46f77a225b37aa296ce98ed47c2af052d912739bc4661e6eb52b852"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CReviewGlassPreviewBuilder.cs",
+      "sha256": "141e3b12b439092785cb9f41f3565aa688d69bac23e5bd4bb884893d9c6b4992"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CReviewOffsetDisplaySnapshot.cs",
+      "sha256": "7ddb55f332e36f7ce3b3b597f9ba3bba5415cd19e538b2dc958e9a6fe1f27b83"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CScannerStatusSnapshotReader.cs",
+      "sha256": "973c837fe9fa3cc3b209e09522b760012ec8382b04a71f7cd158aa566e86bb30"
+    },
+    {
+      "path": "Drilling.UI/Popup/CAlarmCauseAnalysisDialog.xaml",
+      "sha256": "918e769f0c8073fe41738a8fc8a19382c84d159a8e538e22791df2048c7d5bb1"
+    },
+    {
+      "path": "Drilling.UI/Popup/CAlarmCauseAnalysisDialog.xaml.cs",
+      "sha256": "71a00f66738e1f87fbb411a2657b4a1c61ce145703a47e03c3a70d971511f288"
+    },
+    {
+      "path": "Drilling.UI/Popup/CAlarmPopupDialog.xaml",
+      "sha256": "8003162339d9a2b9f372ebfb7bcac0063bc85c352def5f4cc8171e8638f69729"
+    },
+    {
+      "path": "Drilling.UI/Popup/CAlarmPopupDialog.xaml.cs",
+      "sha256": "e1ffed980afb9a56e23d8f6ebbe252a93a7eeaed75e9276537dddd3773fc62f9"
+    },
+    {
+      "path": "Drilling.UI/Popup/CAlignBaseEditDialog.xaml",
+      "sha256": "1bfd1c7297e1d7ec29c5d14f981a27f19f6750406248042061df04396bd6aef6"
+    },
+    {
+      "path": "Drilling.UI/Popup/CAlignBaseEditDialog.xaml.cs",
+      "sha256": "2f5f3957d5333f8bda9392bb9df84a0be03e512cc7a7cf5f249ec07c955d9d3f"
+    },
+    {
+      "path": "Drilling.UI/Popup/CAlignOffsetToleranceDialog.xaml",
+      "sha256": "b2af863a958f9b2676aa11776962ecd7766663268bfab80446188d1f58d7fd50"
+    },
+    {
+      "path": "Drilling.UI/Popup/CAlignOffsetToleranceDialog.xaml.cs",
+      "sha256": "4ac3b11f95de998c5e16193cfb2ea6e4086d8babac6d32fc94857218cc72c049"
+    },
+    {
+      "path": "Drilling.UI/Popup/CAlignOffsetViewerDialog.xaml",
+      "sha256": "1c8c49e33729584a244fc635fcb170dece2268e4fa288f51f27df2e2764df711"
+    },
+    {
+      "path": "Drilling.UI/Popup/CAlignOffsetViewerDialog.xaml.cs",
+      "sha256": "b8cdd252f3ef53e97d90b864b65703f45217b454dc59a437d2ef26317f7ff3af"
+    },
+    {
+      "path": "Drilling.UI/Popup/CAutoReviewMonitorDialog.xaml",
+      "sha256": "ef6044d463c19a14d800f6e3690bc0851bb8a4e9eb761c6d3100543d4d0a98ce"
+    },
+    {
+      "path": "Drilling.UI/Popup/CAutoReviewMonitorDialog.xaml.cs",
+      "sha256": "29f6b45cf9d2ac3f7e5054dda47233a941d2ca4d00d5fba61ea30fd01a61c8ca"
+    },
+    {
+      "path": "Drilling.UI/Popup/CCellPlacementWizardDialog.xaml",
+      "sha256": "4acc26710bfce902504f7fcee38e39d5b8239871b9a6cb7f7d362905e28768ce"
+    },
+    {
+      "path": "Drilling.UI/Popup/CCellPlacementWizardDialog.xaml.cs",
+      "sha256": "9bb8fc8be490c371c1a9ac95f52c4de752d58cd48c9f7f903d197b3e0186e595"
+    },
+    {
+      "path": "Drilling.UI/Popup/CColorPickerDialog.xaml",
+      "sha256": "714ae8b17abfcfbcdff85afb9c2d731328c52143ae2d69fe441cedad74cbe10b"
+    },
+    {
+      "path": "Drilling.UI/Popup/CColorPickerDialog.xaml.cs",
+      "sha256": "208deb9d594a450aecd78fe90dfd57632bb00b6efad605e65c78c0b6d976bd9e"
+    },
+    {
+      "path": "Drilling.UI/Popup/CControllerResetSequenceDialog.xaml",
+      "sha256": "4400d0f6c4eb8d59ea35d09db817ce8e7e5e79d1600615c78056f4d8ca11cfa5"
+    },
+    {
+      "path": "Drilling.UI/Popup/CControllerResetSequenceDialog.xaml.cs",
+      "sha256": "cc146b6aaeadced9e271f13f370eb4d120ece8b9b948570b6e009c83c5dedcb9"
+    },
+    {
+      "path": "Drilling.UI/Popup/CFineLineDetailsDialog.xaml",
+      "sha256": "6d5eb9454b6dcfa95fd52e07c9b354c013e5507583b42ef2d70cfde9f7f09783"
+    },
+    {
+      "path": "Drilling.UI/Popup/CFineLineDetailsDialog.xaml.cs",
+      "sha256": "d7e937843f35c4c2564b40485fecae44f968cf7f84d59337807737768a37d510"
+    },
+    {
+      "path": "Drilling.UI/Popup/CInterfaceStatusDialog.xaml",
+      "sha256": "6df1559a2ba260131591727b4fe9ef4cd37d24e57a9a886ff1b933d716e4715a"
+    },
+    {
+      "path": "Drilling.UI/Popup/CInterfaceStatusDialog.xaml.cs",
+      "sha256": "0bc80bb0e523800765696d6ba42266ec811ac3406ac211aba5a6dec104a7e1b4"
+    },
+    {
+      "path": "Drilling.UI/Popup/CInterlockDetailsDialog.xaml",
+      "sha256": "931ff30471a5103cecbc33d6b46da018c686a8acd9d88bd5c32d9bb9098bb911"
+    },
+    {
+      "path": "Drilling.UI/Popup/CInterlockDetailsDialog.xaml.cs",
+      "sha256": "67d1fcd11cf57ceb4b6f2b9bf458a8d537a5a1e903930bdcdfe534d9ae62183a"
+    },
+    {
+      "path": "Drilling.UI/Popup/CManualHomeSpeedDialog.xaml",
+      "sha256": "5e93871e942db3639a5354c2556e422accb7d129d80e8225167e6dda355a9774"
+    },
+    {
+      "path": "Drilling.UI/Popup/CManualHomeSpeedDialog.xaml.cs",
+      "sha256": "6ae2caa86af2587ec98e39d758af9f18225694a257933e35a8d13d069aa300ec"
+    },
+    {
+      "path": "Drilling.UI/Popup/CMelsecStageSimulationDialog.xaml",
+      "sha256": "a334c0d89d733bf7fa5e87f398a7039e6e0a1afa80af82b4d6509a0f38451a58"
+    },
+    {
+      "path": "Drilling.UI/Popup/CMelsecStageSimulationDialog.xaml.cs",
+      "sha256": "4d63ccb44f16c33e57672fa63f88dd46a9ab26a9a27f490d41048f26bec8e712"
+    },
+    {
+      "path": "Drilling.UI/Popup/CMofDisableDialog.xaml",
+      "sha256": "c811b4c78d32769dc85e92b0bff6aaacedac81fb2dd4c3af4b26562f8d6aa267"
+    },
+    {
+      "path": "Drilling.UI/Popup/CMofDisableDialog.xaml.cs",
+      "sha256": "5ca1c0079a53dde13cdc4bbc7d920d0d3d82d1f9d6842fadfa64c389ecd93db6"
+    },
+    {
+      "path": "Drilling.UI/Popup/CPasswordInputDialog.xaml",
+      "sha256": "95d9ead6a17308d80af0aacc3afd9ec5bb384404811081903a68353052fb70ed"
+    },
+    {
+      "path": "Drilling.UI/Popup/CPasswordInputDialog.xaml.cs",
+      "sha256": "605f668c0559885fd5eeff71c6db76017f29a2b8ed3aadc0175ebeb4c3b0576b"
+    },
+    {
+      "path": "Drilling.UI/Popup/CProtectWindowRequestDialog.xaml",
+      "sha256": "0150e5be80ae15679d2d0a69c5e0f27eb691789bd234b3abc23e4be3c04fc91b"
+    },
+    {
+      "path": "Drilling.UI/Popup/CProtectWindowRequestDialog.xaml.cs",
+      "sha256": "01b6fb02245335c153d26ac244fda71d7d2b56e74ffde769294ca6d5f435719d"
+    },
+    {
+      "path": "Drilling.UI/Popup/CRecipeConfirmDialog.xaml",
+      "sha256": "10728bf28eacfdb31cf95f206c780fb5d348a2158baf9813aac3537d9faa6f61"
+    },
+    {
+      "path": "Drilling.UI/Popup/CRecipeConfirmDialog.xaml.cs",
+      "sha256": "7a383ef12d6fda215d2a83a04258002665f40ce18f8bd5caca61fbaaf93210b6"
+    },
+    {
+      "path": "Drilling.UI/Popup/CRecipeNameDialog.xaml",
+      "sha256": "a79490cb778bdda195db4367f6c3941e6a4a140c580ad0795292885dba1c44c0"
+    },
+    {
+      "path": "Drilling.UI/Popup/CRecipeNameDialog.xaml.cs",
+      "sha256": "07e9020cb1b26dcf10c4d0cb82ab83adfe413dc34237bd8668e954e2ed1d025b"
+    },
+    {
+      "path": "Drilling.UI/Popup/CReviewBeamPositionsDialog.xaml",
+      "sha256": "d62fc3dfb1ba5c8b5abb3113612e5d048dd1d94cad63cb1ed87c301e3772d292"
+    },
+    {
+      "path": "Drilling.UI/Popup/CReviewBeamPositionsDialog.xaml.cs",
+      "sha256": "025172aa31a59f231db8dfa4b13a88f8bc31075b8683c145a8784a2471839c97"
+    },
+    {
+      "path": "Drilling.UI/Popup/CReviewDataOffsetApplyDialog.xaml",
+      "sha256": "2c7fe317bf108c2ea5d9e3cbc89132690a183d78c070a2bbdd9bc26a30bd1faa"
+    },
+    {
+      "path": "Drilling.UI/Popup/CReviewDataOffsetApplyDialog.xaml.cs",
+      "sha256": "3742c6502d2bb6239b48667075e9888516f95b2effce223b8cd48e4130a40303"
+    },
+    {
+      "path": "Drilling.UI/Popup/CReviewShiftOffsetDialog.xaml",
+      "sha256": "cde91bd4847b3308c3fb3b3846d38287d6dfc1acda0b5cbc42a4a991badc70be"
+    },
+    {
+      "path": "Drilling.UI/Popup/CReviewShiftOffsetDialog.xaml.cs",
+      "sha256": "6f961d1de43a787ad7de42be1b0f4d0e0347b2f0a8c1b44bbda57c9a57f65a2d"
+    },
+    {
+      "path": "Drilling.UI/Popup/CSelectedReviewShotsDialog.xaml",
+      "sha256": "ec015dca7dc96ce026d9723e727edaebbbdd102e054b58a0b9cf6455ac02f909"
+    },
+    {
+      "path": "Drilling.UI/Popup/CSelectedReviewShotsDialog.xaml.cs",
+      "sha256": "ab5577450474404f94f346ec8745af3cb5e4df29128302c486e0a6de450d2298"
+    },
+    {
+      "path": "Drilling.UI/Popup/CShiftOffsetDialog.xaml",
+      "sha256": "3791f671d1bc83a935b0beea53b351b6dc57047fb5ec32f168bad22b811fd222"
+    },
+    {
+      "path": "Drilling.UI/Popup/CShiftOffsetDialog.xaml.cs",
+      "sha256": "6da348dcf0687c8c85b5e241eb570146077fd861f7f80f92d77b596ffcc59a53"
+    },
+    {
+      "path": "Drilling.UI/Popup/CValueInputDialog.xaml",
+      "sha256": "304abe666aab54bd6d5618650ab78176bb7e67f32cde9cba4b36bb1116df67a5"
+    },
+    {
+      "path": "Drilling.UI/Popup/CValueInputDialog.xaml.cs",
+      "sha256": "2b05f6cf626e622daefee01b894f4aba1909dbcd11b77da23e4cda5caf502166"
+    },
+    {
+      "path": "Drilling.UI/Popup/CZeroLineResultsDialog.xaml",
+      "sha256": "971f46239c618e0c716cca79c4989107ce4763ec51706f962bf0d5e8b408f69a"
+    },
+    {
+      "path": "Drilling.UI/Popup/CZeroLineResultsDialog.xaml.cs",
+      "sha256": "2d5de5f7fdf4d970ab6ff9496dbeadc5f6a6c6f2a5563075b7038a588f2987e0"
+    },
+    {
+      "path": "Drilling.UI/Themes/ThemeDark.xaml",
+      "sha256": "08bc81877f8766d2198e515f869e6b06f74f4b4c6eb7a1a9d8093234f11b2e4c"
+    },
+    {
+      "path": "Drilling.UI/Themes/ThemeLight.xaml",
+      "sha256": "2a3d9bc68816fd0c25360ae10c3d344354ac494c5ec03fc7f7077adaff99ea87"
+    },
+    {
+      "path": "Drilling.UI/Views/CAlarmView.xaml",
+      "sha256": "13837ed24a1751d6cf813ac2dfd3dc1b8a5124fed885711e23c9ca0d5af8ff2f"
+    },
+    {
+      "path": "Drilling.UI/Views/CAlarmView.xaml.cs",
+      "sha256": "c223923c38672cb36f2b15c3ce09f37f79d51ea6a1815e297d311eb248efb05b"
+    },
+    {
+      "path": "Drilling.UI/Views/CAlignDistortionView.xaml",
+      "sha256": "de45e4e36fe1c7eec80467af8808139345203351aebb110509599571249023a9"
+    },
+    {
+      "path": "Drilling.UI/Views/CAlignDistortionView.xaml.cs",
+      "sha256": "274e999463ceecd888056c6e05ac0a2f693fc443828d811a875a1001a7c66c8e"
+    },
+    {
+      "path": "Drilling.UI/Views/CAutomationControllerStatusView.xaml",
+      "sha256": "90ab6c96e79714cd4c03ad1c22f9aab5fa558d70c47f028dca4fc88d67c4dc6f"
+    },
+    {
+      "path": "Drilling.UI/Views/CAutomationControllerStatusView.xaml.cs",
+      "sha256": "396a81dad5902e8a497f64839e93903191ef5624b4a3cb63bd7c067ea644a8f0"
+    },
+    {
+      "path": "Drilling.UI/Views/CCorrectionView.xaml",
+      "sha256": "850404c76dda72d2d741b74f07a8161966f6cd55d173697bebaf619ee79e296c"
+    },
+    {
+      "path": "Drilling.UI/Views/CCorrectionView.xaml.cs",
+      "sha256": "aad7dd20f74ecfb6876c917e11ae1ef2e6494aad5d5c9ada9fb4ac9596c4e980"
+    },
+    {
+      "path": "Drilling.UI/Views/CDefaultOffsetView.xaml",
+      "sha256": "0a2a3ccf2862b0207f857502f6c6945a6f36c1ab4260c7f241a90a625448ac19"
+    },
+    {
+      "path": "Drilling.UI/Views/CDefaultOffsetView.xaml.cs",
+      "sha256": "c9bbf573db3ad2daf7010f437df04fd305f212a3b0960e8ffad05d986239f2a7"
+    },
+    {
+      "path": "Drilling.UI/Views/CExitView.xaml",
+      "sha256": "4dbf93721be16c65bc16e3f185fa4f2a183105d5f0dd2a2f880730e2d64b4221"
+    },
+    {
+      "path": "Drilling.UI/Views/CExitView.xaml.cs",
+      "sha256": "5ddcffafd2c5bdcb9b0d53f78a6f7424402ce24fbf73b766b4ddefeff0b93753"
+    },
+    {
+      "path": "Drilling.UI/Views/CFineCorrectionView.xaml",
+      "sha256": "5f0f25219a4f37ebc3db57b7f4d7542a2064a39b7ea7c15c42848ece8270c093"
+    },
+    {
+      "path": "Drilling.UI/Views/CFineCorrectionView.xaml.cs",
+      "sha256": "5a42b4eec6c61eec684511980cd891ee95f6e2ff5431226e9c4604d2ab42ed81"
+    },
+    {
+      "path": "Drilling.UI/Views/CFineGlassPreviewView.xaml",
+      "sha256": "3886d8af4edc1bb05aa89a2904b4a184ef5dc2e8bf7d36a95cc4edf9d595d56c"
+    },
+    {
+      "path": "Drilling.UI/Views/CFineGlassPreviewView.xaml.cs",
+      "sha256": "82308283f0f7fbab5bd9ac3c5aa54f0b4ce2966a9655eeaf85bc87dbf4805a41"
+    },
+    {
+      "path": "Drilling.UI/Views/CMainProtectWindowView.xaml",
+      "sha256": "3a14609e7354804555f3d4b0f318a4d4bcd3309bdaf10759b04b0b412a7cac8d"
+    },
+    {
+      "path": "Drilling.UI/Views/CMainProtectWindowView.xaml.cs",
+      "sha256": "afd0a73e645c8b45d24346b86ab2aad6d9ac4e7a6e822dfa826df4b8bab94eed"
+    },
+    {
+      "path": "Drilling.UI/Views/CMainRunOptionView.xaml",
+      "sha256": "5cef5a4e1591211b8dbef4df476f83b5bf5a0c4dcbd3c6c69fe278db3541fe1e"
+    },
+    {
+      "path": "Drilling.UI/Views/CMainRunOptionView.xaml.cs",
+      "sha256": "5920b403940f4627678ebe83678f2bb4fb8fd2225197591f2984d2d1e7eb4ae9"
+    },
+    {
+      "path": "Drilling.UI/Views/CMainSequenceStatusView.xaml",
+      "sha256": "8bb8e78b35047b9190eda18c56a569881270b44cffbad013577a1cc7098ac32c"
+    },
+    {
+      "path": "Drilling.UI/Views/CMainSequenceStatusView.xaml.cs",
+      "sha256": "24738e16d0d32d1742dd269fc659bf5a3890141c727a4f05caf060613315419e"
+    },
+    {
+      "path": "Drilling.UI/Views/CMainView.xaml",
+      "sha256": "c80452177574a135609caa6bb5e691faa193009840b4affb96c80d91b311b794"
+    },
+    {
+      "path": "Drilling.UI/Views/CMainView.xaml.cs",
+      "sha256": "07820c2ab6d3b94b466c68f2ee3561100ce5af1be2c67fc32fabeb589ec39b00"
+    },
+    {
+      "path": "Drilling.UI/Views/CManualInspectionMapControl.cs",
+      "sha256": "72964a4fef45bcd344d403af945a1f5a091d100745549d3caeaaddfb0af2f806"
+    },
+    {
+      "path": "Drilling.UI/Views/CManualInspectionScatterControl.cs",
+      "sha256": "1cc3fb7be94547c2e714d8809906f2df6018e5805b6ed44ecc9fd2c398e6a0bb"
+    },
+    {
+      "path": "Drilling.UI/Views/CManualInspectionUiContract.cs",
+      "sha256": "94c07c0d7faed65042d47c209dae457386e4df7611a221fb935807aaa0beafd8"
+    },
+    {
+      "path": "Drilling.UI/Views/CManualInspectionView.xaml",
+      "sha256": "de85a569823fcadf344ce1a8d7840e5c49f4982bed9910b712f3c8d79cbb43f3"
+    },
+    {
+      "path": "Drilling.UI/Views/CManualMofStageView.xaml",
+      "sha256": "2574cdc6a4a11ddbd836b57bedb126d2d4c4873e1656108c08378aaa6da5953c"
+    },
+    {
+      "path": "Drilling.UI/Views/CManualMofStageView.xaml.cs",
+      "sha256": "a0ddb6f18fc139638e1f9d2feb4d4b7ed07bdf12af68a834e6f123b8aa91d9b8"
+    },
+    {
+      "path": "Drilling.UI/Views/CManualMofView.xaml",
+      "sha256": "3ce1d7a4d3281ddf5c8ddfa08ec963db4290071a52dd74af6c321098d25c2fc5"
+    },
+    {
+      "path": "Drilling.UI/Views/CManualMofView.xaml.cs",
+      "sha256": "8dca38d642205125b987195e1b7797628ad8406001ce494af68bf55f743d69e1"
+    },
+    {
+      "path": "Drilling.UI/Views/CManualPowerMeasureView.xaml",
+      "sha256": "166fe76a3ae11df7e528e56d7aab66e56cdc745a0224350e7c8f72b40947dd22"
+    },
+    {
+      "path": "Drilling.UI/Views/CManualPowerMeasureView.xaml.cs",
+      "sha256": "df6f5ea261a763f08f0b7ad8e614a52a38d078be2ec4e93404c38082c96ca7b5"
+    },
+    {
+      "path": "Drilling.UI/Views/CManualPowerStageView.xaml",
+      "sha256": "5aa3f6b52d2641f21ed1116201833ad91216c30e4f74f9eb2fbe41bb82c2060b"
+    },
+    {
+      "path": "Drilling.UI/Views/CManualPowerStageView.xaml.cs",
+      "sha256": "9e448e7e3ffacf4ad1ef776fae61f375601b38828f1c4e59694386aa0aa2e452"
+    },
+    {
+      "path": "Drilling.UI/Views/CManualView.xaml",
+      "sha256": "1d9c373bb067bfd0107e333fafc3f93a79cb663f7ff4027731db20f99eb768f8"
+    },
+    {
+      "path": "Drilling.UI/Views/CManualView.xaml.cs",
+      "sha256": "ab605fcdeeab4496960f7bad74eec9a3fe5c5dc60dcd24b36a6cb262d6ad2636"
+    },
+    {
+      "path": "Drilling.UI/Views/CMonitorLogViewerView.xaml",
+      "sha256": "10498162e6480c878e2b8a0969170faabfdc6b6fc5419bde8b73276ed66f5581"
+    },
+    {
+      "path": "Drilling.UI/Views/CMonitorLogViewerView.xaml.cs",
+      "sha256": "e1096238698282a8761bea6faa05dce66d1728abe81ffbb1573c716730538094"
+    },
+    {
+      "path": "Drilling.UI/Views/CMonitorView.xaml",
+      "sha256": "1d96067d63dae8d1cf6f1436cb772e78ff7aa5e68d949b35e1ecac706db0ce12"
+    },
+    {
+      "path": "Drilling.UI/Views/CMonitorView.xaml.cs",
+      "sha256": "ed18bc5081d304c3ae249f70e2c4a09d2324f90efdca71db63686116b5f4453a"
+    },
+    {
+      "path": "Drilling.UI/Views/CPicoMotorMonitorView.xaml",
+      "sha256": "1d757532f556e72828c082d869aa3231926671bebe787342c5796c4b4e4a968d"
+    },
+    {
+      "path": "Drilling.UI/Views/CPicoMotorMonitorView.xaml.cs",
+      "sha256": "71b53c57cc61b41bc390045668d7c3d12d15ea7db282c75749b741836d516ca0"
+    },
+    {
+      "path": "Drilling.UI/Views/CPmView.xaml",
+      "sha256": "b7f5b808e06c03a319f3cb68003227d75d450a7342dc56af28bcd0a826db8183"
+    },
+    {
+      "path": "Drilling.UI/Views/CPmView.xaml.cs",
+      "sha256": "2bc4898263b350dd75b8a7510b2377d23112ee311aab33838794268788959dbd"
+    },
+    {
+      "path": "Drilling.UI/Views/CRecipeView.xaml",
+      "sha256": "12f20241df43233b1a70df521106cdf4be52f7ca2af3f8862b324330d282cc3c"
+    },
+    {
+      "path": "Drilling.UI/Views/CRecipeView.xaml.cs",
+      "sha256": "c3d27bc81b7f9cdd0b8dd2bad10ef87e51ba22c93e2f192c6897b746e8fe704d"
+    },
+    {
+      "path": "Drilling.UI/Views/CRecipeZeroDefenceView.xaml",
+      "sha256": "b84943075a7eacf71b08226cc94113c216b79999d94646ac1e6aa29c80408a64"
+    },
+    {
+      "path": "Drilling.UI/Views/CRecipeZeroDefenceView.xaml.cs",
+      "sha256": "aeeb1c060a89e8d5c90c7e951ad4bb85dd15e856075bcb9e1a95648caa8ee0fe"
+    },
+    {
+      "path": "Drilling.UI/Views/CReviewCameraOverlay.xaml",
+      "sha256": "5c5902728de0b9e738bd8a9e61302eec2eaa5b8787a15e682035de42913348dd"
+    },
+    {
+      "path": "Drilling.UI/Views/CReviewCameraOverlay.xaml.cs",
+      "sha256": "fdcc6ef6ce98cd9baef58348be383b0567a0bb398d911cc4383f342184ac7c26"
+    },
+    {
+      "path": "Drilling.UI/Views/CReviewDataView.xaml",
+      "sha256": "f8e18084f8df71fcbaac42026fcd20249576eaee7bcbfe4791bedd663f5b6b57"
+    },
+    {
+      "path": "Drilling.UI/Views/CReviewDataView.xaml.cs",
+      "sha256": "cda913ec08362b88f72e77af2cf827694ff81e3c0de244ab4ef70b87e457653a"
+    },
+    {
+      "path": "Drilling.UI/Views/CReviewShotMapControl.cs",
+      "sha256": "4b948d74cec87fc29244a8bbec94452a92aa3b70e04a1f1ea6b59876d3bd1223"
+    },
+    {
+      "path": "Drilling.UI/Views/CReviewView.xaml",
+      "sha256": "f2f28f9ff41dc24eb14f67373d7029c379fc870f4d4a932317d7b0d729174537"
+    },
+    {
+      "path": "Drilling.UI/Views/CReviewView.xaml.cs",
+      "sha256": "0ab06bd9f08351e557d249886da47b070add6ee80358b08fb7ef3da76da0268d"
+    },
+    {
+      "path": "Drilling.UI/Views/CSettingView.xaml",
+      "sha256": "cb1e9d77570c06b60cfd8503078299de4a9ce7ba559a3db9e0e6e475d2c0a60a"
+    },
+    {
+      "path": "Drilling.UI/Views/CSettingView.xaml.cs",
+      "sha256": "41315a13e21fdd45679d75223bb422d2aff28a4eee55c2dfa7b21f617d5cbf91"
+    },
+    {
+      "path": "Drilling.UI/Views/CSimpleCorrectionView.xaml",
+      "sha256": "5425655e3db541303168239d60bba5ccd9536438b10d2687c731600d3231700a"
+    },
+    {
+      "path": "Drilling.UI/Views/CSimpleCorrectionView.xaml.cs",
+      "sha256": "629ffaf17c54a3f3da2799dae7fb55b0777a5f289b473105d7146dc062b7da86"
+    }
+  ],
+  "changedExistingTests": [
+    {
+      "path": "tests/ManualInspection/UiHarness/CellCsvWorkflowCases.cs",
+      "sha256": "97381eeb64709ec58fc9beb8cd63798516cf35c599f676f1517d673decfbd1e3",
+      "changedAssertions": 1
+    },
+    {
+      "path": "tests/ManualInspection/UiHarness/BulkFinalConsistencyCases.cs",
+      "sha256": "42f3e1f5e8ef409504ae3bcea6715bd48c89fb4ce7bc89dd54b8c436c651b738",
+      "changedAssertions": 2
+    },
+    {
+      "path": "tests/ManualInspection/UiHarness/ReplacementWorkflowCases.cs",
+      "sha256": "c11b2a9ac2be6083124e8183915897cedbac4a56de5f281a37fbf291c65075f7",
+      "changedAssertions": 3
+    }
+  ],
+  "checkCount": 181,
+  "passed": true,
+  "checks": [
+    {
+      "name": "explanatory_literal_once",
+      "passed": true,
+      "newText": "지도와 표는 현재 측정·복사 편차를 보여줍니다. 실측과 대표 복사 모두 현재 Cell 일괄 보정에서 각 점의 기존 Review Offset에 이번 편차를 반영합니다. 같은 편차라도 기존값에 따라 최종값은 달라집니다."
+    },
+    {
+      "name": "explanatory_literal_once",
+      "passed": true,
+      "newText": "$\"대표 편차 복사 · {count}점\""
+    },
+    {
+      "name": "explanatory_literal_once",
+      "passed": true,
+      "newText": "선택점에 대표 편차와 상태를 복사합니다. 아직 CSV에는 저장하지 않습니다. 현재 Cell 일괄 보정에서 각 대상의 기존 Review Offset에 복사한 편차를 반영합니다."
+    },
+    {
+      "name": "explanatory_literal_once",
+      "passed": true,
+      "newText": "현재 Cell 각 점의 기존 Review Offset에 유효한 측정·복사 편차를 반영해 CSV에 저장합니다. 다른 Cell과 보호 Offset은 유지합니다."
+    },
+    {
+      "name": "explanatory_literal_once",
+      "passed": true,
+      "newText": "var confirmText = copying ? \"편차 복사\""
+    },
+    {
+      "name": "explanatory_literal_once",
+      "passed": true,
+      "newText": "점에 대표 편차와 상태를 복사합니다.\\n저장할 때 각 대상의 기존 Review Offset에 복사한 편차를 반영하므로, 기존값이 다르면 최종값도 다릅니다. 원측정 기록은 유지합니다."
+    },
+    {
+      "name": "explanatory_literal_once",
+      "passed": true,
+      "newText": "실측·대표 복사의 편차 Δ는 각 점의 기존 Review Offset B에 반영합니다(F = B + Δ). 가져온 최종 Offset 파일은 파일값으로 저장합니다."
+    },
+    {
+      "name": "explanatory_literal_once",
+      "passed": true,
+      "newText": "현재 Cell 일괄 보정에서 각 점의 기존 Review Offset에 측정·복사 편차를 반영하여 저장합니다."
+    },
+    {
+      "name": "explanatory_literal_once",
+      "passed": true,
+      "newText": "미저장 Offset 작업 전의 작업값으로 돌아갑니다. CSV는 바꾸지 않습니다."
+    },
+    {
+      "name": "explanatory_literal_once",
+      "passed": true,
+      "newText": "현재 Cell의 마지막 저장 Review Offset까지 값 없음으로 즉시 저장합니다. 다음 보정은 기존값 0부터 시작합니다. 다른 Cell과 보호 Offset은 유지합니다."
+    },
+    {
+      "name": "explanatory_literal_once",
+      "passed": true,
+      "newText": "Offset Init · 저장 보정 초기화"
+    },
+    {
+      "name": "explanatory_literal_once",
+      "passed": true,
+      "newText": "현재 Cell의 마지막 저장 Review Offset까지 값 없음으로 즉시 저장합니다. 다음 보정은 기존값 0부터 시작합니다. 하드웨어·Default·First Beam·Distortion과 다른 Cell은 유지합니다. 저장에 실패하면 기존 보정값을 유지합니다."
+    },
+    {
+      "name": "explanatory_literal_once",
+      "passed": true,
+      "newText": "통합 Offset 파일을 가져오기 전의 화면 작업·측정값·후보로 돌아갑니다. 저장되지 않은 통합 Offset 편집만 취소하며, 실제 활성 모델 보정과 기존 파일은 변경하지 않습니다."
+    },
+    {
+      "name": "view_code_except_authorized_explanatory_literals_identical_to_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CManualInspectionView.xaml.cs",
+      "sha256": "740f8db69c572e07e04f7745c320ed6c75801e302da693a96e94ef13865bc297"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/App.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/AssemblyInfo.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/CApp.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/CAppStartup.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/CPreviewCoordinateBehavior.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/CRootView.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/CRootView.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/CSignalBlink.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/CThemeManager.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/CUiLogService.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Menu/CBindingBase.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Menu/CButtonCommand.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Menu/Menus/CAlarmCauseAnalysis.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Menu/Menus/CCellPreviewDrawing.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Menu/Menus/CCoordinateOffsetPreviewDrawing.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Menu/Menus/CCoordinateShotMapPreviewDrawing.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Menu/Menus/CHeadAssignmentPreviewBuilder.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Menu/Menus/CManualInspectionUpdateMonitor.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Menu/Menus/CManualPowerMeasurePanel.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Menu/Menus/CManualPowerStagePanel.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Menu/Menus/CMenuAlarm.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Menu/Menus/CMenuBase.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Menu/Menus/CMenuCorrection.ManualInspection.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Display.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Edit.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Offset.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Reinspection.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Menu/Menus/CMenuCorrection.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Menu/Menus/CMenuMain.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Menu/Menus/CMenuManual.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Menu/Menus/CMenuMonitor.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Menu/Menus/CMenuPm.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Menu/Menus/CMenuRecipe.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Menu/Menus/CMenuReview.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Menu/Menus/CMenuSetting.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Menu/Menus/CMonitorLogViewerPanel.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Menu/Menus/CMonitorStatusPollingService.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Menu/Menus/CRecipeCellPatternPreviewDrawing.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Menu/Menus/CReviewGlassPreviewBuilder.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Menu/Menus/CReviewOffsetDisplaySnapshot.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Menu/Menus/CScannerStatusSnapshotReader.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CAlarmCauseAnalysisDialog.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CAlarmCauseAnalysisDialog.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CAlarmPopupDialog.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CAlarmPopupDialog.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CAlignBaseEditDialog.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CAlignBaseEditDialog.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CAlignOffsetToleranceDialog.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CAlignOffsetToleranceDialog.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CAlignOffsetViewerDialog.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CAlignOffsetViewerDialog.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CAutoReviewMonitorDialog.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CAutoReviewMonitorDialog.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CCellPlacementWizardDialog.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CCellPlacementWizardDialog.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CColorPickerDialog.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CColorPickerDialog.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CControllerResetSequenceDialog.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CControllerResetSequenceDialog.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CFineLineDetailsDialog.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CFineLineDetailsDialog.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CInterfaceStatusDialog.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CInterfaceStatusDialog.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CInterlockDetailsDialog.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CInterlockDetailsDialog.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CManualHomeSpeedDialog.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CManualHomeSpeedDialog.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CMelsecStageSimulationDialog.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CMelsecStageSimulationDialog.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CMofDisableDialog.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CMofDisableDialog.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CPasswordInputDialog.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CPasswordInputDialog.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CProtectWindowRequestDialog.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CProtectWindowRequestDialog.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CRecipeConfirmDialog.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CRecipeConfirmDialog.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CRecipeNameDialog.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CRecipeNameDialog.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CReviewBeamPositionsDialog.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CReviewBeamPositionsDialog.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CReviewDataOffsetApplyDialog.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CReviewDataOffsetApplyDialog.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CReviewShiftOffsetDialog.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CReviewShiftOffsetDialog.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CSelectedReviewShotsDialog.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CSelectedReviewShotsDialog.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CShiftOffsetDialog.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CShiftOffsetDialog.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CValueInputDialog.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CValueInputDialog.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CZeroLineResultsDialog.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Popup/CZeroLineResultsDialog.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Themes/ThemeDark.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Themes/ThemeLight.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CAlarmView.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CAlarmView.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CAlignDistortionView.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CAlignDistortionView.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CAutomationControllerStatusView.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CAutomationControllerStatusView.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CCorrectionView.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CCorrectionView.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CDefaultOffsetView.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CDefaultOffsetView.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CExitView.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CExitView.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CFineCorrectionView.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CFineCorrectionView.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CFineGlassPreviewView.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CFineGlassPreviewView.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CMainProtectWindowView.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CMainProtectWindowView.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CMainRunOptionView.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CMainRunOptionView.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CMainSequenceStatusView.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CMainSequenceStatusView.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CMainView.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CMainView.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CManualInspectionMapControl.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CManualInspectionScatterControl.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CManualInspectionUiContract.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CManualInspectionView.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CManualMofStageView.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CManualMofStageView.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CManualMofView.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CManualMofView.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CManualPowerMeasureView.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CManualPowerMeasureView.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CManualPowerStageView.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CManualPowerStageView.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CManualView.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CManualView.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CMonitorLogViewerView.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CMonitorLogViewerView.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CMonitorView.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CMonitorView.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CPicoMotorMonitorView.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CPicoMotorMonitorView.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CPmView.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CPmView.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CRecipeView.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CRecipeView.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CRecipeZeroDefenceView.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CRecipeZeroDefenceView.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CReviewCameraOverlay.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CReviewCameraOverlay.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CReviewDataView.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CReviewDataView.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CReviewShotMapControl.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CReviewView.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CReviewView.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CSettingView.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CSettingView.xaml.cs"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CSimpleCorrectionView.xaml"
+    },
+    {
+      "name": "protected_ui_production_matches_dot8",
+      "passed": true,
+      "path": "Drilling.UI/Views/CSimpleCorrectionView.xaml.cs"
+    },
+    {
+      "name": "updated_existing_assertion_once",
+      "passed": true,
+      "path": "tests/ManualInspection/UiHarness/CellCsvWorkflowCases.cs"
+    },
+    {
+      "name": "existing_ui_test_only_assertion_wording_changed",
+      "passed": true,
+      "path": "tests/ManualInspection/UiHarness/CellCsvWorkflowCases.cs",
+      "sha256": "97381eeb64709ec58fc9beb8cd63798516cf35c599f676f1517d673decfbd1e3",
+      "assertionCount": 1,
+      "currentTestCalls": 21,
+      "baselineTestCalls": 21
+    },
+    {
+      "name": "updated_existing_assertion_once",
+      "passed": true,
+      "path": "tests/ManualInspection/UiHarness/BulkFinalConsistencyCases.cs"
+    },
+    {
+      "name": "updated_existing_assertion_once",
+      "passed": true,
+      "path": "tests/ManualInspection/UiHarness/BulkFinalConsistencyCases.cs"
+    },
+    {
+      "name": "existing_ui_test_only_assertion_wording_changed",
+      "passed": true,
+      "path": "tests/ManualInspection/UiHarness/BulkFinalConsistencyCases.cs",
+      "sha256": "42f3e1f5e8ef409504ae3bcea6715bd48c89fb4ce7bc89dd54b8c436c651b738",
+      "assertionCount": 2,
+      "currentTestCalls": 22,
+      "baselineTestCalls": 22
+    },
+    {
+      "name": "updated_existing_assertion_once",
+      "passed": true,
+      "path": "tests/ManualInspection/UiHarness/ReplacementWorkflowCases.cs"
+    },
+    {
+      "name": "updated_existing_assertion_once",
+      "passed": true,
+      "path": "tests/ManualInspection/UiHarness/ReplacementWorkflowCases.cs"
+    },
+    {
+      "name": "updated_existing_assertion_once",
+      "passed": true,
+      "path": "tests/ManualInspection/UiHarness/ReplacementWorkflowCases.cs"
+    },
+    {
+      "name": "existing_ui_test_only_assertion_wording_changed",
+      "passed": true,
+      "path": "tests/ManualInspection/UiHarness/ReplacementWorkflowCases.cs",
+      "sha256": "c11b2a9ac2be6083124e8183915897cedbac4a56de5f281a37fbf291c65075f7",
+      "assertionCount": 3,
+      "currentTestCalls": 31,
+      "baselineTestCalls": 31
+    }
+  ],
+  "notRun": [
+    "Full 19-mode WPF execution (three affected modes are reported separately)",
+    "equipment program or device I/O",
+    "Git mutation"
+  ],
+  "otherContributorProductionChanges": "Parent authorized Backend consumption-ledger merge and Controller Init immediate-persistence changes separately; both are outside the UI source preservation scope.",
+  "limitations": "Arithmetic validity requires current B equal machining B and Scale100%, as documented by parent. These checks prove UI preservation, not equipment calibration quality."
+}

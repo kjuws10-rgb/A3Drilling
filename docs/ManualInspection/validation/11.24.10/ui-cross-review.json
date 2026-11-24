@@ -1,0 +1,52 @@
+{
+  "version": "11.24.10",
+  "passed": true,
+  "generatedAtUtc": "2026-11-24T13:43:14.994570+00:00",
+  "runtime": {
+    "report": "D:\\CodexWork\\A3_Manual_Inspection_20261124_10_OverwriteOnly\\ui-final\\validation.json",
+    "sha256": "2f567dfbc396572125a242208e55ae7b400fef66fbabcdca32884f68eadce3a0",
+    "modes": 3,
+    "tests": 124,
+    "failures": 0,
+    "inputCount": 29,
+    "buildWarnings": 0,
+    "buildErrors": 0
+  },
+  "staticPreservation": {
+    "report": "D:\\CodexWork\\A3_Manual_Inspection_20261124_10_OverwriteOnly\\ui-preservation-review.json",
+    "sha256": "5f47da14689bf3ee5bc9a41896cd9c1db4013c2dc4fbd67f9e9c4790bdc20a85",
+    "checks": 181,
+    "protectedSources": 158,
+    "notRuntimeTests": true
+  },
+  "directVisualReview": [
+    {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_10_OverwriteOnly\\ui-final\\bulk-final-consistency\\bulk-final-notebook-dark.png",
+      "sha256": "a41d1dfcb1c7d474acf3fbfc6202d2abd020f7c32dda399c1d070dda0bf9ec2d",
+      "finding": "Actual WPF render was opened directly; existing dark/light theme, wide 2D map, NG red, collapsed results table, sidebar/readback text and no outer scroll preserved."
+    },
+    {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261124_10_OverwriteOnly\\ui-final\\bulk-final-consistency\\bulk-final-wide-light.png",
+      "sha256": "a7dfcb50bf659ad863185afaec81d99f3732958c7549657c5b05167b9da1a2c0",
+      "finding": "Actual WPF render was opened directly; existing dark/light theme, wide 2D map, NG red, collapsed results table, sidebar/readback text and no outer scroll preserved."
+    }
+  ],
+  "wordingReview": "Both direct and representative-copied raw deviations are added to each target current B. Copy stage still does not save CSV. Init now immediately persists missing Review values for the current Cell, including the last saved correction, so the next correction starts at neutral B0; other Cells and hardware/Default/FirstBeam/Distortion are preserved. Import remains draft-to-Bulk. View code differs from .8 only by thirteen explanatory literals; no View control-flow/layout/theme change.",
+  "testChanges": "Six existing wording assertions in three files (including the existing Init dispatch check extended with its immediate-save tooltip). No new test scenarios, fake arithmetic rewrites or test-count inflation.",
+  "limits": [
+    "All 19 UI modes were not rerun; only the three affected modes were executed.",
+    "WPF fixtures use FakeController and synthetic immutable values, so actual B+e arithmetic and CSV persistence are separate Core/Controller/Backend evidence.",
+    "ReplacementUiState retains a historical synthetic summary literal (편차 대체 2점) in its screenshots; it is not a production Controller summary. Selected bulk-final PNGs do not carry that fixture-only label.",
+    "The arithmetic assumes current B is the machining B and Scale is 100%; no .9 physical basis or lifecycle UI port was made.",
+    "No production equipment App, SDK, motion, Vision, operating CSV, Git commit or push executed by this UI task.",
+    "The old synthetic InitPending fixture remains a compatibility/pending-state UI guard case. It does not prove the actual Controller produces InitPending or requires Bulk after Init; actual immediate-save behavior is covered separately by Controller tests."
+  ],
+  "productionViewSha256": "740f8db69c572e07e04f7745c320ed6c75801e302da693a96e94ef13865bc297",
+  "independentPeerReview": {
+    "reviewer": "/root/bulk_history_qa_1123",
+    "finding": "View eight-literal diff agrees with target B+raw deviation, stage-only copy, current Cell save, NG/empty exclusions, raw preservation and imported final-file absolute-value exception. No confirmed UI wording defect. Peer agreed not to use historical synthetic replacement-summary screenshots as the final representative images.",
+    "separateArithmeticEvidence": "Peer reported Controller source-linked 283 tests passing with source B10/raw3→13 and target B20→23/B30→33 plus duplicate prevention; this count is not included in the 124 UI runtime checks."
+  },
+  "previousRunPreservedAt": "D:\\CodexWork\\A3_Manual_Inspection_20261124_10_OverwriteOnly\\ui-before-init",
+  "initPeerContractConfirmed": "QA Controller owner confirmed immediate current Cell Init persistence; only pre-commit writer failure restores prior working/candidate/ledger/queue. File import stays staged. Post-commit readback failure is reported independently."
+}

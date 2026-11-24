@@ -42,9 +42,19 @@ foreach(var mode in new[]{"proxy","operator","model-import","saved-proxy","saved
  if(saved)
  {
   Assert(w.PreviewMeasurementReplacement([subject]).Keys.Count==0,"already applied legacy manual result not silently replaced");
-  var reference=points.Single(p=>p.Key!=subject).Key;var copy=w.PreviewMeasurementReferenceCopy(reference,[subject]);
+  var reference=points.Single(p=>p.Key!=subject).Key;
+  if(mode=="saved-proxy")
+  {
+   var rejected=false;try{w.PreviewMeasurementReferenceCopy(reference,[subject]);}catch(InvalidOperationException){rejected=true;}
+   Assert(rejected,"same already-applied legacy representative cannot create another increment");
+  }
+  w.RecordMeasurement(reference,new("OK",2,1,"FRESH_RAW_"+mode,context.RecipeId,context.RunId,context.CoordinateSignature));
+  var copy=w.PreviewMeasurementReferenceCopy(reference,[subject]);
   w.ConfirmMeasurementReferenceCopy(copy,[subject],"explicit fresh copy after legacy save");
   Assert(w.PreviewMeasurementReplacement([subject]).Keys.SequenceEqual([subject]),"explicit fresh copy can be applied under new policy");
+  w.BuildMeasurementReplacementCandidate([subject]);Assert(w.ValidateCandidate(true).Ok,"fresh copied residual validates after legacy restore");
+  w.CommitApplied(w.CreateApplySnapshot(true),"FRESH_COPY_SAVED","synthetic new residual");
+  Assert(w.ActiveOffsets[subject]==new ST_MANUAL_OFFSET(15,0),"legacy saved13 plus fresh2 becomes15");
  }
  else if(mode=="model-import")
  {
@@ -58,7 +68,7 @@ foreach(var mode in new[]{"proxy","operator","model-import","saved-proxy","saved
   Assert(w.ResolveMeasurementReferenceValue(key).Final==new ST_MANUAL_OFFSET(3,1),"old captured final13 is not reused as deviation");
   w.BuildMeasurementReplacementCandidate([key]);Assert(w.ValidateCandidate(mode=="proxy"||mode=="operator").Ok,"new replacement validates against restored provenance");
   var snapshot=w.CreateApplySnapshot(true);w.CommitApplied(snapshot,"SYNTHETIC_REPLACED","synthetic no-device commit");
-  Assert(w.ActiveOffsets[key]==new ST_MANUAL_OFFSET(3,1),"new final is raw3 not old13 or repeated23");
+  Assert(w.ActiveOffsets[key]==new ST_MANUAL_OFFSET(13,-1),"current base10 plus raw3 becomes13 without adding captured13 again");
  }
 #endif
 }

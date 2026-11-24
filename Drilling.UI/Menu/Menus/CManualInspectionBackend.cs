@@ -877,8 +877,19 @@ public sealed class CManualInspectionBackend(
         // Per-measurement durable reservations prevent a crash or a different selected subset from
         // bypassing the same Run/raw guard. The existing apply history proves committed writes.
         var reservations = new List<string>();
-        var driving = measuredRows.Where(r => r.MeasurementToken.Length > 0).ToDictionary(r => r.Key, r => r.MeasurementToken);
-        var consumed = consumedMeasurements ?? driving;
+        var isMeasurementIncrement=false;
+        try
+        {
+            using var saveIdentity=JsonDocument.Parse(sourceIdentity);
+            isMeasurementIncrement=saveIdentity.RootElement.ValueKind==JsonValueKind.Object&&saveIdentity.RootElement.TryGetProperty("IsMeasurementReplacement",out var mode)&&mode.ValueKind==JsonValueKind.True;
+        }
+        catch(JsonException) { } // Existing legacy source identities may be plain text.
+        var pointsByOffset=source.Points.ToLookup(point=>point.OffsetKey,StringComparer.Ordinal);
+        var driving = measuredRows.Where(r => r.MeasurementToken.Length > 0).SelectMany(row=>isMeasurementIncrement&&row.Source=="MANUAL"
+            ?pointsByOffset[row.OffsetKey].Select(point=>new KeyValuePair<string,string>(point.Key,row.MeasurementToken))
+            :new[]{new KeyValuePair<string,string>(row.Key,row.MeasurementToken)}).ToHashSet();
+        // Preserve both a point's original observation token and its correction-driving token.
+        var consumed = (consumedMeasurements ?? new Dictionary<string, string>()).Concat(driving).Distinct();
         foreach (var pair in consumed)
         {
             var marker = Path.Combine(directory, "point-" + Digest(source.Context.RunId + pair.Key + pair.Value) + ".json");
@@ -887,7 +898,7 @@ public sealed class CManualInspectionBackend(
                 var old = JsonSerializer.Deserialize<Reservation>(await System.IO.File.ReadAllTextAsync(marker, token))!;
                 if (await offsets.FindCommittedSourceApplication(source.Context.RecipeId, old.SourcePath, token) is not null)
                 {
-                    if (driving.GetValueOrDefault(pair.Key) == pair.Value)
+                    if (driving.Contains(pair))
                         throw new InvalidOperationException($"{pair.Key}: 같은 Run의 측정 원본이 이미 적용됐습니다. 새 가공 후 재측정하세요.");
                     continue; // Already-consumed companion raw does not block a fresh driving measurement.
                 }
