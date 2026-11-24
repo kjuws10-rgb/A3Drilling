@@ -92,6 +92,7 @@
         private string _powerMeterTuneMessage = "Target power tune is ready.";
         private double _powerMeterTargetPower = 1.2;
         private string _selectedMelsecGroup = "ALL";
+        private string _selectedMelsecGroupOption = "ALL";
         private bool _isMelsecWriteLockVisible;
         private bool _isMelsecWriteUnlocked;
         private bool _liveRefreshRunning;
@@ -131,6 +132,21 @@
         public IReadOnlyList<ST_MONITOR_PRODUCT_ITEM> ProductReviewItems { get; private set; } = [];
         public IReadOnlyList<ST_MONITOR_PRODUCT_REVIEW_ROW> ProductReviewRows { get; private set; } = [];
         public IReadOnlyList<ST_MONITOR_MELSEC_GROUP> MelsecGroups { get; private set; } = [];
+        public string SelectedMelsecGroupOption
+        {
+            get => _selectedMelsecGroupOption;
+            set
+            {
+                var next = string.IsNullOrWhiteSpace(value) ? "ALL" : value.Trim();
+                if (_selectedMelsecGroupOption.Equals(next, StringComparison.OrdinalIgnoreCase))
+                {
+                    return;
+                }
+
+                _selectedMelsecGroupOption = next;
+                OnPropertyChanged(nameof(SelectedMelsecGroupOption));
+            }
+        }
         public IReadOnlyList<ST_MONITOR_MELSEC_ROW> MelsecRows { get; private set; } = [];
         public IReadOnlyList<ST_MONITOR_MELSEC_ROW> MelsecReadRows { get; private set; } = [];
         public IReadOnlyList<ST_MONITOR_MELSEC_ROW> MelsecWriteRows { get; private set; } = [];
@@ -1852,6 +1868,7 @@
                         nameof(ParameterRows), 
                         nameof(SummaryItems), 
                         nameof(MelsecGroups), 
+                        nameof(SelectedMelsecGroupOption),
                         nameof(MelsecRows), 
                         nameof(MelsecReadRows), 
                         nameof(MelsecWriteRows)
@@ -2894,20 +2911,30 @@
 
         private async Task SelectMelsecGroup(object? parameter)
         {
+            string selectedGroup;
             if (parameter is ST_MONITOR_MELSEC_GROUP group)
             {
-                _selectedMelsecGroup = group.Name;
+                selectedGroup = group.Name;
             }
             else if (parameter is string groupName && !string.IsNullOrWhiteSpace(groupName))
             {
-                _selectedMelsecGroup = groupName.Trim().ToUpperInvariant();
+                selectedGroup = groupName.Trim();
             }
             else
             {
                 return;
             }
 
-            _setStatusMessage($"MELSEC group {_selectedMelsecGroup} selected.");
+            if (!MelsecGroups.Any(item => item.Name.Equals(selectedGroup, StringComparison.OrdinalIgnoreCase)))
+            {
+                selectedGroup = "ALL";
+            }
+
+            _selectedMelsecGroup = selectedGroup;
+            SelectedMelsecGroupOption = selectedGroup;
+            UpdatePollingContext("MELSEC");
+            _statusPollingService.RefreshMelsecNow();
+            _setStatusMessage($"MELSEC group {_selectedMelsecGroup} refreshed.");
             await _refreshCurrentScreen();
         }
 
@@ -4254,15 +4281,23 @@
                 return group;
             }
 
-            var mapGroups = _interfaceManager.Melsec.Map.Select(SelectGroup).Where(ShouldIncludeItem).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(SelectGroup2, StringComparer.OrdinalIgnoreCase).ToArray();
+            var monitorMap = _interfaceManager.Melsec.Map.ToArray();
+            var mapGroups = monitorMap.Select(SelectGroup).Where(ShouldIncludeItem).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(SelectGroup2, StringComparer.OrdinalIgnoreCase).ToArray();
             if (!_selectedMelsecGroup.Equals("ALL", StringComparison.OrdinalIgnoreCase) && !mapGroups.Contains(_selectedMelsecGroup, StringComparer.OrdinalIgnoreCase))
             {
                 _selectedMelsecGroup = "ALL";
             }
+            if (!_selectedMelsecGroupOption.Equals("ALL", StringComparison.OrdinalIgnoreCase) && !mapGroups.Contains(_selectedMelsecGroupOption, StringComparer.OrdinalIgnoreCase))
+            {
+                SelectedMelsecGroupOption = "ALL";
+            }
 
             global::Drilling.UI.Menu.Menus.ST_MONITOR_MELSEC_GROUP BuildMonitor(string group)
             {
-                return new ST_MONITOR_MELSEC_GROUP(group, group.Equals(_selectedMelsecGroup, StringComparison.OrdinalIgnoreCase), group.Equals("ALL", StringComparison.OrdinalIgnoreCase) ? _interfaceManager.Melsec.Map.Count : _interfaceManager.Melsec.GetMapList(group).Count);
+                var count = group.Equals("ALL", StringComparison.OrdinalIgnoreCase)
+                    ? monitorMap.Length
+                    : monitorMap.Count(data => data.Group.Equals(group, StringComparison.OrdinalIgnoreCase));
+                return new ST_MONITOR_MELSEC_GROUP(group, group.Equals(_selectedMelsecGroup, StringComparison.OrdinalIgnoreCase), count);
             }
 
             return new[]
@@ -4278,7 +4313,9 @@
                 return[];
             }
 
-            var rows = _selectedMelsecGroup.Equals("ALL", StringComparison.OrdinalIgnoreCase) ? _interfaceManager.Melsec.Map : _interfaceManager.Melsec.GetMapList(_selectedMelsecGroup);
+            var rows = (_selectedMelsecGroup.Equals("ALL", StringComparison.OrdinalIgnoreCase)
+                ? _interfaceManager.Melsec.Map
+                : _interfaceManager.Melsec.GetMapList(_selectedMelsecGroup));
             string SelectGroup(global::Drilling.Common.Interface.ST_MELSEC_MAP_DATA data)
             {
                 return data.Group;
@@ -4408,12 +4445,49 @@
                     }
                 }
 
-                var isSimulation = _interfaceManager.IsSimulation && _motionManager.IsSimulation;
-                var glassIdPrefix = isSimulation ? "SIM" : "DUMMY";
-                var glassId = $"{glassIdPrefix}_{DateTimeOffset.Now:yyyyMMdd_HHmmssfff}";
-                await _productManager.CreateProduct("", glassId, "", "", new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase), new Dictionary<int, int>(), CancellationToken.None);
+                var source = CRecipeConfirmDialog.ShowGlassDataSourceChoice();
+                if (source == EN_GLASS_DATA_SOURCE_CHOICE.Cancel)
+                {
+                    return;
+                }
+
+                string glassId;
+                string lotId;
+                string ppid;
+                IReadOnlyDictionary<string, string> productFields;
+                string sourceText;
+                if (source == EN_GLASS_DATA_SOURCE_CHOICE.StagePcData)
+                {
+                    using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                    var stageData = await CStageGlassDataMap.ReadAsync(_interfaceManager.Melsec, timeout.Token);
+                    glassId = stageData.GlassId;
+                    lotId = stageData.LotId;
+                    ppid = stageData.Ppid;
+                    productFields = stageData.Values;
+                    sourceText = "STAGE PC DATA";
+                }
+                else
+                {
+                    var isSimulation = _interfaceManager.IsSimulation && _motionManager.IsSimulation;
+                    var glassIdPrefix = isSimulation ? "SIM" : "DUMMY";
+                    glassId = $"{glassIdPrefix}_{DateTimeOffset.Now:yyyyMMdd_HHmmssfff}";
+                    lotId = "";
+                    ppid = "";
+                    productFields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                    sourceText = "DUMMY";
+                }
+
+                await _productManager.CreateProduct(
+                    "",
+                    glassId,
+                    lotId,
+                    ppid,
+                    new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
+                    new Dictionary<int, int>(),
+                    CancellationToken.None,
+                    productFields);
                 await _refreshCurrentScreen();
-                MessageBox.Show(Application.Current?.MainWindow, $"Glass {glassId} 생성이 완료되었습니다.", "Glass 생성 완료", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(Application.Current?.MainWindow, $"Glass {glassId} 생성이 완료되었습니다.\nData Source : {sourceText}", "Glass 생성 완료", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
@@ -4542,21 +4616,17 @@
                 return string.IsNullOrWhiteSpace(value) ? "-" : value;
             }
 
-            ProductGlassItems = [
-                new("H Glass ID", product.PanelId, "Normal"), 
-                new("E Glass ID", ProductValue("E_GLASSID"), "Normal"), 
-                new("Lot ID", product.LotId, "Normal"), 
-                new("Batch ID", ProductValue("BATCHID"), "Normal"), 
-                new("Job ID", ProductValue("JOBID"), "Normal"), 
-                new("Port ID", ProductValue("PORTID"), "Normal"), 
-                new("Slot No", ProductValue("SLOTNO"), "Normal"), 
-                new("PPID", product.RecipeId, "Accent"), 
-                new("Process ID", product.ProcessId, "Normal"), 
-                new("Glass State", ProductValue("GLASS_STATE"), "Normal"), 
-                new("Created", FormatProductDateTime(product.CreatedAt), "Normal"), 
-                new("Started", FormatProductDateTime(product.StartedAt), "Normal"), 
-                new("Completed", FormatProductDateTime(product.CompletedAt), "Normal")
-            ];
+            var glassItems = CStageGlassDataMap.ProductFieldNames
+                .Select(name => new ST_MONITOR_PRODUCT_ITEM(name, ProductValue(name), name.Equals("PPID", StringComparison.OrdinalIgnoreCase) ? "Accent" : "Normal"))
+                .ToList();
+            glassItems.Add(new("PROCESS_ID", ProductValue("PROCESS_ID"), "Normal"));
+            glassItems.Add(new("PRODUCT_STATE", product.State.ToString().ToUpperInvariant(), ProductStateTone(product.State, product.Result)));
+            glassItems.Add(new("PRODUCT_RESULT", product.Result.ToString().ToUpperInvariant(), ProductResultTone(product.Result)));
+            glassItems.Add(new("CREATED_AT", FormatProductDateTime(product.CreatedAt), "Normal"));
+            glassItems.Add(new("STARTED_AT", FormatProductDateTime(product.StartedAt), "Normal"));
+            glassItems.Add(new("COMPLETED_AT", FormatProductDateTime(product.CompletedAt), "Normal"));
+            glassItems.Add(new("PROCESS_STEP", ProductValue("PROCESS_STEP"), "Normal"));
+            ProductGlassItems = glassItems;
             ProductAlignItems = [
                 ProcessItem("State", product.Align.State), 
                 new("Result", product.Align.Result, ResultTone(product.Align.Result)), 
@@ -6920,7 +6990,10 @@
         }
     }
 
-    public sealed record ST_MONITOR_MELSEC_GROUP(string Name, bool IsSelected, int Count);
+    public sealed record ST_MONITOR_MELSEC_GROUP(string Name, bool IsSelected, int Count)
+    {
+        public override string ToString() => Name;
+    }
     public sealed class ST_MONITOR_MELSEC_ROW : CBindingBase
     {
         private string _readValue;

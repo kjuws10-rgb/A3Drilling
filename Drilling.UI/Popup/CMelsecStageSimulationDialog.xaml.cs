@@ -156,7 +156,7 @@
             }
 
             var values = interfaces.Melsec.GetCachedSnapshot(out var map);
-            var signals = map.Where(row => CMelsec.IsStageFlowSimulationSignal(row) || CMelsec.IsStageSimulationSignal(row) || CMelsec.IsStageAlignSimulationSignal(row) || CMelsec.IsStageProtectWindowSimulationSignal(row) || CMelsec.IsDistortionMeasurementSimulationValue(row)).OrderBy(row => ScenarioOrder(row.Group)).ThenBy(row => row.DeviceNo).ThenBy(row => SignalOrder(row.Id)).ThenBy(row => row.Id).ToArray();
+            var signals = map.Where(row => CMelsec.IsStageGlassDataSimulationValue(row) || CMelsec.IsStageFlowSimulationSignal(row) || CMelsec.IsStageSimulationSignal(row) || CMelsec.IsStageAlignSimulationSignal(row) || CMelsec.IsStageProtectWindowSimulationSignal(row) || CMelsec.IsDistortionMeasurementSimulationValue(row)).OrderBy(row => ScenarioOrder(row.Group)).ThenBy(row => row.DeviceNo).ThenBy(row => SignalOrder(row.Id)).ThenBy(row => row.Id).ToArray();
             if (!_map.SequenceEqual(signals))
             {
                 _map = signals;
@@ -164,7 +164,9 @@
                 foreach (var signal in signals)
                     Rows.Add(new(signal, value =>
                     {
-                        if (CMelsec.IsStageAlignSimulationSignal(signal))
+                        if (CMelsec.IsStageGlassDataSimulationValue(signal))
+                            interfaces.Melsec.SetStageGlassDataSimulationValue(signal.Id, value.ToString(CultureInfo.InvariantCulture));
+                        else if (CMelsec.IsStageAlignSimulationSignal(signal))
                             interfaces.Melsec.SetStageAlignSimulationValue(signal.Id, value);
                         else if (CMelsec.IsStageProtectWindowSimulationSignal(signal))
                             interfaces.Melsec.SetStageProtectWindowSimulationValue(signal.Id, value);
@@ -172,7 +174,8 @@
                             interfaces.Melsec.SetStageFlowSimulationValue(signal.Id, value);
                         else
                             interfaces.Melsec.SetStageSimulationSignal(signal.Id, value == 1);
-                    }, setMeasurement: value => interfaces.Melsec.SetDistortionMeasurementSimulationValue(signal.Id, value)));
+                    }, setMeasurement: value => interfaces.Melsec.SetDistortionMeasurementSimulationValue(signal.Id, value),
+                        setText: value => interfaces.Melsec.SetStageGlassDataSimulationValue(signal.Id, value)));
             }
 
             var connections = interfaces.GetInterfaceCommunicationList(EN_EQP_MODULE.Melsec).ToDictionary(row => row.Number);
@@ -216,6 +219,7 @@
 
         private static int ScenarioOrder(string group) => group.ToUpperInvariant() switch
         {
+            "STAGE_GLASS_DATA" => -3,
             "DISTORTION" => -2,
             "VISION_DISTORTION_DATA" => -1,
             "IF_DOREADY" => 0,
@@ -249,9 +253,11 @@
         public Brush StateBrush => _stateBrush;
         public bool CanSet => _canSet;
         public bool IsNumeric { get; }
+        public bool IsText { get; }
+        public bool HasValueInput => IsNumeric || IsText;
         public bool IsCount { get; }
         public bool IsMeasurement { get; }
-        public string InputHint => IsMeasurement ? "mm 단위의 부호 포함 숫자 (소수 입력 가능)" : "원시 정수: 0~65535";
+        public string InputHint => IsText ? "MELSEC ASCII 문자열" : IsMeasurement ? "mm 단위의 부호 포함 숫자 (소수 입력 가능)" : "원시 정수: 0~65535";
         public bool IsAlignBusyWord { get; }
 
         public string InputValue
@@ -270,7 +276,7 @@
         public CButtonCommand SetOffCommand { get; }
         public CButtonCommand SetValueCommand { get; }
 
-        public CMelsecStageSimulationRow(ST_MELSEC_MAP_DATA data, Action<int> set, Action<string>? showWarning = null, Action<double>? setMeasurement = null)
+        public CMelsecStageSimulationRow(ST_MELSEC_MAP_DATA data, Action<int> set, Action<string>? showWarning = null, Action<double>? setMeasurement = null, Action<string>? setText = null)
         {
             Id = data.Id;
             IsMeasurement = CMelsec.IsDistortionMeasurementSimulationValue(data);
@@ -279,6 +285,7 @@
             {
                 "DISTORTION" => "Distortion",
                 "VISION_DISTORTION_DATA" => "Distortion Data",
+                "STAGE_GLASS_DATA" => "Glass Data",
                 "IF_DOREADY" => "DoReady",
                 "IF_PROCESS" => "Process",
                 "IF_REVIEW" => "Review",
@@ -310,8 +317,10 @@
             }
             Address = CMelsec.IsSimulationOnlyRoute(data) ? $"MELSEC_{data.DeviceNo} / SIM ONLY" : $"MELSEC_{data.DeviceNo} / {data.Address}";
             Description = data.Description;
-            IsNumeric = CMelsec.IsStageAlignSimulationSignal(data) || IsCount || IsMeasurement;
-            _inputValue = IsMeasurement ? "0" : IsAlignBusyWord ? "2" : IsNumeric && !IsCount ? "10000" : "0";
+            IsText = CMelsec.IsStageGlassDataSimulationValue(data) && data.DataType == EN_MELSEC_DATA_TYPE.String;
+            IsNumeric = CMelsec.IsStageAlignSimulationSignal(data) || IsCount || IsMeasurement
+                || (CMelsec.IsStageGlassDataSimulationValue(data) && data.DataType == EN_MELSEC_DATA_TYPE.Word);
+            _inputValue = IsText ? "" : IsMeasurement ? "0" : IsAlignBusyWord ? "2" : IsNumeric && !IsCount ? "10000" : "0";
             _readScale = data.ReadScale;
             var warn = showWarning ?? (message => CRecipeConfirmDialog.ShowWarning("Stage 신호 변경 실패", message));
             void Set(int value)
@@ -332,8 +341,18 @@
             SetOffCommand = new(_ => Set(0), _ => _canSet && !IsNumeric);
             SetValueCommand = new(_ =>
             {
-                if (!_canSet || !IsNumeric)
+                if (!_canSet || !HasValueInput)
                     return;
+                if (IsText)
+                {
+                    try
+                    {
+                        if (setText is null) throw new InvalidOperationException("문자열 입력이 연결되어 있지 않습니다.");
+                        setText(InputValue);
+                    }
+                    catch (Exception error) { warn(error.Message); }
+                    return;
+                }
                 if (IsMeasurement)
                 {
                     try
@@ -353,7 +372,7 @@
                 }
 
                 Set(value);
-            }, _ => _canSet && IsNumeric);
+            }, _ => _canSet && HasValueInput);
         }
 
         public void Refresh(ST_MELSEC_CACHED_VALUE? sample, bool simulation)
@@ -382,7 +401,12 @@
                 null => Brushes.Gray,
                 _ => Brushes.Firebrick
             };
-            if (IsMeasurement && raw is not null)
+            if (IsText && raw is not null)
+            {
+                text = raw.Length == 0 ? "(EMPTY)" : raw;
+                brush = Brushes.SteelBlue;
+            }
+            else if (IsMeasurement && raw is not null)
             {
                 text = Convert.ToDouble(sample!.Value, CultureInfo.InvariantCulture).ToString("0.####", CultureInfo.InvariantCulture) + " mm";
                 brush = Brushes.SteelBlue;

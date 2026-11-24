@@ -3057,6 +3057,43 @@
             .Concat(Enumerable.Range(1, 3).SelectMany(position => new[] { $"DISTORTION_POS{position}_CAM2X", $"DISTORTION_POS{position}_CAM2Y", $"DISTORTION_POS{position}_CAM4X", $"DISTORTION_POS{position}_CAM4Y" })).ToHashSet(StringComparer.OrdinalIgnoreCase);
         public static bool IsDistortionMeasurementSimulationValue(ST_MELSEC_MAP_DATA row) => row.Use && DistortionMeasurementIds.Contains(row.Id)
             && row.Direction == EN_MELSEC_DIRECTION.In && row.Access != EN_MELSEC_ACCESS.Write && row.DataType == EN_MELSEC_DATA_TYPE.Double && row.Length == 2;
+        public static bool IsStageGlassDataSimulationValue(ST_MELSEC_MAP_DATA row) => row.Use
+            && CStageGlassDataMap.IsMapRow(row)
+            && row.Direction == EN_MELSEC_DIRECTION.In
+            && row.Access != EN_MELSEC_ACCESS.Write
+            && row.DataType is EN_MELSEC_DATA_TYPE.String or EN_MELSEC_DATA_TYPE.Word;
+        public void SetStageGlassDataSimulationValue(string id, string value)
+        {
+            lock (_pollLock)
+            {
+                var data = GetMapData(id);
+                if (!IsStageGlassDataSimulationValue(data))
+                    throw new InvalidOperationException($"Stage Glass Data 수신 항목이 아닙니다: {id}");
+                if (!IsSimulation(GetInterfaceData(data)))
+                    throw new InvalidOperationException($"MELSEC_{data.DeviceNo}가 SIMULATION 상태일 때만 변경할 수 있습니다.");
+
+                object parsed;
+                if (data.DataType == EN_MELSEC_DATA_TYPE.String)
+                {
+                    value ??= "";
+                    if (value.Any(character => character > sbyte.MaxValue))
+                        throw new InvalidOperationException("Stage Glass Data 문자열은 ASCII 문자만 입력할 수 있습니다.");
+                    if (Encoding.ASCII.GetByteCount(value) > data.Length * 2)
+                        throw new InvalidOperationException($"{data.Name}은 최대 {data.Length * 2}자까지 입력할 수 있습니다.");
+                    parsed = value;
+                }
+                else
+                {
+                    if (!int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number) || number is < 0 or > ushort.MaxValue)
+                        throw new InvalidOperationException($"{data.Name}은 0~65535의 정수를 입력하세요.");
+                    parsed = number;
+                }
+
+                WriteSimulationValue(data, parsed);
+                if (_pollBlockById.TryGetValue(NormalizeId(id), out var block))
+                    block.NextReadAt = DateTimeOffset.MinValue;
+            }
+        }
         public void SetDistortionMeasurementSimulationValue(string id, double mm) => SetDistortionMeasurementSimulationValues(new Dictionary<string, double> { [id] = mm });
         public void SetDistortionMeasurementSimulationValues(IReadOnlyDictionary<string, double> values)
         {

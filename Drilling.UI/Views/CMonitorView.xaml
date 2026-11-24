@@ -2685,7 +2685,7 @@
                     <TabItem Header="GLASS">
                         <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="520" />
+                    <ColumnDefinition Width="640" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
@@ -2713,11 +2713,12 @@
                                   IsReadOnly="True"
                                   Style="{StaticResource PlainDataGrid}"
                                   HeadersVisibility="None"
+                                  VerticalScrollBarVisibility="Auto"
                                   FontSize="13"
                                   RowHeight="38"
                                   ColumnHeaderHeight="0">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Binding="{Binding Name}" Width="140" />
+                                <DataGridTextColumn Binding="{Binding Name}" Width="180" />
                                 <DataGridTextColumn Binding="{Binding Value}" Width="*">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
@@ -2923,12 +2924,55 @@
 
             <Grid Visibility="{Binding CurrentScreen.Monitor.IsMelsec, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="54" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
 
-                    <Border Grid.Column="0" Style="{StaticResource PanelBorder}" Margin="0,0,8,0">
+                    <Border Grid.Row="0"
+                            Grid.ColumnSpan="2"
+                            Style="{StaticResource PanelBorder}"
+                            Margin="0,0,0,10"
+                            Padding="14,5">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="320" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="GROUP"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,12,0"
+                                       FontSize="14"
+                                       FontWeight="Bold" />
+                            <ComboBox Grid.Column="1"
+                                      ItemsSource="{Binding CurrentScreen.Monitor.MelsecGroups}"
+                                      DisplayMemberPath="Name"
+                                      SelectedValuePath="Name"
+                                      SelectedValue="{Binding CurrentScreen.Monitor.SelectedMelsecGroupOption, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      Style="{StaticResource MonitorComboBox}"
+                                      Height="32"
+                                      FontSize="13"
+                                      VerticalContentAlignment="Center" />
+                            <Button Grid.Column="2"
+                                    Content="REFRESH"
+                                    menu:CButtonCommandBehavior.Command="{Binding CurrentScreen.Monitor.SelectMelsecGroupCommand}"
+                                    CommandParameter="{Binding CurrentScreen.Monitor.SelectedMelsecGroupOption}"
+                                    Style="{StaticResource IoCommandButton}"
+                                    Height="32"
+                                    Width="118"
+                                    Margin="10,0,0,0"
+                                    Background="{DynamicResource ButtonPrimaryBrush}"
+                                    BorderBrush="{DynamicResource ButtonPrimaryBorderBrush}" />
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource PanelBorder}" Margin="0,0,8,0">
                         <DockPanel>
                             <TextBlock DockPanel.Dock="Top"
                                        Text="READ Monitor"
@@ -2967,7 +3011,7 @@
                         </DockPanel>
                     </Border>
 
-                    <Border Grid.Column="1" Style="{StaticResource PanelBorder}" Margin="8,0,0,0">
+                    <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource PanelBorder}" Margin="8,0,0,0">
                         <DockPanel>
                             <Grid DockPanel.Dock="Top" Height="44">
                                 <Grid.ColumnDefinitions>

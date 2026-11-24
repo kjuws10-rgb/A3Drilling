@@ -92,7 +92,7 @@
                                     </Grid>
                                 </Grid>
                                 <DataTemplate.Triggers>
-                                    <DataTrigger Binding="{Binding IsNumeric}" Value="True">
+                                    <DataTrigger Binding="{Binding HasValueInput}" Value="True">
                                         <Setter TargetName="BinaryInput" Property="Visibility" Value="Collapsed" />
                                         <Setter TargetName="NumericInput" Property="Visibility" Value="Visible" />
                                     </DataTrigger>

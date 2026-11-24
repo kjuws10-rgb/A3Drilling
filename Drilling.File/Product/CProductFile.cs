@@ -47,18 +47,7 @@ public sealed class CProductFile(string configRoot) : CProductFileBase
             return null;
         }
 
-        var reservedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            "H_GLASSID",
-            "LOTID",
-            "PROCESS_ID",
-            "PPID",
-            "PRODUCT_STATE",
-            "JUDGEMENT",
-            "CREATED_AT",
-            "STARTED_AT",
-            "COMPLETED_AT"
-        };
+        var reservedNames = new HashSet<string>(CProductManager.ProductFieldNames, StringComparer.OrdinalIgnoreCase);
         var parameters = ReadSection(rows, "RECIPE");
         bool ShouldIncludeItem(global::System.Collections.Generic.KeyValuePair<string, string> item)
         {
@@ -397,11 +386,7 @@ public sealed class CProductFile(string configRoot) : CProductFileBase
 
     private static bool IsCompactProductCoreName(string name)
     {
-        return name.Trim().ToUpperInvariant() switch
-        {
-            "H_GLASSID" or "LOTID" or "PROCESS_ID" or "PPID" or "PRODUCT_STATE" or "JUDGEMENT" or "CREATED_AT" or "STARTED_AT" or "COMPLETED_AT" => true,
-            _ => false
-        };
+        return CProductManager.ProductFieldNames.Contains(name.Trim(), StringComparer.OrdinalIgnoreCase);
     }
 
     private static string DefaultText(string value, string defaultValue)

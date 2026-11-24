@@ -107,7 +107,7 @@
                 return;
             }
 
-            CCsvParser.Write(path, Headers, CreateHandshakeRows().Concat(CreateMotorStatusRows()).Concat(CreateLatestScenarioRows()).Concat(CreateVisionSpecRows()).Concat(CreateAlignDistortionRows()).Concat(CreateUnassignedLegacyRows()).ToArray());
+            CCsvParser.Write(path, Headers, CreateHandshakeRows().Concat(CreateMotorStatusRows()).Concat(CreateLatestScenarioRows()).Concat(CreateStageGlassDataRows()).Concat(CreateVisionSpecRows()).Concat(CreateAlignDistortionRows()).Concat(CreateUnassignedLegacyRows()).ToArray());
         }
 
         private string GetMapPath()
@@ -319,6 +319,27 @@
             Unassigned("WARNING_F2000", "WARNING", "F2000 PLC Battery Low Warning", "BIT", "IN", "R", "1", "1", "1"), 
         ];
         private static IReadOnlyDictionary<string, string> Unassigned(string id, string group, string name, string dataType, string direction, string access, string readScale, string writeScale, string length) => Row(id, group, name, 0, "UNASSIGNED", dataType, direction, access, readScale, writeScale, length, "0", "미사용: Spec 0.10 대응 신호 미확인; 주소와 자료형 확정 후 설정", use: false);
+        private static IEnumerable<IReadOnlyDictionary<string, string>> CreateStageGlassDataRows()
+        {
+            foreach (var field in CStageGlassDataMap.Fields)
+            {
+                var dataType = field.DataType == EN_MELSEC_DATA_TYPE.String ? "STRING" : "WORD";
+                yield return Row(
+                    field.Id,
+                    "STAGE_GLASS_DATA",
+                    field.Name,
+                    0,
+                    field.Address,
+                    dataType,
+                    "IN",
+                    "R",
+                    "1",
+                    "1",
+                    field.WordLength.ToString(CultureInfo.InvariantCulture),
+                    "1000",
+                    $"Spec 0.13 Config_Map Word Detail(물류) 5.4.14 EQ Stage Edit GlassData; {field.ProductField}; WF600 연속 블록");
+            }
+        }
         // Position/speed feedback uses signed Int32 words scaled by 0.0001, enabled per the configured Spec 0.10 map.
         // Raw Busy and Servo code reads use separate, unscaled two-word entries.
         // DOUBLE currently means scaled signed Int32, not an IEEE floating-point value.

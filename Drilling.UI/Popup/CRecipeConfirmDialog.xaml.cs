@@ -4,6 +4,7 @@ using System.Windows.Input;
 
 namespace Drilling.UI.Popup;
 public enum EN_DEFAULT_RESTART_CHOICE { Cancel, AllFromStart, InspectionFromStart }
+public enum EN_GLASS_DATA_SOURCE_CHOICE { Cancel, Dummy, StagePcData }
 
 public partial class CRecipeConfirmDialog : Window
 {
@@ -45,6 +46,29 @@ public partial class CRecipeConfirmDialog : Window
         };
         dialog.CancelButton.Content = "복사 안 함";
         return dialog.ShowDialog() == true;
+    }
+
+    public static EN_GLASS_DATA_SOURCE_CHOICE ShowGlassDataSourceChoice()
+    {
+        var dialog = new CRecipeConfirmDialog(
+            "Glass 생성",
+            "생성할 Glass Data의 원본을 선택하세요.\n\nSTAGE PC DATA는 MELSEC WF600 Glass Data를 새로 읽습니다.\nDUMMY는 로컬 ID를 생성하고 나머지 항목을 비워 둡니다.",
+            "STAGE PC DATA",
+            useDangerStyle: false)
+        {
+            Owner = Application.Current?.MainWindow
+        };
+        dialog.CancelButton.Content = "DUMMY";
+        dialog.AbortGap.Width = new GridLength(12);
+        dialog.AbortColumn.Width = new GridLength(1, GridUnitType.Star);
+        dialog.AbortButton.Content = "취소";
+        dialog.AbortButton.Visibility = Visibility.Visible;
+        var result = dialog.ShowDialog();
+        return result == true
+            ? EN_GLASS_DATA_SOURCE_CHOICE.StagePcData
+            : dialog._alternateSelected
+                ? EN_GLASS_DATA_SOURCE_CHOICE.Dummy
+                : EN_GLASS_DATA_SOURCE_CHOICE.Cancel;
     }
 
     // true: rename this folder, false: keep it, null: cancel the entire recipe rename.

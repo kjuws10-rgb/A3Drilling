@@ -133,7 +133,8 @@ public sealed class CProductManager(CProductFileBase productFile, CLogManager? l
         string recipeId, 
         IReadOnlyDictionary<string, string> parameters, 
         IReadOnlyDictionary<int, int> headPointCounts, 
-        CancellationToken cancellationToken = default
+        CancellationToken cancellationToken = default,
+        IReadOnlyDictionary<string, string>? productFields = null
     )
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -184,7 +185,7 @@ public sealed class CProductManager(CProductFileBase productFile, CLogManager? l
             var now = DateTimeOffset.Now;
             var heads = headPointCounts.OrderBy(SelectKey).Select(BuildProduct).ToArray();
             var next = new ST_PRODUCT_DATA(
-                CreateProductInfo(resolvedGlassId, lotId, processId, recipeId, parameters, now), 
+                CreateProductInfo(resolvedGlassId, lotId, processId, recipeId, productFields ?? parameters, now), 
                 new ST_PRODUCT_RECIPE_DATA(new Dictionary<string, string>(parameters, StringComparer.OrdinalIgnoreCase)), 
                 new ST_PRODUCT_ALIGN_DATA(EN_PRODUCT_PROCESS_STATE.NotStarted, "PENDING", null, null, null), 
                 new ST_PRODUCT_DISTORTION_DATA(EN_PRODUCT_PROCESS_STATE.NotStarted, "PENDING", null), 
@@ -819,7 +820,7 @@ public sealed class CProductManager(CProductFileBase productFile, CLogManager? l
         return product;
     }
 
-    private static ST_PRODUCT_INFO CreateProductInfo(string hGlassId, string lotId, string processId, string ppid, IReadOnlyDictionary<string, string> parameters, DateTimeOffset createdAt)
+    private static ST_PRODUCT_INFO CreateProductInfo(string hGlassId, string lotId, string processId, string ppid, IReadOnlyDictionary<string, string> productFields, DateTimeOffset createdAt)
     {
         string SelectName(string name)
         {
@@ -832,7 +833,7 @@ public sealed class CProductManager(CProductFileBase productFile, CLogManager? l
         }
 
         var values = ProductFieldNames.ToDictionary(SelectName, SelectValue, StringComparer.OrdinalIgnoreCase);
-        foreach (var item in parameters)
+        foreach (var item in productFields)
         {
             if (HostWritableProductFieldNames.Contains(item.Key))
             {
@@ -843,86 +844,29 @@ public sealed class CProductManager(CProductFileBase productFile, CLogManager? l
         values["H_GLASSID"] = hGlassId;
         values["LOTID"] = lotId;
         values["PROCESS_ID"] = processId;
-        values["PPID"] = ppid;
+        if (!string.IsNullOrWhiteSpace(ppid))
+        {
+            values["PPID"] = ppid;
+        }
         values["PRODUCT_STATE"] = EN_PRODUCT_STATE.Created.ToString().ToUpperInvariant();
-        values["JUDGEMENT"] = EN_PRODUCT_RESULT.Pending.ToString().ToUpperInvariant();
+        values["PRODUCT_RESULT"] = EN_PRODUCT_RESULT.Pending.ToString().ToUpperInvariant();
         values["CREATED_AT"] = createdAt.ToString("O", System.Globalization.CultureInfo.InvariantCulture);
         return new ST_PRODUCT_INFO(values);
     }
 
     private static ST_PRODUCT_INFO SetProductState(ST_PRODUCT_INFO product, EN_PRODUCT_STATE state, EN_PRODUCT_RESULT result, DateTimeOffset? startedAt, DateTimeOffset? completedAt)
     {
-        return product.Set("PRODUCT_STATE", state.ToString().ToUpperInvariant()).Set("JUDGEMENT", result.ToString().ToUpperInvariant()).Set("STARTED_AT", startedAt?.ToString("O", System.Globalization.CultureInfo.InvariantCulture) ?? "").Set("COMPLETED_AT", completedAt?.ToString("O", System.Globalization.CultureInfo.InvariantCulture) ?? "");
+        return product.Set("PRODUCT_STATE", state.ToString().ToUpperInvariant()).Set("PRODUCT_RESULT", result.ToString().ToUpperInvariant()).Set("STARTED_AT", startedAt?.ToString("O", System.Globalization.CultureInfo.InvariantCulture) ?? "").Set("COMPLETED_AT", completedAt?.ToString("O", System.Globalization.CultureInfo.InvariantCulture) ?? "");
     }
 
-    private static readonly IReadOnlySet<string> HostWritableProductFieldNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-    {
-        "H_GLASSID",
-        "E_GLASSID",
-        "LOTID",
-        "BATCHID",
-        "JOBID",
-        "PORTID",
-        "SLOTNO",
-        "PRODUCT_TYPE",
-        "PRODUCT_KIND",
-        "PRODUCTID",
-        "RUNSPECID",
-        "LAYERID",
-        "STEPID",
-        "FLOWID",
-        "GLASS_SIZE",
-        "GLASS_THICKNESS",
-        "GLASS_STATE",
-        "GLASS_ORDER",
-        "COMMENT",
-        "USE_COUNT",
-        "REASON_CODE",
-        "INS_FLAG",
-        "ENC_FLAG",
-        "PRERUN_FLAG",
-        "TURN_DIR",
-        "FLIP_STATE",
-        "WORK_STATE",
-        "MULTI_USE",
-        "PAIR_GLASSID",
-        "PAIR_PPID"
-    };
+    private static readonly IReadOnlySet<string> HostWritableProductFieldNames = new HashSet<string>(
+        global::Drilling.Common.Interface.CStageGlassDataMap.ProductFieldNames,
+        StringComparer.OrdinalIgnoreCase);
     public static readonly IReadOnlyList<string> ProductFieldNames = [
-        "H_GLASSID", 
-        "E_GLASSID", 
-        "LOTID", 
-        "BATCHID", 
-        "JOBID", 
-        "PORTID", 
-        "SLOTNO", 
-        "PRODUCT_TYPE", 
-        "PRODUCT_KIND", 
-        "PRODUCTID", 
-        "RUNSPECID", 
-        "LAYERID", 
-        "STEPID", 
+        .. global::Drilling.Common.Interface.CStageGlassDataMap.ProductFieldNames,
         "PROCESS_ID", 
-        "PPID", 
-        "FLOWID", 
-        "GLASS_SIZE", 
-        "GLASS_THICKNESS", 
-        "GLASS_STATE", 
-        "GLASS_ORDER", 
-        "COMMENT", 
-        "USE_COUNT", 
         "PRODUCT_STATE", 
-        "JUDGEMENT", 
-        "REASON_CODE", 
-        "INS_FLAG", 
-        "ENC_FLAG", 
-        "PRERUN_FLAG", 
-        "TURN_DIR", 
-        "FLIP_STATE", 
-        "WORK_STATE", 
-        "MULTI_USE", 
-        "PAIR_GLASSID", 
-        "PAIR_PPID", 
+        "PRODUCT_RESULT",
         "CREATED_AT", 
         "STARTED_AT", 
         "COMPLETED_AT", 
@@ -1107,7 +1051,9 @@ public sealed record ST_PRODUCT_DATA(
     {
         get
         {
-            return ParseEnum(Product.Get("JUDGEMENT"), EN_PRODUCT_RESULT.Pending);
+            var result = Product.Get("PRODUCT_RESULT");
+            // 이전 ActiveProduct.csv는 공정 결과를 MELSEC JUDGEMENT 필드에 함께 저장했습니다.
+            return ParseEnum(string.IsNullOrWhiteSpace(result) ? Product.Get("JUDGEMENT") : result, EN_PRODUCT_RESULT.Pending);
         }
     }
 
