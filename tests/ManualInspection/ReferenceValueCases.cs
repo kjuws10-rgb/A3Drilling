@@ -17,18 +17,18 @@ internal static partial class Program
             var w=Workspace([source,Point(2)],new(){[source.Key]=new(7,-2)});Throws(()=>w.ResolveReferenceFinal(source.Key));
             w=Workspace([source with { HasAppliedOffsetEvidence=true },Point(2)],new(){[source.Key]=new(7,-2)});
             var preview=w.PreviewReferenceCopy(source.Key,[Key(2)]);Offset(preview.Final,7,-2);
-            True(preview.Judge=="UNMEASURED"&&preview.ErrorXUm is null&&preview.ReferenceValueKind=="APPLIED_OFFSET");
+            True(preview.Judge=="OK"&&preview.ErrorXUm is null&&preview.ReferenceValueKind=="APPLIED_OFFSET"&&w.GetPoint(source.Key).Judge=="UNMEASURED");
         });
-        Check("reference_stored_zero_is_copyable_without_inventing_ok_raw_or_zero_precision",()=>
+        Check("reference_stored_zero_is_correction_known_without_inventing_camera_raw_or_zero_precision",()=>
         {
             var source=Point(1,judge:"UNMEASURED") with { OriginalMeasurement=null,HasAppliedOffsetEvidence=true };
             var target=Point(2,judge:"UNMEASURED") with { OriginalMeasurement=null };var w=Workspace([source,target]);
             var preview=w.PreviewReferenceCopy(source.Key,[target.Key]);w.ConfirmReferenceCopy(preview,[target.Key],"stored zero snapshot");
-            True(w.GetPoint(target.Key).Judge=="UNMEASURED"&&w.GetPoint(target.Key).ErrorXUm is null
+            True(w.GetPoint(target.Key).Judge=="OK"&&w.GetPoint(target.Key).ErrorXUm is null
                 &&w.GetPoint(target.Key).OriginalMeasurement is null&&w.GetPoint(target.Key).ProxySource?.ReferenceValueKind=="APPLIED_OFFSET");
-            True(!w.ValidateCandidate(true).Ok);Offset(w.Candidate!.Rows.Single().Final,0,0);
+            True(w.ValidateCandidate(true).Ok);Offset(w.Candidate!.Rows.Single().Final,0,0);
             var restored=new CManualInspectionWorkspace();restored.RestoreSession(w.CaptureSession(),Initial,w.Points,w.ActiveOffsets,InsideField);
-            True(restored.Context!.LineageValid&&restored.GetPoint(target.Key).Judge=="UNMEASURED");
+            True(restored.Context!.LineageValid&&restored.GetPoint(target.Key).Judge=="OK"&&restored.GetPoint(target.Key).OriginalMeasurement is null);
         });
         Check("reference_invalid_candidate_validation_does_not_disqualify_valid_raw_value",()=>
         {

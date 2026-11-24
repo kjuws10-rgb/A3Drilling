@@ -15,7 +15,7 @@ internal static partial class Program
             await f.Offsets.SaveNew("QA",[new(first.CellNo,name,0,0){IsDesignCoordinate=true}]);
             var stored=await f.Backend.LoadAsync(null,default);var known=stored.Points.Single(p=>p.Key==first.Key);
             True(known.HasAppliedOffsetEvidence&&!known.IsMeasurementOffsetInitialized&&known.Judge=="UNMEASURED");
-            var value=Engine(stored).ResolveReferenceValue(known.Key);True(value.Final==ST_MANUAL_OFFSET.Zero&&value.Judge=="UNMEASURED"&&value.ErrorXUm is null);
+            var value=Engine(stored).ResolveReferenceValue(known.Key);True(value.Final==ST_MANUAL_OFFSET.Zero&&value.Judge=="OK"&&value.Kind=="APPLIED_OFFSET"&&value.ErrorXUm is null&&known.OriginalMeasurement is null&&known.Judge=="UNMEASURED");
             await f.Offsets.SaveNew("QA",[new(first.CellNo,name,0,0){IsDesignCoordinate=true,IsMeasurementOffsetInitialized=true}]);
             var initialized=await f.Backend.LoadAsync(null,default);True(initialized.Points.All(p=>!p.HasAppliedOffsetEvidence));
             await Reject(()=>Task.Run(()=>Engine(initialized).ResolveReferenceFinal(first.Key)));

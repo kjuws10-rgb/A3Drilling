@@ -342,8 +342,8 @@ internal static partial class Program
         Test("overview_body_navigation_uses_zoom_pan_transform",navigation.SequenceEqual([3])&&selection.Count==0);
         Configure(state);var direct=state with{Points=state.Points.Where(p=>p.CellNo==3).ToArray()};
         map.Configure(direct,direct.Points,direct.Points,[],null,null,"level","single-after-overview",false);Pump();map.RestoreView(2,new Vector(12,-8));Pump();
-        Invoke(map,"BeginPointerGesture",new Point(100,100),ModifierKeys.None,2);Pump();
-        Test("overview_second_double_click_down_fits_current_single_cell_without_work",map.Zoom==1&&map.Pan==default&&navigation.Count==0&&selection.Count==0&&work==0&&!Field<bool>(map,"_gesture"));
+        Invoke(map,"BeginPointerGesture",new Point(2,2),ModifierKeys.None,2);Pump();
+        Test("overview_blank_double_click_down_fits_current_single_cell_without_work",map.Zoom==1&&map.Pan==default&&navigation.Count==0&&selection.Count==0&&work==0&&!Field<bool>(map,"_gesture"));
 
         var geometryOnly=state with{Points=[],CellLayouts=[new(){CellNo=99,Enabled=false,BoundaryMm=[new(0,0),new(200,0),new(200,300),new(0,300)]}],GlassWidthMm=0,GlassHeightMm=0};
         Configure(geometryOnly);var frame=Field<List<(Rect Bounds,Rect Grid,string Title,string Extents)>>(map,"_frames").Single().Bounds;

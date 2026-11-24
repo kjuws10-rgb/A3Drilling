@@ -72,6 +72,7 @@ public sealed class CManualInspectionMapControl : Control
     private sealed record ClickSelection(string[] Keys, string? FocusKey, long Version, string Scope);
     private ClickSelection? _selectionBeforeClick;
     private bool _canRestoreClickSelection;
+    private bool _previousPressWasOverview;
     private Point _start;
     private Point _last;
     private Vector _startPan;
@@ -85,6 +86,7 @@ public sealed class CManualInspectionMapControl : Control
 
     public event EventHandler<CManualInspectionSelectionEventArgs>? SelectionRequested;
     public event EventHandler<CManualInspectionOperationEventArgs>? OperationRequested;
+    public event EventHandler<CManualInspectionOperationEventArgs>? ValueInputRequested;
     public event EventHandler? ViewChanged;
     public event EventHandler<int>? CellRequested;
     public event EventHandler? AllCellsRequested;
@@ -112,7 +114,7 @@ public sealed class CManualInspectionMapControl : Control
         ToolTipService.SetInitialShowDelay(this, 180);
         ToolTipService.SetShowDuration(this, 15000);
         AutomationProperties.SetName(this, "리뷰 측정 위치 논리 행렬");
-        AutomationProperties.SetHelpText(this, "전체 Cell 보기에서는 셀 내부를 클릭하면 해당 Cell을 엽니다. 드래그로 측정점을 선택하고 Ctrl 드래그로 추가합니다. 단일 Cell에서는 Ctrl 클릭으로 복수 선택합니다. 방향키는 한 점, Ctrl 방향키는 행·열 끝, Shift 방향키는 사각 범위, Ctrl Shift 방향키는 끝까지 범위를 선택합니다. Space는 동작 메뉴, Esc는 메뉴 닫기, Ctrl 휠은 확대, Alt 방향키는 화면 이동, 더블클릭은 맞춤입니다.");
+        AutomationProperties.SetHelpText(this, "전체 Cell 보기에서는 셀 내부를 클릭하면 해당 Cell을 엽니다. 드래그로 측정점을 선택하고 Ctrl 드래그로 추가합니다. 단일 Cell에서는 Ctrl 클릭으로 복수 선택합니다. 방향키는 한 점, Ctrl 방향키는 행·열 끝, Shift 방향키는 사각 범위, Ctrl Shift 방향키는 끝까지 범위를 선택합니다. Space는 동작 메뉴, Esc는 메뉴 닫기, Ctrl 휠은 확대, Alt 방향키는 화면 이동입니다. 단일 Cell의 측정점 더블클릭은 편차 키패드 입력, 빈 공간 더블클릭은 맞춤입니다.");
         SizeChanged += (_, _) => { _layoutDirty = true; InvalidateVisual(); };
         Loaded += (_, _) => UpdateMeasurementBlink();
         IsVisibleChanged += (_, _) => UpdateMeasurementBlink();
@@ -787,6 +789,19 @@ public sealed class CManualInspectionMapControl : Control
     {
         if(!double.IsFinite(at.X) || !double.IsFinite(at.Y)) return;
         if(_gesture) CancelGesture(true);
+        var followedOverviewClick = clickCount >= 2 && _previousPressWasOverview;
+        _previousPressWasOverview = _showCellOverview;
+        if (clickCount == 2 && !followedOverviewClick && !_showCellOverview && !IsPanTool && modifiers == ModifierKeys.None
+            && Hit(at) is { IsMasked: false } inputPoint)
+        {
+            InvalidateClickSelection();
+            if (!_snapshot.IsBusy && !_snapshot.IsOffsetEditPending)
+            {
+                SelectionRequested?.Invoke(this, new([inputPoint.Key], inputPoint.Key));
+                ValueInputRequested?.Invoke(this, new(EN_MANUAL_INSPECTION_UI_ACTION.ForceMeasurement, [inputPoint.Key], _snapshot.Version));
+            }
+            return;
+        }
         if(TryResetOnDoubleClick(clickCount)) return;
         var pan=IsPanTool || modifiers.HasFlag(ModifierKeys.Alt);
         // Defer overview navigation until release. A header/body press can become a rectangle
@@ -981,8 +996,22 @@ public sealed class CManualInspectionMapControl : Control
             menu.Items.Add(item);
         }
         menu.Items.Add(new Separator());
+        var force = new MenuItem { Header = $"측정 완료 · OK로 변경 · {keys.Length}점",
+            IsEnabled = !_snapshot.IsBusy && !_snapshot.IsOffsetEditPending,
+            ToolTip = "기존 유효 편차 또는 최종값을 수동 OK로 확정합니다. 원측정은 보존하며, 값이 없으면 편차를 직접 입력하세요. 보정 저장은 별도입니다." };
+        force.SetResourceReference(ForegroundProperty, "TextPrimaryBrush");
+        ToolTipService.SetShowOnDisabled(force, true);
+        force.Click += (_, _) => OperationRequested?.Invoke(this, new(EN_MANUAL_INSPECTION_UI_ACTION.ForceMeasurement, keys, version));
+        menu.Items.Add(force);
         var focus = _snapshot.Points.FirstOrDefault(p => p.Key == _focusKey && !p.IsMasked)
             ?? _snapshot.Points.First(p => p.Key == keys[0]);
+        var edit = new MenuItem { Header = "편차 직접 입력 · " + focus.Key,
+            IsEnabled = !_snapshot.IsBusy && !_snapshot.IsOffsetEditPending,
+            ToolTip = "숫자 키패드에서 X/Y 편차(µm)를 입력하고 수동 OK로 기록합니다. 측정점 더블클릭도 같은 동작입니다." };
+        edit.SetResourceReference(ForegroundProperty, "TextPrimaryBrush");
+        ToolTipService.SetShowOnDisabled(edit, true);
+        edit.Click += (_, _) => ValueInputRequested?.Invoke(this, new(EN_MANUAL_INSPECTION_UI_ACTION.ForceMeasurement, [focus.Key], version));
+        menu.Items.Add(edit);
         foreach (var (title, action) in new[]
         {
             ("현재 위치 한 점 측정", EN_MANUAL_INSPECTION_UI_ACTION.Measure),

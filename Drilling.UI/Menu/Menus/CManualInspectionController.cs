@@ -273,6 +273,7 @@ public sealed class CManualInspectionController : IManualInspectionController
             or EN_MANUAL_INSPECTION_UI_ACTION.Measure or EN_MANUAL_INSPECTION_UI_ACTION.RetryRemaining
             or EN_MANUAL_INSPECTION_UI_ACTION.Apply or EN_MANUAL_INSPECTION_UI_ACTION.Rollback
             or EN_MANUAL_INSPECTION_UI_ACTION.BulkApply or EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets
+            or EN_MANUAL_INSPECTION_UI_ACTION.CopyReference
             or EN_MANUAL_INSPECTION_UI_ACTION.UndoOffsets or EN_MANUAL_INSPECTION_UI_ACTION.RedoOffsets;
         _cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var token = _cancellation.Token;
@@ -371,6 +372,8 @@ public sealed class CManualInspectionController : IManualInspectionController
                 case EN_MANUAL_INSPECTION_UI_ACTION.RedoOffsets: await Restore(token,true); break;
                 case EN_MANUAL_INSPECTION_UI_ACTION.CopyReference:
                     await CopyReference(request,token);break;
+                case EN_MANUAL_INSPECTION_UI_ACTION.ForceMeasurement:
+                    await ForceMeasurement(request,token);break;
                 case EN_MANUAL_INSPECTION_UI_ACTION.UndoCopy:
                     await Current(token); _engine.UndoReferenceCopy(); _status = "직전 대표 복사만 취소했습니다."; break;
                 case EN_MANUAL_INSPECTION_UI_ACTION.UpdateLimits:
@@ -646,7 +649,8 @@ public sealed class CManualInspectionController : IManualInspectionController
                 display=next.Points.Select(p=>old.TryGetValue(p.Key,out var value)
                     && value.CellNo==p.CellNo && value.HeadNo==p.HeadNo && value.ShotNo==p.ShotNo && value.BeamNo==p.BeamNo
                     && value.XMm==p.XMm && value.YMm==p.YMm && value.Masked==p.Masked
-                    ? value with { Source=!p.IsMeasurementOffsetInitialized && value.IsMeasurementStateCleared?"MANUAL_STATE":"IMPORTED",ProxySource=null,AdoptedFileMeasurement=null,
+                    ? value with { Source=!p.IsMeasurementOffsetInitialized && value.IsMeasurementStateCleared?"MANUAL_STATE":"IMPORTED",ProxySource=null,
+                        OperatorResult=null,ArchivedOperatorResult=value.OperatorResult??value.ArchivedOperatorResult,AdoptedFileMeasurement=null,
                         IsMeasurementOffsetInitialized=p.IsMeasurementOffsetInitialized,
                         IsMeasurementStateCleared=!p.IsMeasurementOffsetInitialized && value.IsMeasurementStateCleared,
                         StateCopySource=p.IsMeasurementOffsetInitialized?null:value.StateCopySource,
@@ -968,20 +972,41 @@ public sealed class CManualInspectionController : IManualInspectionController
         {
             var preview=_engine.PreviewReferenceCopy(reference,request.Keys);
             _engine.ConfirmReferenceCopy(preview,request.Keys,request.Reason);_allowManual=true;
-            _status=$"{preview.Targets.Count:N0}점의 작업 판정·편차·최종 F를 대표와 같게 반영했습니다. 원측정은 보존했습니다.";
+            var eligible=_engine.PreviewBulkCorrection(preview.Targets.Select(p=>p.Key));
+            if(eligible.Keys.Count>0)
+            {
+                _engine.BuildDirectCandidate(eligible.Keys);
+                var validation=_engine.ValidateCandidate(true);
+                if(!validation.Ok) throw new InvalidOperationException("대표값을 작업화면에 복사했지만 보정 파일을 저장하지 않았습니다.\n"+string.Join("\n",validation.Errors));
+                await Apply(token,sourceVerified:true);
+            }
+            _status=$"대표 {preview.Targets.Count:N0}점 복사 · {eligible.Keys.Count:N0}점 모델 저장 · NG {eligible.ExcludedNg:N0} / 미측정 {eligible.ExcludedUnmeasured:N0} / 수치한계 {eligible.ExcludedNumeric:N0} / 동일 적용값 {eligible.ExcludedUnchanged:N0}점 제외 · 원측정 보존";
         }
+    }
+
+    private async Task ForceMeasurement(CManualInspectionUiRequest request,CancellationToken token)
+    {
+        await Current(token);
+        if(_engine.HasIncompleteMeasurements)
+        {
+            var preview=IdleTransitionPreview();preview.RecordOperatorResults(request.Keys,request.ForcedXUm,request.ForcedYUm,request.Reason);
+            _engine.ReleaseIncompleteOperation("명시 수동 측정 완료 요청으로 미완료 작업 전환");
+        }
+        _engine.RecordOperatorResults(request.Keys,request.ForcedXUm,request.ForcedYUm,request.Reason);
+        _allowManual=true;
+        _status=$"{request.Keys.Distinct(StringComparer.Ordinal).Count():N0}점 수동 OK 완료 · 원측정 보존 · 실제 보정은 선택점/일괄 보정에서 검증 후 저장";
     }
 
     private async Task BulkApply(CancellationToken token)
     {
         await Current(token);
         var preview=_engine.PreviewBulkCorrection();
-        if(preview.Keys.Count==0) throw new InvalidOperationException("일괄 보정할 새 측정 결과가 없습니다. NG·미측정·이미 적용한 결과는 제외합니다.");
+        if(preview.Keys.Count==0) throw new InvalidOperationException($"일괄 보정할 결과가 없습니다. NG {preview.ExcludedNg:N0} / 미측정 {preview.ExcludedUnmeasured:N0} / 수치한계 {preview.ExcludedNumeric:N0} / 이미 적용 {preview.ExcludedConsumed+preview.ExcludedUnchanged:N0}점 제외");
         _engine.BuildBulkCandidate(); _allowManual=preview.ManualCount>0;
         var validation=_engine.ValidateCandidate(_allowManual);
         if(!validation.Ok) throw new InvalidOperationException("일괄 보정을 저장하지 않았습니다.\n"+string.Join("\n",validation.Errors));
         await Apply(token, sourceVerified: true);
-        _status=$"일괄 보정 {preview.Keys.Count:N0}점 저장 · NG {preview.ExcludedNg:N0} / 미측정 {preview.ExcludedUnmeasured:N0} / 적용됨 {preview.ExcludedConsumed:N0}점 제외";
+        _status=$"일괄 보정 {preview.Keys.Count:N0}점 저장 · NG {preview.ExcludedNg:N0} / 미측정 {preview.ExcludedUnmeasured:N0} / 수치한계 {preview.ExcludedNumeric:N0} / 적용됨 {preview.ExcludedConsumed+preview.ExcludedUnchanged:N0}점 제외";
     }
 
     private async Task ApplySelectedOffsets(IReadOnlyList<string> keys, CancellationToken token)
@@ -990,17 +1015,15 @@ public sealed class CManualInspectionController : IManualInspectionController
         var selected = keys.Distinct(StringComparer.Ordinal).Select(_engine.GetPoint).ToArray();
         if (selected.Length == 0) throw new InvalidOperationException("보정할 측정 위치를 선택하세요.");
         if (selected.Any(point => point.Masked)) throw new InvalidOperationException("선택한 위치에 Masking이 포함되어 보정을 저장하지 않았습니다.");
-        if (selected.Any(point => point.Judge != "OK" || point.IsMeasurementOffsetInitialized || !point.HasFiniteError))
-            throw new InvalidOperationException("선택한 위치에 NG·미측정·초기화 결과가 있어 보정을 저장하지 않았습니다. 새 OK 측정 결과를 선택하세요.");
-        var eligible = _engine.PreviewBulkCorrection().Keys.ToHashSet(StringComparer.Ordinal);
-        if (selected.Any(point => !eligible.Contains(point.Key)))
-            throw new InvalidOperationException("선택한 위치에 이미 적용했거나 출처를 확인할 수 없는 결과가 있어 보정을 저장하지 않았습니다. 새 측정 결과를 선택하세요.");
-        var candidate = _engine.BuildDirectCandidate(selected.Select(point => point.Key));
+        var preview=_engine.PreviewBulkCorrection(selected.Select(p=>p.Key));
+        if(preview.Keys.Count==0)
+            throw new InvalidOperationException($"선택점 보정 대상이 없습니다. NG {preview.ExcludedNg:N0} / 미측정 {preview.ExcludedUnmeasured:N0} / 수치한계 {preview.ExcludedNumeric:N0} / 이미 적용 {preview.ExcludedConsumed+preview.ExcludedUnchanged:N0} / 출처 확인 {preview.ExcludedInvalid:N0}점 제외");
+        var candidate = _engine.BuildDirectCandidate(preview.Keys);
         _allowManual = candidate.Rows.Any(row => row.Source == "MANUAL");
         var validation = _engine.ValidateCandidate(_allowManual);
         if (!validation.Ok) throw new InvalidOperationException("선택점 보정을 저장하지 않았습니다.\n" + string.Join("\n", validation.Errors));
         await Apply(token, sourceVerified: true);
-        _status = $"선택점 보정 {selected.Length:N0}점 저장 완료 · 선택 범위만 계산·검증·저장했습니다.";
+        _status = $"선택점 보정 {preview.Keys.Count:N0}점 저장 · NG {preview.ExcludedNg:N0} / 미측정 {preview.ExcludedUnmeasured:N0} / 수치한계 {preview.ExcludedNumeric:N0} / 이미 적용 {preview.ExcludedConsumed+preview.ExcludedUnchanged:N0}점 제외";
     }
 
     private async Task Apply(CancellationToken token, bool sourceVerified = false)
@@ -1020,6 +1043,7 @@ public sealed class CManualInspectionController : IManualInspectionController
                 FileObservations = snapshot.Rows.Where(r=>_engine.GetPoint(r.Key).AdoptedFileMeasurement is not null)
                     .Select(r=>new { r.Key,Receipt=_engine.GetPoint(r.Key).AdoptedFileMeasurement }),
                 Tokens = snapshot.Rows.Select(r => new { r.Key, r.MeasurementToken, r.Source, r.ReferenceKey, r.Reason, r.Final,
+                    OperatorResult=_engine.GetPoint(r.Key).OperatorResult,
                     // A representative can be remeasured after the copy. Audit the raw captured by
                     // that copy, not a newer raw currently displayed at the same reference key.
                     ReferenceRaw = r.Source == "MANUAL" ? _engine.GetPoint(r.Key).ProxySource?.ReferenceMeasurementToken
@@ -1325,7 +1349,7 @@ public sealed class CManualInspectionController : IManualInspectionController
             var referenceReason = "";
             if (p.IsMeasurementStateCleared) referenceReason = "빈 상태는 복사할 수 있으며 실제 모델 Offset은 유지합니다.";
             else if (p.IsMeasurementOffsetInitialized) referenceReason = "초기화·미측정 상태에는 복사할 값이 없습니다.";
-            else if (!(p.IsDirectMeasurement && p.HasFiniteError) && p.ProxySource is null && !p.HasAppliedOffsetEvidence)
+            else if (!(p.IsDirectMeasurement && p.HasFiniteError) && p.ProxySource is null && p.OperatorResult is null && !p.HasAppliedOffsetEvidence)
                 referenceReason = "현재 모델에서 새로 측정하거나 저장된 보정값이 필요합니다.";
             else
                 try { reference = _engine.ResolveReferenceValue(p.Key); }
@@ -1335,6 +1359,7 @@ public sealed class CManualInspectionController : IManualInspectionController
                 Key=p.Key,CellNo=p.CellNo,HeadNo=p.HeadNo,ShotNo=p.ShotNo,BeamNo=p.BeamNo,Row=p.Row,Column=p.Column,IsMasked=p.Masked,
                 IsMeasurementOffsetInitialized=initialized,
                 IsMeasurementStateCleared=p.IsMeasurementStateCleared,CanCopyReferenceState=_engine.CanCopyReferenceState(p.Key),
+                IsOperatorResult=p.OperatorResult is not null,OperatorReason=p.OperatorResult?.Reason ?? "",
                 DesignXmm=p.XMm,DesignYmm=p.YMm,WorkingJudge=p.Judge,OriginalJudge=p.OriginalMeasurement?.Judge ?? (p.Source == "IMPORTED" ? "UNKNOWN" : "UNMEASURED"),
                 WorkingXUm=p.ErrorXUm,WorkingYUm=p.ErrorYUm,OriginalXUm=p.OriginalMeasurement?.ErrorXUm,OriginalYUm=p.OriginalMeasurement?.ErrorYUm,
                 BaseXUm=b.XUm,BaseYUm=b.YUm,CandidateXUm=f?.XUm,CandidateYUm=f?.YUm,Source=p.Source,IsProxy=p.ProxySource is not null,
@@ -1342,18 +1367,19 @@ public sealed class CManualInspectionController : IManualInspectionController
                 CanUseImportedForCorrection=p.AdoptedFileMeasurement is not null && p.IsDirectMeasurement,
                 AppliedLevel=!initialized && !p.IsMeasurementStateCleared && !p.Masked && _source?.AppliedOffsetKeys.Contains(p.Key)==true ? CManualInspectionLevels.Evaluate(b.XUm,b.YUm,_levelMetric,_levelBounds) : null,
                 AppliedMetricUm=!initialized && !p.IsMeasurementStateCleared && !p.Masked && _source?.AppliedOffsetKeys.Contains(p.Key)==true ? CManualInspectionLevels.Metric(b.XUm,b.YUm,_levelMetric) : null,
-                DisplayedMeasurementOrigin=p.StateCopySource is not null ? "대표 빈 상태 복사 · " + p.StateCopySource.ReferenceKey : correctionBased ? "보정기반 측정 · 기존 적용 Review Offset" : p.ProxySource is not null ? "대표값 복사 · " + p.ProxySource.ReferenceKey
+                DisplayedMeasurementOrigin=p.OperatorResult is not null?"수동 OK 완료 · 원측정 보존":p.StateCopySource is not null ? "대표 빈 상태 복사 · " + p.StateCopySource.ReferenceKey : correctionBased ? "보정기반 측정 · 기존 적용 Review Offset" : p.ProxySource is not null ? "대표값 복사 · " + p.ProxySource.ReferenceKey
                     : p.Source=="MEASURED" ? "직접 측정 · Manual Inspection" : _displayedImports.GetValueOrDefault(p.Key)?.Origin ?? "",
                 MeasurementSourcePath=correctionBased ? _source?.Context.RevisionId ?? "" : p.Source=="IMPORTED" ? _displayedImports.GetValueOrDefault(p.Key)?.Path ?? "" : "",
                 ReferenceFinalXUm=reference?.Final.XUm,ReferenceFinalYUm=reference?.Final.YUm,
                 ReferenceValueKind=reference?.Kind ?? "",ReferenceValueJudge=reference?.Judge ?? "",ReferenceValueUnavailableReason=referenceReason,
                 ReferenceKey=p.ProxySource?.ReferenceKey ?? p.StateCopySource?.ReferenceKey ?? "",MeasurementToken=p.CorrectionMeasurement?.RawToken ?? "",
-                Details=$"DESIGN µm · {p.Judge}\n원측정: {p.OriginalMeasurement?.RawData}\n파일 입력: {p.AdoptedFileMeasurement?.RawData}\n{p.ProxySource?.Reason}"
+                Details=$"DESIGN µm · {p.Judge}\n원측정: {p.OriginalMeasurement?.RawData}\n파일 입력: {p.AdoptedFileMeasurement?.RawData}\n{p.ProxySource?.Reason}\n수동 완료: {p.OperatorResult?.Reason}\n이전 기준 수동값(정보만): {p.ArchivedOperatorResult?.FinalOffset} {p.ArchivedOperatorResult?.Reason}"
             };
             return editing ? projected with
             {
                 WorkingJudge="UNMEASURED",WorkingXUm=null,WorkingYUm=null,IsProxy=false,ReferenceKey="",
                 IsMeasurementStateCleared=false,CanCopyReferenceState=false,
+                IsOperatorResult=false,OperatorReason="",
                 Source=candidate!.IsMeasurementOffsetInitialization?"OFFSET_INIT":"OFFSET_FILE",CanUseImportedForCorrection=false,
                 HasAppliedOffset=!p.Masked,AppliedLevel=p.Masked||initialized?null:CManualInspectionLevels.Evaluate(b.XUm,b.YUm,_levelMetric,_levelBounds),
                 AppliedMetricUm=p.Masked||initialized?null:CManualInspectionLevels.Metric(b.XUm,b.YUm,_levelMetric),
@@ -1402,7 +1428,7 @@ public sealed class CManualInspectionController : IManualInspectionController
             UndoOffsetCount=_engine.UndoCount,RedoOffsetCount=_engine.RedoCount,
             CanBulkApply=!offsetEdit && !IsBusy && !_engine.HasIncompleteMeasurements && c?.LineageValid==true && _source?.ReadOnly!=true && bulk?.Keys.Count>0,
             BulkEligibleCount=bulk?.Keys.Count ?? 0,
-            BulkSummaryText=bulk is null?"측정된 보정 대상 없음":$"모델 전체 {bulk.Keys.Count:N0}점 · NG {bulk.ExcludedNg:N0} / 미측정 {bulk.ExcludedUnmeasured:N0} / 적용됨 {bulk.ExcludedConsumed:N0} 제외",
+            BulkSummaryText=bulk is null?"측정된 보정 대상 없음":$"모델 전체 {bulk.Keys.Count:N0}점 · NG {bulk.ExcludedNg:N0} / 미측정 {bulk.ExcludedUnmeasured:N0} / 수치한계 {bulk.ExcludedNumeric:N0} / 적용됨 {bulk.ExcludedConsumed+bulk.ExcludedUnchanged:N0} 제외",
             OffsetHistoryText=$"되돌리기 {_engine.UndoCount}/10 · 다시 적용 {_engine.RedoCount}회",
             CanUndoCopy=_engine.CanUndoReferenceCopy,AllowManual=_allowManual,
             ValidationErrors=validation?.Errors ?? [],ValidationWarnings=validation?.Warnings ?? [],MaxCandidateDeltaUm=validation?.MaxDeltaUm ?? 0,

@@ -1,0 +1,193 @@
+{
+  "passed": true,
+  "count": 26,
+  "baseCommit": "c0a169548edef5975ea454389071dd7c22c625bd",
+  "programVersion": "11.24.5",
+  "checks": [
+    {
+      "name": "only_nine_manual_sources_and_dedicated_tests_docs",
+      "passed": true
+    },
+    {
+      "name": "protected_operating_configuration_vendor_global_theme_unchanged",
+      "passed": true
+    },
+    {
+      "name": "unchanged:Drilling.UI/CRootView.cs",
+      "passed": true
+    },
+    {
+      "name": "unchanged:Drilling.UI/CAppStartup.cs",
+      "passed": true
+    },
+    {
+      "name": "unchanged:Drilling.File/ReviewOffset/CReviewOffsetFile.cs",
+      "passed": true
+    },
+    {
+      "name": "unchanged:Drilling.UI/Menu/Menus/CManualInspectionBackend.cs",
+      "passed": true
+    },
+    {
+      "name": "unchanged:Drilling.UI/Menu/Menus/CManualInspectionUpdateMonitor.cs",
+      "passed": true
+    },
+    {
+      "name": "unchanged:Drilling.UI/Menu/Menus/CMenuCorrection.cs",
+      "passed": true
+    },
+    {
+      "name": "unchanged:Drilling.UI/Menu/Menus/CMenuCorrection.ReviewData.Offset.cs",
+      "passed": true
+    },
+    {
+      "name": "unchanged:Drilling.UI/Menu/Menus/CMenuMonitor.cs",
+      "passed": true
+    },
+    {
+      "name": "unchanged:Drilling.UI/Menu/Menus/CMenuRecipe.cs",
+      "passed": true
+    },
+    {
+      "name": "unchanged:Drilling.Common/Recipe/CShotCoordinatePlanBuilder.cs",
+      "passed": true
+    },
+    {
+      "name": "unchanged:Drilling.Common/Station/CStationProcess.cs",
+      "passed": true
+    },
+    {
+      "name": "unchanged:Drilling.Common/Review/CManualInspectionCoordinateBridge.cs",
+      "passed": true
+    },
+    {
+      "name": "unchanged:Drilling.UI/Popup/CValueInputDialog.xaml",
+      "passed": true
+    },
+    {
+      "name": "unchanged:Drilling.UI/Popup/CValueInputDialog.xaml.cs",
+      "passed": true
+    },
+    {
+      "name": "version_11_24_5",
+      "passed": true
+    },
+    {
+      "name": "existing_numeric_keypad_reused_with_design_um_label",
+      "passed": true
+    },
+    {
+      "name": "point_input_has_finite_and_source_recheck",
+      "passed": true
+    },
+    {
+      "name": "copy_confirmation_uses_existing_modal_gate",
+      "passed": true
+    },
+    {
+      "name": "saved_final_projection_not_replaced_by_unsaved_operator",
+      "passed": true
+    },
+    {
+      "name": "manual_result_entry_does_not_save_or_move",
+      "passed": true
+    },
+    {
+      "name": "copy_performs_existing_apply_pipeline",
+      "passed": true
+    },
+    {
+      "name": "operator_entry_keeps_original_measurement",
+      "passed": true
+    },
+    {
+      "name": "point_vs_blank_double_click_and_overview_sequence",
+      "passed": true
+    },
+    {
+      "name": "diff_check",
+      "passed": true
+    }
+  ],
+  "changedPaths": [
+    "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
+    "Drilling.UI/Drilling.UI.csproj",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs",
+    "Drilling.UI/Views/CManualInspectionMapControl.cs",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs",
+    "Drilling.UI/Views/CManualInspectionView.xaml",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs",
+    "docs/ManualInspection/README.md",
+    "docs/ManualInspection/REPRESENTATIVE_APPLY_11.24.5.md",
+    "docs/ManualInspection/history/validation-c0a1695.json",
+    "docs/ManualInspection/images/manual-11.24.5-manual-final-only-light.png",
+    "docs/ManualInspection/images/manual-11.24.5-manual-keypad-light.png",
+    "docs/ManualInspection/images/manual-11.24.5-representative-confirm-dark.png",
+    "docs/ManualInspection/validation.json",
+    "docs/ManualInspection/validation/11.24.5/backend-read.json",
+    "docs/ManualInspection/validation/11.24.5/bridge-writer.json",
+    "docs/ManualInspection/validation/11.24.5/controller-production.json",
+    "docs/ManualInspection/validation/11.24.5/core-results.json",
+    "docs/ManualInspection/validation/11.24.5/external-results.json",
+    "docs/ManualInspection/validation/11.24.5/qa-round-1.json",
+    "docs/ManualInspection/validation/11.24.5/qa-round-2.json",
+    "docs/ManualInspection/validation/11.24.5/qa-round-3.json",
+    "docs/ManualInspection/validation/11.24.5/scope-results.json",
+    "docs/ManualInspection/validation/11.24.5/ui-bulk-history-results.json",
+    "docs/ManualInspection/validation/11.24.5/ui-cell-overview-results.json",
+    "docs/ManualInspection/validation/11.24.5/ui-coverage-compact-results.json",
+    "docs/ManualInspection/validation/11.24.5/ui-existing-final-csv-results.json",
+    "docs/ManualInspection/validation/11.24.5/ui-final-offsets-results.json",
+    "docs/ManualInspection/validation/11.24.5/ui-hardening-results.json",
+    "docs/ManualInspection/validation/11.24.5/ui-integration-impact-results.json",
+    "docs/ManualInspection/validation/11.24.5/ui-map-first-results.json",
+    "docs/ManualInspection/validation/11.24.5/ui-measurement-workflow-results.json",
+    "docs/ManualInspection/validation/11.24.5/ui-offset-init-results.json",
+    "docs/ManualInspection/validation/11.24.5/ui-representative-apply-results.json",
+    "docs/ManualInspection/validation/11.24.5/ui-representative-results.json",
+    "docs/ManualInspection/validation/11.24.5/ui-results.json",
+    "docs/ManualInspection/validation/11.24.5/ui-side-panels-results.json",
+    "docs/ManualInspection/validation/11.24.5/ui-summary.json",
+    "docs/ManualInspection/validation/11.24.5/ui-sync-levels-results.json",
+    "docs/ManualInspection/validation/11.24.5/ui-visual-usability-results.json",
+    "tests/ManualInspection/BackendReadHarness/PortableOffsetCases.cs",
+    "tests/ManualInspection/BackendReadHarness/Program.cs",
+    "tests/ManualInspection/BackendReadHarness/RepresentativeApplyCsvCases.cs",
+    "tests/ManualInspection/BackendReadHarness/RepresentativeCases.cs",
+    "tests/ManualInspection/ControllerHarness/BulkHistoryCases.cs",
+    "tests/ManualInspection/ControllerHarness/CellOverviewCases.cs",
+    "tests/ManualInspection/ControllerHarness/ControllerHarness.csproj",
+    "tests/ManualInspection/ControllerHarness/HardeningCases.cs",
+    "tests/ManualInspection/ControllerHarness/Program.cs",
+    "tests/ManualInspection/ControllerHarness/RepresentativeApplyCases.cs",
+    "tests/ManualInspection/ControllerHarness/RepresentativeCases.cs",
+    "tests/ManualInspection/ControllerHarness/SyncCases.cs",
+    "tests/ManualInspection/ManualInspection.Tests.csproj",
+    "tests/ManualInspection/Program.cs",
+    "tests/ManualInspection/ReferenceValueCases.cs",
+    "tests/ManualInspection/RepresentativeApplyCases.cs",
+    "tests/ManualInspection/UiHarness/BulkHistoryCases.cs",
+    "tests/ManualInspection/UiHarness/CellOverviewCases.cs",
+    "tests/ManualInspection/UiHarness/CoverageCompactCases.cs",
+    "tests/ManualInspection/UiHarness/HardeningCases.cs",
+    "tests/ManualInspection/UiHarness/ManualInspection.UiHarness.csproj",
+    "tests/ManualInspection/UiHarness/Program.cs",
+    "tests/ManualInspection/UiHarness/RepresentativeApplyCases.cs",
+    "tests/ManualInspection/UiHarness/SidePanelsCases.cs",
+    "tests/ManualInspection/verify_representative_apply.py"
+  ],
+  "productionSha256": {
+    "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs": "3f1372ee1750dc5912e0bea3be71a9065102e79b8ed89958682def599f90e8aa",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs": "e9daf68e15acd495e388871a5554ff32249f239bc7fde2122fc71fbdc0d4d420",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs": "d833898b223b8690b9e176a62c9e2135beaaf078ab0f55b66d188936947ad919",
+    "Drilling.UI/Drilling.UI.csproj": "a69fe121973b87430b3f4a612241341cab79a6954c7721e64fb8b887dea12f71",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "bb1b5e0d089e7da74849c053d90afdec6de3720430fd4d91da53e277ae068825",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "eec8e5973b0395b5ef0f65dc2278c2a9fe5f93d8026d2b2b98d44b9a2bc70a18",
+    "Drilling.UI/Views/CManualInspectionMapControl.cs": "72964a4fef45bcd344d403af945a1f5a091d100745549d3caeaaddfb0af2f806",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "7a8a8c88b5086c0e96d4ab269ffeeec0acad8ddf2774255f5ce85ff747da7b17",
+    "Drilling.UI/Views/CManualInspectionView.xaml": "847ea76f4d3de58a8a795f5af415de3e0c07e0f2976fcfd667170ca1eb5bc0be"
+  },
+  "scope": "Manual representative apply, operator result metadata, point input and existing keypad reuse only; no equipment or operating CSV writes."
+}

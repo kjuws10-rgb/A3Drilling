@@ -187,9 +187,7 @@ internal static partial class Program
             };
             await Do(c, EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);
             await Do(c, EN_MANUAL_INSPECTION_UI_ACTION.CopyReference, ["P2", "P3"], r => r with { ReferenceKey = "P1", Reason = "Cross Cell representative" });
-            True(c.Snapshot.Points.Where(p => p.Key != "P1").All(p => p.WorkingXUm == 12 && p.AppliedLevel is null && !p.HasAppliedOffset));
-            await Do(c, EN_MANUAL_INSPECTION_UI_ACTION.Validate, null, r => r with { AllowManual = true });
-            await Do(c, EN_MANUAL_INSPECTION_UI_ACTION.Apply, null, r => r with { AllowManual = true });
+            True(c.Snapshot.Points.Where(p => p.Key != "P1").All(p => p.WorkingXUm == 12));
             True(c.Snapshot.Points.Where(p => p.Key != "P1").All(p => p.BaseXUm == 12 && p.AppliedLevel == 2 && p.HasAppliedOffset && p.OriginalXUm == 1));
             True(!c.Snapshot.Points.Single(p => p.Key == "P1").HasAppliedOffset && f.Saves == 1);
         });

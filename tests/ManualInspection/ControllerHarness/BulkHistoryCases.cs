@@ -34,11 +34,11 @@ internal static partial class Program
             True(!c.Snapshot.CanBulkApply&&c.Snapshot.BulkEligibleCount==0);await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply));
             True(f.Saves==1&&c.Snapshot.ActiveRevisionId==revision&&c.Snapshot.UndoOffsetCount==1);
         });
-        await Check("bulk_limits_failure_never_partially_writes_other_points",async()=>
+        await Check("bulk_numeric_exclusion_keeps_invalid_rows_and_saves_valid_points",async()=>
         {
             var(f,c)=Fixture();f.Source=f.Source with{Points=f.Source.Points.Select(p=>p.Key=="P2"?p with{ErrorXUm=999,OriginalMeasurement=p.OriginalMeasurement! with{ErrorXUm=999}}:p).ToArray()};
-            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply));
-            True(f.Saves==0&&c.Snapshot.Points.All(p=>p.BaseXUm==0)&&c.Snapshot.UndoOffsetCount==0);
+            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.BulkApply);
+            True(f.Saves==1&&c.Snapshot.Points.Single(p=>p.Key=="P2").BaseXUm==0&&c.Snapshot.Points.Single(p=>p.Key=="P1").BaseXUm==3&&c.Snapshot.UndoOffsetCount==1);
         });
         await Check("undo_and_redo_restore_actual_written_values_without_motion",async()=>
         {

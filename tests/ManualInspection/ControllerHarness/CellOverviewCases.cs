@@ -51,7 +51,7 @@ internal static partial class Program
             var file=Archive(f,"copied-native",8);f.FileSources[file.SourcePath]=file;await OpenFile(c,file.SourcePath);
             await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ReturnToPreviousWorkspace);var actual=c.Snapshot.Points.Single(p=>p.Key=="P2");
             True(actual.IsProxy && actual.WorkingXUm==old.WorkingXUm && actual.OriginalXUm==old.OriginalXUm && actual.ReferenceKey==old.ReferenceKey);
-            True(c.Snapshot.AllowManual && c.Snapshot.CanApply && f.Executed.Count==0 && f.Saves==0);
+            True(c.Snapshot.AllowManual && !c.Snapshot.CanApply && f.Executed.Count==0 && f.Saves==1);
         });
         await Check("file_open_cannot_replace_interrupted_native_measurement_without_cleanup", async () =>
         {

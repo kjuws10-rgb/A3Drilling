@@ -133,11 +133,14 @@ internal static partial class Program
         Invoke(view,"ChangeSelection",new CManualInspectionSelectionEventArgs([points[1].Key],points[1].Key));Pump();
         Test("side_panels_first_empty_model_can_mark_and_copy_reference_state",((Button)view.FindName("SetReferenceButton")).IsEnabled&&((Button)view.FindName("CopyReferenceButton")).IsEnabled);
         ((Button)view.FindName("CopyReferenceButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();
-        Test("side_panels_empty_state_copy_requests_only_copy_not_motion_or_apply",fake.Calls.Count==1&&fake.Calls[0].Action==EN_MANUAL_INSPECTION_UI_ACTION.CopyReference&&fake.Calls[0].Request.ReferenceKey==points[0].Key&&confirmations==0);
+        Test("side_panels_empty_state_copy_cancel_has_no_backend_action",fake.Calls.Count==0&&confirmations==1);
+        view.ConfirmationForTesting=(_,_,_)=>{confirmations++;return true;};
+        ((Button)view.FindName("CopyReferenceButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();
+        Test("side_panels_empty_state_copy_accept_requests_only_copy_not_motion_or_apply",fake.Calls.Count==1&&fake.Calls[0].Action==EN_MANUAL_INSPECTION_UI_ACTION.CopyReference&&fake.Calls[0].Request.ReferenceKey==points[0].Key&&confirmations==2);
         ((TabControl)view.FindName("RightPaneTabs")).SelectedIndex=2;((TabControl)view.FindName("CorrectionPaneTabs")).SelectedIndex=0;Pump();
         var bulk=(Button)view.FindName("BulkApplyButton");Test("side_panels_first_empty_model_keeps_bulk_explanation_button_enabled",bulk.IsEnabled&&!fake.Snapshot.CanBulkApply);
         var before=fake.Calls.Count;bulk.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();
-        Test("side_panels_empty_bulk_explains_without_backend_or_confirmation",fake.Calls.Count==before&&confirmations==0&&!string.IsNullOrWhiteSpace(((TextBlock)view.FindName("MessageText")).Text));
+        Test("side_panels_empty_bulk_explains_without_extra_backend_or_confirmation",fake.Calls.Count==before&&confirmations==2&&!string.IsNullOrWhiteSpace(((TextBlock)view.FindName("MessageText")).Text));
         ((TabControl)view.FindName("CorrectionPaneTabs")).SelectedIndex=1;Pump();
         Test("side_panels_first_empty_model_offset_init_is_available",((Button)view.FindName("OffsetInitButton")).IsEnabled);
         Test("side_panels_initial_empty_values_do_not_become_measured_zero",fake.Snapshot.Points.All(p=>!p.HasWorkingMeasurement&&p.MeasurementXUm is null&&p.MeasurementYUm is null));

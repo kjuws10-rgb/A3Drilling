@@ -460,7 +460,7 @@
             <Border x:Name="MapPanel" Grid.Row="0" Style="{StaticResource ManualPanel}" Padding="0" Margin="0,0,0,3" ClipToBounds="True">
               <Grid>
                 <Border x:Name="MapViewportFrame" ClipToBounds="True">
-                  <views:CManualInspectionMapControl x:Name="PositionMap" MinHeight="80" AutomationProperties.Name="측정 결과 2D 지도" AutomationProperties.HelpText="전체 Cell에서 셀 내부나 번호 클릭은 해당 Cell을 엽니다. 드래그로 점을 선택하고 Ctrl 드래그로 추가합니다. 방향키는 한 점, Ctrl 방향키는 행·열 끝, Shift 방향키는 범위 선택, Ctrl Shift 방향키는 끝까지 범위 선택입니다. Space는 동작 메뉴, Esc는 메뉴 닫기, Alt 방향키는 보기 이동, Ctrl 휠은 확대 축소, 더블클릭은 맞춤입니다."/>
+                  <views:CManualInspectionMapControl x:Name="PositionMap" MinHeight="80" AutomationProperties.Name="측정 결과 2D 지도" AutomationProperties.HelpText="전체 Cell에서 셀 내부나 번호 클릭은 해당 Cell을 엽니다. 드래그로 점을 선택하고 Ctrl 드래그로 추가합니다. 방향키는 한 점, Ctrl 방향키는 행·열 끝, Shift 방향키는 범위 선택, Ctrl Shift 방향키는 끝까지 범위 선택입니다. Space는 동작 메뉴, Esc는 메뉴 닫기, Alt 방향키는 보기 이동, Ctrl 휠은 확대 축소입니다. 단일 Cell의 측정점 더블클릭은 편차 키패드 입력, 빈 공간 더블클릭은 맞춤입니다."/>
                 </Border>
               </Grid>
             </Border>

@@ -1,0 +1,200 @@
+{
+  "schemaVersion": 1,
+  "programVersion": "11.24.5",
+  "round": 2,
+  "status": "passed",
+  "passed": true,
+  "checkedAt": "2026-11-24T05:47:29.933960+00:00",
+  "sourceCommit": "c0a169548edef5975ea454389071dd7c22c625bd",
+  "checks": [
+    {
+      "name": "confirmed_copy_creates_absolute_target_F_not_B_plus_F",
+      "passed": true
+    },
+    {
+      "name": "copy_valid_subset_runs_validate_writer_commit_final_refresh_once",
+      "passed": true
+    },
+    {
+      "name": "reference_applied_B_is_known_only_with_real_noninit_evidence_and_head",
+      "passed": true
+    },
+    {
+      "name": "explicit_ng_error_init_empty_do_not_auto_gain_effective_ok",
+      "passed": true
+    },
+    {
+      "name": "ordinary_ng_missing_numeric_rows_are_excluded_without_weakening_field_or_shared_shot_failure",
+      "passed": true
+    },
+    {
+      "name": "operator_is_separate_from_original_raw_and_not_direct_camera_measurement",
+      "passed": true
+    },
+    {
+      "name": "no_value_without_valid_absolute_F_requires_finite_explicit_XY_pair",
+      "passed": true
+    },
+    {
+      "name": "authoritative_B_only_operator_keeps_null_residual_and_absolute_F",
+      "passed": true
+    },
+    {
+      "name": "operator_subject_point_key_is_bound_into_value_proof",
+      "passed": true
+    },
+    {
+      "name": "operator_value_metadata_tamper_and_cross_point_move_invalidate_lineage",
+      "passed": true
+    },
+    {
+      "name": "foreign_origin_survives_empty_state_to_numeric_reference_copy",
+      "passed": true
+    },
+    {
+      "name": "old_operator_after_external_B_change_is_archived_information_not_active_eligibility",
+      "passed": true
+    },
+    {
+      "name": "same_operator_input_and_consumed_raw_do_not_add_residual_twice",
+      "passed": true
+    },
+    {
+      "name": "new_measurement_init_and_restore_clear_active_operator_without_losing_history",
+      "passed": true
+    },
+    {
+      "name": "operator_before_after_history_and_apply_identity_preserve_provenance",
+      "passed": true
+    },
+    {
+      "name": "failed_queue_force_preflight_does_not_mutate_partial_state_or_release_failed_queue",
+      "passed": true
+    },
+    {
+      "name": "failed_write_preserves_native_B_raw_and_retryable_working_copy",
+      "passed": true
+    },
+    {
+      "name": "copy_confirm_cancel_nested_click_stale_version_and_controller_swap_are_inert",
+      "passed": true
+    },
+    {
+      "name": "keypad_X_or_Y_cancel_invalid_NaN_and_blank_do_not_create_zero",
+      "passed": true
+    },
+    {
+      "name": "real_existing_keypad_and_real_recipe_data_type_enum_are_reused",
+      "passed": true
+    },
+    {
+      "name": "point_doubleclick_input_and_blank_overview_fit_do_not_conflict",
+      "passed": true
+    },
+    {
+      "name": "manual_final_only_visible_label_does_not_claim_residual_zero",
+      "passed": true
+    },
+    {
+      "name": "working_scatter_excludes_unknown_operator_residual_and_final_scatter_retains_saved_B",
+      "passed": true
+    },
+    {
+      "name": "source_linked_core_248_controller_258_and_UI_56_match_current_sources",
+      "passed": true
+    }
+  ],
+  "checkCount": 24,
+  "coreControllerSourceProof": [
+    {
+      "path": "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs",
+      "sha256": "3f1372ee1750dc5912e0bea3be71a9065102e79b8ed89958682def599f90e8aa"
+    },
+    {
+      "path": "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
+      "sha256": "e9daf68e15acd495e388871a5554ff32249f239bc7fde2122fc71fbdc0d4d420"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CManualInspectionController.cs",
+      "sha256": "bb1b5e0d089e7da74849c053d90afdec6de3720430fd4d91da53e277ae068825"
+    },
+    {
+      "path": "tests/ManualInspection/RepresentativeApplyCases.cs",
+      "sha256": "5e8c3b9499bfc125d8970e0e58ac09a2a859cf8986e17597f0abf191e115e567"
+    },
+    {
+      "path": "tests/ManualInspection/ControllerHarness/RepresentativeApplyCases.cs",
+      "sha256": "a376dc62021cf9c9d71c3a5d5a049de403eed5e4a5bd564b1cebd33263596be1"
+    }
+  ],
+  "uiSourceProof": {
+    "Views/CManualInspectionView.xaml": "847ea76f4d3de58a8a795f5af415de3e0c07e0f2976fcfd667170ca1eb5bc0be",
+    "Views/CManualInspectionView.xaml.cs": "7a8a8c88b5086c0e96d4ab269ffeeec0acad8ddf2774255f5ce85ff747da7b17",
+    "Views/CManualInspectionUiContract.cs": "6dad25ab765be911872677fe495588d213095e2bb2a0e06f23220f4b7449c9c8",
+    "Views/CManualInspectionMapControl.cs": "72964a4fef45bcd344d403af945a1f5a091d100745549d3caeaaddfb0af2f806",
+    "Views/CManualInspectionScatterControl.cs": "1cc3fb7be94547c2e714d8809906f2df6018e5805b6ed44ecc9fd2c398e6a0bb",
+    "Popup/CValueInputDialog.xaml": "304abe666aab54bd6d5618650ab78176bb7e67f32cde9cba4b36bb1116df67a5",
+    "Popup/CValueInputDialog.xaml.cs": "2b05f6cf626e622daefee01b894f4aba1909dbcd11b77da23e4cda5caf502166",
+    "../Drilling.Common/Managers/CRecipeManager.cs": "b8d208d8945081e6a6d500f40d51e3f4fca414124329325c36c7fffedb86c9b9"
+  },
+  "reports": [
+    {
+      "path": "core-final.json",
+      "count": 248,
+      "sha256": "01dbccb92da900086cfa4e918f8be66a3486c763595376d66ca81d4cf7ccf43e",
+      "scope": "source-linked; not double counted with final production DLL reports"
+    },
+    {
+      "path": "controller-final.json",
+      "count": 258,
+      "sha256": "7e949e38a9436bc2ccf027e2c978707b27b8471f41e1ac26bf96e8e6132da5f1",
+      "scope": "source-linked; not double counted with final production DLL reports"
+    },
+    {
+      "path": "ui/representative-apply/ui-representative-apply-results.json",
+      "count": 56,
+      "sha256": "32a142d9ca938a28af89dba7a3f02bc4585b9f8926ee29e15def0a3b3fcfbba3",
+      "scope": "targeted actual WPF source-linked synthetic/fake-controller regressions"
+    }
+  ],
+  "resolvedFindings": [
+    {
+      "id": "OP-SUBJECT-01",
+      "detail": "Operator value proof binds SubjectPointKey to actual target key.",
+      "regression": "operator_session_value_evidence_is_bound_to_the_exact_subject_point"
+    },
+    {
+      "id": "ORIGIN-STATE-01",
+      "detail": "StateCopySource.OriginalSource is retained in finite proxy copies before clearing state metadata.",
+      "regression": "representative_finite_copy_after_empty_copy_preserves_foreign_original_provenance"
+    },
+    {
+      "id": "FRAME-OPERATOR-01",
+      "detail": "Same-coordinate file return with changed B clears active Operator and retains archived information only; explicit acceptance required.",
+      "regression": "operator_file_return_after_external_base_change_preserves_info_but_requires_new_acceptance"
+    },
+    {
+      "id": "UI-OPERATOR-SCATTER-01",
+      "detail": "Operator-only null residual is excluded from working scatter; offset/original display clones clear operator-only display guard so saved final B remains visible.",
+      "regression": "operator_final_only_is_not_a_working_scatter_sample_but_saved_B_remains_visible"
+    }
+  ],
+  "policyClarifications": [
+    "Authoritative existing non-Init absolute F may be accepted as operator/correction-based result with null residual; this does not fabricate raw or residual zero.",
+    "An explicitly copied valid OK representative may replace a target working NG/empty state while preserving target original raw. NG/missing representatives do not save offsets.",
+    "Numeric excluded targets keep actual B/raw; requested working copy state may remain and must not be presented as saved final data.",
+    "Safety numeric range uses max(abs(X),abs(Y)), including both raw and file-rounded values."
+  ],
+  "originalCsv": {
+    "files": 137,
+    "allOriginalNamesLengthsRawShaUnchanged": true,
+    "recordsCopied": false
+  },
+  "visuallyReviewed": [
+    "ui/representative-apply/manual-keypad-dark.png",
+    "ui/representative-apply/representative-confirm-light.png",
+    "ui/representative-apply/manual-ok-dark.png",
+    "ui/representative-apply/manual-final-only-light.png"
+  ],
+  "scope": "Independent read-only source and test-report review. No source/test/Git mutation, equipment App/Root/Manager or vendor execution. Actual production DLL build and complete final WPF modes are deferred to Round 3; source-linked counts are not added to those final counts."
+}

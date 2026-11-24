@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "programVersion": "11.24.5",
+  "round": 1,
+  "status": "passed",
+  "passed": true,
+  "checkedAt": "2026-11-24T05:30:34.664988+00:00",
+  "sourceCommit": "c0a169548edef5975ea454389071dd7c22c625bd",
+  "analysisOnly": true,
+  "sourceEvidence": [
+    {
+      "path": "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
+      "sourceCommit": "c0a169548edef5975ea454389071dd7c22c625bd",
+      "gitBlobSha256": "8b0b8749048b88188babd821dcc2b07ae311878d0b8bf534a66c884e081a5bfb"
+    },
+    {
+      "path": "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs",
+      "sourceCommit": "c0a169548edef5975ea454389071dd7c22c625bd",
+      "gitBlobSha256": "7c3690af616470734f94df3e0b57d8c8ab0ee44caa4b6b9eee421ec5cc548612"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CManualInspectionController.cs",
+      "sourceCommit": "c0a169548edef5975ea454389071dd7c22c625bd",
+      "gitBlobSha256": "8debd2efc5c95c958c4e82ae80a029f1475b64c13e825e8c3437d88b0536bd9f"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs",
+      "sourceCommit": "c0a169548edef5975ea454389071dd7c22c625bd",
+      "gitBlobSha256": "d591ad53b5dc2ff08b877b3c2e31f1eed016c2bb6811d81bcdaa1ad658967348"
+    },
+    {
+      "path": "Drilling.UI/Views/CManualInspectionView.xaml.cs",
+      "sourceCommit": "c0a169548edef5975ea454389071dd7c22c625bd",
+      "gitBlobSha256": "01c8b28ed83357eb71fb5d56368ce3931ab03b72fb84bf2949e974f28075e295"
+    },
+    {
+      "path": "Drilling.UI/Views/CManualInspectionMapControl.cs",
+      "sourceCommit": "c0a169548edef5975ea454389071dd7c22c625bd",
+      "gitBlobSha256": "5b6cc72cedd966186fae81dd825986e498018a06dd4b373192f762cbe274fbb3"
+    },
+    {
+      "path": "Drilling.File/ReviewOffset/CReviewOffsetFile.cs",
+      "sourceCommit": "c0a169548edef5975ea454389071dd7c22c625bd",
+      "gitBlobSha256": "ebe700858998ebed752a4f59cc605d3fd6204a87241c338365e49154670234b8"
+    }
+  ],
+  "rootCause": "Baseline CopyReference only changes working/proxy/candidate; default final map reads committed snapshot. Existing B-only references can be copyable while old apply prefilter rejects missing residual/judge.",
+  "duplicateAccumulationContract": "APPLIED_OFFSET is absolute F=B; copied target uses Delta=F-targetB, never targetB+F. Consumed raw resolves to active B.",
+  "policyClarification": "Authoritative absolute F without residual is a valid operator acceptance or correction-based reference under explicit Root policy. ErrorX/Y stay null; no invented zero or camera OK. Missing/Init without either finite residual or valid F requires explicit XY.",
+  "pendingImplementationVerification": [
+    "Copy confirmation and one-write final refresh",
+    "NG/empty state only and numeric exclusion counts",
+    "operator raw/provenance/consumption preservation",
+    "actual zero versus missing/Init zero",
+    "double-click point keypad versus blank fit",
+    "cancel/reentrancy/stale/source/Field/shared-Shot/CAS boundaries"
+  ],
+  "noMutationOrEquipmentExecution": true
+}

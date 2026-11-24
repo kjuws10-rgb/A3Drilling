@@ -57,6 +57,19 @@ public sealed record ST_MANUAL_STATE_COPY(string ReferenceKey,string Judge,strin
     public string OriginalSource { get; init; } = "";
 }
 
+/// <summary>Explicit operator completion, never a camera packet. FinalOffset is a captured absolute DESIGN-µm value.</summary>
+public sealed record ST_MANUAL_OPERATOR_RESULT(string OperatorId,string Judge,double? ErrorXUm,double? ErrorYUm,
+    ST_MANUAL_OFFSET BaseOffset,ST_MANUAL_OFFSET FinalOffset,string Reason,string RecipeId,string RunId,
+    string CoordinateSignature,string BasisRevisionId,DateTimeOffset AcceptedAt)
+{
+    public string SubjectPointKey { get; init; } = "";
+    public string OriginalSource { get; init; } = "";
+    public string ObservedSource { get; init; } = "";
+    public string ObservedCoordinateSignature { get; init; } = "";
+    public string ObservedValueProof { get; init; } = "";
+    public string ValueProof { get; init; } = "";
+}
+
 /// <summary>
 /// A displayed location is beam-specific; OffsetKey deliberately is not. The production CSV stores one
 /// correction per Cell/Shot. Applying a selected Beam therefore updates the displayed base of its siblings.
@@ -77,6 +90,11 @@ public sealed record ST_MANUAL_POINT(
     public bool IsMeasurementStateCleared { get; init; }
     [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public ST_MANUAL_STATE_COPY? StateCopySource { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public ST_MANUAL_OPERATOR_RESULT? OperatorResult { get; init; }
+    /// <summary>Informational previous acknowledgement after an external basis change; never correction authority.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public ST_MANUAL_OPERATOR_RESULT? ArchivedOperatorResult { get; init; }
     /// <summary>Logical working-state ordering boundary, not a camera measurement timestamp.</summary>
     [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public DateTimeOffset? MeasurementStateChangedAt { get; init; }
@@ -196,7 +214,10 @@ public sealed record ST_MANUAL_RESTORE_SNAPSHOT(
 /// <summary>Whole-model eligibility summary. It is independent of map filters and does not mutate state.</summary>
 public sealed record ST_MANUAL_BULK_PREVIEW(
     IReadOnlyList<string> Keys, int Total, int ExcludedMasked, int ExcludedNg,
-    int ExcludedUnmeasured, int ExcludedConsumed, int ExcludedUnchanged, int ExcludedInvalid, int ManualCount);
+    int ExcludedUnmeasured, int ExcludedConsumed, int ExcludedUnchanged, int ExcludedInvalid, int ManualCount)
+{
+    public int ExcludedNumeric { get; init; }
+}
 
 public sealed record ST_MANUAL_REVISION(
     string Id, string ParentId, string Kind, string Reason, DateTimeOffset CreatedAt,
@@ -235,7 +256,11 @@ public sealed record ST_MANUAL_SCATTER(
     IReadOnlyList<string> ValidKeys);
 
 public sealed record ST_MANUAL_AUDIT(DateTimeOffset At, string Kind, string Message);
-public sealed record ST_MANUAL_WORKING_STATE(string Judge, double? ErrorXUm, double? ErrorYUm, string Source, ST_MANUAL_PROXY? ProxySource);
+public sealed record ST_MANUAL_WORKING_STATE(string Judge, double? ErrorXUm, double? ErrorYUm, string Source, ST_MANUAL_PROXY? ProxySource)
+{
+    [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public ST_MANUAL_OPERATOR_RESULT? OperatorResult { get; init; }
+}
 public sealed record ST_MANUAL_HISTORY(
     DateTimeOffset At, string Key, string Kind, ST_MANUAL_WORKING_STATE Before, ST_MANUAL_WORKING_STATE After,
     ST_MANUAL_MEASUREMENT? OriginalBefore, ST_MANUAL_MEASUREMENT? OriginalAfter, string Reason);

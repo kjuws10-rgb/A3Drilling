@@ -20,7 +20,7 @@ public enum EN_MANUAL_INSPECTION_UI_ACTION
     ExportCsv, Move, MoveMeasure, MoveMeasureCorrect, Measure, RetryRemaining, Stop,
     Calculate, Validate, Apply, Rollback, CopyReference, UndoCopy, UpdateLimits, SetAllowManual, UpdateLevels, ShowPoint,
     ReturnToPreviousWorkspace, InitializeOffsets, CancelOffsetEdit, ExportOffsetBundle, ImportOffsetBundle,
-    BulkApply, UndoOffsets, RedoOffsets, ApplySelectedOffsets, ExportFinalOffsets
+    BulkApply, UndoOffsets, RedoOffsets, ApplySelectedOffsets, ExportFinalOffsets, ForceMeasurement
 }
 
 /// <summary>Display-only DESIGN-µm value read from the authoritative saved model file.</summary>
@@ -38,6 +38,8 @@ public sealed record CManualInspectionUiCellLayout
 /// <summary>All offsets/errors in this UI contract are micrometres; positions are millimetres.</summary>
 public sealed record CManualInspectionUiPoint
 {
+    public bool IsOperatorResult { get; init; }
+    public string OperatorReason { get; init; } = "";
     public string Key { get; init; } = "";
     public int CellNo { get; init; }
     public int HeadNo { get; init; }
@@ -85,17 +87,19 @@ public sealed record CManualInspectionUiPoint
     /// These properties never change native raw, judge, correction eligibility or consumed tokens.
     /// </summary>
     public bool HasWorkingMeasurement => !IsMeasurementOffsetInitialized && !IsMeasurementStateCleared && WorkingJudge is "OK" or "NG" && Finite(WorkingXUm) && Finite(WorkingYUm);
-    public bool HasMeasurementHistory => !IsMasked && !IsMeasurementOffsetInitialized && !IsMeasurementStateCleared && (HasWorkingMeasurement || HasAppliedOffset);
-    public bool UsesAppliedMeasurement => !IsMasked && !IsMeasurementOffsetInitialized && !IsMeasurementStateCleared && HasAppliedOffset && !HasWorkingMeasurement;
+    public bool HasMeasurementHistory => !IsMasked && !IsMeasurementOffsetInitialized && !IsMeasurementStateCleared
+        && (HasWorkingMeasurement || HasAppliedOffset || IsOperatorResult && WorkingJudge == "OK"
+            && Finite(ReferenceFinalXUm) && Finite(ReferenceFinalYUm) && string.IsNullOrEmpty(ReferenceValueUnavailableReason));
+    public bool UsesAppliedMeasurement => !IsOperatorResult && !IsMasked && !IsMeasurementOffsetInitialized && !IsMeasurementStateCleared && HasAppliedOffset && !HasWorkingMeasurement;
     public double? MeasurementXUm => UsesAppliedMeasurement ? BaseXUm : HasWorkingMeasurement ? WorkingXUm : null;
     public double? MeasurementYUm => UsesAppliedMeasurement ? BaseYUm : HasWorkingMeasurement ? WorkingYUm : null;
     public string MeasurementErrorText => Pair(MeasurementXUm, MeasurementYUm);
-    public string MeasurementStatusText => IsMasked ? "Masking" : IsMeasurementStateCleared ? (WorkingJudge=="ERROR"?"오류 상태 복사":WorkingJudge=="NG"?"NG · 값 없음":"미측정 상태 복사") : IsMeasurementOffsetInitialized ? "초기화 · 미측정" : UsesAppliedMeasurement
+    public string MeasurementStatusText => IsMasked ? "Masking" : IsMeasurementStateCleared ? (WorkingJudge=="ERROR"?"오류 상태 복사":WorkingJudge=="NG"?"NG · 값 없음":"미측정 상태 복사") : IsMeasurementOffsetInitialized ? "초기화 · 미측정" : IsOperatorResult ? WorkingJudge + " · 수동 확정" : UsesAppliedMeasurement
         ? "측정됨 · 보정기반" + (WorkingJudge == "ERROR" ? " · 최근 수신 오류" : "")
         : WorkingJudge switch { "OK" => "OK · 측정됨", "NG" => "NG · 측정됨", "ERROR" => "수신 오류", "UNMEASURED" => "미측정", _ => WorkingJudge };
-    public string MeasurementBasisText => IsMeasurementStateCleared ? "대표의 빈 상태 · 실제 모델 Offset은 유지" : IsMeasurementOffsetInitialized ? "측정 Offset 초기화" : UsesAppliedMeasurement ? "보정기반 편차 · 기존 적용 Review Offset"
+    public string MeasurementBasisText => IsMeasurementStateCleared ? "대표의 빈 상태 · 실제 모델 Offset은 유지" : IsMeasurementOffsetInitialized ? "측정 Offset 초기화" : IsOperatorResult ? (HasWorkingMeasurement ? "사용자 확정 편차 · 원측정 보존" : "사용자 확정 최종값 · 잔류 편차 수치 없음") : UsesAppliedMeasurement ? "보정기반 편차 · 기존 적용 Review Offset"
         : HasWorkingMeasurement ? IsProxy ? "대표값 복사 편차" : "측정 결과 편차" : "유효 편차 없음";
-    public string MeasurementSourceCode => IsMeasurementStateCleared ? "MANUAL" : UsesAppliedMeasurement ? "CORRECTION_BASED" : IsProxy ? "MANUAL" : Source;
+    public string MeasurementSourceCode => IsMeasurementStateCleared ? "MANUAL" : IsOperatorResult ? "OPERATOR" : UsesAppliedMeasurement ? "CORRECTION_BASED" : IsProxy ? "MANUAL" : Source;
     public bool CanBeReference => !string.IsNullOrWhiteSpace(Key);
     public bool CanCopyAsReference => !IsMeasurementOffsetInitialized && !IsMeasurementStateCleared && string.IsNullOrEmpty(ReferenceValueUnavailableReason)
         && (ReferenceFinalXUm.HasValue || ReferenceFinalYUm.HasValue
@@ -108,7 +112,7 @@ public sealed record CManualInspectionUiPoint
     public string BaseOffsetText => Pair(BaseXUm, BaseYUm);
     public string CandidateOffsetText => CandidateXUm.HasValue && CandidateYUm.HasValue
         ? Pair(CandidateXUm, CandidateYUm) : "—";
-    public string SourceText => IsMeasurementStateCleared ? "빈 상태 복사" : IsMeasurementOffsetInitialized ? "초기화" : UsesAppliedMeasurement ? "보정기반 측정 · 적용 이력"
+    public string SourceText => IsMeasurementStateCleared ? "빈 상태 복사" : IsMeasurementOffsetInitialized ? "초기화" : IsOperatorResult ? "사용자 수동 확정" : UsesAppliedMeasurement ? "보정기반 측정 · 적용 이력"
         : IsProxy ? "대표값 복사" : Source == "MEASURED" ? "직접 측정" : Source == "IMPORTED" ? "불러온 측정" : Source;
     public string ReferenceText => string.IsNullOrEmpty(ReferenceKey) ? "—" : ReferenceKey;
     public static bool Finite(double? value) => value.HasValue && double.IsFinite(value.Value);
@@ -270,6 +274,9 @@ public sealed record CManualInspectionUiRequest
     public double Speed { get; init; } = 1;
     public bool AllowManual { get; init; }
     public string Reason { get; init; } = "";
+    /// <summary>Explicit DESIGN-µm deviation; both null approve an existing value without inventing a zero.</summary>
+    public double? ForcedXUm { get; init; }
+    public double? ForcedYUm { get; init; }
     public string OffsetInitScope { get; init; } = "ALL";
     public int? OffsetInitCellNo { get; init; }
     public int? OffsetInitHeadNo { get; init; }

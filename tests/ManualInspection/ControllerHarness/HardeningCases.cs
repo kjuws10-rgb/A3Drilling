@@ -24,7 +24,7 @@ internal static partial class Program
             await Do(c, EN_MANUAL_INSPECTION_UI_ACTION.Refresh);
             True(c.Snapshot.RunId == "RUN-2" && c.Snapshot.CandidateRows.Count == 0 && !c.Snapshot.HasIncomplete);
             True(c.Snapshot.Points.All(p => !p.IsProxy && p.ReferenceKey.Length == 0 && p.MeasurementToken.StartsWith("RUN-2:", StringComparison.Ordinal)));
-            True(!c.Snapshot.IsReadOnly && f.Executed.Count == 0 && f.Saves == 0);
+            True(!c.Snapshot.IsReadOnly && f.Executed.Count == 0 && f.Saves == 1);
         });
         await Check("hardening_new_run_can_replace_old_interrupted_run_without_resuming_motion", async () =>
         {
@@ -214,9 +214,6 @@ internal static partial class Program
                 .GetProperty("ProxySource").GetProperty("ReferenceMeasurementToken").GetString();
             True(!string.IsNullOrEmpty(oldReferenceRaw));
             f.NewX = 8; await Do(c, EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure, ["P1"]);
-            await Do(c, EN_MANUAL_INSPECTION_UI_ACTION.Calculate, ["P2"]);
-            await Do(c, EN_MANUAL_INSPECTION_UI_ACTION.Validate, null, r => r with { AllowManual = true });
-            await Do(c, EN_MANUAL_INSPECTION_UI_ACTION.Apply, null, r => r with { AllowManual = true });
             using var appliedCopy = System.Text.Json.JsonDocument.Parse(f.SourceIds.Single());
             var manualRow = appliedCopy.RootElement.GetProperty("Tokens").EnumerateArray().Single();
             True(manualRow.GetProperty("Source").GetString() == "MANUAL" && manualRow.GetProperty("ReferenceKey").GetString() == "P1");

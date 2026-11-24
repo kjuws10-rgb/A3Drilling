@@ -469,7 +469,7 @@ internal static partial class Program
             w.BuildDirectCandidate([Key(1)]); True(w.ValidateCandidate(false).Ok); Apply(w, "REV_REF");
             var restore = w.CreateRestorePreviousSnapshot(); w.CommitRestored(restore, "REV_RESTORE", "QA rollback");
             var copy=w.PreviewReferenceCopy(Key(1), [Key(2)]);Offset(copy.Final,10,0);True(copy.ReferenceValueKind=="APPLIED_OFFSET"&&copy.ErrorXUm is null);
-            w.ConfirmReferenceCopy(copy,[Key(2)],"Saved base after rollback");True(!w.ValidateCandidate(true).Ok);Offset(w.ActiveOffsets[Key(1)],10,0);
+            w.ConfirmReferenceCopy(copy,[Key(2)],"Saved base after rollback");True(w.ValidateCandidate(true).Ok);Offset(w.ActiveOffsets[Key(1)],10,0);
             True(w.GetPoint(Key(1)).OriginalMeasurement is not null&&!w.GetPoint(Key(1)).HasFiniteError);
         });
         Check("session_restore_preserves_consumed_reference_final", () =>
@@ -576,6 +576,7 @@ internal static partial class Program
         RunRetryVisibilityChecks();
         RunFirstLoadStateChecks();
         RunInitRecoveryChecks();
+        RunRepresentativeApplyChecks();
         var output = args.Length == 2 && args[0] == "--report" ? args[1] : Path.Combine(AppContext.BaseDirectory, "manual-inspection-results.json");
         var report = new { schemaVersion = "a3-manual-inspection-core-tests/1", passed = Failed == 0, count = Results.Count, failed = Failed, tests = Results, sourceFiles = SourceInputs(),
             scope = "Linked production ManualInspection common files only; synthetic values/fake field evaluator. No equipment, WPF, SDK or device scripts executed." };

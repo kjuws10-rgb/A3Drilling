@@ -80,7 +80,8 @@ internal static partial class Program
                 EN_MANUAL_INSPECTION_UI_ACTION.Apply, EN_MANUAL_INSPECTION_UI_ACTION.CopyReference, EN_MANUAL_INSPECTION_UI_ACTION.UpdateLimits,
                 EN_MANUAL_INSPECTION_UI_ACTION.UpdateLevels, EN_MANUAL_INSPECTION_UI_ACTION.SetAllowManual })
             {
-                Execute(action, new() { ExpectedVersion = fake.Snapshot.Version, Keys = [target.Key], FocusKey = target.Key });
+                Execute(action, new() { ExpectedVersion = fake.Snapshot.Version, Keys = [target.Key], FocusKey = target.Key,
+                    ReferenceKey=action==EN_MANUAL_INSPECTION_UI_ACTION.CopyReference?first.Key:null,Reason="현재 대표값 · 기존 조회 전용 플래그의 편집 허용 확인" });
                 Test("legacy_readonly_flag_does_not_block_request_" + action, fake.Calls.Count == before + 1);
                 before=fake.Calls.Count;
             }

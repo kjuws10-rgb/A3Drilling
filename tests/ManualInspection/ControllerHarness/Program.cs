@@ -33,8 +33,8 @@ internal static partial class Program
         await Check("changed_backend_context_prevents_save",async()=>{var(f,c)=await Loaded();await Prepared(c);f.Stale=true;await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Apply));True(f.Saves==0);Near(c.Snapshot.Points[0].BaseXUm,0);});
         await Check("legacy_readonly_source_reconnects_for_fresh_current_measurement_without_old_raw_promotion",async()=>{var(f,c)=Fixture(readOnly:true);f.Source=f.Source with{Context=f.Source.Context with{LineageValid=false}};await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);True(c.Snapshot.Points.Count==3&&!c.Snapshot.IsReadOnly);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Move,["P1"]);await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Calculate,["P1"]));await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1"]);await Prepared(c);True(f.Executed.Count==2&&f.Saves==0&&c.Snapshot.CanApply);});
         await Check("ng_reference_copies_working_and_preserves_original",async()=>{var(f,c)=await Loaded(ngReference:true);var old=c.Snapshot.Points[1].OriginalXUm;await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,["P2"],r=>r with{ReferenceKey="P1",Reason="NG inherited"});await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Validate,null,r=>r with{AllowManual=true});True(c.Snapshot.Points[1].WorkingJudge=="NG"&&c.Snapshot.Points[1].OriginalXUm==old&&!c.Snapshot.CanApply&&f.Saves==0);});
-        await Check("manual_copy_requires_allow_manual_to_save",async()=>{var(f,c)=await Loaded();await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,["P2"],r=>r with{ReferenceKey="P1",Reason="Use native representative"});await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Validate);True(!c.Snapshot.CanApply);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Validate,null,r=>r with{AllowManual=true});await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Apply,null,r=>r with{AllowManual=true});True(f.Saves==1);Near(c.Snapshot.Points[1].BaseXUm,3);});
-        await Check("new_reference_measurement_changes_durable_manual_source_identity",async()=>{var(f,c)=await Loaded();async Task CopyApply(){await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,["P2"],r=>r with{ReferenceKey="P1",Reason="Same reason"});await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Validate,null,r=>r with{AllowManual=true});await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Apply,null,r=>r with{AllowManual=true});}await CopyApply();f.NewX=1.5;await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1"]);await CopyApply();True(f.SourceIds.Count==2&&f.SourceIds[0]!=f.SourceIds[1]);});
+        await Check("confirmed_manual_copy_validates_and_saves_without_an_extra_checkbox",async()=>{var(f,c)=await Loaded();await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,["P2"],r=>r with{ReferenceKey="P1",Reason="Use native representative"});True(f.Saves==1&&!c.Snapshot.CanApply);await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Apply));True(f.Saves==1);Near(c.Snapshot.Points[1].BaseXUm,3);});
+        await Check("new_reference_measurement_changes_durable_manual_source_identity",async()=>{var(f,c)=await Loaded();async Task CopyApply(){await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,["P2"],r=>r with{ReferenceKey="P1",Reason="Same reason"});}await CopyApply();f.NewX=1.5;await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1"]);await CopyApply();True(f.SourceIds.Count==2&&f.SourceIds[0]!=f.SourceIds[1]);});
         await Check("move_only_changes_position_not_measurement",async()=>{var(f,c)=await Loaded();var old=c.Snapshot.Points[0].WorkingXUm;await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Move,["P1"]);True(f.Executed.SequenceEqual(["P1"])&&c.Snapshot.Points[0].WorkingXUm==old&&f.Saves==0);});
         await Check("current_position_measure_rejects_multiple_targets",async()=>{var(f,c)=await Loaded();await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Measure,["P1","P2"]));True(f.Executed.Count==0);});
         await Check("removed_move_measure_correct_rejects_before_any_motion_or_save",async()=>{var(f,c)=await Loaded();await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasureCorrect,["P1","P2"]));True(f.Saves==0&&f.Executed.Count==0&&!c.Snapshot.HasIncomplete);});
@@ -52,7 +52,7 @@ internal static partial class Program
         await Check("export_import_incomplete_session_keeps_remaining_without_motion",async()=>{var(f,c)=await Loaded();f.FailKey="P2";await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1","P2"]));var path=Path.Combine(f.StateDirectory,"paused.json");c.ChooseFile=(_,_)=>path;await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ExportSession);var(fresh,g)=Fixture();g.ChooseFile=(_,_)=>path;await Do(g,EN_MANUAL_INSPECTION_UI_ACTION.ImportSession);True(g.Snapshot.HasIncomplete&&g.Snapshot.CompletedCount==1&&g.Snapshot.RemainingCount==1&&fresh.Executed.Count==0&&fresh.Saves==0);await Do(g,EN_MANUAL_INSPECTION_UI_ACTION.RetryRemaining);True(!g.Snapshot.HasIncomplete&&fresh.Executed.SequenceEqual(["P2"])&&fresh.Saves==0);});
         await Check("roundtrip_session_retains_duplicate_raw_guard",async()=>{var(f,c)=await Loaded();await Prepared(c);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Apply);var path=Path.Combine(f.StateDirectory,"applied.json");c.ChooseFile=(_,_)=>path;await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ExportSession);var(fresh,g)=Fixture();fresh.Source=f.Source;g.ChooseFile=(_,_)=>path;await Do(g,EN_MANUAL_INSPECTION_UI_ACTION.ImportSession);await Do(g,EN_MANUAL_INSPECTION_UI_ACTION.Calculate,["P1"]);await Do(g,EN_MANUAL_INSPECTION_UI_ACTION.Validate);True(!g.Snapshot.CanApply&&fresh.Saves==0);});
         await Check("replay_application_does_not_remake_holes_in_same_run",async()=>{var(f,c)=await Loaded();f.Simulation=true;await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.NewSimulation,null,r=>r with{Scenario="good"});var point=c.Snapshot.Points.First(p=>!p.IsMasked);var x=point.WorkingXUm;var y=point.WorkingYUm;await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Calculate,[point.Key]);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Validate);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Apply);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,[point.Key]);var after=c.Snapshot.Points.Single(p=>p.Key==point.Key);True(after.WorkingXUm==x&&after.WorkingYUm==y&&f.Executed.Count==0&&f.Saves==0);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Calculate,[point.Key]);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Validate);True(!c.Snapshot.CanApply);});
-        await Check("show_point_exposes_preserved_raw_and_full_history",async()=>{var(f,c)=await Loaded();await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,["P2"],r=>r with{ReferenceKey="P1",Reason="History evidence"});string text="";c.ShowDetails=(_,value)=>text=value;await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ShowPoint,["P2"]);True(text.Contains("Synthetic raw 2")&&text.Contains("REFERENCE_COPY")&&text.Contains("History evidence")&&f.Saves==0);});
+        await Check("show_point_exposes_preserved_raw_and_full_history",async()=>{var(f,c)=await Loaded();await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,["P2"],r=>r with{ReferenceKey="P1",Reason="History evidence"});string text="";c.ShowDetails=(_,value)=>text=value;await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ShowPoint,["P2"]);True(text.Contains("Synthetic raw 2")&&text.Contains("REFERENCE_COPY")&&text.Contains("History evidence")&&f.Saves==1);});
         await Check("native_load_defers_incomplete_disk_session_without_implicit_motion",async()=>{var(f,c)=await Loaded();f.FailKey="P2";await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1","P2"]));var fresh=new FakeBackend(f.StateDirectory,false,false);var g=new CManualInspectionController(fresh);await Do(g,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);True(!g.Snapshot.HasIncomplete&&g.Snapshot.RemainingCount==0&&fresh.Executed.Count==0&&!g.Snapshot.IsReadOnly&&Directory.GetFiles(Path.Combine(f.StateDirectory,"Recovery"),"incomplete-operation-*.json").Length==1);});
         await Check("corrupt_local_session_allows_reconnect_and_fresh_current_measurement",async()=>{var(f,c)=await Loaded();var path=Directory.GetFiles(Path.Combine(f.StateDirectory,"Sessions"),"*.json").Single();await File.WriteAllTextAsync(path,"{ invalid JSON");var fresh=new FakeBackend(f.StateDirectory,false,false);var g=new CManualInspectionController(fresh);await Do(g,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);True(!g.Snapshot.IsReadOnly&&g.Snapshot.Points.Count==3&&fresh.Executed.Count==0);await Do(g,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1"]);True(fresh.Executed.Count==1&&!g.Snapshot.IsReadOnly);});
         await Check("saved_candidate_session_requires_new_validation",async()=>{var(f,c)=await Loaded();await Prepared(c);True(c.Snapshot.CanApply);var fresh=new FakeBackend(f.StateDirectory,false,false);var g=new CManualInspectionController(fresh);await Do(g,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);True(!g.Snapshot.CanApply&&g.Snapshot.CandidateRows.Count==1);await Throws(()=>Do(g,EN_MANUAL_INSPECTION_UI_ACTION.Apply));True(fresh.Saves==0);});
@@ -93,6 +93,7 @@ internal static partial class Program
         await RunFirstLoadStateChecks();
         await RunInitRecoveryChecks();
         await RunStartupFinalOffsetsCases();
+        await RunRepresentativeApplyChecks();
         await Check("generic_sta_application_and_no_loaded_vendor_assemblies",async()=>{True(Application.Current.GetType()==typeof(Application));True(!VendorAssemblies().Any());await Task.CompletedTask;});
         var path=args.Length==2&&args[0]=="--report"?args[1]:Path.Combine(AppContext.BaseDirectory,"controller-results.json");Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         var assembly=typeof(CManualInspectionController).Assembly;
@@ -109,24 +110,26 @@ internal static partial class Program
             True(f.Saves==1&&f.Executed.Count==0&&f.Ensures==checks+1&&f.Guards==guards+1&&c.Snapshot.UndoOffsetCount==1);
             Near(c.Snapshot.Points.Single(p=>p.Key=="P1").BaseXUm,3);Near(c.Snapshot.Points.Single(p=>p.Key=="P2").BaseXUm,0);Near(c.Snapshot.Points.Single(p=>p.Key=="P3").BaseXUm,1);
         });
-        await Check("selected_correction_ng_masked_and_missing_selection_reject_atomically",async()=>
+        await Check("selected_correction_excludes_ng_missing_but_masked_or_empty_selection_still_rejects",async()=>
         {
             foreach(var kind in new[]{"NG","MASKED","MISSING","EMPTY"})
             {
                 var(f,c)=Fixture();f.Source=f.Source with { Points=f.Source.Points.Select(p=>p.Key!="P2"?p:kind switch
                     { "NG"=>p with { Judge="NG" },"MASKED"=>p with { Masked=true },"MISSING"=>p with { Judge="UNMEASURED",ErrorXUm=null,ErrorYUm=null,OriginalMeasurement=null },_=>p }).ToArray() };
                 await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);
-                await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,kind=="EMPTY"?[]:["P1","P2"]));
-                True(f.Saves==0&&f.Executed.Count==0&&c.Snapshot.Points.All(p=>p.BaseXUm==0)&&c.Snapshot.UndoOffsetCount==0);
+                if(kind is "MASKED" or "EMPTY")
+                {await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,kind=="EMPTY"?[]:["P1","P2"]));True(f.Saves==0&&c.Snapshot.Points.All(p=>p.BaseXUm==0)&&c.Snapshot.UndoOffsetCount==0);}
+                else {await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P1","P2"]);True(f.Saves==1&&c.Snapshot.Points.Single(p=>p.Key=="P1").BaseXUm==3&&c.Snapshot.Points.Single(p=>p.Key=="P2").BaseXUm==0);}
+                True(f.Executed.Count==0);
             }
         });
-        await Check("selected_correction_limits_failure_never_saves_valid_companion_points",async()=>
+        await Check("selected_correction_numeric_exclusion_saves_only_valid_companion_points",async()=>
         {
             var(f,c)=Fixture();f.Source=f.Source with { Points=f.Source.Points.Select(p=>p.Key=="P2"?p with
                 { ErrorXUm=999,OriginalMeasurement=p.OriginalMeasurement! with { ErrorXUm=999 } }:p).ToArray() };
             await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe);
-            await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P1","P2"]));
-            True(f.Saves==0&&f.SavedConsumption.Count==0&&c.Snapshot.Points.All(p=>p.BaseXUm==0)&&!c.IsBusy);
+            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P1","P2"]);
+            True(f.Saves==1&&c.Snapshot.Points.Single(p=>p.Key=="P1").BaseXUm==3&&c.Snapshot.Points.Single(p=>p.Key=="P2").BaseXUm==0&&!c.IsBusy);
         });
         await Check("selected_real_zero_first_apply_then_repeat_is_one_save_and_undo_redo_preserve_empty_semantics",async()=>
         {
@@ -142,7 +145,7 @@ internal static partial class Program
         await Check("selected_representative_copy_applies_captured_final_once_without_extra_manual_checkbox",async()=>
         {
             var(f,c)=await Loaded();await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.CopyReference,["P2"],r=>r with { ReferenceKey="P1",Reason="Synthetic verified copy" });
-            await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P2"]);Near(c.Snapshot.Points.Single(p=>p.Key=="P2").BaseXUm,3);
+            Near(c.Snapshot.Points.Single(p=>p.Key=="P2").BaseXUm,3);
             await Throws(()=>Do(c,EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets,["P2"]));True(f.Saves==1&&f.Executed.Count==0);
         });
         await Check("selected_correction_failed_writer_can_retry_without_consumption_or_partial_save",async()=>

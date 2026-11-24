@@ -166,7 +166,9 @@ internal static partial class Program
             Set(view, "_focusKey", based.Key); Invoke(view, "ChangeSelection", new CManualInspectionSelectionEventArgs([raw.Key, based.Key], based.Key)); Pump();
             map.ShowOperationMenu(); Pump();
             var menu = map.ContextMenu!;
-            Test("point_context_has_four_actions", menu.Items.OfType<MenuItem>().Count(i => i.IsEnabled) == 4);
+            Test("point_context_has_six_actions_including_manual_ok_and_keypad", menu.Items.OfType<MenuItem>().Count(i => i.IsEnabled) == 6
+                &&menu.Items.OfType<MenuItem>().Any(i=>i.Header.ToString()!.StartsWith("측정 완료",StringComparison.Ordinal))
+                &&menu.Items.OfType<MenuItem>().Any(i=>i.Header.ToString()!.StartsWith("편차 직접 입력",StringComparison.Ordinal)));
             Test("point_context_keeps_two_move_actions_without_auto_correction", menu.Items.OfType<MenuItem>().Count(i => i.Header.ToString()!.StartsWith("이동", StringComparison.Ordinal)) == 2);
             var measure = menu.Items.OfType<MenuItem>().Single(i => i.Header.ToString()!.Contains("현재 위치"));
             var beforeCalls = fake.Calls.Count;

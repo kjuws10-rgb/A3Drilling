@@ -24,7 +24,8 @@ internal static partial class Program
             var p=state.Points.First(x=>!x.IsMasked&&x.WorkingJudge=="OK"&&!x.IsProxy);Invoke(view,"ChangeSelection",new CManualInspectionSelectionEventArgs([p.Key],p.Key));Pump();map.ShowOperationMenu();Pump();
             var items=map.ContextMenu!.Items.OfType<MenuItem>().Where(i=>i.IsEnabled).ToArray(); // Disabled selection summary is not an action.
             Test("bulk_ui_point_context_has_move_and_move_measure_without_automatic_correction",items.Count(i=>i.Header.ToString()!.StartsWith("이동",StringComparison.Ordinal))==2&&items.All(i=>!i.Header.ToString()!.Contains("&")&&!i.Header.ToString()!.Contains("보정")));
-            Test("bulk_ui_point_context_retains_single_measure_and_details",items.Length==4&&items.Any(i=>i.Header.ToString()!.Contains("현재 위치"))&&items.Any(i=>i.Header.ToString()!.Contains("상세")));map.ContextMenu.IsOpen=false;
+            Test("bulk_ui_point_context_retains_single_measure_details_and_manual_input",items.Length==6&&items.Any(i=>i.Header.ToString()!.Contains("현재 위치"))&&items.Any(i=>i.Header.ToString()!.Contains("상세"))
+                &&items.Any(i=>i.Header.ToString()!.StartsWith("측정 완료",StringComparison.Ordinal))&&items.Any(i=>i.Header.ToString()!.StartsWith("편차 직접 입력",StringComparison.Ordinal)));map.ContextMenu.IsOpen=false;
             var before=fake.Calls.Count;Click("BulkApplyButton");
             Test("bulk_ui_confirmation_cancel_writes_nothing",fake.Calls.Count==before&&confirms==1);
             Test("bulk_ui_confirmation_cancel_unlocks_apply",Find<Button>("BulkApplyButton").IsEnabled);

@@ -18,10 +18,31 @@
     <Compile Include="SidePanelsCases.cs" />
     <Compile Include="FinalOffsetCases.cs" />
     <Compile Include="ExistingFinalCsvCases.cs" />
+    <Compile Include="RepresentativeApplyCases.cs" />
     <Compile Include="../../../Drilling.UI/Views/CManualInspectionUiContract.cs" Link="CManualInspectionUiContract.cs" />
     <Compile Include="../../../Drilling.UI/Views/CManualInspectionMapControl.cs" Link="CManualInspectionMapControl.cs" />
     <Compile Include="../../../Drilling.UI/Views/CManualInspectionScatterControl.cs" Link="CManualInspectionScatterControl.cs" />
     <Compile Include="../../../Drilling.UI/Views/CManualInspectionView.xaml.cs" Link="CManualInspectionView.xaml.cs" />
     <Page Include="../../../Drilling.UI/Views/CManualInspectionView.xaml" Link="CManualInspectionView.xaml" />
+    <Compile Include="../../../Drilling.UI/Popup/CValueInputDialog.xaml.cs" Link="CValueInputDialog.xaml.cs" />
+    <Page Include="../../../Drilling.UI/Popup/CValueInputDialog.xaml" Link="CValueInputDialog.xaml" />
   </ItemGroup>
+  <!-- Compile the actual keypad's sole Common dependency without constructing or referencing a manager/driver. -->
+  <UsingTask TaskName="ExtractRecipeDataTypeForUiTests" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup><SourceFile ParameterType="System.String" Required="true"/><OutputFile ParameterType="System.String" Required="true"/></ParameterGroup>
+    <Task><Code Type="Fragment" Language="cs"><![CDATA[
+      var source=System.IO.File.ReadAllText(SourceFile);
+      var start=source.IndexOf("public enum EN_RECIPE_DATA_TYPE",System.StringComparison.Ordinal);
+      var end=start<0?-1:source.IndexOf('}',start);
+      if(start<0 || end<start) { Log.LogError("The production recipe data-type enum could not be located.");return false; }
+      var text="// Generated from the production CRecipeManager.cs enum, not a hand-written substitute.\nnamespace Drilling.Common.Managers\n{\n"+source.Substring(start,end-start+1)+"\n}\n";
+      System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(OutputFile)??".");
+      if(!System.IO.File.Exists(OutputFile) || System.IO.File.ReadAllText(OutputFile)!=text)System.IO.File.WriteAllText(OutputFile,text);
+    ]]></Code></Task>
+  </UsingTask>
+  <Target Name="PrepareProductionRecipeDataTypeForUiTests" BeforeTargets="MarkupCompilePass1;CoreCompile">
+    <PropertyGroup><UiRecipeEnumFile>$(IntermediateOutputPath)ProductionRecipeDataType.g.cs</UiRecipeEnumFile></PropertyGroup>
+    <ExtractRecipeDataTypeForUiTests SourceFile="$(MSBuildProjectDirectory)/../../../Drilling.Common/Managers/CRecipeManager.cs" OutputFile="$(UiRecipeEnumFile)"/>
+    <ItemGroup><Compile Include="$(UiRecipeEnumFile)" Link="ProductionRecipeDataType.g.cs"/></ItemGroup>
+  </Target>
 </Project>
