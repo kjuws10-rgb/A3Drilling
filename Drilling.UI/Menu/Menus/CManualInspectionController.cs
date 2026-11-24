@@ -318,6 +318,11 @@ public sealed class CManualInspectionController : IManualInspectionController
                     await Current(token);
                     InitializeOffsets(request);
                     var initialCheck=_engine.ValidateCandidate(false);
+                    if(!initialCheck.Ok)
+                    {
+                        _engine.CancelOffsetReplacement();
+                        throw new InvalidOperationException("Offset Init을 적용하지 않았습니다. 기존 작업으로 돌아갔으며 이동·측정할 수 있습니다.\n"+string.Join("\n",initialCheck.Errors));
+                    }
                     _status=initialCheck.Ok ? "Offset Init · 화면의 측정 기반 통합 Offset은 0입니다. 모델 Offset 저장 전까지 실제 활성값·기존 파일은 유지됩니다."
                         : "Offset Init 작업값 0 · 저장 검증 확인 필요: "+string.Join("\n",initialCheck.Errors);
                     break;
@@ -904,9 +909,14 @@ public sealed class CManualInspectionController : IManualInspectionController
 
     private void InitializeOffsets(CManualInspectionUiRequest request)
     {
+        // Validate the post-retirement Init in isolation first. A failed reset must not
+        // discard an interrupted queue, old candidate, raw/ledger or create a blocking draft.
+        var sandbox=IdleTransitionPreview();
+        ApplyOffsetInitialization(sandbox,request);
+        var check=sandbox.ValidateCandidate(false);
+        if(!check.Ok) throw new InvalidOperationException("Offset Init을 적용하지 않았습니다. 기존 작업과 파일을 유지합니다.\n"+string.Join("\n",check.Errors));
         if(_engine.HasIncompleteMeasurements)
         {
-            var sandbox=IdleTransitionPreview();ApplyOffsetInitialization(sandbox,request);
             _engine.ReleaseIncompleteOperation("명시 Offset Init 요청으로 미완료 작업 전환");
         }
         ApplyOffsetInitialization(_engine,request);

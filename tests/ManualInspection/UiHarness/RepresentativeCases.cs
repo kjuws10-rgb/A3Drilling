@@ -32,7 +32,7 @@ internal static partial class Program
             var fake=new FakeController(basis);
             var view=new CManualInspectionView{DataContext=fake,ConfirmationForTesting=(_,_,_)=>true};
             var window=new Window{Width=1490,Height=900,Content=view,Left=-20000,Top=-20000,ShowInTaskbar=false,ShowActivated=false,WindowStyle=WindowStyle.None};
-            window.Show();Pump();
+            window.Show();Pump();SelectMeasurementView(view);
             T Find<T>(string name)=>(T)view.FindName(name);
             Find<Expander>("InspectorSection").IsExpanded=true;
             var version=basis.Version;
@@ -77,12 +77,12 @@ internal static partial class Program
                 IsProxy=false,IsMeasurementOffsetInitialized=false,IsMeasurementStateCleared=true,CanCopyReferenceState=true,
                 ReferenceFinalXUm=null,ReferenceFinalYUm=null,ReferenceValueUnavailableReason="빈 상태"};
             fake.Replace(basis with{Version=++version,Points=[cleared]});Pump();
-            Set(view,"_scatterScope","HEAD");Set(view,"_scatterHead",0);Set(view,"_scatterOriginal",false);Set(view,"_scatterOffsets",false);Invoke(view,"Refresh");Pump();
+            Set(view,"_scatterScope","HEAD");Set(view,"_scatterHead",0);SelectViewChoice(view,"ScatterDataCombo","WORKING");Invoke(view,"Refresh");Pump();
             var scatter=Find<CManualInspectionScatterControl>("ScatterPlot");
             Test("state_copy_working_scatter_has_no_fabricated_zero_or_old_B_sample",scatter.Metrics.Count==0&&cleared.MeasurementXUm is null&&cleared.MeasurementYUm is null);
-            Set(view,"_scatterOriginal",true);Invoke(view,"Refresh");Pump();
+            SelectViewChoice(view,"ScatterDataCombo","ORIGINAL");Invoke(view,"Refresh");Pump();
             Test("state_copy_original_scatter_keeps_preserved_raw",scatter.Metrics.Count==1&&scatter.Metrics.MeanX==2&&scatter.Metrics.MeanY==-3);
-            Set(view,"_scatterOriginal",false);Set(view,"_scatterOffsets",true);Invoke(view,"Refresh");Pump();
+            SelectViewChoice(view,"ScatterDataCombo","OFFSETS");Invoke(view,"Refresh");Pump();
             Test("state_copy_offset_scatter_keeps_actual_saved_B",scatter.Metrics.Count==1&&scatter.Metrics.MeanX==7&&scatter.Metrics.MeanY==-9);
             Test("state_copy_scatter_projections_do_not_modify_source_state_or_model_values",fake.Snapshot.Points.Single()==cleared&&fake.Calls.Count==0);
             window.Close();

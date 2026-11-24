@@ -34,10 +34,10 @@ internal static partial class Program
     [STAThread]
     private static int Main(string[] args)
     {
-        if (args.Length is < 2 or > 3 || args.Length == 3 && args[2] is not ("--integration-impact" or "--sync-levels" or "--coverage-compact" or "--hardening" or "--visual-usability" or "--map-first" or "--cell-overview" or "--offset-init" or "--measurement-workflow" or "--bulk-history" or "--representative" or "--side-panels" or "--final-offsets")) { Console.Error.WriteLine("Usage: UiHarness <repository/Drilling.UI> <private-output> [--integration-impact|--sync-levels|--coverage-compact|--hardening|--visual-usability|--map-first|--cell-overview|--offset-init|--measurement-workflow|--bulk-history|--representative|--side-panels|--final-offsets]"); return 2; }
+        if (args.Length is < 2 or > 3 || args.Length == 3 && args[2] is not ("--integration-impact" or "--sync-levels" or "--coverage-compact" or "--hardening" or "--visual-usability" or "--map-first" or "--cell-overview" or "--offset-init" or "--measurement-workflow" or "--bulk-history" or "--representative" or "--side-panels" or "--final-offsets" or "--existing-final-csv")) { Console.Error.WriteLine("Usage: UiHarness <repository/Drilling.UI> <private-output> [--integration-impact|--sync-levels|--coverage-compact|--hardening|--visual-usability|--map-first|--cell-overview|--offset-init|--measurement-workflow|--bulk-history|--representative|--side-panels|--final-offsets|--existing-final-csv]"); return 2; }
         _uiSource = Path.GetFullPath(args[0]); _output = Path.GetFullPath(args[1]); Directory.CreateDirectory(_output);
         _application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-        if (args.Length == 3) return args[2] switch { "--sync-levels" => SyncLevels(), "--coverage-compact" => CoverageCompact(), "--hardening" => Hardening(), "--visual-usability" => VisualUsability(), "--map-first" => MapFirst(), "--cell-overview" => CellOverview(), "--offset-init" => OffsetInit(), "--measurement-workflow" => MeasurementWorkflow(), "--bulk-history" => BulkHistory(), "--representative" => Representative(), "--side-panels" => SidePanels(), "--final-offsets" => FinalOffsetCases(), _ => IntegrationImpact() };
+        if (args.Length == 3) return args[2] switch { "--sync-levels" => SyncLevels(), "--coverage-compact" => CoverageCompact(), "--hardening" => Hardening(), "--visual-usability" => VisualUsability(), "--map-first" => MapFirst(), "--cell-overview" => CellOverview(), "--offset-init" => OffsetInit(), "--measurement-workflow" => MeasurementWorkflow(), "--bulk-history" => BulkHistory(), "--representative" => Representative(), "--side-panels" => SidePanels(), "--final-offsets" => FinalOffsetCases(), "--existing-final-csv" => ExistingFinalCsv(), _ => IntegrationImpact() };
         try
         {
             LoadResources("Light");
@@ -45,7 +45,7 @@ internal static partial class Program
             var view = new CManualInspectionView { DataContext = fake, ConfirmationForTesting = (_,_,_) => true };
             Set(view, "_scatterOffsets", false); Set(view, "_scatterScope", "CELL"); // Explicit legacy working-data scope.
             var window = new Window { Width = 1490, Height = 1060, Content = view, Left = -20000, Top = -20000, ShowInTaskbar = false, ShowActivated = false, WindowStyle = WindowStyle.None };
-            window.Show(); Pump(); view.UpdateLayout();
+            window.Show(); Pump(); SelectMeasurementView(view); view.UpdateLayout();
             // This legacy per-Cell regression deliberately enters Cell 1. The new all-Cell
             // landing view and actual Recipe placement are tested independently below.
             Invoke(view, "SetMapCellScope", 1); Pump();
@@ -145,7 +145,7 @@ internal static partial class Program
             Test("original_scatter_uses_preserved_values", scatter.Metrics.MeanX > workingMean + 1);
             Test("masked_scatter_exclusion_count", scatter.Metrics.Masked == 1 && scatter.Metrics.Count == 79);
             fake.Replace(Snapshot(10000) with { Version = 20, RunId = "large", IsSimulation = true });
-            Test("new_run_resets_scatter_reference_selection", Field<string>(view, "_scatterScope") == "HEAD" && !Field<bool>(view, "_scatterOffsets") && !Field<bool>(view, "_scatterOriginal") && Field<string?>(view, "_representativeKey") is null && Field<HashSet<string>>(view, "_selected").Count == 0);
+            Test("new_run_resets_final_scatter_reference_selection", Field<string>(view, "_color")=="applied" && Field<bool>(view,"_scatterFinalOffsets") && Field<string>(view, "_scatterScope") == "HEAD" && !Field<bool>(view, "_scatterOffsets") && !Field<bool>(view, "_scatterOriginal") && Field<string?>(view, "_representativeKey") is null && Field<HashSet<string>>(view, "_selected").Count == 0);
             var watch = Stopwatch.StartNew(); Pump(); Set(view, "_cell", 0); Invoke(view, "Refresh"); view.UpdateLayout(); Render(view, "native-10000-dark.png"); watch.Stop();
             Test("ten_thousand_points_retained", fake.Snapshot.Points.Count == 10000 && Field<Dictionary<string, CManualInspectionUiPoint>>(view, "_points").Count == 10000);
             Test("ten_thousand_fit_does_not_crop_groups", ((IList)Private(map, "_hits")).Count == 10000, new { hits = ((IList)Private(map, "_hits")).Count });
@@ -172,7 +172,7 @@ internal static partial class Program
             var view = new CManualInspectionView { DataContext = fake, ConfirmationForTesting = (_,_,_) => true };
             Set(view, "_scatterOffsets", false); Set(view, "_scatterScope", "CELL"); // Explicit legacy working-data scope.
             var window = new Window { Width = 1490, Height = 900, Content = view, Left = -20000, Top = -20000, ShowInTaskbar = false, ShowActivated = false, WindowStyle = WindowStyle.None };
-            window.Show(); Pump();
+            window.Show(); Pump(); SelectMeasurementView(view);
             Test("arrival_label_not_live_motor_feedback", ((TextBlock)view.FindName("StagePositionText")).Text.Contains("마지막 도착 확인"));
             Test("unknown_arrival_shown_as_dash", ((TextBlock)view.FindName("StagePositionText")).Text.Contains("—") && !((TextBlock)view.FindName("StagePositionText")).Text.Contains("NaN"));
             var filter = (ComboBox)view.FindName("SourceFilter");
@@ -247,9 +247,9 @@ internal static partial class Program
             var view=new CManualInspectionView{DataContext=fake,ConfirmationForTesting=(title,description,button)=>{confirmations.Add((title,description,button));return accept;}};
             Set(view, "_scatterOffsets", false); Set(view, "_scatterScope", "CELL"); // Explicit legacy working-data scope.
             var window=new Window{Width=1490,Height=1060,Content=view,Left=-20000,Top=-20000,ShowInTaskbar=false,ShowActivated=false,WindowStyle=WindowStyle.None};
-            window.Show();Pump();
+            window.Show();Pump(); SelectMeasurementView(view);
             var map=(CManualInspectionMapControl)view.FindName("PositionMap");
-            Test("default_color_is_measurement_deviation_level",Field<string>(view,"_color")=="level");
+            Test("explicit_measurement_view_is_deviation_level",Field<string>(view,"_color")=="level");
             Test("three_color_concepts_include_saved_final_offsets",((ComboBox)view.FindName("ColorFilter")).Items.Count==3);
             Test("advanced_sections_initially_closed",new[]{"InspectorSection","LeftInspectorSection","ReferenceSection","CorrectionSection","SettingsSection","ScatterSection","ResultsSection"}.All(n=>!((Expander)view.FindName(n)).IsExpanded));
             Test("simulation_and_duplicate_motion_controls_removed",new[]{"SimulationOptions","SimulationDemoButton","MoveButton","MoveMeasureCorrectButton","SideStopButton","PanToolButton","LoadResultButton"}.All(n=>view.FindName(n)is null));

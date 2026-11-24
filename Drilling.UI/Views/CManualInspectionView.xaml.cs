@@ -109,12 +109,12 @@ public partial class CManualInspectionView : UserControl
     private string _source = "ALL";
     private string _query = "";
     private string _sort = "shot";
-    private string _color = "level";
+    private string _color = "applied";
     private string _scatterScope = "HEAD";
     private int _scatterHead;
     private bool _scatterOriginal;
     private bool _scatterOffsets;
-    private bool _scatterFinalOffsets;
+    private bool _scatterFinalOffsets = true;
     private bool _scatterFollowSelection;
     private WorkspaceViewBookmark? _workspaceViewBookmark;
     private int _page;
@@ -138,8 +138,8 @@ public partial class CManualInspectionView : UserControl
         SetChoices(JudgeFilter, [new("ALL", "전체 결과"), new("MEASURED", "측정됨 · 보정 포함"), new("OK", "실측 OK"), new("NG", "실측 NG"), new("ERROR", "최근 수신 오류"), new("UNMEASURED", "미측정")], "ALL");
         SetChoices(SourceFilter, [new("ALL", "전체 출처"), new("MEASURED", "MEASURED"), new("IMPORTED", "IMPORTED · 불러온 결과"), new("CORRECTION_BASED", "보정 기반 측정"), new("INTERPOLATED", "INTERPOLATED"), new("MANUAL", "MANUAL"), new("KEPT", "KEPT")], "ALL");
         SetChoices(SortFilter, [new("shot", "Shot 순"), new("cell", "Cell 순"), new("error", "편차 크기 순")], "shot");
-        SetChoices(ColorFilter, [new("level", "측정 편차 · Level"), new("judge", "OK/NG"), new("applied", "최종 Review 보정 · Level")], "level");
-        SetChoices(ScatterDataCombo, [new("WORKING", "측정 편차"), new("ORIGINAL", "원측정 기록"), new("OFFSETS", "작업 누적 보정량"), new("FINAL_OFFSETS", "저장된 최종 Review 보정")], "WORKING");
+        SetChoices(ColorFilter, [new("level", "측정 편차 · Level"), new("judge", "OK/NG"), new("applied", "최종 Review 보정 · Level")], "applied");
+        SetChoices(ScatterDataCombo, [new("WORKING", "측정 편차"), new("ORIGINAL", "원측정 기록"), new("OFFSETS", "작업 누적 보정량"), new("FINAL_OFFSETS", "저장된 최종 Review 보정")], "FINAL_OFFSETS");
         SetChoices(InitScopeCombo, [new("ALL", "모델 전체"), new("CELL", "Cell별"), new("HEAD", "Head별")], "ALL");
         SetChoices(MeasurementModeCombo, [new("P2P", "P2P · 선택점"), new("FLYING", "Flying · 해당 행 전체")], "P2P");
         _updating = false;
@@ -318,7 +318,7 @@ public partial class CManualInspectionView : UserControl
                 _cell = _snapshot.Points.FirstOrDefault()?.CellNo ?? 0; _head = 0; _judge = _source = "ALL";
                 _query = ""; _page = 0; SearchBox.Text = "";
                 _localMessage = "";
-                _color = "level"; _scatterScope = "HEAD"; _scatterHead = 0; _scatterOriginal = false; _scatterOffsets = false; _scatterFinalOffsets = false; _scatterFollowSelection = false;
+                _color = "applied"; _scatterScope = "HEAD"; _scatterHead = 0; _scatterOriginal = false; _scatterOffsets = false; _scatterFinalOffsets = true; _scatterFollowSelection = false;
                 PositionMap.IsPanTool = false; PositionMap.Cursor = Cursors.Cross;
                 _scatterCells.Clear(); if (_cell != 0) _scatterCells.Add(_cell);
             }
@@ -347,7 +347,7 @@ public partial class CManualInspectionView : UserControl
                 Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() => InspectorScroll.ScrollToTop()));
             }
             SelectValue(JudgeFilter, _judge); SelectValue(SourceFilter, _source); SelectValue(SortFilter, _sort);
-            if (_color is not ("level" or "judge" or "applied")) _color="level";
+            if (_color is not ("level" or "judge" or "applied")) _color="applied";
             SelectValue(ColorFilter, _color); SelectValue(ScatterDataCombo, _scatterFinalOffsets ? "FINAL_OFFSETS" : _scatterOriginal ? "ORIGINAL" : _scatterOffsets ? "OFFSETS" : "WORKING");
             _filtered = FilteredPoints();
             ContextText.Text = $"{(_snapshot.IsSimulation ? "SIM · 설비 명령 없음" : "실제 설비")}  |  Recipe {_snapshot.RecipeId}{(_snapshot.IsOffsetEditPending ? " · Offset 미저장" : "")}";
@@ -451,6 +451,12 @@ public partial class CManualInspectionView : UserControl
             : _snapshot.FinalOffsetStatusText;
         FinalOffsetInfoText.ToolTip = _snapshot.FinalOffsetStatusText;
         ShowFinalOffsetsButton.IsEnabled = known;
+        // This is the SAME authoritative CSV selected by LoadLatest for machining/monitoring.
+        // Keep its identity visible with the side panels closed; never create another store.
+        FinalCsvSourceText.Text = "Final Offset · " + (hasFile ? _snapshot.FinalOffsetFileName
+            : known ? "저장 CSV 없음" : _snapshot.FinalOffsetStatusText.Contains("실패", StringComparison.Ordinal) ? "CSV 읽기 확인 필요" : "CSV 확인 중");
+        FinalCsvSourceButton.ToolTip = (hasFile ? _snapshot.FinalOffsetFilePath + "\nSHA-256 " + _snapshot.FinalOffsetContentSha256 + "\n" : "")
+            + _snapshot.FinalOffsetStatusText + "\n기존 Review CSV의 최종 누적값 보기 · 측정 원문/미저장 후보와 구분";
         ContextText.ToolTip += "\n최종 Review Offset: " + (hasFile ? _snapshot.FinalOffsetFilePath : FinalOffsetFileText.Text);
         if (_color == "applied")
             StatusText.ToolTip += "\n" + _snapshot.FinalOffsetStatusText;
@@ -458,7 +464,9 @@ public partial class CManualInspectionView : UserControl
 
     private void ShowFinalOffsets_Click(object sender, RoutedEventArgs e)
     {
-        _color = "applied"; Refresh();
+        _color = "applied";
+        _scatterFinalOffsets = true; _scatterOriginal = false; _scatterOffsets = false;
+        Refresh();
     }
 
     private void RefreshRows()
@@ -853,7 +861,7 @@ public partial class CManualInspectionView : UserControl
     }
     private void Search_Changed(object sender, TextChangedEventArgs e) { if (_updating) return; _query = SearchBox.Text.Trim(); _page = 0; Refresh(); }
     private void ResetFilters_Click(object sender, RoutedEventArgs e) { _head = 0; _judge = _source = "ALL"; _query = ""; _page = 0; _updating = true; SearchBox.Text = ""; _updating = false; Refresh(); }
-    private void Color_Changed(object sender, SelectionChangedEventArgs e) { if (_updating) return; _color = Value(ColorFilter, "level"); Refresh(); }
+    private void Color_Changed(object sender, SelectionChangedEventArgs e) { if (_updating) return; _color = Value(ColorFilter, "applied"); Refresh(); }
     private void Scatter_Changed(object sender, SelectionChangedEventArgs e)
     {
         if (_updating) return;
@@ -958,7 +966,7 @@ public partial class CManualInspectionView : UserControl
         var sameFrame = bookmark.RecipeId == _snapshot.RecipeId && bookmark.RunId == _snapshot.RunId && bookmark.CoordinateSignature == _snapshot.CoordinateSignature;
         _cell = bookmark.Cell == 0 || _cellChoices.Contains(bookmark.Cell) ? bookmark.Cell : _cellChoices.FirstOrDefault();
         _head = bookmark.Head == 0 || _headChoices.Contains(bookmark.Head) ? bookmark.Head : 0;
-        _judge = bookmark.Judge; _source = bookmark.Source; _query = bookmark.Query; _sort = bookmark.Sort; _color = bookmark.Color is "level" or "judge" or "applied" ? bookmark.Color : "level"; _page = bookmark.Page;
+        _judge = bookmark.Judge; _source = bookmark.Source; _query = bookmark.Query; _sort = bookmark.Sort; _color = bookmark.Color is "level" or "judge" or "applied" ? bookmark.Color : "applied"; _page = bookmark.Page;
         _selected.Clear();
         if (sameFrame) foreach (var key in bookmark.Keys)
             if (_points.TryGetValue(key, out var point) && !point.IsMasked) _selected.Add(key);

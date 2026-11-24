@@ -14,7 +14,7 @@ internal static partial class Program
             LoadResources("Dark");
             var state=Snapshot(32);var fake=new FakeController(state);var descriptions=new List<string>();
             var view=new CManualInspectionView{DataContext=fake,ConfirmationForTesting=(_,text,_)=>{descriptions.Add(text);return false;}};
-            var window=new Window{Width=1120,Height=560,Content=view,Left=-20000,Top=-20000,ShowInTaskbar=false,ShowActivated=false,WindowStyle=WindowStyle.None};window.Show();Pump();
+            var window=new Window{Width=1120,Height=560,Content=view,Left=-20000,Top=-20000,ShowInTaskbar=false,ShowActivated=false,WindowStyle=WindowStyle.None};window.Show();Pump();SelectMeasurementView(view);
             T Find<T>(string name)=>(T)view.FindName(name);
             void Click(string name){Find<Button>(name).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();}
             void Execute(EN_MANUAL_INSPECTION_UI_ACTION action){((Task)Invoke(view,"Execute",action,new CManualInspectionUiRequest{ExpectedVersion=fake.Snapshot.Version,Keys=[state.Points[0].Key]})!).GetAwaiter().GetResult();Pump();}
@@ -76,9 +76,9 @@ internal static partial class Program
         var error=At("ERROR_WITH_B",3,1,6,4) with{WorkingJudge="ERROR",WorkingXUm=null,WorkingYUm=null};
         var snapshot=Snapshot(1) with{Version=2500,Points=[a,zero,b,missing,masked,error],IsOffsetEditPending=false};
         var serialized=JsonSerializer.Serialize(snapshot.Points);var fake=new FakeController(snapshot);var view=new CManualInspectionView{DataContext=fake,ConfirmationForTesting=(_,_,_)=>false};
-        var window=new Window{Width=1480,Height=900,Content=view,Left=-20000,Top=-20000,ShowInTaskbar=false,ShowActivated=false,WindowStyle=WindowStyle.None};window.Show();Pump();
+        var window=new Window{Width=1480,Height=900,Content=view,Left=-20000,Top=-20000,ShowInTaskbar=false,ShowActivated=false,WindowStyle=WindowStyle.None};window.Show();Pump();SelectMeasurementView(view);
         var plot=(CManualInspectionScatterControl)view.FindName("ScatterPlot");var combo=(ComboBox)view.FindName("ScatterDataCombo");var scope=(Expander)view.FindName("ScatterSection");scope.IsExpanded=true;Pump();
-        Test("scatter_defaults_to_measurement_residuals_and_all_heads",!Field<bool>(view,"_scatterOffsets")&&!Field<bool>(view,"_scatterOriginal")&&Field<string>(view,"_scatterScope")=="HEAD"&&Field<int>(view,"_scatterHead")==0&&plot.DataKind=="WORKING");
+        Test("scatter_explicit_measurement_residuals_and_all_heads",!Field<bool>(view,"_scatterOffsets")&&!Field<bool>(view,"_scatterOriginal")&&!Field<bool>(view,"_scatterFinalOffsets")&&Field<string>(view,"_scatterScope")=="HEAD"&&Field<int>(view,"_scatterHead")==0&&plot.DataKind=="WORKING");
         // The following legacy cumulative-Offset checks explicitly select that retained optional mode.
         combo.SelectedItem=combo.Items.Cast<object>().Single(i=>i.GetType().GetProperty("Value")!.GetValue(i)?.ToString()=="OFFSETS");Pump();
         Test("scatter_cumulative_uses_base_even_when_fresh_residual_or_ng_exists",plot.Metrics.Count==4&&Math.Abs(plot.Metrics.MeanX.GetValueOrDefault(double.NaN)+3)<1e-10&&Math.Abs(plot.Metrics.MeanY.GetValueOrDefault(double.NaN)-5.25)<1e-10);

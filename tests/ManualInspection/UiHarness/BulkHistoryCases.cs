@@ -13,7 +13,7 @@ internal static partial class Program
         {
             LoadResources("Light");var state=Snapshot(240) with{CanBulkApply=true,BulkEligibleCount=180,BulkSummaryText="모델 전체 · 보정 대상 180 · NG 20 · 미측정 40",CanUndoOffsets=false,CanRedoOffsets=false,OffsetHistoryText="되돌리기 0 / 다시 적용 0"};
             var fake=new FakeController(state);var confirms=0;var view=new CManualInspectionView{DataContext=fake,ConfirmationForTesting=(_,_,_)=>{confirms++;return false;}};
-            var window=new Window{Width=1490,Height=900,Content=view,Left=-20000,Top=-20000,ShowInTaskbar=false,ShowActivated=false,WindowStyle=WindowStyle.None};window.Show();Pump();
+            var window=new Window{Width=1490,Height=900,Content=view,Left=-20000,Top=-20000,ShowInTaskbar=false,ShowActivated=false,WindowStyle=WindowStyle.None};window.Show();Pump();SelectMeasurementView(view);
             T Find<T>(string name)=>(T)view.FindName(name);
             void Click(string name){Find<Button>(name).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();}
             var map=Find<CManualInspectionMapControl>("PositionMap");

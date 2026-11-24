@@ -1,0 +1,250 @@
+{
+  "passed": true,
+  "tests": 39,
+  "failures": 0,
+  "checks": [
+    {
+      "name": "existing_csv_constructor_defaults_to_saved_map",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_constructor_defaults_to_saved_scatter",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_first_loaded_view_needs_no_mode_button",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_default_map_reads_saved_B_instead_of_raw_or_draft",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_default_scatter_reads_saved_population",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_default_table_shows_saved_B",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_source_is_visible_when_both_side_panels_are_closed",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_source_tooltip_has_exact_absolute_path_and_sha",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_view_setup_preserves_all_raw_and_candidate_values",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_metadata_change_updates_map_table_scatter_immediately",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_metadata_change_updates_visible_source_without_opening_panels",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_explicit_raw_view_stays_selected_during_same_frame_refresh",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_raw_option_uses_original_working_residual",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_explicit_judge_view_stays_selected",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_source_one_click_returns_to_final_map_without_motion",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_new_model_resets_to_final_map_and_final_scatter",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_new_model_source_does_not_keep_previous_recipe_path",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_failure_is_not_reported_as_missing_file",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_failure_does_not_expose_old_file_as_current",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_no_file_is_explicit_empty_not_perfect_zero",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_file_return_preserves_users_original_display_choice",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_invalid_bookmark_mode_falls_back_to_final_csv",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_all_display_switches_keep_raw_records_exact",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_source_visible_without_opening_any_panel_Dark_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_source_and_map_fit_both_panels_without_scroll_Dark_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_theme_is_native_Dark_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_layout_defaults_are_final_without_test_mode_setup_Dark_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_source_visible_without_opening_any_panel_Dark_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_source_and_map_fit_both_panels_without_scroll_Dark_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_theme_is_native_Dark_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_layout_defaults_are_final_without_test_mode_setup_Dark_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_source_visible_without_opening_any_panel_Light_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_source_and_map_fit_both_panels_without_scroll_Light_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_theme_is_native_Light_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_layout_defaults_are_final_without_test_mode_setup_Light_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_source_visible_without_opening_any_panel_Light_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_source_and_map_fit_both_panels_without_scroll_Light_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_theme_is_native_Light_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_layout_defaults_are_final_without_test_mode_setup_Light_wide",
+      "passed": true,
+      "details": null
+    }
+  ],
+  "observations": [
+    {
+      "defaultFinalCount": 6,
+      "visibleFile": "Final Offset \u00B7 20261124_171200_001_reviewoffset.csv",
+      "savedRevision": "EXISTING-CSV-B",
+      "rawUnchanged": true
+    },
+    {
+      "theme": "Dark",
+      "Name": "notebook",
+      "mapWidth": 533.2800000000001,
+      "mapHeight": 448.24,
+      "sourceWidth": 243.26333333333335,
+      "sourceHeight": 32
+    },
+    {
+      "theme": "Dark",
+      "Name": "wide",
+      "mapWidth": 863.6800000000002,
+      "mapHeight": 769.84,
+      "sourceWidth": 243.26333333333335,
+      "sourceHeight": 32
+    },
+    {
+      "theme": "Light",
+      "Name": "notebook",
+      "mapWidth": 533.2800000000001,
+      "mapHeight": 448.24,
+      "sourceWidth": 243.26333333333335,
+      "sourceHeight": 32
+    },
+    {
+      "theme": "Light",
+      "Name": "wide",
+      "mapWidth": 863.6800000000002,
+      "mapHeight": 769.84,
+      "sourceWidth": 243.26333333333335,
+      "sourceHeight": 32
+    }
+  ],
+  "sourceHashes": {
+    "Views/CManualInspectionView.xaml": "7010f4694d8c8ee58f1227c51e349963328f3e7ca8df646b643dd00ef3983083",
+    "Views/CManualInspectionView.xaml.cs": "2bd5f393fdad18b9422c1ba341d001ca3a1492db3af508fe18efc7382fdb6774",
+    "Views/CManualInspectionUiContract.cs": "6b3757f96a5c73c0d41dd15c6ba4061e3cec9f05f06e67d981610e5f045be14d",
+    "Views/CManualInspectionMapControl.cs": "e5664889149d3a7ee9f4cc9d3fa898a40546e77472bffd10eae00a9ab37f0fdb",
+    "Views/CManualInspectionScatterControl.cs": "1cc3fb7be94547c2e714d8809906f2df6018e5805b6ed44ecc9fd2c398e6a0bb"
+  },
+  "scope": "Actual source-linked WPF control constructed directly, default selections and existing saved CSV metadata; fake Controller and synthetic records only. No production App/Root/Manager, equipment, vendor, motion, Vision, real CSV or export execution."
+}

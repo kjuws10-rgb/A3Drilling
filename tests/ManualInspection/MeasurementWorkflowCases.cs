@@ -48,11 +48,11 @@ internal static partial class Program
             var(w,a,_,_,_)=Scoped();w.InitializeMeasurementOffsets([a.Key]);w.ValidateCandidate(false);var s=w.CreateApplySnapshot(false);w.AbortApply(s);
             True(w.Points.All(p=>!p.IsMeasurementOffsetInitialized));Offset(w.ActiveOffsets[a.Key],8,-3);True(w.Candidate!.IsMeasurementOffsetInitialization);
         });
-        Check("scoped_init_large_legacy_delta_exemption_does_not_exempt_untouched_fields",()=>
+        Check("scoped_init_keeps_unchanged_legacy_fields_without_treating_them_as_new_commands",()=>
         {
             var a=Point(1);var b=Point(2);var seen=new HashSet<string>();var w=Workspace([a,b],new(){[a.Key]=new(700,-800),[b.Key]=new(2,3)},
                 (p,offset,_)=>{seen.Add(p.Key);return new(p.Key!=b.Key,"synthetic preserved location outside field");});
-            w.InitializeMeasurementOffsets([a.Key]);True(!w.ValidateCandidate(false).Ok&&seen.Contains(b.Key));
+            w.InitializeMeasurementOffsets([a.Key]);True(w.ValidateCandidate(false).Ok&&seen.Contains(a.Key)&&!seen.Contains(b.Key));
         });
         Check("real_zero_measurement_clears_initialized_state_but_is_still_direct_valid_measurement",()=>
         {

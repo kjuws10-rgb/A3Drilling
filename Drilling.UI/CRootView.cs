@@ -1620,6 +1620,19 @@ namespace Drilling.UI
             try
             {
                 await PrepareInitialProcess(cancellationToken: cancellationToken);
+                // Resolve the applied Recipe/Product first. Preloading while CreateMenus runs could
+                // capture the configured fallback Recipe instead of the one actually prepared.
+                // EnsureLoaded only reads the saved model; it neither measures nor applies offsets.
+                if (_menus.TryGetValue(EN_MENU.Correction, out var correction) && correction is CMenuCorrection menu)
+                {
+                    try { await menu.ManualInspection.EnsureLoaded(cancellationToken); }
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+                    catch (Exception error)
+                    {
+                        StatusMessage = $"Process model prepared. Manual Inspection saved offset load needs attention: {error.Message}";
+                        Debug.WriteLine("Manual Inspection startup saved offset read failed. " + error);
+                    }
+                }
             }
             catch (OperationCanceledException)when (cancellationToken.IsCancellationRequested)
             {

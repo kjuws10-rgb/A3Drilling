@@ -20,6 +20,8 @@
     <Compile Include="RetryVisibilityCases.cs" />
     <Compile Include="FirstLoadStateCases.cs" />
     <Compile Include="FinalOffsetSyncCases.cs" />
+    <Compile Include="InitRecoveryCases.cs" />
+    <Compile Include="StartupFinalOffsetsCases.cs" />
   </ItemGroup>
   <ItemGroup Condition="'$(UseActualAssemblies)' != 'true'">
     <Compile Include="Contracts.cs" />

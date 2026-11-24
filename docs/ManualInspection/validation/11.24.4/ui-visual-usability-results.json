@@ -1,0 +1,669 @@
+{
+  "schemaVersion": "a3-manual-inspection-ui-visual-usability/1",
+  "passed": true,
+  "tests": 105,
+  "failures": 0,
+  "scope": "Actual WPF sources/themes and synthetic points with request-recording fake Controller. DPI125/150 uses equivalent DIP space and high-resolution bitmap rendering, not an OS monitor DPI change. No equipment App/Root/SDK/Vision/motion.",
+  "checks": [
+    {
+      "name": "visual_hidden_selection_is_preserved_across_cell_head_filter",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_hidden_selection_remains_explicit_operation_scope",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_hidden_selection_is_explained_in_selection_summary",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_context_menu_explains_hidden_selection_scope",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_context_routed_enter_activates_only_source_action_and_cancel_keeps_host_unchanged",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_context_escape_closes_without_an_operation",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_context_flat_theme_resource_Dark",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_context_legacy_flag_keeps_multi_point_commands_available_Dark",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_context_flat_theme_resource_Light",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_context_legacy_flag_keeps_multi_point_commands_available_Light",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_file_menu_uses_same_flat_theme",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_selection_menu_uses_same_flat_theme",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_zoom_pan_hit_matches_exact_transformed_point",
+      "passed": true,
+      "details": {
+        "examined": 15
+      }
+    },
+    {
+      "name": "visual_zoom_pan_does_not_change_source_or_dispatch_work",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_filter_does_not_repack_matrix_coordinates",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_additive_drag_keeps_selected_hidden_points",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_escape_cancels_pan_and_restores_previous_visual_position",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_cancelled_gesture_never_changes_selection_or_work",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_capture_loss_cancels_gesture_and_restores_pan",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_unload_cancels_gesture_without_selection_or_work",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_external_snapshot_cancels_stale_drag",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_scope_change_cancels_stale_drag",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_same_version_filter_change_cancels_drag_and_restores_pan",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_same_scope_selection_refresh_preserves_active_gesture",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_invalid_zoom_factor_cannot_poison_view_state",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_invalid_zoom_origin_cannot_poison_pan",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_text_input_uses_real_inner_editor_event_source",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_inner_textbox_key_Apps_does_not_open_map_or_execute_work",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_inner_textbox_key_Return_does_not_open_map_or_execute_work",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_inner_textbox_key_Space_does_not_open_map_or_execute_work",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_inner_textbox_key_Left_does_not_open_map_or_execute_work",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_inner_textbox_key_Right_does_not_open_map_or_execute_work",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_accessibility_peer_name_PositionMap",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_accessibility_peer_name_ScatterPlot",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_accessibility_peer_name_SearchBox",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_accessibility_peer_name_StopButton",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_map_scatter_accessibility_explains_visual_only_navigation",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_icon_button_has_descriptive_accessibility_name_\u002B",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_icon_button_has_descriptive_accessibility_name_\u2212",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_progress_only_snapshot_reuses_point_dictionary",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_progress_only_snapshot_reuses_scatter_statistics",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_progress_only_snapshot_preserves_selection_without_work",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_new_measurement_array_invalidates_dictionary_and_scatter_cache",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_head_filter_has_single_all_and_only_real_scanners",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_unassigned_masked_head_remains_in_matrix_geometry",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_scatter_head_options_do_not_duplicate_unassigned_head_as_all",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_scatter_hit_group_excludes_nearby_distinct_measurement",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_coincident_scatter_clicks_cycle_individual_points",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_ctrl_scatter_click_adds_only_coincident_group",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_partial_coincident_selection_ctrl_adds_missing_points_without_inverting",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_fully_selected_coincident_group_ctrl_toggles_group_off",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_blank_scatter_click_does_not_select_remote_point",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_scatter_uses_equal_xy_scale_and_positive_y_up",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_primary_text_contrast_Light",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_default_sections_collapsed_Light_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_map_not_clipped_Light_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_no_horizontal_overflow_Light_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_no_default_vertical_scroll_Light_wide",
+      "passed": true,
+      "details": {
+        "ScrollableHeight": 0,
+        "inspectorScroll": 0,
+        "inspectorVisible": false
+      }
+    },
+    {
+      "name": "visual_stop_button_visible_Light_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_long_context_is_available_without_expanding_layout_Light_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_default_sections_collapsed_Light_compact",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_map_not_clipped_Light_compact",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_no_horizontal_overflow_Light_compact",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_no_default_vertical_scroll_Light_compact",
+      "passed": true,
+      "details": {
+        "ScrollableHeight": 0,
+        "inspectorScroll": 0,
+        "inspectorVisible": false
+      }
+    },
+    {
+      "name": "visual_stop_button_visible_Light_compact",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_long_context_is_available_without_expanding_layout_Light_compact",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_default_sections_collapsed_Light_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_map_not_clipped_Light_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_no_horizontal_overflow_Light_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_no_default_vertical_scroll_Light_dpi125",
+      "passed": true,
+      "details": {
+        "ScrollableHeight": 0,
+        "inspectorScroll": 0,
+        "inspectorVisible": false
+      }
+    },
+    {
+      "name": "visual_stop_button_visible_Light_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_long_context_is_available_without_expanding_layout_Light_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_default_sections_collapsed_Light_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_map_not_clipped_Light_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_no_horizontal_overflow_Light_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_stop_button_visible_Light_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_long_context_is_available_without_expanding_layout_Light_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_primary_text_contrast_Dark",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_default_sections_collapsed_Dark_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_map_not_clipped_Dark_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_no_horizontal_overflow_Dark_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_no_default_vertical_scroll_Dark_wide",
+      "passed": true,
+      "details": {
+        "ScrollableHeight": 0,
+        "inspectorScroll": 0,
+        "inspectorVisible": false
+      }
+    },
+    {
+      "name": "visual_stop_button_visible_Dark_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_long_context_is_available_without_expanding_layout_Dark_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_default_sections_collapsed_Dark_compact",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_map_not_clipped_Dark_compact",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_no_horizontal_overflow_Dark_compact",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_no_default_vertical_scroll_Dark_compact",
+      "passed": true,
+      "details": {
+        "ScrollableHeight": 0,
+        "inspectorScroll": 0,
+        "inspectorVisible": false
+      }
+    },
+    {
+      "name": "visual_stop_button_visible_Dark_compact",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_long_context_is_available_without_expanding_layout_Dark_compact",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_default_sections_collapsed_Dark_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_map_not_clipped_Dark_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_no_horizontal_overflow_Dark_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_no_default_vertical_scroll_Dark_dpi125",
+      "passed": true,
+      "details": {
+        "ScrollableHeight": 0,
+        "inspectorScroll": 0,
+        "inspectorVisible": false
+      }
+    },
+    {
+      "name": "visual_stop_button_visible_Dark_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_long_context_is_available_without_expanding_layout_Dark_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_default_sections_collapsed_Dark_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_map_not_clipped_Dark_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_no_horizontal_overflow_Dark_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_stop_button_visible_Dark_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_long_context_is_available_without_expanding_layout_Dark_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_preview_scenes_never_dispatch_controller_work",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_large_dataset_has_no_missing_matrix_slots",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_large_fit_keeps_all_slot_bounds_in_view",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "visual_large_data_presentation_has_no_equipment_request",
+      "passed": true,
+      "details": null
+    }
+  ],
+  "observations": [
+    {
+      "kind": "directional-menu-keyboard-control-experiment",
+      "flatFocusAccepted": false,
+      "systemFocusAccepted": false,
+      "flatDown": false,
+      "flatUp": false,
+      "systemDown": false,
+      "systemUp": false,
+      "flatDownHandled": true,
+      "flatUpHandled": true,
+      "systemDownHandled": true,
+      "systemUpHandled": true,
+      "scope": "Off-screen nonactivated WPF window; no desktop focus activation and no injected highlight/focus state. If both native and flat controls cannot focus, real Up/Down traversal is inconclusive and excluded from passed check count."
+    },
+    {
+      "theme": "Light",
+      "Label": "wide",
+      "Scale": 1,
+      "ActualWidth": 1467.2,
+      "ActualHeight": 868.8000000000001,
+      "mapWidth": 1397.28,
+      "mapHeight": 769.84,
+      "workspaceScroll": 0,
+      "inspectorScroll": 0
+    },
+    {
+      "theme": "Light",
+      "Label": "compact",
+      "Scale": 1,
+      "ActualWidth": 1107.2,
+      "ActualHeight": 547.2,
+      "mapWidth": 1037.28,
+      "mapHeight": 448.24,
+      "workspaceScroll": 0,
+      "inspectorScroll": 0
+    },
+    {
+      "theme": "Light",
+      "Label": "dpi125",
+      "Scale": 1.25,
+      "ActualWidth": 1107.2,
+      "ActualHeight": 707.2,
+      "mapWidth": 1037.28,
+      "mapHeight": 608.24,
+      "workspaceScroll": 0,
+      "inspectorScroll": 0
+    },
+    {
+      "theme": "Light",
+      "Label": "dpi150",
+      "Scale": 1.5,
+      "ActualWidth": 920.8000000000001,
+      "ActualHeight": 587.2,
+      "mapWidth": 850.8800000000001,
+      "mapHeight": 488.24,
+      "workspaceScroll": 0,
+      "inspectorScroll": 0
+    },
+    {
+      "theme": "Dark",
+      "Label": "wide",
+      "Scale": 1,
+      "ActualWidth": 1467.2,
+      "ActualHeight": 868.8000000000001,
+      "mapWidth": 1397.28,
+      "mapHeight": 769.84,
+      "workspaceScroll": 0,
+      "inspectorScroll": 0
+    },
+    {
+      "theme": "Dark",
+      "Label": "compact",
+      "Scale": 1,
+      "ActualWidth": 1107.2,
+      "ActualHeight": 547.2,
+      "mapWidth": 1037.28,
+      "mapHeight": 448.24,
+      "workspaceScroll": 0,
+      "inspectorScroll": 0
+    },
+    {
+      "theme": "Dark",
+      "Label": "dpi125",
+      "Scale": 1.25,
+      "ActualWidth": 1107.2,
+      "ActualHeight": 707.2,
+      "mapWidth": 1037.28,
+      "mapHeight": 608.24,
+      "workspaceScroll": 0,
+      "inspectorScroll": 0
+    },
+    {
+      "theme": "Dark",
+      "Label": "dpi150",
+      "Scale": 1.5,
+      "ActualWidth": 920.8000000000001,
+      "ActualHeight": 587.2,
+      "mapWidth": 850.8800000000001,
+      "mapHeight": 488.24,
+      "workspaceScroll": 0,
+      "inspectorScroll": 0
+    },
+    {
+      "kind": "synthetic-large-layout",
+      "points": 32000,
+      "milliseconds": 693.471
+    }
+  ]
+}

@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 1,
+  "version": "11.24.4",
+  "round": 1,
+  "kind": "independent-read-only-source-and-schema-review",
+  "status": "passed",
+  "passed": true,
+  "sourceCommit": "b9659de850691ff677a1e7caf2093c499cd42f28",
+  "checkedAt": "2026-11-24T04:17:05.566444+00:00",
+  "analysisOnly": true,
+  "buildOrSimulationExecuted": false,
+  "vendorOrDeviceExecuted": false,
+  "productionOrGitMutation": false,
+  "actualRecordsCopied": false,
+  "existingCsv": {
+    "path": "Config/RECIPE/test0929_reviewoffset/20261120_114859_908_reviewoffset.csv",
+    "sha256": "7a0853ba4d8050872dfd2f2c461d685b05f33f57f008f148f8ec0b1bd2f316b2",
+    "selectionRule": "ordinal-ignore-case filename descending; top-level *_reviewoffset.csv",
+    "activeFileCount": 137,
+    "headers": [
+      "CELLID",
+      "SHOTID",
+      "REVIEWOFFSETX",
+      "REVIEWOFFSETY",
+      "COORDINATE_SPACE"
+    ],
+    "rowCount": 21420,
+    "distinctCells": 45,
+    "duplicateCellShotCount": 0,
+    "coordinateSpaceCounts": {
+      "DESIGN": 21420
+    },
+    "hasExplicitMeasurementStateColumn": false,
+    "recipeGeometry": {
+      "cells": 45,
+      "columns": 28,
+      "rows": 17,
+      "modelTypeCounts": {
+        "1": 45
+      }
+    },
+    "completeIdentifierCoverage": true,
+    "missingIdentifierCount": 0,
+    "extraIdentifierCount": 0
+  },
+  "sourceEvidence": [
+    {
+      "path": "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs",
+      "sha256": "645b57058316479238afdc40d8a802ab0f25d3096a12fbdea3c4bbee69148e12",
+      "matchesBaseBytes": false,
+      "matchesBaseCanonicalText": true,
+      "gitBlobSha256": "d591ad53b5dc2ff08b877b3c2e31f1eed016c2bb6811d81bcdaa1ad658967348"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CManualInspectionController.cs",
+      "sha256": "bc79f640be9d274846a875b508a56e3d3ff28d83547eead75b8db9ff41578d8e",
+      "matchesBaseBytes": false,
+      "matchesBaseCanonicalText": true,
+      "gitBlobSha256": "cfc665699a3068960249020e41af38480649be88bb36996a4dd06a6e8297dd70"
+    },
+    {
+      "path": "Drilling.Common/Review/CManualInspectionCoordinateBridge.cs",
+      "sha256": "4d1753b71ff3fb62b022b362e94f95c9832452841d3c81f21b38ee3b1c21640c",
+      "matchesBaseBytes": false,
+      "matchesBaseCanonicalText": true,
+      "gitBlobSha256": "faf320044ebb800f2f5216cf0900c2e23b6d12d8a2cb86e089825bc8d97d9344"
+    },
+    {
+      "path": "Drilling.File/ReviewOffset/CReviewOffsetFile.cs",
+      "sha256": "322d7c92b8bd044779e7cda61e80bbd52654eefa0422eb8ebe88ee6e1530b24f",
+      "matchesBaseBytes": false,
+      "matchesBaseCanonicalText": true,
+      "gitBlobSha256": "ebe700858998ebed752a4f59cc605d3fd6204a87241c338365e49154670234b8"
+    },
+    {
+      "path": "Drilling.Common/Recipe/CShotCoordinatePlanBuilder.cs",
+      "sha256": "142fd432b5de1af2fc70c6e1ecccd3b4d42b85253ecda3e3c0342ae6fec6fa5a",
+      "matchesBaseBytes": false,
+      "matchesBaseCanonicalText": true,
+      "gitBlobSha256": "1aae4cf012a52ee08305dee90b5f650a61e2b1ca10485815cf9c797cd3795c6e"
+    },
+    {
+      "path": "Drilling.Common/Recipe/CCellPatternCalculator.cs",
+      "sha256": "2d09557b69d8cf7e03b380e9adf01f5938a8d0b9f7bdf79dff397778013431fd",
+      "matchesBaseBytes": false,
+      "matchesBaseCanonicalText": true,
+      "gitBlobSha256": "a463bbfaf49c6e041202c8f39ba0dbbde1e996590557a8ae984f5cbe1f1588ae"
+    },
+    {
+      "path": "Drilling.Common/Review/CReviewManager.cs",
+      "sha256": "32bb509070f077f16b22059cb7c2ed815a351b8a7876c4fdd1da75649de255cd",
+      "matchesBaseBytes": false,
+      "matchesBaseCanonicalText": true,
+      "gitBlobSha256": "01f957542c0049a596e11e4f6741ac98069baac473ce6bc344662c1ab9a09dc4"
+    },
+    {
+      "path": "Config/RECIPE/test0929.csv",
+      "sha256": "5bad2e06d5d02935232905d8b171a0250eb838085ad76aedc1eddd460ce390bf",
+      "matchesBaseBytes": false,
+      "matchesBaseCanonicalText": true,
+      "gitBlobSha256": "7ff069b720c7faf13f17f56dc6d0a16b76fef51f78f81f7721a6bb139ed1dc8a"
+    },
+    {
+      "path": "Config/RECIPE/test0929_reviewoffset/20261120_114859_908_reviewoffset.csv",
+      "sha256": "7a0853ba4d8050872dfd2f2c461d685b05f33f57f008f148f8ec0b1bd2f316b2",
+      "matchesBaseBytes": false,
+      "matchesBaseCanonicalText": true,
+      "gitBlobSha256": "60d63f0e35aabf4ba842d85c30fc5bfefd2629e67808c72e77478c0042fe68dc"
+    }
+  ],
+  "findings": [
+    {
+      "id": "DISPLAY-01",
+      "classification": "confirmed usability root cause",
+      "detail": "Base view defaults/reset/fallback use level, while saved final B projection requires applied. Existing file already loads; adding another data store is unnecessary."
+    },
+    {
+      "id": "DISPLAY-02",
+      "classification": "confirmed provenance visibility issue",
+      "detail": "Full file metadata is on left Info tab; collapsed panel/default Filter tab hides it. Keep a compact always-visible source indicator linked to existing metadata."
+    },
+    {
+      "id": "FRAME-01",
+      "classification": "retained context restriction; no change requested",
+      "detail": "No current Glass alone does not block load. A native Run/Shift/context change while old file/draft context persists can reject final display. Existing read method is shared by coordinate export, so do not delete run/geometry guards as a UI-only fix."
+    }
+  ],
+  "nextVerification": [
+    "Default model load uses saved final B without separate color/scatter choice.",
+    "Explicit user color/scatter selection and file-return bookmark are preserved.",
+    "Existing row numbers are not copied into artifacts; exact mm-to-um mapping is exercised locally or using synthetic data.",
+    "Missing/Init stays gray, genuine saved zero stays valid, NG remains red, dirty candidate never substitutes saved B.",
+    "Current-file path/name/SHA and updating states remain correct with panels collapsed."
+  ],
+  "readerAndMappingUnchanged": true,
+  "gitCheckoutLineEndings": "Current checkout CRLF differs from LF Git blobs; raw SHA retained, equivalence checks normalize CRLF only. No content mutation was found by git diff for these nine paths.",
+  "minimumUiDiffReview": {
+    "reviewedAt": "2026-11-24T04:17:55.002299+00:00",
+    "changedProductionPaths": [
+      "Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs",
+      "Drilling.UI/Drilling.UI.csproj",
+      "Drilling.UI/Views/CManualInspectionView.xaml",
+      "Drilling.UI/Views/CManualInspectionView.xaml.cs"
+    ],
+    "readerControllerStorePlannerDeltaEmpty": true,
+    "sourceButtonReusesHandler": "ShowFinalOffsets_Click",
+    "buttonAction": "change applied map + FINAL_OFFSETS scatter only; Refresh; no controller action/motion/export/save",
+    "resetPolicy": "first/new-frame default final; valid explicit bookmark colors and per-view chosen scatter remain preserved",
+    "version": "11.24.4",
+    "runtimeLayoutVerification": "pending separate UI owner runs"
+  }
+}

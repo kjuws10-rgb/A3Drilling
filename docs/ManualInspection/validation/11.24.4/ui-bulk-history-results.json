@@ -1,0 +1,250 @@
+{
+  "passed": true,
+  "tests": 47,
+  "failures": 0,
+  "checks": [
+    {
+      "name": "bulk_ui_exposes_separate_bulk_apply_undo_redo_controls",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_ui_initial_history_buttons_disabled",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_ui_summary_discloses_model_wide_eligible_and_excluded_counts",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_ui_point_context_has_move_and_move_measure_without_automatic_correction",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_ui_point_context_retains_single_measure_and_details",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_ui_confirmation_cancel_writes_nothing",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_ui_confirmation_cancel_unlocks_apply",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_ui_confirmed_apply_dispatches_once_with_frozen_version",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_ui_confirmation_describes_model_scope_and_exclusions",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_ui_modal_disables_repeat_apply",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_ui_reentrant_modal_cannot_dispatch_early",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_ui_reentrant_modal_produces_one_confirmation_and_request",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_ui_changed_version_during_confirmation_cannot_apply",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_ui_lost_eligibility_during_confirmation_cannot_apply",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_ui_inflight_disables_repeat_apply",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_ui_inflight_repeat_cannot_dispatch_twice",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_ui_consumed_snapshot_rejects_second_click_without_confirmation",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "correction_surface_has_single_selected_apply_without_three_step_controls",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "correction_confirmation_cancel_has_no_dispatch_ApplySelectedOffsets",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "correction_confirmation_reentrant_dispatches_once_ApplySelectedOffsets",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "correction_confirmation_explains_effect_ApplySelectedOffsets",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "correction_confirmation_version_change_rejects_ApplySelectedOffsets",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "correction_confirmation_exception_unlocks_without_dispatch_ApplySelectedOffsets",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "correction_confirmation_cancel_has_no_dispatch_Validate",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "correction_confirmation_reentrant_dispatches_once_Validate",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "correction_confirmation_explains_effect_Validate",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "correction_confirmation_version_change_rejects_Validate",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "correction_confirmation_exception_unlocks_without_dispatch_Validate",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "correction_confirmation_cancel_has_no_dispatch_Apply",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "correction_confirmation_reentrant_dispatches_once_Apply",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "correction_confirmation_explains_effect_Apply",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "correction_confirmation_version_change_rejects_Apply",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "correction_confirmation_exception_unlocks_without_dispatch_Apply",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_ui_history_buttons_show_available_depths",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_ui_undo_and_redo_dispatch_immediately_without_motion_confirmation",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_ui_history_text_matches_current_cursor_summary",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_ui_busy_disables_bulk_and_history_edits",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_ui_pending_init_disables_bulk_and_history_edits",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_ui_no_eligible_results_keeps_explanation_available",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_ui_no_eligible_results_never_dispatch_or_open_apply_confirmation",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_ui_init_has_no_numeric_deviation_or_precision_level_Light",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_ui_init_right_result_is_absent_instead_of_zero_Light",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_ui_init_has_no_numeric_deviation_or_precision_level_Dark",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_ui_init_right_result_is_absent_instead_of_zero_Dark",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_ui_oldest_retained_state_disables_undo_and_allows_ten_redos",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_ui_preserves_default_scroll_free_map_1490",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bulk_ui_preserves_default_scroll_free_map_1120",
+      "passed": true,
+      "details": null
+    }
+  ],
+  "sourceHashes": {
+    "Views/CManualInspectionUiContract.cs": "6b3757f96a5c73c0d41dd15c6ba4061e3cec9f05f06e67d981610e5f045be14d",
+    "Views/CManualInspectionMapControl.cs": "e5664889149d3a7ee9f4cc9d3fa898a40546e77472bffd10eae00a9ab37f0fdb",
+    "Views/CManualInspectionScatterControl.cs": "1cc3fb7be94547c2e714d8809906f2df6018e5805b6ed44ecc9fd2c398e6a0bb",
+    "Views/CManualInspectionView.xaml": "7010f4694d8c8ee58f1227c51e349963328f3e7ca8df646b643dd00ef3983083",
+    "Views/CManualInspectionView.xaml.cs": "2bd5f393fdad18b9422c1ba341d001ca3a1492db3af508fe18efc7382fdb6774"
+  },
+  "scope": "Source-linked native WPF and synthetic snapshots/fake controller. No equipment App/Root/Manager/SDK, motion, Vision, PLC or scripts executed."
+}

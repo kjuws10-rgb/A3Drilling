@@ -17,6 +17,7 @@
     <Compile Include="RepresentativeCases.cs" />
     <Compile Include="SidePanelsCases.cs" />
     <Compile Include="FinalOffsetCases.cs" />
+    <Compile Include="ExistingFinalCsvCases.cs" />
     <Compile Include="../../../Drilling.UI/Views/CManualInspectionUiContract.cs" Link="CManualInspectionUiContract.cs" />
     <Compile Include="../../../Drilling.UI/Views/CManualInspectionMapControl.cs" Link="CManualInspectionMapControl.cs" />
     <Compile Include="../../../Drilling.UI/Views/CManualInspectionScatterControl.cs" Link="CManualInspectionScatterControl.cs" />

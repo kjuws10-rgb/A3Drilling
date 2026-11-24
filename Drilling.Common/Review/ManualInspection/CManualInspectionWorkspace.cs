@@ -22,6 +22,8 @@ public sealed class CManualInspectionWorkspace
     private readonly HashSet<string> _appliedCandidates = new(StringComparer.Ordinal);
     private readonly List<ST_MANUAL_REVISION> _revisions = [];
     private readonly List<ST_MANUAL_REVISION> _offsetTimeline = [];
+    // Evidence comes only from this process's real load/commit boundary, never session JSON.
+    private readonly Dictionary<string,ST_MANUAL_REVISION> _verifiedStoredRevisions=new(StringComparer.Ordinal);
     private int _offsetHistoryCursor;
     public const int MaxOffsetUndoSteps = 10;
     private readonly List<ST_MANUAL_AUDIT> _audit = [];
@@ -72,6 +74,8 @@ public sealed class CManualInspectionWorkspace
         GuardIdle();
         ValidateContext(context); ValidateLimits(limits);
         var sameRun = Context?.RecipeId == context.RecipeId && Context.RunId == context.RunId;
+        var sameStoredFrame = sameRun && Context!.CoordinateSignature == context.CoordinateSignature
+            && Context.RevisionId == context.RevisionId;
         if (sameRun && HasPendingOffsetEdit) throw new InvalidOperationException("통합 Offset 편집을 저장하거나 취소한 후 작업공간을 다시 불러오세요.");
         if (sameRun && HasIncompleteMeasurements)
             throw new InvalidOperationException("같은 Run의 미완료 측정을 재로드로 지울 수 없습니다. 잔여 측정을 완료하거나 새 Run을 여세요.");
@@ -115,6 +119,15 @@ public sealed class CManualInspectionWorkspace
         _revisions.Add(new(context.RevisionId, "", "INITIAL", "현재 실제 Review Offset 기준", DateTimeOffset.UtcNow, Freeze(_active))
         { InitializedOffsetKeys = ReadOnly(initializedKeys) });
         _offsetTimeline.Clear(); _offsetTimeline.Add(_revisions[^1]); _offsetHistoryCursor = 0;
+        // A same-frame host refresh re-reads the real active file before restoring its in-memory
+        // session. Retain process-local history evidence only when that actual current revision,
+        // every value and every initialized key still exactly match what this process verified.
+        // A different model/frame/revision or changed file contents starts a new trust boundary.
+        var preserveVerified = sameStoredFrame
+            && _verifiedStoredRevisions.TryGetValue(context.RevisionId, out var currentProof)
+            && VerifiedRevisionMatches(_revisions[^1], currentProof);
+        if (!preserveVerified) _verifiedStoredRevisions.Clear();
+        _verifiedStoredRevisions[context.RevisionId]=_revisions[^1];
         _generation++; Log("LOAD", $"{context.RecipeId} / {context.RunId} / {data.Length}점");
     }
 
@@ -191,7 +204,12 @@ public sealed class CManualInspectionWorkspace
 
     public void SetLimits(ST_MANUAL_LIMITS limits)
     {
-        GuardIdle(); RequireLoaded(); ValidateLimits(limits); Limits = limits; Changed();
+        GuardIdle(); RequireLoaded(); ValidateLimits(limits);
+        var currentOffsetEdit = HasPendingOffsetEdit && Candidate!.SourceFingerprint == SourceFingerprint();
+        Limits = limits; Changed();
+        // Absolute Init/file drafts have no measurement to recalculate. A previously current draft
+        // keeps its exact values but must pass every new limit again; stale drafts stay stale.
+        if (currentOffsetEdit) Candidate = Candidate! with { SourceFingerprint = SourceFingerprint() };
         Log("LIMITS", "보정 한계가 바뀌어 후보 검증을 무효화했습니다.");
     }
 
@@ -207,6 +225,7 @@ public sealed class CManualInspectionWorkspace
             // Correction states belong to their coordinate frame; retaining audit is not permission
             // to traverse pre-change states under the newly selected scanner/recipe conversion.
             _offsetTimeline.Clear();_offsetTimeline.Add(_revisions[^1]);_offsetHistoryCursor=0;
+            _verifiedStoredRevisions.Clear();_verifiedStoredRevisions[context.RevisionId]=_revisions[^1];
         }
         Context = context; Changed(); Log("CONTEXT", "좌표/출처 기준 변경으로 후보 검증을 무효화했습니다.");
     }
@@ -598,6 +617,7 @@ public sealed class CManualInspectionWorkspace
         if (candidate.IsOffsetReplacement && (candidate.Rows.Count!=_points.Count || !candidate.Rows.Select(r=>r.Key).ToHashSet(StringComparer.Ordinal).SetEquals(_points.Keys)))
             errors.Add("통합 Offset 교체 후보는 모델 전체 위치를 포함해야 합니다.");
         var initialized=candidate.InitializedOffsetKeys.ToHashSet(StringComparer.Ordinal);
+        var activeInitialized=ActiveInitializedOffsetKeys.ToHashSet(StringComparer.Ordinal);
         var initialization=candidate.InitializeAllReviewRows?_points.Values.Select(p=>p.OffsetKey).ToHashSet(StringComparer.Ordinal)
             :candidate.InitializationOffsetKeys.ToHashSet(StringComparer.Ordinal);
         var knownOffsetKeys=_points.Values.Select(p=>p.OffsetKey).ToHashSet(StringComparer.Ordinal);
@@ -620,6 +640,7 @@ public sealed class CManualInspectionWorkspace
                 var expected=candidate.IsMeasurementOffsetInitialization?init?"OFFSET_INIT":"OFFSET_KEEP":"OFFSET_FILE";
                 if (row.Source!=expected || string.IsNullOrWhiteSpace(row.Reason) || row.MeasurementToken.Length>0
                     || init && row.Final!=ST_MANUAL_OFFSET.Zero || candidate.IsMeasurementOffsetInitialization && !init && row.Final!=row.Base
+                    || candidate.IsMeasurementOffsetInitialization && !init && initialized.Contains(row.OffsetKey)!=activeInitialized.Contains(row.OffsetKey)
                     || initialized.Contains(row.OffsetKey) && row.Final!=ST_MANUAL_OFFSET.Zero)
                     errors.Add($"{row.Key}: 통합 Offset 교체/초기화 출처가 일치하지 않습니다.");
             }
@@ -643,9 +664,19 @@ public sealed class CManualInspectionWorkspace
                     errors.Add($"{row.Key}: 같은 기판/Run의 동일 원측정은 재누적할 수 없습니다. 새 가공 결과/Run을 사용하세요.");
             }
             else errors.Add($"{row.Key}: 지원하지 않는 후보 출처입니다.");
-            maxDelta = Math.Max(maxDelta, Magnitude(row.Delta)); maxTotal = Math.Max(maxTotal, Magnitude(row.Final));
-            if (!(candidate.IsOffsetReplacement && initialization.Contains(row.OffsetKey)) && Magnitude(row.Delta) > Limits!.MaxDeltaUm) errors.Add($"{row.Key}: 이번 증감이 {Limits.MaxDeltaUm:G} µm 제한을 초과했습니다.");
-            if (Magnitude(row.Final) > Limits!.MaxTotalUm) errors.Add($"{row.Key}: 누적 총량이 {Limits.MaxTotalUm:G} µm 제한을 초과했습니다.");
+            // A scoped Init must retain legacy B outside its scope exactly. Retaining that
+            // value is not a new >limit correction; ordinary candidates/file replacement still
+            // use every existing delta/total/field guard.
+            var keptByInit=candidate.IsOffsetReplacement && candidate.IsMeasurementOffsetInitialization
+                && !initialization.Contains(row.OffsetKey) && row.Source=="OFFSET_KEEP"
+                && row.Final==row.Base && row.Delta==ST_MANUAL_OFFSET.Zero
+                && initialized.Contains(row.OffsetKey)==activeInitialized.Contains(row.OffsetKey);
+            if(!keptByInit)
+            {
+                maxDelta = Math.Max(maxDelta, Magnitude(row.Delta)); maxTotal = Math.Max(maxTotal, Magnitude(row.Final));
+                if (!(candidate.IsOffsetReplacement && initialization.Contains(row.OffsetKey)) && Magnitude(row.Delta) > Limits!.MaxDeltaUm) errors.Add($"{row.Key}: 이번 증감이 {Limits.MaxDeltaUm:G} µm 제한을 초과했습니다.");
+                if (Magnitude(row.Final) > Limits!.MaxTotalUm) errors.Add($"{row.Key}: 누적 총량이 {Limits.MaxTotalUm:G} µm 제한을 초과했습니다.");
+            }
             if (finals.TryGetValue(row.OffsetKey, out var other) && !Equal(other, row.Final)) errors.Add($"{row.OffsetKey}: 기존 CSV는 Cell/Shot별 한 값입니다. Beam별 서로 다른 F를 저장할 수 없습니다.");
             else finals[row.OffsetKey] = row.Final;
         }
@@ -656,6 +687,7 @@ public sealed class CManualInspectionWorkspace
         {
             foreach (var point in _points.Values.Where(point => !point.Masked))
             {
+                if(candidate.IsOffsetReplacement && candidate.IsMeasurementOffsetInitialization && !initialization.Contains(point.OffsetKey)) continue;
                 var final = finals.TryGetValue(point.OffsetKey, out var changed) ? changed : _active[point.Key];
                 try
                 {
@@ -687,7 +719,9 @@ public sealed class CManualInspectionWorkspace
         var finals = candidate.Rows.GroupBy(row => row.OffsetKey).ToDictionary(group => group.Key, group => group.First().Final, StringComparer.Ordinal);
         var values = _points.Values.ToDictionary(point => point.Key,
             point => QuantizeForOffsetFile(finals.TryGetValue(point.OffsetKey, out var final) ? final : _active[point.Key]), StringComparer.Ordinal);
-        ValidateStoredValues(values, candidate.Rows.Select(row => row.OffsetKey).ToHashSet(StringComparer.Ordinal), checkDelta: !candidate.IsMeasurementOffsetInitialization);
+        var initializing=candidate.IsOffsetReplacement && candidate.IsMeasurementOffsetInitialization;
+        ValidateStoredValues(values, candidate.Rows.Where(row=>!initializing || row.Source!="OFFSET_KEEP").Select(row => row.OffsetKey).ToHashSet(StringComparer.Ordinal),
+            checkDelta: !initializing,checkAllFields:!initializing);
         var offsets = _points.Values.GroupBy(point => point.OffsetKey).ToDictionary(group => group.Key, group => values[group.First().Key], StringComparer.Ordinal);
         var consumed = candidate.Rows.Where(row => row.Source == "MEASURED" && row.MeasurementToken.Length > 0)
             .ToDictionary(row => row.Key, row => row.MeasurementToken, StringComparer.Ordinal);
@@ -764,6 +798,7 @@ public sealed class CManualInspectionWorkspace
         };
         _revisions.Add(new(newRevisionId, oldRevision, "MANUAL_INSPECTION", reason, DateTimeOffset.UtcNow, Freeze(_active))
         { InitializedOffsetKeys = ReadOnly(snapshot.InitializedOffsetKeys.ToArray()) });
+        _verifiedStoredRevisions[newRevisionId]=_revisions[^1];
         AppendOffsetTimeline(_revisions[^1]);
         ClearWrite(); _generation++; _copyUndo = null;
         Log("APPLY_COMMITTED", $"실제 저장 성공: {oldRevision} → {newRevisionId}");
@@ -790,7 +825,8 @@ public sealed class CManualInspectionWorkspace
             throw new InvalidOperationException(redo?"다시 적용할 보정 기록이 없습니다.":"되돌릴 보정 기록이 없습니다. 최대 10회까지 가능합니다.");
         var target=_offsetTimeline[index];
         var quantized = target.ValuesByPointKey.ToDictionary(pair => pair.Key, pair => QuantizeForOffsetFile(pair.Value), StringComparer.Ordinal);
-        ValidateStoredValues(quantized, _points.Values.Select(point => point.OffsetKey).ToHashSet(StringComparer.Ordinal), checkDelta: false);
+        ValidateStoredValues(quantized, _points.Values.Select(point => point.OffsetKey).ToHashSet(StringComparer.Ordinal), checkDelta: false,
+            enforceTotal:!IsVerifiedStoredRevision(target));
         var initialized=target.InitializedOffsetKeys.ToHashSet(StringComparer.Ordinal);
         var currentInitialized=ActiveInitializedOffsetKeys.ToHashSet(StringComparer.Ordinal);
         var changedShots=_points.Values.Where(p=>!Equal(_active[p.Key],quantized[p.Key])
@@ -818,7 +854,9 @@ public sealed class CManualInspectionWorkspace
         RequireWrite(snapshot.Token, Digest(snapshot), applying: false); RequireNewRevision(newRevisionId);
         if (string.IsNullOrWhiteSpace(reason)) throw new InvalidOperationException("원복 사유가 필요합니다.");
         var oldRevision = Context!.RevisionId;
-        var actual = VerifyWrittenValues(actualValuesByPointKey ?? snapshot.ValuesByPointKey, snapshot.ValuesByPointKey, null);
+        var restoreTarget=_offsetTimeline[snapshot.TargetHistoryIndex];
+        var actual = VerifyWrittenValues(actualValuesByPointKey ?? snapshot.ValuesByPointKey, snapshot.ValuesByPointKey, null,
+            restoringVerifiedRevision:IsVerifiedStoredRevision(restoreTarget));
         ValidateInitializedKeys(snapshot.InitializedOffsetKeys, _points, actual, "원복 스냅샷");
         var initialized = snapshot.InitializedOffsetKeys.ToHashSet(StringComparer.Ordinal);
         var currentInitialized=ActiveInitializedOffsetKeys.ToHashSet(StringComparer.Ordinal);
@@ -840,6 +878,7 @@ public sealed class CManualInspectionWorkspace
         Context = Context with { RevisionId = newRevisionId };
         _revisions.Add(new(newRevisionId, oldRevision, snapshot.IsRedo?"REDO":"UNDO", reason.Trim(), DateTimeOffset.UtcNow, Freeze(_active))
         { InitializedOffsetKeys = ReadOnly(snapshot.InitializedOffsetKeys.ToArray()) });
+        _verifiedStoredRevisions[newRevisionId]=_revisions[^1];
         _offsetHistoryCursor=snapshot.TargetHistoryIndex;
         Candidate = null; ClearWrite(); _generation++; _copyUndo = null;
         // The same-raw application ledger is intentionally retained. Rollback is not permission to reapply old holes.
@@ -1210,6 +1249,8 @@ public sealed class CManualInspectionWorkspace
             temporary.SeedConsumedMeasurements(_consumedMeasurementHistory.SelectMany(pair => pair.Value.Select(token => new KeyValuePair<string, string>(pair.Key, token))));
             foreach (var id in _appliedCandidates) temporary._appliedCandidates.Add(id);
         }
+        var verified=Context?.RecipeId==expectedContext.RecipeId && Context.RunId==expectedContext.RunId && Context.CoordinateSignature==expectedContext.CoordinateSignature
+            ?_verifiedStoredRevisions.Values.Where(proof=>temporary._revisions.Any(revision=>VerifiedRevisionMatches(revision,proof))).ToArray():[];
         _points.Clear(); foreach (var pair in temporary._points) _points.Add(pair.Key, pair.Value);
         _active.Clear(); foreach (var pair in temporary._active) _active.Add(pair.Key, pair.Value);
         _appliedMeasurements.Clear(); foreach (var pair in temporary._appliedMeasurements) _appliedMeasurements.Add(pair.Key, pair.Value);
@@ -1218,6 +1259,9 @@ public sealed class CManualInspectionWorkspace
         _appliedCandidates.Clear(); foreach (var id in temporary._appliedCandidates) _appliedCandidates.Add(id);
         _revisions.Clear(); _revisions.AddRange(temporary._revisions);
         _offsetTimeline.Clear(); _offsetTimeline.AddRange(temporary._offsetTimeline); _offsetHistoryCursor=temporary._offsetHistoryCursor;
+        _verifiedStoredRevisions.Clear();foreach(var proof in verified)_verifiedStoredRevisions[proof.Id]=proof;
+        var activeProof=temporary._revisions.Last(revision=>revision.Id==expectedContext.RevisionId);
+        _verifiedStoredRevisions[expectedContext.RevisionId]=activeProof with{ValuesByPointKey=Freeze(_active)};
         _audit.Clear(); _audit.AddRange(temporary._audit);
         _history.Clear(); _history.AddRange(temporary._history);
         _candidateBackups.Clear(); _candidateBackups.AddRange(temporary._candidateBackups);
@@ -1273,20 +1317,30 @@ public sealed class CManualInspectionWorkspace
         return new(Axis(value.XUm), Axis(value.YUm));
     }
 
-    private void ValidateStoredValues(IReadOnlyDictionary<string, ST_MANUAL_OFFSET> values, IReadOnlySet<string> changedOffsets, bool checkDelta)
+    private static bool VerifiedRevisionMatches(ST_MANUAL_REVISION revision,ST_MANUAL_REVISION proof)
+        => revision.Id==proof.Id && revision.ValuesByPointKey.Count==proof.ValuesByPointKey.Count
+            && revision.ValuesByPointKey.All(pair=>proof.ValuesByPointKey.TryGetValue(pair.Key,out var value)&&value==pair.Value)
+            && revision.InitializedOffsetKeys.ToHashSet(StringComparer.Ordinal).SetEquals(proof.InitializedOffsetKeys);
+    private bool IsVerifiedStoredRevision(ST_MANUAL_REVISION revision)
+        => _verifiedStoredRevisions.TryGetValue(revision.Id,out var proof) && VerifiedRevisionMatches(revision,proof);
+
+    private void ValidateStoredValues(IReadOnlyDictionary<string, ST_MANUAL_OFFSET> values, IReadOnlySet<string> changedOffsets, bool checkDelta,bool checkAllFields=true,bool enforceTotal=true)
     {
         if (_fieldEvaluator is null) throw new InvalidOperationException("실제 Scanner Field 검증기가 없어 보정 파일을 저장할 수 없습니다.");
         foreach (var point in _points.Values)
         {
             var value = values[point.Key];
             if (!value.IsFinite) throw new InvalidOperationException($"{point.Key}: 양자화한 저장값이 유효하지 않습니다.");
+            if(!checkAllFields && !changedOffsets.Contains(point.OffsetKey)
+                && !Equal(value,_active[point.Key]) && !Equal(value,QuantizeForOffsetFile(_active[point.Key])))
+                throw new InvalidOperationException($"{point.Key}: 초기화 범위 밖의 기존 보정값을 변경할 수 없습니다.");
             if (changedOffsets.Contains(point.OffsetKey))
             {
-                if (Magnitude(value) > Limits!.MaxTotalUm) throw new InvalidOperationException($"{point.Key}: 실제 저장 반올림 후 총량 한계를 넘습니다.");
+                if (enforceTotal && Magnitude(value) > Limits!.MaxTotalUm) throw new InvalidOperationException($"{point.Key}: 실제 저장 반올림 후 총량 한계를 넘습니다.");
                 if (checkDelta && Magnitude(Subtract(value, _active[point.Key])) > Limits!.MaxDeltaUm)
                     throw new InvalidOperationException($"{point.Key}: 실제 저장 반올림 후 증감 한계를 넘습니다.");
             }
-            if (!point.Masked)
+            if (!point.Masked && (checkAllFields || changedOffsets.Contains(point.OffsetKey)))
             {
                 var field = _fieldEvaluator(point, value, Limits!);
                 if (!field.Ok) throw new InvalidOperationException($"{point.Key}: 실제 저장 반올림 후 Field 검사: {field.Message}");
@@ -1297,7 +1351,7 @@ public sealed class CManualInspectionWorkspace
     private IReadOnlyDictionary<string, ST_MANUAL_OFFSET> VerifyWrittenValues(
         IReadOnlyDictionary<string, ST_MANUAL_OFFSET> actual,
         IReadOnlyDictionary<string, ST_MANUAL_OFFSET> snapshotValues,
-        IReadOnlyList<ST_MANUAL_CANDIDATE_ROW>? requestedRows, bool initialization = false)
+        IReadOnlyList<ST_MANUAL_CANDIDATE_ROW>? requestedRows, bool initialization = false,bool restoringVerifiedRevision=false)
     {
         if (actual.Count != _points.Count || actual.Keys.Any(key => !_points.ContainsKey(key)))
             throw new InvalidOperationException("실제 저장된 Offset의 위치 집합이 예약 스냅샷과 다릅니다.");
@@ -1313,7 +1367,10 @@ public sealed class CManualInspectionWorkspace
                 throw new InvalidOperationException($"{point.OffsetKey}: 실제 저장된 같은 Shot의 Beam별 값이 다릅니다.");
             byOffset[point.OffsetKey] = value;
         }
-        ValidateStoredValues(actual, requestedByOffset?.Keys.ToHashSet(StringComparer.Ordinal) ?? byOffset.Keys.ToHashSet(StringComparer.Ordinal), checkDelta: requestedRows is not null && !initialization);
+        var checkedOffsets=initialization && requestedRows is not null
+            ?requestedRows.Where(row=>row.Source!="OFFSET_KEEP").Select(row=>row.OffsetKey).ToHashSet(StringComparer.Ordinal)
+            :requestedByOffset?.Keys.ToHashSet(StringComparer.Ordinal) ?? byOffset.Keys.ToHashSet(StringComparer.Ordinal);
+        ValidateStoredValues(actual, checkedOffsets, checkDelta: requestedRows is not null && !initialization,checkAllFields:!initialization,enforceTotal:!restoringVerifiedRevision);
         return Freeze(actual);
     }
     private void InvalidateCandidate()

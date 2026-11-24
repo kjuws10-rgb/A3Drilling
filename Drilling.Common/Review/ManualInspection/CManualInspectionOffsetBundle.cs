@@ -75,7 +75,7 @@ public static class CManualInspectionOffsetBundle
 {
     public const string Schema = "a3-manual-inspection-offsets/2";
     public const string LegacySchema = "a3-manual-inspection-offsets/1";
-    public const string ProgramVersion = "11.24.3";
+    public const string ProgramVersion = "11.24.4";
     public const string ReferenceOnly = "REFERENCE_ONLY_NEVER_APPLY_PROTECTED_SETTINGS";
     private static readonly JsonSerializerOptions JsonOptions = new()
     {

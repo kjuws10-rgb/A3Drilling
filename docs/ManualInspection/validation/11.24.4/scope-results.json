@@ -1,0 +1,189 @@
+{
+  "passed": true,
+  "count": 27,
+  "baseCommit": "b9659de850691ff677a1e7caf2093c499cd42f28",
+  "programVersion": "11.24.4",
+  "checks": [
+    {
+      "name": "only_startup_display_init_sources_and_dedicated_tests_docs",
+      "passed": true
+    },
+    {
+      "name": "existing_csv_config_operating_data_vendor_themes_unchanged",
+      "passed": true
+    },
+    {
+      "name": "unchanged:Drilling.File/ReviewOffset/CReviewOffsetFile.cs",
+      "passed": true
+    },
+    {
+      "name": "unchanged:Drilling.UI/CAppStartup.cs",
+      "passed": true
+    },
+    {
+      "name": "unchanged:Drilling.UI/Menu/Menus/CManualInspectionBackend.cs",
+      "passed": true
+    },
+    {
+      "name": "unchanged:Drilling.UI/Menu/Menus/CManualInspectionUpdateMonitor.cs",
+      "passed": true
+    },
+    {
+      "name": "unchanged:Drilling.UI/Views/CManualInspectionUiContract.cs",
+      "passed": true
+    },
+    {
+      "name": "unchanged:Drilling.UI/Menu/Menus/CMenuCorrection.cs",
+      "passed": true
+    },
+    {
+      "name": "unchanged:Drilling.UI/Menu/Menus/CMenuRecipe.cs",
+      "passed": true
+    },
+    {
+      "name": "unchanged:Drilling.UI/Menu/Menus/CMenuMonitor.cs",
+      "passed": true
+    },
+    {
+      "name": "unchanged:Drilling.Common/Station/CStationProcess.cs",
+      "passed": true
+    },
+    {
+      "name": "unchanged:Drilling.Common/Recipe/CShotCoordinatePlanBuilder.cs",
+      "passed": true
+    },
+    {
+      "name": "unchanged:Drilling.Common/Review/CManualInspectionCoordinateBridge.cs",
+      "passed": true
+    },
+    {
+      "name": "version_only:Drilling.UI/Drilling.UI.csproj",
+      "passed": true
+    },
+    {
+      "name": "version_only:Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs",
+      "passed": true
+    },
+    {
+      "name": "program_version_11_24_4",
+      "passed": true
+    },
+    {
+      "name": "default_map_is_saved_csv",
+      "passed": true
+    },
+    {
+      "name": "default_scatter_is_saved_csv",
+      "passed": true
+    },
+    {
+      "name": "model_reset_uses_saved_csv",
+      "passed": true
+    },
+    {
+      "name": "valid_measurement_view_bookmarks_remain_available",
+      "passed": true
+    },
+    {
+      "name": "file_badge_has_name_absolute_path_hash_and_failure_state",
+      "passed": true
+    },
+    {
+      "name": "saved_value_projection_and_unit_mapping_unchanged",
+      "passed": true
+    },
+    {
+      "name": "startup_host_only_adds_read_after_prepared_recipe",
+      "passed": true
+    },
+    {
+      "name": "startup_read_failure_is_separate_and_cancellation_propagates",
+      "passed": true
+    },
+    {
+      "name": "single_badge_uses_existing_display_only_handler",
+      "passed": true
+    },
+    {
+      "name": "no_unresolved_merge_conflicts",
+      "passed": true
+    },
+    {
+      "name": "diff_check",
+      "passed": true
+    }
+  ],
+  "changedPaths": [
+    "Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
+    "Drilling.UI/CRootView.cs",
+    "Drilling.UI/Drilling.UI.csproj",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs",
+    "Drilling.UI/Views/CManualInspectionView.xaml",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs",
+    "docs/ManualInspection/EXISTING_FINAL_CSV_11.24.4.md",
+    "docs/ManualInspection/README.md",
+    "docs/ManualInspection/history/validation-b9659de.json",
+    "docs/ManualInspection/images/manual-11.24.4-existing-csv-notebook-dark.png",
+    "docs/ManualInspection/images/manual-11.24.4-existing-csv-wide-light.png",
+    "docs/ManualInspection/validation.json",
+    "docs/ManualInspection/validation/11.24.4/backend-read.json",
+    "docs/ManualInspection/validation/11.24.4/bridge-writer.json",
+    "docs/ManualInspection/validation/11.24.4/controller-production.json",
+    "docs/ManualInspection/validation/11.24.4/core-results.json",
+    "docs/ManualInspection/validation/11.24.4/existing-csv-summary.json",
+    "docs/ManualInspection/validation/11.24.4/external-results.json",
+    "docs/ManualInspection/validation/11.24.4/qa-round-1.json",
+    "docs/ManualInspection/validation/11.24.4/qa-round-2.json",
+    "docs/ManualInspection/validation/11.24.4/qa-round-3.json",
+    "docs/ManualInspection/validation/11.24.4/scope-results.json",
+    "docs/ManualInspection/validation/11.24.4/ui-bulk-history-results.json",
+    "docs/ManualInspection/validation/11.24.4/ui-cell-overview-results.json",
+    "docs/ManualInspection/validation/11.24.4/ui-coverage-compact-results.json",
+    "docs/ManualInspection/validation/11.24.4/ui-existing-final-csv-results.json",
+    "docs/ManualInspection/validation/11.24.4/ui-final-offsets-results.json",
+    "docs/ManualInspection/validation/11.24.4/ui-hardening-results.json",
+    "docs/ManualInspection/validation/11.24.4/ui-integration-impact-results.json",
+    "docs/ManualInspection/validation/11.24.4/ui-map-first-results.json",
+    "docs/ManualInspection/validation/11.24.4/ui-measurement-workflow-results.json",
+    "docs/ManualInspection/validation/11.24.4/ui-offset-init-results.json",
+    "docs/ManualInspection/validation/11.24.4/ui-representative-results.json",
+    "docs/ManualInspection/validation/11.24.4/ui-results.json",
+    "docs/ManualInspection/validation/11.24.4/ui-side-panels-results.json",
+    "docs/ManualInspection/validation/11.24.4/ui-summary.json",
+    "docs/ManualInspection/validation/11.24.4/ui-sync-levels-results.json",
+    "docs/ManualInspection/validation/11.24.4/ui-visual-usability-results.json",
+    "tests/ManualInspection/BackendReadHarness/PortableOffsetCases.cs",
+    "tests/ManualInspection/ControllerHarness/ControllerHarness.csproj",
+    "tests/ManualInspection/ControllerHarness/InitRecoveryCases.cs",
+    "tests/ManualInspection/ControllerHarness/Program.cs",
+    "tests/ManualInspection/ControllerHarness/StartupFinalOffsetsCases.cs",
+    "tests/ManualInspection/InitRecoveryCases.cs",
+    "tests/ManualInspection/ManualInspection.Tests.csproj",
+    "tests/ManualInspection/MeasurementWorkflowCases.cs",
+    "tests/ManualInspection/Program.cs",
+    "tests/ManualInspection/UiHarness/BulkHistoryCases.cs",
+    "tests/ManualInspection/UiHarness/CellOverviewCases.cs",
+    "tests/ManualInspection/UiHarness/CoverageCompactCases.cs",
+    "tests/ManualInspection/UiHarness/ExistingFinalCsvCases.cs",
+    "tests/ManualInspection/UiHarness/HardeningCases.cs",
+    "tests/ManualInspection/UiHarness/ManualInspection.UiHarness.csproj",
+    "tests/ManualInspection/UiHarness/MapFirstCases.cs",
+    "tests/ManualInspection/UiHarness/MeasurementWorkflowCases.cs",
+    "tests/ManualInspection/UiHarness/OffsetInitCases.cs",
+    "tests/ManualInspection/UiHarness/Program.cs",
+    "tests/ManualInspection/UiHarness/RepresentativeCases.cs",
+    "tests/ManualInspection/UiHarness/VisualUsabilityCases.cs",
+    "tests/ManualInspection/verify_existing_final_csv.py"
+  ],
+  "productionSha256": {
+    "Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs": "f6f158e3977b3b6c70f8abed19cc04b455788c31973b00ed157cd2d6d1bd9291",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs": "31da1cb21dd9aaa9fc2d91d88fbb2a39f37dd6de4480b7087e5da77929100501",
+    "Drilling.UI/CRootView.cs": "d1b229746ae3fa204af774a5718970be70abc2ea8da8f1e5be4a534ec4cabe1d",
+    "Drilling.UI/Drilling.UI.csproj": "96d1414f029a8f05ba097fceb134b47fb9a467fbd70ac7077a9b4063acd1a52b",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "1796875aa282bb0efd83e9c9fc4d2e8e3b42788dc712438687c84753314f6377",
+    "Drilling.UI/Views/CManualInspectionView.xaml": "7010f4694d8c8ee58f1227c51e349963328f3e7ca8df646b643dd00ef3983083",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "2bd5f393fdad18b9422c1ba341d001ca3a1492db3af508fe18efc7382fdb6774"
+  },
+  "scope": "Resolved startup recipe read, saved-value defaults/provenance and scoped Init validation/failure recovery. Existing CSV reader/writer, coordinate conversion and operating files are preserved. Init behavioral tests and independent source review are recorded separately."
+}

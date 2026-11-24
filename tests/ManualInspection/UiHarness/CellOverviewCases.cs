@@ -87,7 +87,7 @@ internal static partial class Program
         var view=new CManualInspectionView{DataContext=fake,ConfirmationForTesting=(_,text,_)=>{descriptions.Add(text);return true;}};
         Set(view, "_scatterOffsets", false); Set(view, "_scatterScope", "CELL"); // Explicit legacy working-data scope.
         var window=new Window{Width=1120,Height=560,Content=view,Left=-20000,Top=-20000,ShowInTaskbar=false,ShowActivated=false,WindowStyle=WindowStyle.None};
-        window.Show();Pump();var map=(CManualInspectionMapControl)view.FindName("PositionMap");var scatter=(CManualInspectionScatterControl)view.FindName("ScatterPlot");
+        window.Show();Pump();SelectMeasurementView(view);var map=(CManualInspectionMapControl)view.FindName("PositionMap");var scatter=(CManualInspectionScatterControl)view.FindName("ScatterPlot");
         void Refresh(){Invoke(view,"Refresh");Pump();}
         void Choose(int cell){Invoke(view,"SetMapCellScope",cell);Pump();}
         void Click(string name){((Button)view.FindName(name)).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();}
@@ -628,7 +628,7 @@ internal static partial class Program
         var view=new CManualInspectionView{DataContext=fake,ConfirmationForTesting=(_,_,_)=>false};
         Set(view, "_scatterOffsets", false); Set(view, "_scatterScope", "CELL"); // Explicit legacy working-data scope.
         var window=new Window{Width=1120,Height=560,Content=view,Left=-20000,Top=-20000,ShowInTaskbar=false,ShowActivated=false,WindowStyle=WindowStyle.None};
-        window.Show();Pump();Invoke(view,"SetMapCellScope",0);Pump();
+        window.Show();Pump();SelectMeasurementView(view);Invoke(view,"SetMapCellScope",0);Pump();
         var map=(CManualInspectionMapControl)view.FindName("PositionMap");var scatter=(CManualInspectionScatterControl)view.FindName("ScatterPlot");
         var section=(Expander)view.FindName("ScatterSection");var scroll=(ScrollViewer)view.FindName("WorkspaceScroll");
         var collapsedRestored=true;

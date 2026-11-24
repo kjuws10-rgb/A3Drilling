@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "a3-existing-final-csv-summary/1",
+  "sourceCommit": "b9659de850691ff677a1e7caf2093c499cd42f28",
+  "relativeDirectory": "Config/RECIPE/test0929_reviewoffset",
+  "recipe": "test0929",
+  "fileCount": 137,
+  "latestFileName": "20261120_114859_908_reviewoffset.csv",
+  "latestContentSha256": "7a0853ba4d8050872dfd2f2c461d685b05f33f57f008f148f8ec0b1bd2f316b2",
+  "headers": "CELLID,SHOTID,REVIEWOFFSETX,REVIEWOFFSETY,COORDINATE_SPACE",
+  "hasMeasurementStateMetadata": false,
+  "stats": {
+    "rows": 21420,
+    "design": 21420,
+    "scanner": 0,
+    "initialized": 0,
+    "measuredOrLegacy": 21420,
+    "initializationTimestampPresent": 0,
+    "distinctCells": 45
+  },
+  "allExistingCsvUnchangedAfterRead": true,
+  "readApi": "CReviewOffsetFile.LoadLatest(test0929)",
+  "scope": "Repository copy, metadata and aggregate counts only. No operational offset records or local absolute paths copied."
+}

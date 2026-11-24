@@ -1,0 +1,1172 @@
+{
+  "schemaVersion": 1,
+  "version": "11.24.4",
+  "round": 3,
+  "status": "passed",
+  "passed": true,
+  "checkedAt": "2026-11-24T04:47:49.622439+00:00",
+  "sourceCommit": "b9659de850691ff677a1e7caf2093c499cd42f28",
+  "branch": "feature/manual-inspection-existing-final-csv-20261124.4",
+  "checkCount": 214,
+  "checks": [
+    {
+      "name": "schema_version_branch_base",
+      "passed": true
+    },
+    {
+      "name": "manifest_pending_only_missing_qa3",
+      "passed": true
+    },
+    {
+      "name": "source:Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs",
+      "passed": true
+    },
+    {
+      "name": "source:Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
+      "passed": true
+    },
+    {
+      "name": "source:Drilling.UI/CRootView.cs",
+      "passed": true
+    },
+    {
+      "name": "source:Drilling.UI/Drilling.UI.csproj",
+      "passed": true
+    },
+    {
+      "name": "source:Drilling.UI/Menu/Menus/CManualInspectionController.cs",
+      "passed": true
+    },
+    {
+      "name": "source:Drilling.UI/Views/CManualInspectionView.xaml",
+      "passed": true
+    },
+    {
+      "name": "source:Drilling.UI/Views/CManualInspectionView.xaml.cs",
+      "passed": true
+    },
+    {
+      "name": "result:core-results.json",
+      "passed": true
+    },
+    {
+      "name": "copy_sha:core-results.json",
+      "passed": true
+    },
+    {
+      "name": "result:controller-production.json",
+      "passed": true
+    },
+    {
+      "name": "copy_sha:controller-production.json",
+      "passed": true
+    },
+    {
+      "name": "result:backend-read.json",
+      "passed": true
+    },
+    {
+      "name": "copy_sha:backend-read.json",
+      "passed": true
+    },
+    {
+      "name": "result:bridge-writer.json",
+      "passed": true
+    },
+    {
+      "name": "copy_sha:bridge-writer.json",
+      "passed": true
+    },
+    {
+      "name": "result:external-results.json",
+      "passed": true
+    },
+    {
+      "name": "copy_sha:external-results.json",
+      "passed": true
+    },
+    {
+      "name": "result:scope-results.json",
+      "passed": true
+    },
+    {
+      "name": "copy_sha:scope-results.json",
+      "passed": true
+    },
+    {
+      "name": "core_source:Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs",
+      "passed": true
+    },
+    {
+      "name": "core_source:Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs",
+      "passed": true
+    },
+    {
+      "name": "core_source:Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
+      "passed": true
+    },
+    {
+      "name": "dll:Drilling.UI",
+      "passed": true
+    },
+    {
+      "name": "dll_copy:ControllerHarness/Drilling.UI",
+      "passed": true
+    },
+    {
+      "name": "dll_copy:BackendReadHarness/Drilling.UI",
+      "passed": true
+    },
+    {
+      "name": "dll:Drilling.Common",
+      "passed": true
+    },
+    {
+      "name": "dll_copy:ControllerHarness/Drilling.Common",
+      "passed": true
+    },
+    {
+      "name": "dll_copy:BackendReadHarness/Drilling.Common",
+      "passed": true
+    },
+    {
+      "name": "dll:Drilling.File",
+      "passed": true
+    },
+    {
+      "name": "dll_copy:ControllerHarness/Drilling.File",
+      "passed": true
+    },
+    {
+      "name": "dll_copy:BackendReadHarness/Drilling.File",
+      "passed": true
+    },
+    {
+      "name": "actual_controller_dll_vendor0",
+      "passed": true
+    },
+    {
+      "name": "actual_backend_dll:Drilling.UI",
+      "passed": true
+    },
+    {
+      "name": "actual_backend_dll:Drilling.Common",
+      "passed": true
+    },
+    {
+      "name": "actual_projection_dll_vendor0",
+      "passed": true
+    },
+    {
+      "name": "release0_0_logsha",
+      "passed": true
+    },
+    {
+      "name": "wpf15_917_22unchanged",
+      "passed": true
+    },
+    {
+      "name": "wpf_input:tests\\ManualInspection\\UiHarness\\BulkHistoryCases.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_input:tests\\ManualInspection\\UiHarness\\CellOverviewCases.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_input:tests\\ManualInspection\\UiHarness\\CoverageCompactCases.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_input:tests\\ManualInspection\\UiHarness\\ExistingFinalCsvCases.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_input:tests\\ManualInspection\\UiHarness\\FinalOffsetCases.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_input:tests\\ManualInspection\\UiHarness\\HardeningCases.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_input:tests\\ManualInspection\\UiHarness\\MapFirstCases.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_input:tests\\ManualInspection\\UiHarness\\MeasurementWorkflowCases.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_input:tests\\ManualInspection\\UiHarness\\OffsetInitCases.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_input:tests\\ManualInspection\\UiHarness\\Program.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_input:tests\\ManualInspection\\UiHarness\\RepresentativeCases.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_input:tests\\ManualInspection\\UiHarness\\SidePanelsCases.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_input:tests\\ManualInspection\\UiHarness\\VisualUsabilityCases.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_input:tests\\ManualInspection\\UiHarness\\ManualInspection.UiHarness.csproj",
+      "passed": true
+    },
+    {
+      "name": "wpf_input:Drilling.UI\\Views\\CManualInspectionView.xaml",
+      "passed": true
+    },
+    {
+      "name": "wpf_input:Drilling.UI\\Views\\CManualInspectionView.xaml.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_input:Drilling.UI\\Views\\CManualInspectionUiContract.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_input:Drilling.UI\\Views\\CManualInspectionMapControl.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_input:Drilling.UI\\Views\\CManualInspectionScatterControl.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_input:Drilling.UI\\Themes\\ThemeDark.xaml",
+      "passed": true
+    },
+    {
+      "name": "wpf_input:Drilling.UI\\Themes\\ThemeLight.xaml",
+      "passed": true
+    },
+    {
+      "name": "wpf_input:Drilling.UI\\App.xaml",
+      "passed": true
+    },
+    {
+      "name": "wpf_harness_sha",
+      "passed": true
+    },
+    {
+      "name": "wpf_mode:default",
+      "passed": true
+    },
+    {
+      "name": "wpf_mode:integration-impact",
+      "passed": true
+    },
+    {
+      "name": "wpf_mode:sync-levels",
+      "passed": true
+    },
+    {
+      "name": "wpf_mode:coverage-compact",
+      "passed": true
+    },
+    {
+      "name": "wpf_mode:hardening",
+      "passed": true
+    },
+    {
+      "name": "wpf_mode:visual-usability",
+      "passed": true
+    },
+    {
+      "name": "wpf_mode:map-first",
+      "passed": true
+    },
+    {
+      "name": "wpf_mode:cell-overview",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:cell-overview:Views/CManualInspectionUiContract.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:cell-overview:Views/CManualInspectionMapControl.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:cell-overview:Views/CManualInspectionScatterControl.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:cell-overview:Views/CManualInspectionView.xaml",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:cell-overview:Views/CManualInspectionView.xaml.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_mode:offset-init",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:offset-init:Views/CManualInspectionUiContract.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:offset-init:Views/CManualInspectionMapControl.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:offset-init:Views/CManualInspectionScatterControl.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:offset-init:Views/CManualInspectionView.xaml",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:offset-init:Views/CManualInspectionView.xaml.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_mode:measurement-workflow",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:measurement-workflow:Views/CManualInspectionUiContract.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:measurement-workflow:Views/CManualInspectionMapControl.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:measurement-workflow:Views/CManualInspectionScatterControl.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:measurement-workflow:Views/CManualInspectionView.xaml",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:measurement-workflow:Views/CManualInspectionView.xaml.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_mode:bulk-history",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:bulk-history:Views/CManualInspectionUiContract.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:bulk-history:Views/CManualInspectionMapControl.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:bulk-history:Views/CManualInspectionScatterControl.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:bulk-history:Views/CManualInspectionView.xaml",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:bulk-history:Views/CManualInspectionView.xaml.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_mode:representative",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:representative:Views/CManualInspectionUiContract.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:representative:Views/CManualInspectionMapControl.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:representative:Views/CManualInspectionScatterControl.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:representative:Views/CManualInspectionView.xaml",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:representative:Views/CManualInspectionView.xaml.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_mode:side-panels",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:side-panels:Views/CManualInspectionView.xaml",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:side-panels:Views/CManualInspectionView.xaml.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:side-panels:Views/CManualInspectionUiContract.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_mode:final-offsets",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:final-offsets:Views/CManualInspectionView.xaml",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:final-offsets:Views/CManualInspectionView.xaml.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:final-offsets:Views/CManualInspectionUiContract.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:final-offsets:Views/CManualInspectionMapControl.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:final-offsets:Views/CManualInspectionScatterControl.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_mode:existing-final-csv",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:existing-final-csv:Views/CManualInspectionView.xaml",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:existing-final-csv:Views/CManualInspectionView.xaml.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:existing-final-csv:Views/CManualInspectionUiContract.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:existing-final-csv:Views/CManualInspectionMapControl.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_current:existing-final-csv:Views/CManualInspectionScatterControl.cs",
+      "passed": true
+    },
+    {
+      "name": "wpf_sum_no_duplicate",
+      "passed": true
+    },
+    {
+      "name": "actual_policy:init_recovery_controller_same_frame_ensureloaded_preserves_verified_large_undo_redo",
+      "passed": true
+    },
+    {
+      "name": "actual_policy:init_recovery_controller_old_scoped_draft_startup_archives_but_explicit_import_can_save_after_revalidation",
+      "passed": true
+    },
+    {
+      "name": "actual_policy:init_recovery_controller_explicit_old_field_invalid_draft_requires_cancel_and_never_writes",
+      "passed": true
+    },
+    {
+      "name": "actual_policy:init_recovery_controller_invalid_scope_and_field_failure_do_not_retire_remaining_queue",
+      "passed": true
+    },
+    {
+      "name": "actual_policy:init_recovery_controller_failed_field_preflight_preserves_previous_candidate_and_measurement_access",
+      "passed": true
+    },
+    {
+      "name": "actual_policy:startup_preload_reads_resolved_recipe_final_without_guard_motion_or_save",
+      "passed": true
+    },
+    {
+      "name": "actual_policy:startup_loaded_manual_apply_reloads_new_saved_revision_without_double_application",
+      "passed": true
+    },
+    {
+      "name": "preserved:Drilling.File/ReviewOffset/CReviewOffsetFile.cs",
+      "passed": true
+    },
+    {
+      "name": "preserved:Drilling.UI/CAppStartup.cs",
+      "passed": true
+    },
+    {
+      "name": "preserved:Drilling.UI/Menu/Menus/CManualInspectionBackend.cs",
+      "passed": true
+    },
+    {
+      "name": "preserved:Drilling.UI/Menu/Menus/CManualInspectionUpdateMonitor.cs",
+      "passed": true
+    },
+    {
+      "name": "preserved:Drilling.UI/Views/CManualInspectionUiContract.cs",
+      "passed": true
+    },
+    {
+      "name": "preserved:Drilling.UI/Menu/Menus/CMenuCorrection.cs",
+      "passed": true
+    },
+    {
+      "name": "preserved:Drilling.UI/Menu/Menus/CMenuRecipe.cs",
+      "passed": true
+    },
+    {
+      "name": "preserved:Drilling.UI/Menu/Menus/CMenuMonitor.cs",
+      "passed": true
+    },
+    {
+      "name": "preserved:Drilling.Common/Station/CStationProcess.cs",
+      "passed": true
+    },
+    {
+      "name": "preserved:Drilling.Common/Recipe/CShotCoordinatePlanBuilder.cs",
+      "passed": true
+    },
+    {
+      "name": "preserved:Drilling.Common/Review/CManualInspectionCoordinateBridge.cs",
+      "passed": true
+    },
+    {
+      "name": "original137_rawsha_unchanged",
+      "passed": true
+    },
+    {
+      "name": "public_csv_metadata_21420_design_45_only",
+      "passed": true
+    },
+    {
+      "name": "utf8_fence:README.md",
+      "passed": true
+    },
+    {
+      "name": "link:README.md:EXISTING_FINAL_CSV_11.24.4.md",
+      "passed": true
+    },
+    {
+      "name": "link:README.md:validation.json",
+      "passed": true
+    },
+    {
+      "name": "link:README.md:FINAL_REVIEW_OFFSET_11.24.3.md",
+      "passed": true
+    },
+    {
+      "name": "link:README.md:../../tests/ManualInspection/FINAL_REVIEW_OFFSET_QA.md",
+      "passed": true
+    },
+    {
+      "name": "link:README.md:validation.json",
+      "passed": true
+    },
+    {
+      "name": "link:README.md:MASTER_INTEGRATION_11.24.2.md",
+      "passed": true
+    },
+    {
+      "name": "link:README.md:../../tests/ManualInspection/MASTER_INTEGRATION_QA.md",
+      "passed": true
+    },
+    {
+      "name": "link:README.md:validation.json",
+      "passed": true
+    },
+    {
+      "name": "link:README.md:FIRST_LOAD_PANELS_11.24.1.md",
+      "passed": true
+    },
+    {
+      "name": "link:README.md:../../tests/ManualInspection/FIRST_LOAD_PANELS_QA.md",
+      "passed": true
+    },
+    {
+      "name": "link:README.md:validation.json",
+      "passed": true
+    },
+    {
+      "name": "link:README.md:RETRY_VISIBILITY_11.24.0.md",
+      "passed": true
+    },
+    {
+      "name": "link:README.md:../../tests/ManualInspection/RETRY_VISIBILITY_QA.md",
+      "passed": true
+    },
+    {
+      "name": "link:README.md:validation.json",
+      "passed": true
+    },
+    {
+      "name": "link:README.md:STANDARD_SELECTION_REFERENCE_11.23.2.md",
+      "passed": true
+    },
+    {
+      "name": "link:README.md:../../tests/ManualInspection/STANDARD_SELECTION_REFERENCE_QA.md",
+      "passed": true
+    },
+    {
+      "name": "link:README.md:CELL_CLICK_OFFSET_SYNC_11.23.1.md",
+      "passed": true
+    },
+    {
+      "name": "link:README.md:../../tests/ManualInspection/CELL_CLICK_OFFSET_SYNC_QA.md",
+      "passed": true
+    },
+    {
+      "name": "link:README.md:BULK_HISTORY_11.23.0.md",
+      "passed": true
+    },
+    {
+      "name": "link:README.md:validation.json",
+      "passed": true
+    },
+    {
+      "name": "link:README.md:../../tests/ManualInspection/BULK_HISTORY_QA.md",
+      "passed": true
+    },
+    {
+      "name": "link:README.md:images/manual-11.24.1-notebook-dark.png",
+      "passed": true
+    },
+    {
+      "name": "link:README.md:images/manual-11.24.1-scatter-correction-dark.png",
+      "passed": true
+    },
+    {
+      "name": "link:README.md:images/manual-11.24.1-level-settings-dark.png",
+      "passed": true
+    },
+    {
+      "name": "link:README.md:validation.json",
+      "passed": true
+    },
+    {
+      "name": "link:README.md:MEASUREMENT_WORKFLOW_11.21.2.md",
+      "passed": true
+    },
+    {
+      "name": "link:README.md:history/validation-61578db.json",
+      "passed": true
+    },
+    {
+      "name": "link:README.md:../../tests/ManualInspection/README.md",
+      "passed": true
+    },
+    {
+      "name": "link:README.md:Reference/A3_Review_Workspace.html",
+      "passed": true
+    },
+    {
+      "name": "link:README.md:BULK_HISTORY_11.23.0.md",
+      "passed": true
+    },
+    {
+      "name": "link:README.md:history/validation-367a727.json",
+      "passed": true
+    },
+    {
+      "name": "link:README.md:CELL_CLICK_OFFSET_SYNC_11.23.1.md",
+      "passed": true
+    },
+    {
+      "name": "link:README.md:history/validation-89e92a0.json",
+      "passed": true
+    },
+    {
+      "name": "utf8_fence:EXISTING_FINAL_CSV_11.24.4.md",
+      "passed": true
+    },
+    {
+      "name": "link:EXISTING_FINAL_CSV_11.24.4.md:../../Drilling.File/ReviewOffset/CReviewOffsetFile.cs",
+      "passed": true
+    },
+    {
+      "name": "link:EXISTING_FINAL_CSV_11.24.4.md:../../Drilling.UI/CRootView.cs",
+      "passed": true
+    },
+    {
+      "name": "link:EXISTING_FINAL_CSV_11.24.4.md:../../Drilling.UI/CAppStartup.cs",
+      "passed": true
+    },
+    {
+      "name": "link:EXISTING_FINAL_CSV_11.24.4.md:../../Drilling.UI/Menu/Menus/CManualInspectionBackend.cs",
+      "passed": true
+    },
+    {
+      "name": "link:EXISTING_FINAL_CSV_11.24.4.md:../../Drilling.UI/Views/CManualInspectionView.xaml.cs",
+      "passed": true
+    },
+    {
+      "name": "link:EXISTING_FINAL_CSV_11.24.4.md:../../Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
+      "passed": true
+    },
+    {
+      "name": "link:EXISTING_FINAL_CSV_11.24.4.md:validation.json",
+      "passed": true
+    },
+    {
+      "name": "link:EXISTING_FINAL_CSV_11.24.4.md:images/manual-11.24.4-existing-csv-notebook-dark.png",
+      "passed": true
+    },
+    {
+      "name": "no_stale_raw_default_or_two_views",
+      "passed": true
+    },
+    {
+      "name": "workflow_and_init_limits_honestly_documented",
+      "passed": true
+    },
+    {
+      "name": "png:images/manual-11.24.4-existing-csv-notebook-dark.png",
+      "passed": true
+    },
+    {
+      "name": "png:images/manual-11.24.4-existing-csv-wide-light.png",
+      "passed": true
+    },
+    {
+      "name": "startup_order_isolated_error_cancel",
+      "passed": true
+    },
+    {
+      "name": "saved_file_refresh_after_writer_commit",
+      "passed": true
+    },
+    {
+      "name": "no_config_data_vendor_theme_delta",
+      "passed": true
+    },
+    {
+      "name": "scope7source_current",
+      "passed": true
+    },
+    {
+      "name": "diff_check",
+      "passed": true
+    },
+    {
+      "name": "unmerged_none",
+      "passed": true
+    },
+    {
+      "name": "public_metadata_only:backend-read.json",
+      "passed": true
+    },
+    {
+      "name": "public_metadata_only:bridge-writer.json",
+      "passed": true
+    },
+    {
+      "name": "public_metadata_only:controller-production.json",
+      "passed": true
+    },
+    {
+      "name": "public_metadata_only:core-results.json",
+      "passed": true
+    },
+    {
+      "name": "public_metadata_only:existing-csv-summary.json",
+      "passed": true
+    },
+    {
+      "name": "public_metadata_only:external-results.json",
+      "passed": true
+    },
+    {
+      "name": "public_metadata_only:qa-round-1.json",
+      "passed": true
+    },
+    {
+      "name": "public_metadata_only:qa-round-2.json",
+      "passed": true
+    },
+    {
+      "name": "public_metadata_only:scope-results.json",
+      "passed": true
+    },
+    {
+      "name": "public_metadata_only:ui-bulk-history-results.json",
+      "passed": true
+    },
+    {
+      "name": "public_metadata_only:ui-cell-overview-results.json",
+      "passed": true
+    },
+    {
+      "name": "public_metadata_only:ui-coverage-compact-results.json",
+      "passed": true
+    },
+    {
+      "name": "public_metadata_only:ui-existing-final-csv-results.json",
+      "passed": true
+    },
+    {
+      "name": "public_metadata_only:ui-final-offsets-results.json",
+      "passed": true
+    },
+    {
+      "name": "public_metadata_only:ui-hardening-results.json",
+      "passed": true
+    },
+    {
+      "name": "public_metadata_only:ui-integration-impact-results.json",
+      "passed": true
+    },
+    {
+      "name": "public_metadata_only:ui-map-first-results.json",
+      "passed": true
+    },
+    {
+      "name": "public_metadata_only:ui-measurement-workflow-results.json",
+      "passed": true
+    },
+    {
+      "name": "public_metadata_only:ui-offset-init-results.json",
+      "passed": true
+    },
+    {
+      "name": "public_metadata_only:ui-representative-results.json",
+      "passed": true
+    },
+    {
+      "name": "public_metadata_only:ui-results.json",
+      "passed": true
+    },
+    {
+      "name": "public_metadata_only:ui-side-panels-results.json",
+      "passed": true
+    },
+    {
+      "name": "public_metadata_only:ui-summary.json",
+      "passed": true
+    },
+    {
+      "name": "public_metadata_only:ui-sync-levels-results.json",
+      "passed": true
+    },
+    {
+      "name": "public_metadata_only:ui-visual-usability-results.json",
+      "passed": true
+    }
+  ],
+  "productionSha256": {
+    "Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs": "f6f158e3977b3b6c70f8abed19cc04b455788c31973b00ed157cd2d6d1bd9291",
+    "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs": "31da1cb21dd9aaa9fc2d91d88fbb2a39f37dd6de4480b7087e5da77929100501",
+    "Drilling.UI/CRootView.cs": "d1b229746ae3fa204af774a5718970be70abc2ea8da8f1e5be4a534ec4cabe1d",
+    "Drilling.UI/Drilling.UI.csproj": "96d1414f029a8f05ba097fceb134b47fb9a467fbd70ac7077a9b4063acd1a52b",
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "1796875aa282bb0efd83e9c9fc4d2e8e3b42788dc712438687c84753314f6377",
+    "Drilling.UI/Views/CManualInspectionView.xaml": "7010f4694d8c8ee58f1227c51e349963328f3e7ca8df646b643dd00ef3983083",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "2bd5f393fdad18b9422c1ba341d001ca3a1492db3af508fe18efc7382fdb6774"
+  },
+  "productionAssembliesSha256": {
+    "Drilling.UI": "109a4de30231f1ed7196b2adb1ac391c17ca9ae6ee4e1ddfc66fde35ecedc7b1",
+    "Drilling.Common": "1136c7734aedad281c9b0d0afc1bfbd79a517b048be7ecfaa1a7f93e7665630c",
+    "Drilling.File": "baf9a1d59ae6962db297e414b86b100977ce236e846128389bd3a11344fcb969"
+  },
+  "reports": [
+    {
+      "path": "core-results.json",
+      "count": 233,
+      "sha256": "b011cb5d129fd49f3bc5d7447cc22dd745a6442d69ad2d939153ea1c84e95d7e"
+    },
+    {
+      "path": "controller-production.json",
+      "count": 249,
+      "sha256": "f26a087fb1376ce58097a8e36c22ad033ccc725bb7d497549e008891e91fc7b0"
+    },
+    {
+      "path": "backend-read.json",
+      "count": 131,
+      "sha256": "be1dcf85622a273e18b6eb6e1d84100f24ccf75c95998a058fa6c4f52061a234"
+    },
+    {
+      "path": "bridge-writer.json",
+      "count": 35,
+      "sha256": "f8c343ec6c890b66c14d779a32dff80ee9719abf5e959e584375e585a1302e1e"
+    },
+    {
+      "path": "external-results.json",
+      "count": 53,
+      "sha256": "c6d57880901e979376b7d035c1f50fdf6bf2ff46857500c0df3fb0ff5e2d30f9"
+    },
+    {
+      "path": "scope-results.json",
+      "count": 27,
+      "sha256": "371e24904512e3b1083b4f6557eb3bcf18f86b5c6b2a87ffcdb5c8d3040a0d62"
+    }
+  ],
+  "wpf": {
+    "modes": 15,
+    "checks": 917,
+    "inputCount": 22,
+    "syntheticOnly": true,
+    "visuallyOpened": [
+      "ui/existing-final-csv/existing-csv-notebook-dark.png",
+      "ui/existing-final-csv/existing-csv-wide-light.png"
+    ]
+  },
+  "documents": [
+    {
+      "path": "docs/ManualInspection/README.md",
+      "sha256": "0829a41458b4f17d0df2793924bb56448cc06d737c87c4f435c883d4893b1965"
+    },
+    {
+      "path": "docs/ManualInspection/EXISTING_FINAL_CSV_11.24.4.md",
+      "sha256": "aa60de150a274178532eef876f860a9dfeb1c8724de0164f81f8080e1feada7e"
+    },
+    {
+      "path": "docs/ManualInspection/images/manual-11.24.4-existing-csv-notebook-dark.png",
+      "sha256": "27209288d4d0d759f0e5642c7002e9df72166dfcd3e5c00fbd4db10c3284e5fb"
+    },
+    {
+      "path": "docs/ManualInspection/images/manual-11.24.4-existing-csv-wide-light.png",
+      "sha256": "0f726c0645f775877766f3d286a206c996d894ddbe30c30913cb85fc95fb1862"
+    }
+  ],
+  "internalLinks": [
+    {
+      "document": "README.md",
+      "target": "EXISTING_FINAL_CSV_11.24.4.md",
+      "exists": true
+    },
+    {
+      "document": "README.md",
+      "target": "validation.json",
+      "exists": true
+    },
+    {
+      "document": "README.md",
+      "target": "FINAL_REVIEW_OFFSET_11.24.3.md",
+      "exists": true
+    },
+    {
+      "document": "README.md",
+      "target": "../../tests/ManualInspection/FINAL_REVIEW_OFFSET_QA.md",
+      "exists": true
+    },
+    {
+      "document": "README.md",
+      "target": "validation.json",
+      "exists": true
+    },
+    {
+      "document": "README.md",
+      "target": "MASTER_INTEGRATION_11.24.2.md",
+      "exists": true
+    },
+    {
+      "document": "README.md",
+      "target": "../../tests/ManualInspection/MASTER_INTEGRATION_QA.md",
+      "exists": true
+    },
+    {
+      "document": "README.md",
+      "target": "validation.json",
+      "exists": true
+    },
+    {
+      "document": "README.md",
+      "target": "FIRST_LOAD_PANELS_11.24.1.md",
+      "exists": true
+    },
+    {
+      "document": "README.md",
+      "target": "../../tests/ManualInspection/FIRST_LOAD_PANELS_QA.md",
+      "exists": true
+    },
+    {
+      "document": "README.md",
+      "target": "validation.json",
+      "exists": true
+    },
+    {
+      "document": "README.md",
+      "target": "RETRY_VISIBILITY_11.24.0.md",
+      "exists": true
+    },
+    {
+      "document": "README.md",
+      "target": "../../tests/ManualInspection/RETRY_VISIBILITY_QA.md",
+      "exists": true
+    },
+    {
+      "document": "README.md",
+      "target": "validation.json",
+      "exists": true
+    },
+    {
+      "document": "README.md",
+      "target": "STANDARD_SELECTION_REFERENCE_11.23.2.md",
+      "exists": true
+    },
+    {
+      "document": "README.md",
+      "target": "../../tests/ManualInspection/STANDARD_SELECTION_REFERENCE_QA.md",
+      "exists": true
+    },
+    {
+      "document": "README.md",
+      "target": "CELL_CLICK_OFFSET_SYNC_11.23.1.md",
+      "exists": true
+    },
+    {
+      "document": "README.md",
+      "target": "../../tests/ManualInspection/CELL_CLICK_OFFSET_SYNC_QA.md",
+      "exists": true
+    },
+    {
+      "document": "README.md",
+      "target": "BULK_HISTORY_11.23.0.md",
+      "exists": true
+    },
+    {
+      "document": "README.md",
+      "target": "validation.json",
+      "exists": true
+    },
+    {
+      "document": "README.md",
+      "target": "../../tests/ManualInspection/BULK_HISTORY_QA.md",
+      "exists": true
+    },
+    {
+      "document": "README.md",
+      "target": "images/manual-11.24.1-notebook-dark.png",
+      "exists": true
+    },
+    {
+      "document": "README.md",
+      "target": "images/manual-11.24.1-scatter-correction-dark.png",
+      "exists": true
+    },
+    {
+      "document": "README.md",
+      "target": "images/manual-11.24.1-level-settings-dark.png",
+      "exists": true
+    },
+    {
+      "document": "README.md",
+      "target": "validation.json",
+      "exists": true
+    },
+    {
+      "document": "README.md",
+      "target": "MEASUREMENT_WORKFLOW_11.21.2.md",
+      "exists": true
+    },
+    {
+      "document": "README.md",
+      "target": "history/validation-61578db.json",
+      "exists": true
+    },
+    {
+      "document": "README.md",
+      "target": "../../tests/ManualInspection/README.md",
+      "exists": true
+    },
+    {
+      "document": "README.md",
+      "target": "Reference/A3_Review_Workspace.html",
+      "exists": true
+    },
+    {
+      "document": "README.md",
+      "target": "BULK_HISTORY_11.23.0.md",
+      "exists": true
+    },
+    {
+      "document": "README.md",
+      "target": "history/validation-367a727.json",
+      "exists": true
+    },
+    {
+      "document": "README.md",
+      "target": "CELL_CLICK_OFFSET_SYNC_11.23.1.md",
+      "exists": true
+    },
+    {
+      "document": "README.md",
+      "target": "history/validation-89e92a0.json",
+      "exists": true
+    },
+    {
+      "document": "EXISTING_FINAL_CSV_11.24.4.md",
+      "target": "../../Drilling.File/ReviewOffset/CReviewOffsetFile.cs",
+      "exists": true
+    },
+    {
+      "document": "EXISTING_FINAL_CSV_11.24.4.md",
+      "target": "../../Drilling.UI/CRootView.cs",
+      "exists": true
+    },
+    {
+      "document": "EXISTING_FINAL_CSV_11.24.4.md",
+      "target": "../../Drilling.UI/CAppStartup.cs",
+      "exists": true
+    },
+    {
+      "document": "EXISTING_FINAL_CSV_11.24.4.md",
+      "target": "../../Drilling.UI/Menu/Menus/CManualInspectionBackend.cs",
+      "exists": true
+    },
+    {
+      "document": "EXISTING_FINAL_CSV_11.24.4.md",
+      "target": "../../Drilling.UI/Views/CManualInspectionView.xaml.cs",
+      "exists": true
+    },
+    {
+      "document": "EXISTING_FINAL_CSV_11.24.4.md",
+      "target": "../../Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
+      "exists": true
+    },
+    {
+      "document": "EXISTING_FINAL_CSV_11.24.4.md",
+      "target": "validation.json",
+      "exists": true
+    },
+    {
+      "document": "EXISTING_FINAL_CSV_11.24.4.md",
+      "target": "images/manual-11.24.4-existing-csv-notebook-dark.png",
+      "exists": true
+    }
+  ],
+  "originalCsv": {
+    "count": 137,
+    "rows": 21420,
+    "cells": 45,
+    "allRawBytesUnchanged": true,
+    "recordsCopied": false
+  },
+  "resolvedFindings": [
+    "INIT-HISTORY-01 runtime proof survives exact same-frame actual reload; actual regression passed",
+    "DOC-README-01 current final defaults/three map choices corrected"
+  ],
+  "pendingManifest": "Expected passed=false/two-round staging because this third audit did not exist yet; parent will regenerate passed=true/three rounds, then outside audit. No self-reference hash required.",
+  "sourceLinkedCountsNotDuplicated": true,
+  "observedChangedPathCount": 60,
+  "scopeRecordedPathCount": 60,
+  "scope": "Read-only source/report/hash/link/PNG audit. No production/test/Git mutation, device/App/Root/Manager construction, SDK load/run/decompilation, motion/Vision/PLC or real processing. Actual Controller uses fake Backend; actual Backend tests use isolated synthetic files/pure managers. Startup Root hook ordering is source-reviewed; Controller preload API is runtime-tested without equipment Root.",
+  "limitations": [
+    "Valid Init stays a draft until explicit model save/cancel; actual write failure leaves retryable draft and original file unchanged.",
+    "Large history total exception requires exact in-process actual load/commit proof; unknown history after restart fails closed. Field/current-frame/write guards remain.",
+    "Repository CSV dates do not establish the current customer PC latest file."
+  ],
+  "canonicalSourceComparison": "Git blob and checkout compared as bytes with CRLF→LF only; BOM is preserved on both sides. Raw SHA values are reported separately."
+}

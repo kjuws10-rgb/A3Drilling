@@ -15,6 +15,7 @@
     <Compile Include="ReferenceValueCases.cs" />
     <Compile Include="RetryVisibilityCases.cs" />
     <Compile Include="FirstLoadStateCases.cs" />
+    <Compile Include="InitRecoveryCases.cs" />
     <Compile Include="../../Drilling.Common/Review/ManualInspection/*.cs" Link="Production/%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

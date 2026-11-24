@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 1,
+  "version": "11.24.4",
+  "round": 2,
+  "checkedAt": "2026-11-24T04:41:35.781199+00:00",
+  "sourceCommit": "b9659de850691ff677a1e7caf2093c499cd42f28",
+  "status": "passed",
+  "passed": true,
+  "analysisOnly": true,
+  "noProductionOrGitMutation": true,
+  "noDeviceVendorAppRootExecution": true,
+  "sourceFiles": [
+    {
+      "path": "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
+      "sha256": "31da1cb21dd9aaa9fc2d91d88fbb2a39f37dd6de4480b7087e5da77929100501"
+    },
+    {
+      "path": "Drilling.UI/Menu/Menus/CManualInspectionController.cs",
+      "sha256": "1796875aa282bb0efd83e9c9fc4d2e8e3b42788dc712438687c84753314f6377"
+    },
+    {
+      "path": "Drilling.UI/CRootView.cs",
+      "sha256": "d1b229746ae3fa204af774a5718970be70abc2ea8da8f1e5be4a534ec4cabe1d"
+    },
+    {
+      "path": "Drilling.UI/Views/CManualInspectionView.xaml",
+      "sha256": "7010f4694d8c8ee58f1227c51e349963328f3e7ca8df646b643dd00ef3983083"
+    },
+    {
+      "path": "Drilling.UI/Views/CManualInspectionView.xaml.cs",
+      "sha256": "2bd5f393fdad18b9422c1ba341d001ca3a1492db3af508fe18efc7382fdb6774"
+    },
+    {
+      "path": "tests/ManualInspection/InitRecoveryCases.cs",
+      "sha256": "db65524ed9bf2e71f70f55b571995e9747ad061e59bb3445b766b6ec1185c0a1"
+    },
+    {
+      "path": "tests/ManualInspection/ControllerHarness/InitRecoveryCases.cs",
+      "sha256": "befced421fbf42c4a802574d7e4e0904d91b3aed100628eb7c22e91195162ff3"
+    },
+    {
+      "path": "tests/ManualInspection/ControllerHarness/StartupFinalOffsetsCases.cs",
+      "sha256": "0fd0066a1feaed5666b238cdabf58db8f4c542c1537b8772890b4ae9efa203f2"
+    }
+  ],
+  "checks": [
+    {
+      "name": "init_keep_exemption_requires_exact_base_zero_delta_and_same_empty_metadata",
+      "passed": true
+    },
+    {
+      "name": "init_target_zero_and_finite_and_cell_shot_guards_remain",
+      "passed": true
+    },
+    {
+      "name": "init_changed_scope_validation_matches_snapshot_and_written_validation",
+      "passed": true
+    },
+    {
+      "name": "init_kept_scope_does_not_reapprove_old_total_or_field_request",
+      "passed": true
+    },
+    {
+      "name": "normal_candidate_and_absolute_import_limits_remain",
+      "passed": true
+    },
+    {
+      "name": "exact_or_quantized_legacy_kept_values_allowed_but_new_drift_rejected",
+      "passed": true
+    },
+    {
+      "name": "init_sandbox_validates_before_retiring_live_operation",
+      "passed": true
+    },
+    {
+      "name": "second_init_validation_failure_cancels_replacement",
+      "passed": true
+    },
+    {
+      "name": "history_total_exception_is_runtime_proof_not_session_serialization",
+      "passed": true
+    },
+    {
+      "name": "history_restore_keeps_field_identity_write_digest_and_revision_guards",
+      "passed": true
+    },
+    {
+      "name": "startup_hook_runs_only_after_actual_recipe_process_resolution",
+      "passed": true
+    },
+    {
+      "name": "startup_display_failures_are_isolated_and_cancellation_propagates",
+      "passed": true
+    },
+    {
+      "name": "startup_does_not_invoke_motion_or_review_offset_write",
+      "passed": true
+    },
+    {
+      "name": "ui_15_mode_917_reports_match_current_five_ui_sources",
+      "passed": true
+    },
+    {
+      "name": "original_137_csv_names_lengths_raw_sha_unchanged",
+      "passed": true
+    },
+    {
+      "name": "same_frame_runtime_proof_retention_requires_actual_revision_and_every_value_and_init_key_match",
+      "passed": true
+    },
+    {
+      "name": "same_frame_ensureloaded_notify_then_large_undo_redo_regression_passed",
+      "passed": true
+    },
+    {
+      "name": "modified_actual_contents_or_untrusted_external_history_does_not_gain_total_exemption",
+      "passed": true
+    },
+    {
+      "name": "only_current_absolute_draft_rebases_limit_fingerprint_and_requires_new_validation",
+      "passed": true
+    },
+    {
+      "name": "normal_or_already_stale_candidate_cannot_be_resurrected_by_limit_edit",
+      "passed": true
+    },
+    {
+      "name": "core_source_233_checks_current_and_passed",
+      "passed": true
+    },
+    {
+      "name": "controller_source_246_checks_current_and_passed",
+      "passed": true
+    }
+  ],
+  "findings": [
+    {
+      "id": "INIT-HISTORY-01",
+      "priority": "P1",
+      "status": "resolved",
+      "type": "static_control_flow_edge",
+      "detail": "Runtime verified history is cleared by Workspace.Load. Controller LoadSource calls Load then RestoreSession even on same frame, so a post-Init EnsureLoaded/Notify/Refresh can discard old >200 proof and block previously permitted Undo. No arbitrary session JSON proof should be trusted.",
+      "source": "CManualInspectionWorkspace.Load/_verifiedStoredRevisions.Clear and CManualInspectionController.LoadSource sameFrame Load→RestoreSession",
+      "suggestedRegression": "Large existing B -> scoped/all Init save -> EnsureLoaded or external Notify -> Undo/Redo; include changed observation fingerprint so automatic early-return does not hide the branch.",
+      "resolution": {
+        "source": "Load retains process-local proofs only when Recipe/Run/CoordinateSignature/current Revision and entire fresh actual values/initialized keys exactly match the prior current proof. RestoreSession still filters each proof against actual history. No trusted proof is serialized.",
+        "regression": "init_recovery_controller_same_frame_ensureloaded_preserves_verified_large_undo_redo",
+        "sourceLinkedResult": "passed in controller-source.json count246",
+        "finalActualDllVerification": "deferred to Round 3"
+      }
+    }
+  ],
+  "executedEvidence": {
+    "uiModes": 15,
+    "uiChecks": 917,
+    "uiNewCases": 39,
+    "originalCsvFiles": 137,
+    "newInitAndStartupFinalRuntimeResults": "Current source-linked Core233 and Controller246 passed. Final actual production DLL verification remains Round 3.",
+    "sourceLinkedReports": [
+      {
+        "path": "init-fix/core-source.json",
+        "sha256": "b011cb5d129fd49f3bc5d7447cc22dd745a6442d69ad2d939153ea1c84e95d7e",
+        "count": 233,
+        "passed": true,
+        "scope": "source-linked synthetic regressions; not added to final production-DLL counts"
+      },
+      {
+        "path": "init-fix/controller-source.json",
+        "sha256": "8f7ab9ad7f818b5e6811fad9c7564de6682b549442270353b8ed43a17fe60eb6",
+        "count": 246,
+        "passed": true,
+        "scope": "source-linked synthetic regressions; not added to final production-DLL counts"
+      }
+    ],
+    "sourceProofPath": "init-fix/source-hashes.json",
+    "sourceProofSha256": "2d82a8bbffe1553088aeea318fc1e40545323bbc9c50b4b407f78d411741e628"
+  },
+  "limitations": [
+    "No actual equipment/App/Root instance was created. Startup hook placement is a source-order check plus actual Controller synthetic Backend tests.",
+    "The final freeze sources and fresh production DLL reports require Round 3.",
+    "A failed actual file write retains the retryable draft and original active file; explicit CancelOffsetEdit releases it. Invalid Init preflight creates no draft.",
+    "Process-local proof is not reconstructed from a session JSON after a cold restart; total-limit exemption applies only to exact independently loaded/committed runtime history. Physical Field validation is always retained on Undo/Redo."
+  ]
+}

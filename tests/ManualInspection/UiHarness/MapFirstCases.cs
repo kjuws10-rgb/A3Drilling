@@ -23,7 +23,7 @@ internal static partial class Program
             Set(view, "_scatterOffsets", false); Set(view, "_scatterScope", "CELL"); // Explicit legacy working-data scope.
             var window = new Window { Width = 1120, Height = 560, Content = view, Left = -20000, Top = -20000,
                 ShowInTaskbar = false, ShowActivated = false, WindowStyle = WindowStyle.None };
-            window.Show(); Pump();
+            window.Show(); Pump(); SelectMeasurementView(view);
             var map = (CManualInspectionMapControl)view.FindName("PositionMap");
             var inspector = (Expander)view.FindName("InspectorSection");
             var workInfo = (Expander)view.FindName("WorkInfoSection");

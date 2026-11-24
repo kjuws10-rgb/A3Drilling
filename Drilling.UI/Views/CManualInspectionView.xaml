@@ -223,7 +223,13 @@
       <Border x:Name="ToolbarPanel" Grid.Row="0" Background="{DynamicResource PanelAltBackgroundBrush}" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1" CornerRadius="5" Padding="6,4" Margin="0,0,0,4">
         <Grid><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
           <Grid Grid.Row="0"><Grid.ColumnDefinitions><ColumnDefinition Width="*" MinWidth="80" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-            <TextBlock Text="2D 결과 지도" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold" FontSize="16" VerticalAlignment="Center" ToolTip="MANUAL INSPECTION · 지도에서 선택하고 우클릭으로 동작합니다." />
+            <Grid Grid.Column="0" ClipToBounds="True">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*" MinWidth="0"/></Grid.ColumnDefinitions>
+              <TextBlock Text="2D 결과 지도" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold" FontSize="16" VerticalAlignment="Center" ToolTip="MANUAL INSPECTION · 지도에서 선택하고 우클릭으로 동작합니다." />
+              <Button Grid.Column="1" x:Name="FinalCsvSourceButton" Style="{StaticResource ManualButton}" Click="ShowFinalOffsets_Click" Margin="8,0,4,0" Padding="6,2" MinHeight="26" FontSize="10" HorizontalAlignment="Left" MaxWidth="420" AutomationProperties.Name="현재 최종 Review CSV 보기">
+                <TextBlock x:Name="FinalCsvSourceText" Text="Final Offset · CSV 확인 중" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+              </Button>
+            </Grid>
 
 
             <Button Grid.Column="3" Width="82" Margin="6,0,0,0"  x:Name="ZoomResetButton" Content="100% · 맞춤" Padding="5,2" FontSize="11" Style="{StaticResource ManualButton}" Click="ZoomReset_Click" ToolTip="전체 범위를 화면에 맞춥니다. 실제 장비 위치는 바뀌지 않습니다." />

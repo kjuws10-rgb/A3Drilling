@@ -26,8 +26,9 @@ internal static partial class Program
             var map=Find<CManualInspectionMapControl>("PositionMap");var plot=Find<CManualInspectionScatterControl>("ScatterPlot");
             var p=state.Points[1] with{WorkingJudge="OK",WorkingXUm=0,WorkingYUm=0,BaseXUm=0,BaseYUm=0,HasAppliedOffset=true,IsProxy=false,Source="MEASURED"};
             string Color(CManualInspectionUiPoint point,string mode="level")=>((SolidColorBrush)CManualInspectionDrawing.PointBrush(view,point,mode,state)).Color.ToString();
-            Test("workflow_visible_color_modes_are_only_deviation_and_judgement",Find<ComboBox>("ColorFilter").Items.Count==3&&Field<string>(view,"_color")=="level");
-            Test("workflow_scatter_defaults_to_measurement_working_data_and_all_heads",!Field<bool>(view,"_scatterOffsets")&&!Field<bool>(view,"_scatterOriginal")&&Field<string>(view,"_scatterScope")=="HEAD"&&Field<int>(view,"_scatterHead")==0&&plot.DataKind=="WORKING");
+            Test("workflow_visible_color_modes_include_default_final_csv",Find<ComboBox>("ColorFilter").Items.Count==3&&Field<string>(view,"_color")=="applied");
+            Test("workflow_scatter_defaults_to_final_saved_csv_and_all_heads",Field<bool>(view,"_scatterFinalOffsets")&&!Field<bool>(view,"_scatterOffsets")&&!Field<bool>(view,"_scatterOriginal")&&Field<string>(view,"_scatterScope")=="HEAD"&&Field<int>(view,"_scatterHead")==0&&plot.DataKind=="OFFSETS");
+            SelectMeasurementView(view); // The remaining workflow assertions exercise the retained raw/measurement view.
             foreach(var theme in new[]{"Light","Dark"})
             {
                 LoadResources(theme);Pump();

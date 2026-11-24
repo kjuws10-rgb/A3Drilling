@@ -1,0 +1,1032 @@
+{
+  "passed": true,
+  "tests": 181,
+  "failures": 0,
+  "checks": [
+    {
+      "name": "scatter_auto_small_errors_are_not_forced_to_tolerance_or_5um_floor",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_auto_axes_are_equal_origin_symmetric",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_small_errors_use_same_x_y_pixel_scale",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_scale_change_drops_stale_pixel_hits_before_next_render",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_fixed_range_clips_hits_but_keeps_population_statistics",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_fixed_one_value_sets_both_symmetric_axes",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_fixed_range_does_not_jump_after_population_changes",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_fit_returns_to_auto_and_current_population",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_auto_follows_smaller_population",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_cursor_centered_zoom_preserves_under_cursor_value",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_selection_refresh_retains_fixed_zoom",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_invalid_zoom_cannot_corrupt_view_or_population",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_invalid_fixed_half_range_rejected_0",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_invalid_fixed_half_range_rejected_-1",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_invalid_fixed_half_range_rejected_NaN",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_invalid_fixed_half_range_rejected_\u221E",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_reset_does_not_select_or_send_work",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_all_zero_auto_range_is_finite_and_nonzero",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_empty_population_has_no_stale_hits",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_preserves_first_cell_landing",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_all_cells_scope_is_available",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_uses_recipe_position_instead_of_cell_number_order",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_all_slots_fit_viewport",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_map_preserves_map_first_compact_space",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "ctrl_cell_drag_selects_whole_cell_without_navigation_or_work",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "ctrl_cell_drag_combines_multiple_cells",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "ctrl_cell_header_navigates_without_toggling_existing_measurement_selection",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "ctrl_partially_selected_cell_drag_adds_remainder_instead_of_xor",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "disabled_cell_drag_does_not_select_masked_targets",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "normal_cell_header_hit_is_correct_after_zoom_pan",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "single_cell_header_all_cells_button_restores_overview",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_double_fit_preserves_selection_and_never_dispatches_work",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_judge_filter_preserves_real_cell_geometry",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_scaled_view_has_every_slot_and_no_default_scroll_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_scaled_view_has_every_slot_and_no_default_scroll_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_scaled_view_has_every_slot_and_no_default_scroll_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "cell_navigation_enters_single_cell_without_device_request",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "selected_cells_scatter_initially_follows_selected_points_cells",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_first_click_can_temporarily_focus_one_cell",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_double_fit_restores_original_multi_cell_selection_and_population",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_double_fit_preserves_explicit_null_focus",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_double_fit_cannot_restore_old_selection_after_external_source_version",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_double_fit_cannot_restore_old_cells_after_manual_scope_change",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "blank_scatter_double_fit_does_not_restore_a_stale_earlier_click",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "selected_cells_scatter_live_addition_uses_whole_cell_population",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "selected_cells_scatter_ignores_map_point_filters",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "manual_cell_checkboxes_take_priority_over_point_selection",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "cell_follow_button_restores_selection_derived_scope",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "empty_point_selection_does_not_fall_back_to_all_cells_scatter",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_range_UI_fixes_equal_symmetric_axes",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_zoom_UI_changes_only_display",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_fit_UI_returns_to_auto_population",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "scatter_invalid_UI_range_retains_view_and_describes_error",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_remains_recipe_geometry_while_scatter_is_open",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "file_menu_exposes_return_portable_offset_and_measurement_files_without_session_or_recent_list",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "file_return_is_immediate_without_confirmation",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "return_restores_native_cell_selection_filters_and_color",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "return_restores_native_map_zoom_pan_and_scatter_fixed_axes",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "return_restores_native_panel_fold_state",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "file_return_dispatch_never_performs_implicit_move_measure_or_apply",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "incomplete_measurement_disables_file_replacement_and_return_but_keeps_exports",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "incomplete_file_actions_are_rejected_by_common_ui_gate",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "geometry_only_disabled_cell_is_navigable_as_empty_view",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "rotated_cell_uses_affine_polygon_instead_of_axis_aligned_fill",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "rotated_cell_hit_finds_real_polygon_center",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "rotated_cell_bbox_corner_does_not_hit_outside_polygon",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "recipe_y_direction_metadata_flips_only_vertical_orientation",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "expanded_scatter_preserves_usable_map_height_compact",
+      "passed": true,
+      "details": {
+        "ActualHeight": 448.24,
+        "minimum": 240,
+        "ViewportHeight": 482.24
+      }
+    },
+    {
+      "name": "left_scatter_plot_remains_reachable_without_central_scroll_compact",
+      "passed": true,
+      "details": {
+        "Top": 132.26,
+        "Bottom": 322.26,
+        "ViewportHeight": 412.98,
+        "ScrollableHeight": 0
+      }
+    },
+    {
+      "name": "expanded_scatter_preserves_usable_map_height_wide",
+      "passed": true,
+      "details": {
+        "ActualHeight": 769.84,
+        "minimum": 361.728,
+        "ViewportHeight": 803.84
+      }
+    },
+    {
+      "name": "left_scatter_plot_remains_reachable_without_central_scroll_wide",
+      "passed": true,
+      "details": {
+        "Top": 132.26,
+        "Bottom": 322.26,
+        "ViewportHeight": 734.58,
+        "ScrollableHeight": 0
+      }
+    },
+    {
+      "name": "closing_scatter_restores_map_first_no_scroll_at_both_sizes",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_point_press_defers_navigation_until_release",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_point_single_click_opens_cell_instead_of_selecting_measurement",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_ctrl_point_click_also_opens_cell_without_measurement_selection",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_header_press_can_still_become_drag",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_header_release_opens_cell_once",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_ctrl_header_click_opens_cell_without_whole_cell_toggle",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_filtered_slot_is_not_a_measurement_hit",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_filtered_blank_inside_cell_still_navigates",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_masked_point_opens_its_cell_without_selecting_or_work",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_small_pointer_jitter_remains_cell_click",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_four_dip_inclusive_jitter_remains_click",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_drag_threshold_prevents_navigation_even_without_move_event",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_drag_returned_to_origin_does_not_become_click",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_header_started_drag_selects_cell_points_without_entering",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_ctrl_drag_preserves_additive_multi_selection",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_alt_drag_on_header_pans_without_entering_or_selecting",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_pan_tool_has_priority_over_cell_click",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_alt_click_does_not_navigate",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_capture_loss_discards_pending_navigation",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_new_click_after_capture_loss_can_navigate",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_source_refresh_cancels_pending_cell_click",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_unload_discards_pending_navigation",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_escape_cancel_discards_pending_navigation",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_right_press_cannot_complete_a_pending_left_navigation",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_outside_cell_click_does_not_select_or_navigate",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_invalid_pointer_cannot_create_navigation",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_body_navigation_uses_zoom_pan_transform",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_second_double_click_down_fits_current_single_cell_without_work",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_geometry_only_cell_body_is_still_navigable",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_rotated_cell_interior_navigates",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_rotated_cell_bbox_outside_shape_does_not_navigate",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_missing_recipe_geometry_keeps_logical_cell_navigation",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "move_measure_menu_fresh_empty_depends_on_pending_edit_not_empty_value",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "move_measure_menu_saved_init_depends_on_pending_edit_not_empty_value",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "move_measure_menu_unsaved_init_draft_depends_on_pending_edit_not_empty_value",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "masked_point_click_can_focus_reference_without_selecting_measurement_target",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "view_initial_empty_model_offers_move_measure_before_any_edit",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "view_initial_empty_model_reaches_movement_confirmation_instead_of_empty_value_gate",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "view_loaded_saved_init_model_offers_move_measure_before_any_edit",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "view_loaded_saved_init_model_reaches_movement_confirmation_instead_of_empty_value_gate",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "map_keyboard_without_focus_selects_first_visible_point_without_cell_navigation",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "map_keyboard_right_follows_displayed_row_across_head_numbers",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "map_keyboard_ctrl_arrow_selects_column_end_as_one_point",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "map_keyboard_left_and_up_return_to_visual_neighbours",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "map_keyboard_shift_arrow_extends_from_fixed_anchor",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "map_keyboard_shift_two_axes_forms_rectangular_range",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "map_keyboard_reverse_shift_shrinks_back_to_anchor",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "map_keyboard_plain_arrow_resets_range_anchor",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "map_keyboard_ctrl_shift_selects_rectangular_range_to_visual_row_end",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "map_keyboard_reverse_ctrl_shift_contracts_range_instead_of_union",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "map_keyboard_ctrl_without_shift_collapses_previous_range",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "map_keyboard_external_selection_resets_old_anchor",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "map_keyboard_measurement_status_refresh_keeps_same_geometry_anchor",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "map_keyboard_skips_masked_and_filtered_positions",
+      "passed": true,
+      "details": "Actual focus: C3/H2/S4/B11"
+    },
+    {
+      "name": "map_keyboard_right_crosses_actual_cell_boundary_without_entering_single_cell",
+      "passed": true,
+      "details": "Actual focus: C10/H1/S1/B11"
+    },
+    {
+      "name": "map_keyboard_shift_range_excludes_masked_and_hidden_interior_points",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "map_keyboard_ctrl_end_stays_on_filtered_logical_row_without_diagonal_wrap",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "map_keyboard_ctrl_at_line_edge_never_wraps_into_another_row",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "map_keyboard_filter_change_resets_old_anchor_to_current_visible_focus",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "map_keyboard_source_frame_change_cannot_reuse_previous_anchor",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "map_keyboard_down_crosses_to_cell_below_using_recipe_placement",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "map_keyboard_never_selects_disabled_cell_positions",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "map_keyboard_hidden_focus_restarts_at_visible_point",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "map_keyboard_empty_filtered_map_does_not_select_or_dispatch",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "map_keyboard_left_edge_does_not_wrap_or_replace_selection",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "map_keyboard_selected_point_is_revealed_after_zoom_and_pan",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "map_keyboard_alt_shift_arrow_still_pans_without_selection",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "map_keyboard_space_opens_existing_action_context_menu_without_executing",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "map_keyboard_open_menu_keeps_native_arrow_navigation_and_is_not_replaced",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "map_keyboard_escape_closes_menu_and_preserves_selection",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "map_keyboard_held_space_does_not_reopen_context_menu",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "map_keyboard_parent_escape_cancel_closes_menu_before_other_actions",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "map_keyboard_selection_cancels_pending_cell_click_instead_of_navigating",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "map_keyboard_first_point_follows_flipped_visual_y_direction",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "map_keyboard_down_uses_visual_direction_after_y_flip",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "map_keyboard_native_preview_event_selects_in_real_view_without_equipment_request",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_every_cell_has_persistent_number_without_hover",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_cell_labels_distinguish_disabled_cells",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_small_cells_scale_label_dimensions_and_font_with_zoom",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_tiny_cell_labels_have_no_fixed_badge_minimum",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_dense_cell_labels_do_not_overlap",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_dense_cell_labels_stay_in_their_own_cell_bounds",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_label_collision_avoidance_never_moves_real_cell_or_point_geometry",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_scaled_label_still_enters_its_named_cell",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_zoomed_cell_labels_expand_and_keep_click_identity",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_partially_visible_cell_labels_fit_inside_viewport_without_floating_outside_cell",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_rotated_cell_label_hit_stays_in_its_actual_polygon",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_logical_fallback_also_keeps_all_cell_numbers",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "measurement_blink_idle_last_measured_point_is_not_an_active_target",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "measurement_blink_inflight_point_starts_immediately_on_half_second_timer",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "measurement_blink_actual_dispatcher_timer_advances_without_equipment_poll",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "measurement_blink_new_target_resets_phase_to_on",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "measurement_blink_tick_changes_only_overlay_phase",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "measurement_blink_same_target_progress_refresh_does_not_restart_phase",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "measurement_blink_on_off_render_differs_while_ng_and_raw_values_remain",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "measurement_blink_confirmed_batch_keys_take_precedence_over_single_key",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "measurement_blink_batch_order_changes_preserve_phase",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "measurement_blink_move_or_save_busy_without_measurement_stops_timer",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "measurement_blink_finished_operation_never_keeps_old_target_lit",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "measurement_blink_unknown_key_does_not_start_timer",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "measurement_blink_filtered_out_target_does_not_mark_another_point",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "measurement_blink_latest_masking_status_blocks_cached_slot_target",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "measurement_blink_disabled_cell_does_not_get_active_target_overlay",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "measurement_blink_hidden_surface_stops_timer",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "measurement_blink_visible_surface_restarts_only_current_confirmed_target",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "measurement_blink_new_frame_does_not_reuse_previous_phase",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "measurement_blink_unload_stops_dispatcher_timer",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "measurement_blink_reload_restores_live_target_without_changing_selection",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "measurement_blink_stop_or_completion_clears_active_keys_and_preserves_data",
+      "passed": true,
+      "details": null
+    }
+  ],
+  "observations": [
+    {
+      "kind": "small-error-axis",
+      "maximumErrorUm": 3E-05,
+      "actualAutoHalfRange": 3.3600000000000004E-05
+    },
+    {
+      "kind": "overview-layout",
+      "mapWidth": 853.2800000000001,
+      "mapHeight": 769.84,
+      "cells": 4,
+      "points": 64,
+      "centres": {
+        "3": {
+          "X": 433.83135135135126,
+          "Y": 126.10918918918918
+        },
+        "10": {
+          "X": 587.5470270270271,
+          "Y": 126.10918918918918
+        },
+        "8": {
+          "X": 433.83135135135126,
+          "Y": 311.6281081081081
+        },
+        "22": {
+          "X": 587.5470270270271,
+          "Y": 311.6281081081081
+        }
+      }
+    },
+    {
+      "kind": "rotated-recipe-cell",
+      "boundary": [
+        {
+          "Xmm": 0,
+          "Ymm": 0
+        },
+        {
+          "Xmm": 300,
+          "Ymm": 120
+        },
+        {
+          "Xmm": 240,
+          "Ymm": 420
+        },
+        {
+          "Xmm": -60,
+          "Ymm": 300
+        }
+      ],
+      "pointCount": 1
+    },
+    {
+      "kind": "expanded-map-access",
+      "Name": "compact",
+      "mapMinExpanded": 240,
+      "collapsedMapHeight": 448.24,
+      "ScrollableHeight": 0
+    },
+    {
+      "kind": "expanded-map-access",
+      "Name": "wide",
+      "mapMinExpanded": 361.728,
+      "collapsedMapHeight": 769.84,
+      "ScrollableHeight": 0
+    },
+    {
+      "kind": "overview-pointer-policy",
+      "navigation": "release-only, includes measurement and filtered slots",
+      "selection": "rectangle drag only; Ctrl additive",
+      "thresholdDip": 4,
+      "deviceRequests": 0
+    },
+    {
+      "kind": "cell-relative-labels",
+      "cellCount": 48,
+      "zoom": 0.4,
+      "fontRangeDip": {
+        "Minimum": 1.0210208782220187,
+        "Maximum": 2.8176000000000108
+      },
+      "fixedBadgeMinimum": false,
+      "physicalGeometryUnchanged": true
+    },
+    {
+      "kind": "measurement-blink",
+      "timerMilliseconds": 500,
+      "actualTickObserved": true,
+      "confirmedTargetsOnly": true,
+      "selectionOrEquipmentRequests": 0,
+      "rawUnchanged": true
+    }
+  ],
+  "sourceHashes": {
+    "Views/CManualInspectionUiContract.cs": "6b3757f96a5c73c0d41dd15c6ba4061e3cec9f05f06e67d981610e5f045be14d",
+    "Views/CManualInspectionMapControl.cs": "e5664889149d3a7ee9f4cc9d3fa898a40546e77472bffd10eae00a9ab37f0fdb",
+    "Views/CManualInspectionScatterControl.cs": "1cc3fb7be94547c2e714d8809906f2df6018e5805b6ed44ecc9fd2c398e6a0bb",
+    "Views/CManualInspectionView.xaml": "7010f4694d8c8ee58f1227c51e349963328f3e7ca8df646b643dd00ef3983083",
+    "Views/CManualInspectionView.xaml.cs": "2bd5f393fdad18b9422c1ba341d001ca3a1492db3af508fe18efc7382fdb6774"
+  },
+  "scope": "Actual source-linked WPF View/Map/Scatter and current themes; synthetic immutable Recipe cell geometry and measurement values; fake Controller. No equipment App/Root/vendor object, OS input injection, Vision/motion or script execution. DIP125/150 is equivalent space/rendering only."
+}

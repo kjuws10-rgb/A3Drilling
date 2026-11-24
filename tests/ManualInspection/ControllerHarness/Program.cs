@@ -91,6 +91,8 @@ internal static partial class Program
         await RunRepresentativeChecks();
         await RunRetryVisibilityChecks();
         await RunFirstLoadStateChecks();
+        await RunInitRecoveryChecks();
+        await RunStartupFinalOffsetsCases();
         await Check("generic_sta_application_and_no_loaded_vendor_assemblies",async()=>{True(Application.Current.GetType()==typeof(Application));True(!VendorAssemblies().Any());await Task.CompletedTask;});
         var path=args.Length==2&&args[0]=="--report"?args[1]:Path.Combine(AppContext.BaseDirectory,"controller-results.json");Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         var assembly=typeof(CManualInspectionController).Assembly;
