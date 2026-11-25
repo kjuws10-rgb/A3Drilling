@@ -98,6 +98,8 @@ internal static partial class Program
         await RunCellCsvWorkflowChecks();
         await RunReplacementWorkflowChecks();
         await RunPerformanceCorrectnessChecks();
+        await RunRefreshScopeChecks();
+        await RunLocateAndMultiCellChecks();
         await Check("generic_sta_application_and_no_loaded_vendor_assemblies",async()=>{True(Application.Current.GetType()==typeof(Application));True(!VendorAssemblies().Any());await Task.CompletedTask;});
         var path=args.Length==2&&args[0]=="--report"?args[1]:Path.Combine(AppContext.BaseDirectory,"controller-results.json");Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         var assembly=typeof(CManualInspectionController).Assembly;
@@ -366,6 +368,11 @@ internal static partial class Program
         public Func<CancellationToken,Task>? SaveHook;
         public Action? StopHook;
         public Action<string>? PointHook;
+        public Func<string,CancellationToken,Task>? BeforePointResult;
+        public Action? EnsureHook;
+        public CManualInspectionPosition? Position;
+        public int PositionReads;
+        public Func<CancellationToken,Task>? PositionHook;
         public Action<Action<IReadOnlyList<string>>>? FlyingActiveHook;
         public Func<CancellationToken,Task>? AfterLineHook;
         public bool CancellationCallbackThrows,RejectGuard;
@@ -380,10 +387,16 @@ internal static partial class Program
         }
         public async Task<CManualInspectionSource> LoadAsync(string? p,CancellationToken t,IReadOnlyList<string>?displayKeys=null){Loads++;LoadedPaths.Add(p);var captured=p is not null&&FileSources.TryGetValue(p,out var file)?file:Source;if(LoadHook is not null)await LoadHook(captured,t);t.ThrowIfCancellationRequested();return captured with { Points=captured.Points.Select(point=>point with { HasAppliedOffsetEvidence=captured.AppliedOffsetKeys.Contains(point.Key)&&captured.StoredInitializedOffsetKeys?.Contains(point.OffsetKey)!=true&&!point.IsMeasurementOffsetInitialized }).ToArray() };}
         public void GuardOperation(){Guards++;if(RejectGuard)throw new InvalidOperationException("Synthetic equipment safety interlock");}
-        public Task EnsureCurrentAsync(CManualInspectionSource source,CancellationToken t){Ensures++;t.ThrowIfCancellationRequested();if(Stale)throw new InvalidOperationException("Changed native context");return Task.CompletedTask;}
+        public Task EnsureCurrentAsync(CManualInspectionSource source,CancellationToken t){Ensures++;EnsureHook?.Invoke();t.ThrowIfCancellationRequested();if(Stale)throw new InvalidOperationException("Changed native context");return Task.CompletedTask;}
+        public async Task<CManualInspectionPosition> ReadCurrentPositionAsync(CManualInspectionSource source,CancellationToken token)
+        {
+            PositionReads++;if(PositionHook is not null)await PositionHook(token);token.ThrowIfCancellationRequested();
+            if(Stale||source.Context!=Source.Context)throw new InvalidOperationException("Synthetic current position authority changed");
+            return Position??throw new NotSupportedException("Synthetic stationary position is unavailable; no recent-result fallback.");
+        }
         public async Task<CManualInspectionMeasurement> ExecutePointAsync(CManualInspectionSource s,string key,EN_MANUAL_OPERATION_KIND kind,Action<string>progress,CancellationToken token)
         {
-            Executed.Add(key);PointHook?.Invoke(key);Entered.TrySetResult();if(Hold){using var registration=CancellationCallbackThrows?token.Register(()=>throw new IOException("Synthetic cancellation callback failure")):default;try{await Task.Delay(Timeout.Infinite,token);}catch(OperationCanceledException){CancelObserved.TrySetResult();await Release.Task;throw;}}
+            Executed.Add(key);PointHook?.Invoke(key);Entered.TrySetResult();if(BeforePointResult is not null)await BeforePointResult(key,token);if(Hold){using var registration=CancellationCallbackThrows?token.Register(()=>throw new IOException("Synthetic cancellation callback failure")):default;try{await Task.Delay(Timeout.Infinite,token);}catch(OperationCanceledException){CancelObserved.TrySetResult();await Release.Task;throw;}}
             token.ThrowIfCancellationRequested();if(key==FailKey)throw new TimeoutException("Synthetic missing response");var p=s.Points.First(p=>p.Key==key);var m=new ST_MANUAL_MEASUREMENT(NewJudge,NewX,NewY,"NEW-RAW-"+NewX,s.Context.RecipeId,s.Context.RunId,s.Context.CoordinateSignature){RawData="Synthetic new raw"};return new(key,m,p.XMm,p.YMm);
         }
         public async Task ExecuteFlyingAsync(CManualInspectionSource s,IReadOnlyList<string>keys,Action<CManualInspectionMeasurement>measured,Action<string>progress,CancellationToken token){FlyingKeys.AddRange(keys);foreach(var k in keys)measured(await ExecutePointAsync(s,k,EN_MANUAL_OPERATION_KIND.Flying,progress,token));}

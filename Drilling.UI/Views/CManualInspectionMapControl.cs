@@ -86,6 +86,10 @@ public sealed class CManualInspectionMapControl : Control
     private readonly DispatcherTimer _measurementBlinkTimer;
     private HashSet<string> _measurementBlinkKeys = new(StringComparer.Ordinal);
     private bool _measurementBlinkVisible;
+    private readonly DispatcherTimer _locationBlinkTimer;
+    private string? _locatedPointKey;
+    private bool _locationBlinkVisible;
+    private int _locationBlinkTicks;
 
     public event EventHandler<CManualInspectionSelectionEventArgs>? SelectionRequested;
     public event EventHandler<CManualInspectionOperationEventArgs>? OperationRequested;
@@ -103,6 +107,9 @@ public sealed class CManualInspectionMapControl : Control
         _measurementBlinkTimer = new DispatcherTimer(DispatcherPriority.Render, Dispatcher)
         { Interval = TimeSpan.FromMilliseconds(500) };
         _measurementBlinkTimer.Tick += (_, _) => AdvanceMeasurementBlink();
+        _locationBlinkTimer=new DispatcherTimer(DispatcherPriority.Render,Dispatcher)
+        { Interval=TimeSpan.FromMilliseconds(500) };
+        _locationBlinkTimer.Tick+=(_,_)=>AdvanceLocationBlink();
         Focusable = true;
         ClipToBounds = true;
         SnapsToDevicePixels = true;
@@ -120,11 +127,12 @@ public sealed class CManualInspectionMapControl : Control
         AutomationProperties.SetHelpText(this, "전체 Cell 보기에서는 셀 내부를 클릭하면 해당 Cell을 엽니다. 드래그로 측정점을 선택하고 Ctrl 드래그로 추가합니다. 단일 Cell에서는 Ctrl 클릭으로 복수 선택합니다. 방향키는 한 점, Ctrl 방향키는 행·열 끝, Shift 방향키는 사각 범위, Ctrl Shift 방향키는 끝까지 범위를 선택합니다. Space는 동작 메뉴, Esc는 메뉴 닫기, Ctrl 휠은 확대, Alt 방향키는 화면 이동입니다. 단일 Cell의 측정점 더블클릭은 편차 키패드 입력, 빈 공간 더블클릭은 맞춤입니다.");
         SizeChanged += (_, _) => { _layoutDirty = true; InvalidateVisual(); };
         Loaded += (_, _) => UpdateMeasurementBlink();
-        IsVisibleChanged += (_, _) => UpdateMeasurementBlink();
+        IsVisibleChanged += (_, _) => { UpdateMeasurementBlink(); if (!IsVisible) ClearLocationBlink(); };
         Unloaded += (_, _) =>
         {
             CancelGesture(true); _tip.IsOpen = false; if (ContextMenu is not null) ContextMenu.IsOpen = false;
             _measurementBlinkTimer.Stop(); _measurementBlinkVisible = false;
+            ClearLocationBlink();
         };
     }
 
@@ -136,6 +144,8 @@ public sealed class CManualInspectionMapControl : Control
         string? focusKey, string? representativeKey, string colorMode, string scopeSignature, bool showCellOverview = false)
     {
         if (ContextMenu?.IsOpen == true) ContextMenu.IsOpen = false;
+        if (_locatedPointKey is not null && (_snapshot.RecipeId!=snapshot.RecipeId || _snapshot.RunId!=snapshot.RunId
+            || _snapshot.CoordinateSignature!=snapshot.CoordinateSignature)) ClearLocationBlink();
         var hadHover = _hoverKey is not null;
         var colorChanged = _colorMode != colorMode || _snapshot.LevelMetric != snapshot.LevelMetric
             || !_snapshot.LevelBoundsUm.SequenceEqual(snapshot.LevelBoundsUm);
@@ -183,6 +193,8 @@ public sealed class CManualInspectionMapControl : Control
         _visible = visiblePoints;
         if (!samePoints) _pointByKey = allScopedPoints.ToDictionary(p => p.Key, StringComparer.Ordinal);
         _visibleKeys = nextVisibleKeys;
+        if (_locatedPointKey is {} located && (snapshot.CurrentPositionPointKey!=located || !_visibleKeys.Contains(located)))
+            ClearLocationBlink();
         _selected = nextSelected;
         _focusKey = focusKey;
         var oldBlinkKeys = _measurementBlinkKeys;
@@ -653,12 +665,36 @@ public sealed class CManualInspectionMapControl : Control
         InvalidateVisual();
     }
 
+    /// <summary>Reveal an explicitly verified point. This method neither finds a nearest target nor dispatches an equipment command.</summary>
+    public bool LocatePoint(string key)
+    {
+        if (!_visibleKeys.Contains(key) || !_pointByKey.ContainsKey(key) || _snapshot.CurrentPositionPointKey!=key) return false;
+        RevealPoint(key); Focus();
+        _locatedPointKey=key; _locationBlinkVisible=true; _locationBlinkTicks=8;
+        if (IsLoaded && IsVisible) _locationBlinkTimer.Start();
+        InvalidateVisual(); return true;
+    }
+
+    private void ClearLocationBlink()
+    {
+        _locationBlinkTimer.Stop(); _locatedPointKey=null; _locationBlinkVisible=false; _locationBlinkTicks=0;
+        InvalidateVisual();
+    }
+
+    private void AdvanceLocationBlink()
+    {
+        if (!IsLoaded || !IsVisible || _locatedPointKey is null || --_locationBlinkTicks<=0)
+        { ClearLocationBlink(); return; }
+        _locationBlinkVisible=!_locationBlinkVisible; InvalidateVisual();
+    }
+
     private void DrawMeasurementBlink(DrawingContext context, Rect viewport)
     {
-        if (!_measurementBlinkVisible) return;
+        if (!_measurementBlinkVisible && !_locationBlinkVisible) return;
         foreach (var slot in _slots)
         {
-            if (!_measurementBlinkKeys.Contains(slot.Point.Key)) continue;
+            var measuring=_measurementBlinkVisible && _measurementBlinkKeys.Contains(slot.Point.Key);
+            if (!measuring && !(_locationBlinkVisible && slot.Point.Key==_locatedPointKey)) continue;
             var bounds = Screen(slot.Bounds);
             if (!bounds.IntersectsWith(viewport)) continue;
             var polygon = _overviewPolygons.TryGetValue(slot.Point.Key, out var shape) ? shape.Select(Screen).ToArray() : null;
@@ -666,7 +702,7 @@ public sealed class CManualInspectionMapControl : Control
             var extent = polygon is null ? Math.Min(bounds.Width, bounds.Height)
                 : Math.Min((polygon[1] - polygon[0]).Length, (polygon[3] - polygon[0]).Length);
             var dark = new Pen(Brushes.Black, Math.Min(4, extent * .12));
-            var bright = new Pen(CManualInspectionDrawing.Color("#FFFFD54F"), Math.Min(2, extent * .06));
+            var bright = new Pen(CManualInspectionDrawing.Color(measuring?"#FFFFD54F":"#FF27C9D5"), Math.Min(2, extent * .06));
             if (polygon is not null)
             { DrawPolygon(context, polygon, null, dark); DrawPolygon(context, polygon, null, bright); }
             else

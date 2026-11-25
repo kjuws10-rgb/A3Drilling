@@ -27,6 +27,8 @@
     <Compile Include="CellCsvWorkflowCases.cs" />
     <Compile Include="ReplacementWorkflowCases.cs" />
     <Compile Include="PerformanceCorrectnessCases.cs" />
+    <Compile Include="RefreshScopeCases.cs" />
+    <Compile Include="LocateCellBulkControllerCases.cs" />
   </ItemGroup>
   <ItemGroup Condition="'$(UseActualAssemblies)' != 'true'">
     <Compile Include="Contracts.cs" />

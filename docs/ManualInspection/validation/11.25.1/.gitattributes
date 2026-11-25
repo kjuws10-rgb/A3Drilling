@@ -1,0 +1,2 @@
+# Keep tested report bytes and recognize their Windows CRLF endings.
+*.json -text whitespace=cr-at-eol

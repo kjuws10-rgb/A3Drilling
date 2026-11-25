@@ -1,0 +1,294 @@
+{
+  "passed": true,
+  "tests": 48,
+  "failures": 0,
+  "checks": [
+    {
+      "name": "replacement_constructor_has_single_measurement_color_no_mode_combo",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_removed_control_CalculateButton",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_removed_control_ValidateButton",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_removed_control_ApplyButton",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_removed_control_AllowManualCheck",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_removed_control_CorrectionPaneTabs",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_removed_control_CandidateGrid",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_removed_control_ValidationText",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_removed_control_ShowFinalOffsetsButton",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_removed_control_InitScopeCombo",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_removed_control_InitCellCombo",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_removed_control_InitHeadCombo",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_removed_control_PointAppliedText",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_removed_control_ResultOffsetColumn",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_scatter_only_measurement_and_original",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_csv_source_is_noninteractive_badge",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_badge_has_exact_saved_path_sha_but_no_action",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_old_saved_B_only_has_no_measurement_or_level",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_old_saved_B_only_is_gray",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_no_xy_OK_marker_is_unmeasured_and_never_in_OK_filter",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_real_measured_zero_keeps_level",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_copy_cancel_has_confirmation_and_no_dispatch",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_copy_explains_delta_absolute_stage_not_immediate_save",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_copy_only_dispatches_copy_not_apply",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_copy_keeps_saved_csv_and_original_raw_unchanged_in_ui",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_preview_uses_current_delta_not_B_plus_delta",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_removed_step_actions_cannot_bypass_single_save_from_view",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_judge_filter_stays_separate_from_fixed_level",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_overview_never_saves_whole_model",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_overview_import_without_cell_is_rejected",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_init_dispatches_current_cell_without_modal_and_describes_immediate_reset",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_pending_current_cell_exposes_one_bulk_save_and_cancel",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_pending_init_uses_bulk_with_same_explicit_cell",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_pending_other_cell_blocks_save",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_programmatic_other_cell_click_also_cannot_leak_scope",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_cancel_is_nonmoving_no_modal_and_keeps_csv",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_bulk_filters_do_not_change_current_cell_scope",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_cell_change_inside_modal_rejects_same_version_save",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_import_stage_has_same_single_save_path",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_pending_import_disables_both_file_actions",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_single_correction_panel_fits_without_scroll_Dark_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_fixed_level_theme_unchanged_Dark_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_single_correction_panel_fits_without_scroll_Dark_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_fixed_level_theme_unchanged_Dark_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_single_correction_panel_fits_without_scroll_Light_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_fixed_level_theme_unchanged_Light_notebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_single_correction_panel_fits_without_scroll_Light_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "replacement_fixed_level_theme_unchanged_Light_wide",
+      "passed": true,
+      "details": null
+    }
+  ],
+  "observations": [
+    {
+      "surface": "measurement-only",
+      "choices": [
+        "WORKING",
+        "ORIGINAL"
+      ],
+      "copyRequests": 1
+    },
+    {
+      "stage": "current-cell",
+      "Count": 4,
+      "confirms": 2
+    },
+    {
+      "theme": "Dark",
+      "Name": "notebook",
+      "ActualWidth": 533.2800000000001,
+      "ActualHeight": 444.20000000000005
+    },
+    {
+      "theme": "Dark",
+      "Name": "wide",
+      "ActualWidth": 863.6800000000002,
+      "ActualHeight": 765.8000000000001
+    },
+    {
+      "theme": "Light",
+      "Name": "notebook",
+      "ActualWidth": 533.2800000000001,
+      "ActualHeight": 444.20000000000005
+    },
+    {
+      "theme": "Light",
+      "Name": "wide",
+      "ActualWidth": 863.6800000000002,
+      "ActualHeight": 765.8000000000001
+    }
+  ],
+  "sourceHashes": {
+    "Views/CManualInspectionView.xaml": "9cd7fb588f73b61e05d1a00b5a69c4bb9aaab161198fc1b419b38893656b71a6",
+    "Views/CManualInspectionView.xaml.cs": "52be416cb1f654c0cb1957a73e584282166f11d230e5ae98baab2a210c065509",
+    "Views/CManualInspectionUiContract.cs": "aa0371384c0ff175919f55eaaf82f46c3caf6987f7c2c17506ea8988ae9a9f4a",
+    "Views/CManualInspectionMapControl.cs": "841ea3de05f846ae4379f8322f8460ee2c4eb3731cbd0cc61b3348977c50f1f4",
+    "Views/CManualInspectionScatterControl.cs": "1cc3fb7be94547c2e714d8809906f2df6018e5805b6ed44ecc9fd2c398e6a0bb"
+  },
+  "scope": "Actual source-linked WPF controls/themes, synthetic immutable snapshots and fake Controller only. No Manager, equipment, motion, Vision, vendor, production CSV or real application executes. Actual replacement arithmetic/CSV persistence is covered separately by Core/Controller/Backend tests. Obsolete final-color/candidate UI assertions are replaced by current measurement-only/Cell-stage policy; generic legacy APIs are not changed by this UI fixture."
+}

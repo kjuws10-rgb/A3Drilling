@@ -136,7 +136,7 @@ internal static partial class Program
             await StageLegacyInitDraft(c);await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.Apply);
             // Different observation fingerprint forces the real Load -> RestoreSession refresh,
             // rather than the identical-observation fast return. No JSON carries trusted proof.
-            f.Source=f.Source with{ObservationFingerprint="fresh-native-observation-after-init"};
+            f.Source=f.Source with{ObservationFingerprint="fresh-native-observation-after-init"};c.NotifyFilesChanged();
             await c.EnsureLoaded();True(f.Loads>=2&&c.Snapshot.UndoOffsetCount==1&&!c.Snapshot.IsOffsetEditPending);
             await Do(c,EN_MANUAL_INSPECTION_UI_ACTION.UndoOffsets);True(f.Saves==2&&c.Snapshot.Points.Single(p=>p.Key=="P1").BaseXUm==400);
             f.Source=f.Source with{ObservationFingerprint="fresh-native-observation-after-undo"};

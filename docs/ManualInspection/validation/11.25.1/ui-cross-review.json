@@ -1,0 +1,91 @@
+{
+  "version": "11.25.1",
+  "recordedAtUtc": "2026-11-25T00:18:08.199080+00:00",
+  "selfChecksPassed": true,
+  "independentPeerReviewStatus": "passed within source + synthetic WPF visual scope; actual physical feedback remains unexecuted",
+  "uiSummary": {
+    "path": "D:\\CodexWork\\A3_Manual_Inspection_20261125_1_RefreshScope\\ui-final\\validation.json",
+    "sha256": "74d328ddb27a3660a05ed14cce932a5e14193680fa84038fb080f3b98f298e5b",
+    "modeCount": 21,
+    "tests": 1145,
+    "failures": 0,
+    "inputCount": 31,
+    "sourceHashMismatches": []
+  },
+  "productionFreeze": {
+    "Drilling.UI/Views/CManualInspectionView.xaml": "9cd7fb588f73b61e05d1a00b5a69c4bb9aaab161198fc1b419b38893656b71a6",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "52be416cb1f654c0cb1957a73e584282166f11d230e5ae98baab2a210c065509",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "aa0371384c0ff175919f55eaaf82f46c3caf6987f7c2c17506ea8988ae9a9f4a",
+    "Drilling.UI/Views/CManualInspectionMapControl.cs": "841ea3de05f846ae4379f8322f8460ee2c4eb3731cbd0cc61b3348977c50f1f4"
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "kind": "independent source trace and API design",
+      "scope": "Own OneShot/Fine result CSV causes watcher full-result refresh; ordinary checkpoint JSON is outside watched roots. Agreed fresh stationary feedback (not last/nearest point) and explicit selected Cell set with pending singleton fence."
+    },
+    {
+      "round": 2,
+      "kind": "implementation and actual source-linked standalone WPF tests",
+      "scope": "70 new UI checks plus 1075 retained checks = 1145/1145 across21 modes. Final source-linked WPF Release build warnings0/errors0. No equipment App, physical position read, vendor, motion, Vision or operating CSV execution."
+    },
+    {
+      "round": 3,
+      "kind": "read-only integrated Controller/Backend/UI contract and direct PNG review",
+      "scope": "Parent found Execute early-return/throw could reuse prior lookup key; corrected with Task<bool> dispatch acknowledgement, 4 new old-key failure checks. Independent QA read final acknowledgement path and canonical saved-F dual readout; no remaining confirmed defect in reviewed scope. Read-only Controller/Backend contract matches fresh stationary feedback, duplicate-target rejection, explicit CellNos and pending singleton guards."
+    }
+  ],
+  "intentionalTestMigrations": [
+    {
+      "file": "CellCsvWorkflowCases.cs",
+      "change": "Old overview rejection becomes explicit selected-Cell dispatch; reset call count before pre-existing single-Cell cases. No whole-model fallback assertion retained."
+    },
+    {
+      "file": "BulkFinalConsistencyCases.cs",
+      "change": "Direct requests carry CellNos=[1]; scope sentence assertion updated. Save/readback/no-op/error checks unchanged."
+    },
+    {
+      "file": "ReplacementWorkflowCases.cs",
+      "change": "Explicit CellNos singleton and new scope sentence; arithmetic/provenance/import/init checks unchanged. Copy confirmation now says generic bulk correction rather than only current Cell, because overview scope is explicitly selected Cells."
+    },
+    {
+      "file": "Program.cs",
+      "change": "Stage position caption reflects last verified feedback/arrival; unknown dash guard retained. New mode registered."
+    }
+  ],
+  "preliminaryEvidence": {
+    "firstNewRun": "ui-first/locate-cell-bulk:43/45; two visibility fixture expectations before expanding inspector; product unchanged",
+    "firstAllRun": "ui-first-all/validation.json:1100/1120; twenty old payload/scope/label expectations, all preserved and migrated explicitly. Not final passing evidence.",
+    "ui-prefinal-ack": "1120/1120 passing before requested explicit acknowledgement and scope wording polish",
+    "ui-prefinal-scopeword": "1125 with1 old literal assertion; unchanged actual arithmetic/noCSV checks; generic bulk wording expectation corrected",
+    "ui-prefinal-before-dual": "1125/1125 passing before newly requested right-pane dual readout",
+    "ui-dual-precheck": "68/70: existing formatter renders signed zero as 0.000; two test-only plus-prefix expectations corrected, production formatter unchanged",
+    "ui-dual-second": "70/70 passing prior to final full21-mode suite"
+  },
+  "visualChecks": [
+    {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261125_1_RefreshScope\\ui-final\\locate-cell-bulk\\dual-readout-dark.png",
+      "sha256": "33d5bc2fa5a9283eacb7ffb3ab13f2e8e02e22e6b305bc5f42ad89e1277281fe",
+      "directlyOpened": true,
+      "observed": "1120x560 synthetic WPF: measured +2/-3 remains green L1 while independent canonical saved F -12/+34 is visible. Both readout lines fit; requested two buttons, large map and folded table remain."
+    },
+    {
+      "path": "D:\\CodexWork\\A3_Manual_Inspection_20261125_1_RefreshScope\\ui-final\\locate-cell-bulk\\locate-light.png",
+      "sha256": "c7396fd6374e25e8d4dfafc7d84e9f276d5274e1f4e46c5d35158f0b1769a223",
+      "directlyOpened": true,
+      "observed": "1490x900 synthetic WPF: cyan locator retains red NG fill; separate delta and unknown-final readout remain visible, previous theme/large map and folded results remain."
+    }
+  ],
+  "remainingLimits": [
+    "UI tests use fake fresh-position responses; physical position accuracy, lease behavior and real equipment latency are not validated here.",
+    "Current position is refreshed on request rather than continuously polled. No matching or ambiguous coordinate must not use last-point fallback.",
+    "Overview scope is the Cell set containing selected points, including hidden selected points; it saves eligible full Cells rather than only selected points.",
+    "The screenshot fields are synthetic DTOs, not an operating CSV read or precision-acceptance result. The saved-F readout does not claim a new measurement or alter map color."
+  ],
+  "policySteering": {
+    "color": "The later final-offset coloring request was explicitly cancelled by the user before any coloring implementation. Existing measurement-deviation coloring/Level/legends/NG/Init/scatter remain unchanged.",
+    "drawingHelperNormalizedSha256": "eaec49b1bd4783f22b39ace6dc1bea88490d4b01cfa2d6a66337d6c377f19a43",
+    "drawingHelperExactlyMatchesHead11_25_0": true,
+    "dualReadout": "PointErrorText identifies measured delta XY; new PointFinalOffsetText uses only canonical final snapshot + applied key + finite value and excludes init keys. Missing/unknown/initialized states do not fall back to Base/candidate/raw or fabricate zero. Saved real zero stays numeric."
+  }
+}

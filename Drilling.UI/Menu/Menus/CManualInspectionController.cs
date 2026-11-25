@@ -49,6 +49,7 @@ public sealed class CManualInspectionController : IManualInspectionController
     private IReadOnlyList<string> _activeMeasurementPointKeys = [];
     private string _status = "현재 Recipe 또는 측정 결과를 불러오세요.", _message = "", _persistence = "아직 저장된 작업 없음";
     private double _stageX = double.NaN, _stageY = double.NaN;
+    private string? _currentPositionPointKey;
     private string _levelMetric = "MAX_AXIS";
     private double[] _levelBounds = [5, 10, 20];
     private string[] _levelNames = ["정상", "관찰", "주의", "점검"];
@@ -56,6 +57,9 @@ public sealed class CManualInspectionController : IManualInspectionController
     private string _simulationScenario = "normal";
     private string _stopRequestError = "";
     private bool _syncPending, _syncQueued, _explicitResultView;
+    // A file notification invalidates a later read; it must not rebuild a manual operation.
+    // Epochs retain writes arriving during a load without guessing who wrote the CSV.
+    private long _fileChangeVersion, _loadedFileChangeVersion;
     private string _synchronizationText = "같은 Recipe·기판의 최근 측정과 활성 보정을 자동 확인합니다.";
     private CManualInspectionUpdateMonitor? _updateMonitor;
     private CManualInspectionSavedOffsetSnapshot? _finalOffsets;
@@ -91,13 +95,50 @@ public sealed class CManualInspectionController : IManualInspectionController
 
     public async Task EnsureLoaded(CancellationToken token = default)
     {
-        if (_source is not null) { await SynchronizeExternalAsync(token); return; }
+        var dispatcher=Application.Current?.Dispatcher;
+        if(dispatcher is not null&&!dispatcher.CheckAccess())
+        { await dispatcher.InvokeAsync(()=>EnsureLoaded(token)).Task.Unwrap();return; }
+        if (_source is not null)
+        {
+            if (_backend != _production || IsBusy) return;
+            var refresh = _syncPending || _source.ReadOnly || _fileChangeVersion != _loadedFileChangeVersion;
+            if (!refresh)
+            {
+                if (!await _command.WaitAsync(0,token)) return;
+                _busy=true;_idle=new(TaskCreationOptions.RunContinuationsAsynchronously);
+                _cancellation=CancellationTokenSource.CreateLinkedTokenSource(token);
+                SetProgress("PREPARING","현재 모델 기준을 확인하는 중");
+                try
+                {
+                    await _backend.EnsureCurrentAsync(_source,_cancellation.Token);
+                    // A failed save read-back needs another saved-map read, not a result catalogue
+                    // rebuild. Successful/unsupported snapshots do not pay this cost on tab entry.
+                    if((_finalOffsets is null&&!_finalOffsetStatus.StartsWith("이 연결은",StringComparison.Ordinal))
+                        || (HasCurrentSaveConfirmation&&_lastSaveVerificationCode is ("READ_FAILED" or "MISMATCH")))
+                    {
+                        SetProgress("VERIFYING_OFFSET","최종 보정값을 다시 확인하는 중");
+                        await RefreshFinalOffsets(_cancellation.Token,true);
+                    }
+                }
+                catch (InvalidOperationException) { refresh=true; }
+                finally
+                {
+                    _busy=false;_cancellation.Dispose();_cancellation=null;
+                    SetProgress("IDLE","",publish:false);
+                    try { Publish(reusePoints:true); }
+                    finally { _idle.TrySetResult();_command.Release(); }
+                }
+                refresh |= _syncPending || _fileChangeVersion != _loadedFileChangeVersion;
+            }
+            if(refresh) await SynchronizeExternalAsync(token);
+            return;
+        }
         if (IsBusy) return;
         await ExecuteAsync(EN_MANUAL_INSPECTION_UI_ACTION.LoadCurrentRecipe,
             new() { ExpectedVersion = Snapshot.Version }, token);
     }
 
-    /// <summary>Application-lifetime notifications; they never start a device operation.</summary>
+    /// <summary>File invalidation only; no catalogue/plan reload after a manual action.</summary>
     public void EnableAutomaticUpdates()
     {
         if (_updateMonitor is not null || _production.WatchRoots.Count == 0) return;
@@ -105,16 +146,22 @@ public sealed class CManualInspectionController : IManualInspectionController
         {
             var dispatcher = Application.Current?.Dispatcher;
             if (dispatcher is null || dispatcher.HasShutdownStarted) return;
-            dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(async () =>
-            {
-                try { await SynchronizeExternalAsync(); }
-                catch (Exception e) { _synchronizationText = "자동 갱신 대기 · " + e.Message; Publish(reusePoints: true); }
-            }));
+            dispatcher.BeginInvoke(DispatcherPriority.Background,new Action(NotifyFilesChanged));
         }); }
         catch (Exception e) { _synchronizationText = "자동 갱신 연결 확인 필요 · 새로고침 사용 가능 · " + e.Message; Publish(reusePoints: true); }
     }
 
     public void DisableAutomaticUpdates() { _updateMonitor?.Dispose(); _updateMonitor = null; }
+
+    /// <summary>
+    /// Retain unknown external writes until tab entry/Refresh. Received already publishes our own
+    /// measurement, so a delayed file callback must not read every result or final-offset map again.
+    /// No CSV is deleted and no operation-time safety check is bypassed.
+    /// </summary>
+    public void NotifyFilesChanged() => OnUi(() =>
+    {
+        if(_backend==_production) _fileChangeVersion++;
+    });
 
     /// <summary>Legacy Review completion notification. Reads saved results/offsets; never starts motion or applies a candidate.</summary>
     public Task NotifyExternalReviewChangedAsync(CancellationToken cancellationToken=default)
@@ -247,6 +294,13 @@ public sealed class CManualInspectionController : IManualInspectionController
         if (dispatcher is not null && !dispatcher.CheckAccess())
         { await dispatcher.InvokeAsync(() => SynchronizeExternalAsync(cancellationToken)).Task.Unwrap(); return; }
         if (_source is null || _backend != _production) return;
+        // Keep a real other-Review notification without starting even a saved-map read while busy.
+        if(IsBusy || _command.CurrentCount==0)
+        {
+            _syncPending=_syncQueued=true;
+            _synchronizationText="새 결과 확인 대기 · 화면 재진입 또는 새로고침에서 확인합니다.";
+            Publish(reusePoints:true);return;
+        }
         // The saved map is a separate read-only projection, so drafts, incomplete runs and an
         // explicitly opened result keep their raw/candidate state while still seeing the latest file.
         await RefreshFinalOffsets(cancellationToken);
@@ -329,6 +383,7 @@ public sealed class CManualInspectionController : IManualInspectionController
             or EN_MANUAL_INSPECTION_UI_ACTION.BulkApply or EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets
             or EN_MANUAL_INSPECTION_UI_ACTION.CopyReference or EN_MANUAL_INSPECTION_UI_ACTION.InitializeOffsets
             or EN_MANUAL_INSPECTION_UI_ACTION.UndoOffsets or EN_MANUAL_INSPECTION_UI_ACTION.RedoOffsets;
+        _waitForControlStop |= action==EN_MANUAL_INSPECTION_UI_ACTION.LocateCurrentPosition;
         _cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var token = _cancellation.Token;
         _loadFailureRecovered=false;
@@ -342,6 +397,7 @@ public sealed class CManualInspectionController : IManualInspectionController
                 or EN_MANUAL_INSPECTION_UI_ACTION.ExportCsv or EN_MANUAL_INSPECTION_UI_ACTION.ExportOffsetBundle
                 or EN_MANUAL_INSPECTION_UI_ACTION.ExportSession or EN_MANUAL_INSPECTION_UI_ACTION.ShowPoint
                 or EN_MANUAL_INSPECTION_UI_ACTION.ExportFinalOffsets or EN_MANUAL_INSPECTION_UI_ACTION.ExportCurrentOffsetCsv
+                or EN_MANUAL_INSPECTION_UI_ACTION.LocateCurrentPosition
                 or EN_MANUAL_INSPECTION_UI_ACTION.BulkApply))
             {
                 _loadFailureRecovered=true; // No source load was attempted; retain a writable draft.
@@ -455,17 +511,17 @@ public sealed class CManualInspectionController : IManualInspectionController
                     if (_engine.HasPendingOffsetEdit)
                     {
                         if(_engine.Candidate!.ReplacementCellNo is null)throw new InvalidOperationException("이전 모델 전체 초안입니다. 편집 취소 후 현재 Cell에서 다시 가져오거나 초기화하세요.");
-                        await BulkApply(request.CurrentCellNo,token);
+                        await BulkApply(request,token);
                     }
                     else
                     {
                         if(_engine.Candidate is null)throw new InvalidOperationException("현재 Cell 일괄 보정을 사용하세요.");
-                        await BulkApply(request.CurrentCellNo,token);
+                        await BulkApply(request,token);
                     }
                     break;
                 case EN_MANUAL_INSPECTION_UI_ACTION.ApplySelectedOffsets:
-                    await BulkApply(request.CurrentCellNo,token); break;
-                case EN_MANUAL_INSPECTION_UI_ACTION.BulkApply: await BulkApply(request.CurrentCellNo,token); break;
+                    await BulkApply(request,token); break;
+                case EN_MANUAL_INSPECTION_UI_ACTION.BulkApply: await BulkApply(request,token); break;
                 case EN_MANUAL_INSPECTION_UI_ACTION.Rollback:
                 case EN_MANUAL_INSPECTION_UI_ACTION.UndoOffsets: await Restore(token,false); break;
                 case EN_MANUAL_INSPECTION_UI_ACTION.RedoOffsets: await Restore(token,true); break;
@@ -487,6 +543,18 @@ public sealed class CManualInspectionController : IManualInspectionController
                     _status = _allowManual ? "사유가 기록된 MANUAL 후보도 검증합니다." : "MANUAL 후보의 활성 적용을 허용하지 않습니다."; break;
                 case EN_MANUAL_INSPECTION_UI_ACTION.UpdateLevels: UpdateLevels(request); break;
                 case EN_MANUAL_INSPECTION_UI_ACTION.ShowPoint: ShowPoint(request.FocusKey ?? request.Keys.FirstOrDefault()); break;
+                case EN_MANUAL_INSPECTION_UI_ACTION.LocateCurrentPosition:
+                    _stageX=_stageY=double.NaN;_currentPositionPointKey=null;
+                    await Current(token);
+                    SetProgress("LOCATING","현재 위치를 확인하는 중");
+                    var position=await _backend.ReadCurrentPositionAsync(_source!,token);
+                    token.ThrowIfCancellationRequested();
+                    if(position.PointKey is {} currentKey && (!_source!.Points.Any(p=>p.Key==currentKey&&!p.Masked)
+                        || !double.IsFinite(position.ReviewXmm)||!double.IsFinite(position.StageYmm)))
+                        throw new InvalidDataException("현재 작업과 일치하지 않는 위치 응답입니다. 포인트를 표시하지 않았습니다.");
+                    _stageX=position.ReviewXmm;_stageY=position.StageYmm;_currentPositionPointKey=position.PointKey;
+                    _status=position.PointKey is null?"현재 위치와 일치하는 측정 포인트가 없습니다.":"현재 위치를 지도에 표시했습니다. 이동·측정·보정은 하지 않았습니다.";
+                    break;
                 case EN_MANUAL_INSPECTION_UI_ACTION.Move:
                 case EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure:
                 case EN_MANUAL_INSPECTION_UI_ACTION.Measure:
@@ -508,7 +576,7 @@ public sealed class CManualInspectionController : IManualInspectionController
         }
         finally
         {
-            try { await SaveLocalSessionAsync(); } catch (Exception e) { _persistence = "자동 보관 실패 · " + e.Message; }
+            try { if(action!=EN_MANUAL_INSPECTION_UI_ACTION.LocateCurrentPosition) await SaveLocalSessionAsync(); } catch (Exception e) { _persistence = "자동 보관 실패 · " + e.Message; }
             _busy = false; _waitForControlStop = false; _cancellation?.Dispose(); _cancellation = null;SetProgress("IDLE","",publish:false);
             try
             {
@@ -517,9 +585,8 @@ public sealed class CManualInspectionController : IManualInspectionController
                 catch (Exception error) { TraceObserverFailure("status reporter", error); }
             }
             finally { _idle?.TrySetResult(); _command.Release(); }
-            if (_syncQueued && !_engine.HasIncompleteMeasurements
-                && _engine.Candidate is not { State: not EN_MANUAL_CANDIDATE_STATE.Applied })
-                await SynchronizeExternalAsync();
+            // Do not append a catalogue/plan reload to measure, move, edit or save completion.
+            // Deferred notifications remain pending for tab entry or an explicit refresh.
         }
     }
 
@@ -527,6 +594,7 @@ public sealed class CManualInspectionController : IManualInspectionController
     {
         _loadFailureRecovered = false;
         if (path is not null) { await OpenResultWorkspace(path, token,preserveFileWork); await RefreshFinalOffsets(token,true); return; }
+        var fileChangeAtStart=_fileChangeVersion;
         var previous = _source is not null && !IsOffsetDraftRecoveryBlocked(SessionPath()) ? _engine.CaptureSession() : null;
         if (previous is not null) await SaveLocalSessionAsync();
         if (!keepBackend) _backend = _production;
@@ -535,13 +603,13 @@ public sealed class CManualInspectionController : IManualInspectionController
         if (automatic && _source is not null && !_source.ReadOnly
             && next.ObservationFingerprint.Length > 0 && next.ObservationFingerprint == _source.ObservationFingerprint
             && SameFrame(_source.Context, next.Context))
-        { _source = next; ReconcileDisplayedImports(next); return; }
+        { _source = next; ReconcileDisplayedImports(next);_loadedFileChangeVersion=fileChangeAtStart;return; }
         var sameFrame = previous is not null && SameFrame(previous.Context, next.Context);
         if(!automatic || !sameFrame) ClearMeasurementReceipt();
         _engine.Load(next.Context, next.Points, next.Values, next.Limits, next.FieldEvaluator,next.StoredInitializedOffsetKeys);
         _source = next; _allowManual = false; _explicitResultView = path is not null;
         if(_finalOffsets is not null && !SameSavedFrame(next.Context,_finalOffsets)) _finalOffsets=null;
-        _stageX = _stageY = double.NaN;
+        _stageX = _stageY = double.NaN;_currentPositionPointKey=null;
         var saved = SessionPath();
         if (path is null && (sameFrame || System.IO.File.Exists(saved)))
         {
@@ -619,6 +687,7 @@ public sealed class CManualInspectionController : IManualInspectionController
             : "선택 결과 조회 · " + next.SourcePath;
         if (_syncPending) _synchronizationText = "외부 결과 확인 대기 · 미완료 측정을 보존했습니다. 잔여 측정 후 갱신합니다.";
         await RefreshFinalOffsets(token,true);
+        if(!_source.ReadOnly) _loadedFileChangeVersion=fileChangeAtStart;
     }
 
     private sealed record WorkspaceBookmark(CManualInspectionWorkspace Engine, CManualInspectionSource Source,
@@ -671,7 +740,7 @@ public sealed class CManualInspectionController : IManualInspectionController
             if (!_explicitResultView && before is not null) _previousWorkspace ??= before;
             _backend = _production; _engine = separate; _source = next; _explicitResultView = true;
             ClearMeasurementReceipt();
-            _allowManual = false; _stageX = _stageY = double.NaN;
+            _allowManual = false; _stageX = _stageY = double.NaN;_currentPositionPointKey=null;
             _displayedImports.Clear();ReconcileDisplayedImports(next);
             _syncPending = _syncQueued = false;
             _synchronizationText = "불러온 파일 작업 · 현재 Recipe 기준 이동·측정·검증 후 보정 · " + next.SourcePath;
@@ -786,7 +855,7 @@ public sealed class CManualInspectionController : IManualInspectionController
                 _displayedImports[point.Key]=new(bookmark.Source.SourcePath,
                     point.ExternalObservedAt??point.OriginalMeasurement?.MeasuredAt??DateTimeOffset.MinValue,
                     "이전 작업의 측정·복사값 · 활성 보정 변경으로 재측정 필요");
-        _stageX=_stageY=double.NaN; // Returning the screen never moves the actual stage back.
+        _stageX=_stageY=double.NaN;_currentPositionPointKey=null; // Returning the screen never moves the actual stage back.
         _syncPending=_syncQueued=false;_previousWorkspace=null;
         _synchronizationText="파일 불러오기 전 작업으로 돌아왔습니다. 실제 장비 위치·활성 보정은 되돌리지 않습니다.";
         _status=exact ? "파일 이전의 선택 Recipe 작업·측정·후보·설정을 복구했습니다. 장비 이동은 하지 않았습니다."
@@ -910,7 +979,7 @@ public sealed class CManualInspectionController : IManualInspectionController
         _engine=connected;_source=next with { Context=context,ReadOnly=false };
         if(!same) ClearMeasurementReceipt();
         _explicitResultView=nextExplicitResultView;
-        ReconcileDisplayedImports(_source!);_stageX=_stageY=double.NaN;
+        ReconcileDisplayedImports(_source!);_stageX=_stageY=double.NaN;_currentPositionPointKey=null;
         _synchronizationText="현재 모델 기준 재연결 · 이전 출처는 보존하며 새 측정 가능합니다.";
         _loadFailureRecovered=true;
         if(!same){_finalOffsets=null;_finalOffsetStatus="새 작업 기준의 최종 저장 보정 확인 중";}
@@ -958,7 +1027,7 @@ public sealed class CManualInspectionController : IManualInspectionController
                 if (value.Measurement.Judge is not ("OK" or "NG"))
                     throw new InvalidDataException($"{value.Key}: 유효한 측정 응답이 없습니다.");
                 _engine.MarkOperationPointCompleted(operation.Id, value.Key);
-                _stageX = value.ReviewXmm; _stageY = value.StageYmm;
+                _stageX = value.ReviewXmm; _stageY = value.StageYmm;_currentPositionPointKey=value.Key;
                 _status = $"{_engine.Operation!.CompletedKeys.Count:N0} / {operation.Keys.Count:N0}점 · {value.Key} · {value.Measurement.Judge}";
                 SetProgress("MEASURING",_engine.Operation.CompletedKeys.Count==operation.Keys.Count?"측정 결과 수신 · 정리 중":_status,indeterminate:false,publish:false);
                 PublishProgress(pointsChanged: true, force: _engine.Operation.CompletedKeys.Count == 1
@@ -991,7 +1060,7 @@ public sealed class CManualInspectionController : IManualInspectionController
                 }
                 var value = await _backend.ExecutePointAsync(_source!, key, kind, Progress, token);
                 if (kind == EN_MANUAL_OPERATION_KIND.Move)
-                { _engine.MarkOperationPointCompleted(operation.Id, key); _stageX = value.ReviewXmm; _stageY = value.StageYmm;
+                { _engine.MarkOperationPointCompleted(operation.Id, key); _stageX = value.ReviewXmm; _stageY = value.StageYmm;_currentPositionPointKey=key;
                   PublishProgress(pointsChanged: false, force: _engine.Operation!.CompletedKeys.Count == 1
                       || _engine.Operation.CompletedKeys.Count == operation.Keys.Count); }
                 else Received(value);
@@ -1099,31 +1168,39 @@ public sealed class CManualInspectionController : IManualInspectionController
         _status=$"{request.Keys.Distinct(StringComparer.Ordinal).Count():N0}점 수동 OK 완료 · 원측정 보존 · 현재 Cell 일괄 보정에서 검사 후 저장";
     }
 
-    private async Task BulkApply(int? currentCellNo,CancellationToken token)
+    private async Task BulkApply(CManualInspectionUiRequest request,CancellationToken token)
     {
-        // Scope is an explicit UI choice, never inferred from selection, focus or a head filter.
-        // In the all-cell view no cell is current; rejecting a missing scope prevents an
-        // accidental model-wide write from an obsolete caller or a filtered selection.
-        if(currentCellNo is not >0) throw new InvalidOperationException("일괄 보정할 Cell 화면을 먼저 선택하세요. 전체 Cell 보기에서는 일괄 보정하지 않습니다.");
+        // A single-Cell view keeps its whole Cell scope. Overview must provide an explicit
+        // nonempty set of selected Cells; missing scope never means the entire model.
+        if(request.CurrentCellNo is <0)throw new InvalidOperationException("현재 Cell 범위가 유효하지 않습니다.");
+        IEnumerable<int> requestedCells=request.CurrentCellNo is >0?new[]{request.CurrentCellNo.Value}:request.CellNos;
+        var cells=requestedCells.Distinct().Order().ToArray();
+        if(cells.Length==0||cells.Any(cell=>cell<=0)||cells.Any(cell=>!_engine.Points.Any(point=>point.CellNo==cell)))
+            throw new InvalidOperationException("일괄 보정할 Cell을 선택하세요. 전체 Cell 보기에서는 선택한 Cell들만 저장합니다.");
+        if(request.CurrentCellNo is >0&&request.CellNos.Any(cell=>cell!=request.CurrentCellNo.Value))
+            throw new InvalidOperationException("열린 Cell과 선택 Cell 범위가 다릅니다. 대상을 다시 확인하세요.");
         await Current(token);
-        RequireCurrentCell(currentCellNo);
+        if(cells.Any(cell=>!_engine.Points.Any(point=>point.CellNo==cell)))
+            throw new InvalidOperationException("현재 모델의 Cell 범위가 바뀌었습니다. 다시 선택하세요.");
+        var scope=string.Join(", ",cells.Select(cell=>$"#{cell}"));
         if(_engine.HasPendingOffsetEdit)
         {
-            if(_engine.Candidate!.ReplacementCellNo!=currentCellNo)throw new InvalidOperationException("현재 Cell과 미저장 작업 범위가 다릅니다. 해당 Cell을 열거나 편집을 취소한 뒤 다시 요청하세요.");
+            if(cells.Length!=1||_engine.Candidate!.ReplacementCellNo!=cells[0])throw new InvalidOperationException("미저장 Offset 파일은 해당 Cell 하나만 저장하세요. 편집 중인 범위를 다른 Cell로 확대하지 않습니다.");
             var editCheck=_engine.ValidateCandidate(false);
             if(!editCheck.Ok)throw new InvalidOperationException("현재 Cell의 Offset을 저장하지 않았습니다.\n"+string.Join("\n",editCheck.Errors));
             _allowManual=false;await Apply(token,sourceVerified:true);
-            _status=$"Cell #{currentCellNo.Value} 작업 Offset 저장 · 다른 Cell·보호 Offset 보존"+SaveConfirmationSuffix;return;
+            _status=$"Cell {scope} 작업 Offset 저장 · 다른 Cell·보호 Offset 보존"+SaveConfirmationSuffix;return;
         }
-        var cellKeys=_engine.Points.Where(p=>p.CellNo==currentCellNo.Value).Select(p=>p.Key).ToArray();
-        if(cellKeys.Length==0) throw new InvalidOperationException($"Cell #{currentCellNo.Value}의 측정 좌표가 없습니다. 현재 Cell을 다시 선택하세요.");
+        var scopeCells=cells.ToHashSet();
+        var cellKeys=_engine.Points.Where(p=>scopeCells.Contains(p.CellNo)).Select(p=>p.Key).ToArray();
         var preview=_engine.PreviewMeasurementReplacement(cellKeys);
-        if(preview.Keys.Count==0) throw new InvalidOperationException($"Cell #{currentCellNo.Value}에 일괄 보정할 결과가 없습니다. NG {preview.ExcludedNg:N0} / 미측정 {preview.ExcludedUnmeasured:N0} / 수치한계 {preview.ExcludedNumeric:N0} / 이미 적용 {preview.ExcludedConsumed+preview.ExcludedUnchanged:N0}점 제외");
+        if(preview.Keys.Count==0) throw new InvalidOperationException($"Cell {scope}에 일괄 보정할 결과가 없습니다. NG {preview.ExcludedNg:N0} / 미측정 {preview.ExcludedUnmeasured:N0} / 수치한계 {preview.ExcludedNumeric:N0} / 이미 적용 {preview.ExcludedConsumed+preview.ExcludedUnchanged:N0}점 제외");
         _engine.BuildMeasurementReplacementCandidate(preview.Keys); _allowManual=preview.ManualCount>0;
         var validation=_engine.ValidateCandidate(_allowManual);
         if(!validation.Ok) throw new InvalidOperationException("일괄 보정을 저장하지 않았습니다.\n"+string.Join("\n",validation.Errors));
+        // One combined candidate -> one authoritative CSV transaction and one Undo revision.
         await Apply(token, sourceVerified: true);
-        _status=$"Cell #{currentCellNo.Value} 일괄 보정 {preview.Keys.Count:N0}점 저장 · NG {preview.ExcludedNg:N0} / 미측정 {preview.ExcludedUnmeasured:N0} / 수치한계 {preview.ExcludedNumeric:N0} / 적용됨 {preview.ExcludedConsumed+preview.ExcludedUnchanged:N0}점 제외"+SaveConfirmationSuffix;
+        _status=$"Cell {scope} 일괄 보정 {preview.Keys.Count:N0}점 저장 · NG {preview.ExcludedNg:N0} / 미측정 {preview.ExcludedUnmeasured:N0} / 수치한계 {preview.ExcludedNumeric:N0} / 적용됨 {preview.ExcludedConsumed+preview.ExcludedUnchanged:N0}점 제외"+SaveConfirmationSuffix;
     }
 
     private async Task Apply(CancellationToken token, bool sourceVerified = false)
@@ -1269,7 +1346,7 @@ public sealed class CManualInspectionController : IManualInspectionController
         _engine.SeedConsumedMeasurements(_backend.ConsumedMeasurements);
         _source = next; ClearMeasurementReceipt(); RestoreOptions(bundle); _status = "실제 Recipe/Run/보정과 대조해 세션을 불러왔습니다. 자동 동작은 재개하지 않습니다.";
         _explicitResultView = false;
-        _stageX = _stageY = double.NaN;
+        _stageX = _stageY = double.NaN;_currentPositionPointKey=null;
         _syncPending = _engine.HasIncompleteMeasurements && next.ImportedResults.Count > 0;
         _syncQueued = _syncPending;
         _synchronizationText = "현재 세션 연결 · 최근 측정·활성 보정 자동 확인";
@@ -1649,7 +1726,7 @@ public sealed class CManualInspectionController : IManualInspectionController
                 $"{r.SavedAt.ToLocalTime():MM-dd HH:mm:ss} · {r.ResultType} · {r.GlassId} · {r.FileName}",r.GlassId,r.SavedAt,r.Source+" / "+r.ResultType)).ToArray() ?? [],
             IsReadOnly=false,HasIncomplete=_engine.HasIncompleteMeasurements,
             RemainingCount=op?.RemainingKeys.Count ?? 0,CompletedCount=op?.CompletedKeys.Count ?? 0,TotalCount=op?.Keys.Count ?? 0,
-            StageXmm=_stageX,StageYmm=_stageY,StatusText=_status,Message=_message,PersistenceText=_persistence,Points=points,
+            StageXmm=_stageX,StageYmm=_stageY,CurrentPositionPointKey=_currentPositionPointKey,StatusText=_status,Message=_message,PersistenceText=_persistence,Points=points,
             CandidateRows=_candidateUiRows,
             Revisions=_engine.Revisions.Select(r=>new CManualInspectionUiRevision { Id=r.Id,CreatedAt=r.CreatedAt.ToLocalTime().ToString("MM-dd HH:mm:ss"),Reason=r.Reason }).ToArray(),
             CandidateStatus=candidate?.State.ToString().ToUpperInvariant() ?? "후보 없음",ValidationPassed=validation?.Ok==true,

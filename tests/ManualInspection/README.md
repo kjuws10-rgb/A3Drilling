@@ -1,5 +1,9 @@
 # Manual Inspection 독립 검증
 
+현재 `11.25.1`은 [조회 범위·위치 찾기·선택 Cell 보정](../../docs/ManualInspection/REFRESH_LOCATE_CELLS_11.25.1.md)과 [manifest](../../docs/ManualInspection/validation.json)를 따른다. `RefreshScopeCases`, `LocateCellBulkControllerCases`, 실제 CSV의 `InitMeasureMonitorCases`, UI `--locate-cell-bulk`, `verify_refresh_locate_scope.py`로 불필요 catalogue 호출0·fresh 위치 응답·선택 Cell 범위·단일 Undo·열린 Monitor 재조회·편차/최종값 구분을 검사한다. Native 위치 매칭은 순수 함수만 실행하며 실제 PLC/설비 Guard는 실행하지 않는다. 색상은 기존 측정 편차 기준이다.
+
+## 이전 검증 기록
+
 현재 성능 후속 `11.25.0`은 [변경·시험 범위](../../docs/ManualInspection/PERFORMANCE_11.25.0.md), [성능 하네스 안내](PerformanceHarness/README.md), [manifest](../../docs/ManualInspection/validation.json)를 따른다. 실제 Core/Controller·JSON 보관의 동일 모델 전후 비교와 실제 WPF 표시 비교를 분리한다. UI 입력 간격과 처리 중 누적 할당량은 FPS·상주 RAM·Vision 속도가 아니다. `UiHarness --performance-progress`와 `verify_performance_scope.py`를 사용한다. 기존 보정·Init·원문·STOP·CSV 가드는 회귀로 다시 확인한다.
 
 이전 `11.24.10`은 `.8` 기준에서 실측·대표 편차를 대상의 기존 B에 반영하고, 현재 Cell Init은 최종 CSV까지 즉시 비운다. [동작·범위](../../docs/ManualInspection/INCREMENTAL_OVERWRITE_FIX_11.24.10.md)와 [manifest](../../docs/ManualInspection/validation.json)를 따른다. `IncrementalLoopHarness`, `verify_incremental_overwrite_scope.py`, 기존 Core·실제 DLL Controller·BackendReadHarness와 관련 UI 3모드를 검증한다. 이전 `.8`의 F=편차 대체·Init 초안 정책은 당시 기록으로 보존한다. `.9` 가공 기준·Station 설계는 포함하지 않는다. 생산 저장 경로의 장비 Manager 가드는 실행하지 않는다.

@@ -1,0 +1,265 @@
+{
+  "passed": true,
+  "tests": 44,
+  "failures": 0,
+  "checks": [
+    {
+      "name": "performance_status_reuses_filtered_projection",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_status_reuses_map_scope",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_status_does_not_replace_result_rows",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_status_retains_scatter_statistics",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_status_retains_legend_children",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_first_busy_transition_keeps_map_size",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_first_busy_transition_does_not_rebuild_layout_slots",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_status_keeps_ng_fill_and_raw",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_selection_reuses_same_scatter_population_metrics",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_selection_retains_scatter_group_rows",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_selection_still_updates_map_and_table",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_original_scatter_selection_does_not_reclone_population",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_real_data_change_invalidates_filter_and_rows",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_real_data_change_reaches_latest_map_point",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_filter_invalidates_only_visible_population",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_level_configuration_refreshes_cached_rows",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_progress_keeps_all_visible_hit_targets",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_original_surface_hit_routes_to_map_control",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_original_surface_keeps_viewport_clipping",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_blink_preserves_original_layout_slots",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_zoom_updates_hit_bounds",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_rendering_does_not_freeze_shared_theme_brush",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_theme_updates_existing_map_surface",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_current_point_wait_is_visible_with_panels_closed",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_current_point_has_no_motion_confirmation_or_extra_command",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_wait_disables_reentry_and_keeps_stop_accessible",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_ui_dispatcher_heartbeat_runs_during_fake_async_wait",
+      "passed": true,
+      "details": 6
+    },
+    {
+      "name": "performance_stop_cleanup_remains_busy_and_indeterminate",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_progress_clears_only_after_cleanup",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_stop_uses_existing_single_stop_action",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_toolbar_progress_fits_without_overlay_Dark",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_theme_and_no_external_scroll_preserved_Dark",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_batch_uses_real_completed_count_Dark",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_file_wait_does_not_reuse_old_operation_counts_Dark",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_idle_hides_busy_indicator_and_restores_status_Dark",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_legacy_busy_snapshot_uses_indeterminate_fallback_Dark",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_toolbar_progress_fits_without_overlay_Light",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_theme_and_no_external_scroll_preserved_Light",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_batch_uses_real_completed_count_Light",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_file_wait_does_not_reuse_old_operation_counts_Light",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_idle_hides_busy_indicator_and_restores_status_Light",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_legacy_busy_snapshot_uses_indeterminate_fallback_Light",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_original_map_preserves_minheight_and_stretch",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "performance_original_map_preserves_optional_template_measure_and_child",
+      "passed": true,
+      "details": null
+    }
+  ],
+  "observations": [
+    {
+      "type": "status-only-presentation-8000",
+      "samples": 80,
+      "firstTransitionMs": 15.5915,
+      "p50Ms": 0.175,
+      "p95Ms": 0.5132,
+      "maximumMs": 15.5915,
+      "hardwareLatencyMeasured": false
+    },
+    {
+      "type": "fake-asynchronous-current-measure",
+      "heartbeatPulses": 6,
+      "confirmedDialogs": 0,
+      "sourceCount": 80,
+      "noDeviceLatencyClaim": true
+    },
+    {
+      "theme": "Dark",
+      "ActualWidth": 1037.28,
+      "ActualHeight": 444.20000000000005,
+      "toolbarHeight": 65
+    },
+    {
+      "theme": "Light",
+      "ActualWidth": 1407.68,
+      "ActualHeight": 765.8000000000001,
+      "toolbarHeight": 65
+    }
+  ],
+  "sourceHashes": {
+    "Views/CManualInspectionView.xaml": "9cd7fb588f73b61e05d1a00b5a69c4bb9aaab161198fc1b419b38893656b71a6",
+    "Views/CManualInspectionView.xaml.cs": "52be416cb1f654c0cb1957a73e584282166f11d230e5ae98baab2a210c065509",
+    "Views/CManualInspectionUiContract.cs": "aa0371384c0ff175919f55eaaf82f46c3caf6987f7c2c17506ea8988ae9a9f4a",
+    "Views/CManualInspectionMapControl.cs": "841ea3de05f846ae4379f8322f8460ee2c4eb3731cbd0cc61b3348977c50f1f4",
+    "Views/CManualInspectionScatterControl.cs": "1cc3fb7be94547c2e714d8809906f2df6018e5805b6ed44ecc9fd2c398e6a0bb"
+  },
+  "scope": "Actual source-linked standalone WPF controls/current themes; immutable synthetic 8k-point records and delayed fake Controller only. Timing observations are local presentation samples, not device latency or hardware measurements. Identity and invalidation checks prove cached status updates, while changed data/filter/levels and input still redraw. No equipment App/SDK/PLC/Vision/motion/operating CSV executes."
+}

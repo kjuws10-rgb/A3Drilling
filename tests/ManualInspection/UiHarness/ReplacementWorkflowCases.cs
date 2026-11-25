@@ -62,7 +62,7 @@ internal static partial class Program
             string message="";var confirms=0;view.ConfirmationForTesting=(_,text,_)=>{message=text;confirms++;return false;};
             ((Button)view.FindName("CopyReferenceButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();
             Test("replacement_copy_cancel_has_confirmation_and_no_dispatch",confirms==1&&fake.Calls.Count==0);
-            Test("replacement_copy_explains_delta_absolute_stage_not_immediate_save",message.Contains("편차 Δ")&&message.Contains("기존 Review Offset에 복사한 편차를 반영")&&message.Contains("아직 CSV")&&message.Contains("현재 Cell"));
+            Test("replacement_copy_explains_delta_absolute_stage_not_immediate_save",message.Contains("편차 Δ")&&message.Contains("기존 Review Offset에 복사한 편차를 반영")&&message.Contains("아직 CSV")&&message.Contains("일괄 보정"));
             view.ConfirmationForTesting=(_,_,_)=>true;((Button)view.FindName("CopyReferenceButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();
             Test("replacement_copy_only_dispatches_copy_not_apply",fake.Calls.Count==1&&fake.Calls[0].Action==EN_MANUAL_INSPECTION_UI_ACTION.CopyReference&&fake.Calls[0].Request.Keys.SequenceEqual([target.Key]));
             Test("replacement_copy_keeps_saved_csv_and_original_raw_unchanged_in_ui",fake.Snapshot.FinalOffsetRevisionId==state.FinalOffsetRevisionId&&JsonSerializer.Serialize(fake.Snapshot.Points.Select(point=>new{point.OriginalJudge,point.OriginalXUm,point.OriginalYUm}))==raw);
@@ -94,7 +94,7 @@ internal static partial class Program
             Invoke(view,"SetMapCellScope",2);Test("replacement_pending_other_cell_blocks_save",!((Button)view.FindName("BulkApplyButton")).IsEnabled);var before=fake.Calls.Count;Click("BulkApplyButton");Test("replacement_programmatic_other_cell_click_also_cannot_leak_scope",fake.Calls.Count==before);
             Click("OffsetInitButton");Test("replacement_cancel_is_nonmoving_no_modal_and_keeps_csv",fake.Calls.Count==before+1&&fake.Calls.Last().Action==EN_MANUAL_INSPECTION_UI_ACTION.CancelOffsetEdit&&fake.Snapshot.FinalOffsetRevisionId==state.FinalOffsetRevisionId);
             fake.Replace(state with{Version=802});Invoke(view,"SetMapCellScope",1);SelectViewChoice(view,"HeadFilter","2");SelectViewChoice(view,"JudgeFilter","NG");before=fake.Calls.Count;Click("BulkApplyButton");
-            Test("replacement_bulk_filters_do_not_change_current_cell_scope",fake.Calls.Count==before+1&&fake.Calls.Last().Request.CurrentCellNo==1&&description.Contains("필터")&&description.Contains("F = B + Δ")&&description.Contains("실측·대표 복사"));
+            Test("replacement_bulk_filters_do_not_change_current_cell_scope",fake.Calls.Count==before+1&&fake.Calls.Last().Request.CurrentCellNo==1&&fake.Calls.Last().Request.CellNos.SequenceEqual([1])&&description.Contains("표시한 Cell 전체")&&description.Contains("F = B + Δ")&&description.Contains("실측·대표 복사"));
             view.ConfirmationForTesting=(_,_,_)=>{Invoke(view,"SetMapCellScope",2);return true;};before=fake.Calls.Count;Invoke(view,"SetMapCellScope",1);Click("BulkApplyButton");Test("replacement_cell_change_inside_modal_rejects_same_version_save",fake.Calls.Count==before);
             fake.Replace(state with{Version=803,IsOffsetEditPending=true,PendingOffsetCellNo=1,OffsetInitPending=false});Invoke(view,"SetMapCellScope",1);Pump();
             Test("replacement_import_stage_has_same_single_save_path",((Button)view.FindName("BulkApplyButton")).IsEnabled&&((TextBlock)view.FindName("SaveStatusText")).Text.Contains("가져온 편차"));

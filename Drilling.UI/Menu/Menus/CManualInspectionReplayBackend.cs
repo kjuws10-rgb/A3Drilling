@@ -80,6 +80,12 @@ public sealed class CManualInspectionReplayBackend : IManualInspectionBackend
     public void GuardOperation() { }
     public Task EnsureCurrentAsync(CManualInspectionSource source, CancellationToken token)
     { token.ThrowIfCancellationRequested(); if (_source?.Context.RunId != source.Context.RunId) throw new InvalidOperationException("SIM Run이 다릅니다."); return Task.CompletedTask; }
+    public async Task<CManualInspectionPosition> ReadCurrentPositionAsync(CManualInspectionSource source,CancellationToken token)
+    {
+        await EnsureCurrentAsync(source,token);
+        var point=source.Points.FirstOrDefault(point=>point.Key==_positionKey);
+        return point is null?new(null,double.NaN,double.NaN):new(point.Key,point.XMm,point.YMm);
+    }
     public async Task<CManualInspectionMeasurement> ExecutePointAsync(CManualInspectionSource source, string key,
         EN_MANUAL_OPERATION_KIND kind, Action<string> progress, CancellationToken token)
     {

@@ -49,10 +49,11 @@ internal static partial class Program
         await Check("final_saved_refresh_during_busy_does_not_reenter_live_adapter",async()=>
         {
             var(f,b,c)=await LoadedFinal();f.Hold=true;var run=Do(c,EN_MANUAL_INSPECTION_UI_ACTION.MoveMeasure,["P1","P2"]);
-            await f.Entered.Task.WaitAsync(TimeSpan.FromSeconds(3));var loads=f.Loads;b.Saved=Saved(f.Source,"BUSY-FINAL",8);
-            await c.NotifyExternalReviewChangedAsync();True(c.IsBusy&&f.Loads==loads&&c.Snapshot.HasFinalOffsetSnapshot);Near(c.Snapshot.FinalOffsetPoints["P1"].XUm,8);
+            await f.Entered.Task.WaitAsync(TimeSpan.FromSeconds(3));var loads=f.Loads;var reads=b.Reads;var previous=c.Snapshot.FinalOffsetPoints["P1"].XUm;b.Saved=Saved(f.Source,"BUSY-FINAL",8);
+            await c.NotifyExternalReviewChangedAsync();True(c.IsBusy&&f.Loads==loads&&b.Reads==reads&&c.Snapshot.HasFinalOffsetSnapshot&&c.Snapshot.SyncPending);Near(c.Snapshot.FinalOffsetPoints["P1"].XUm,previous);
             c.RequestStop();await f.CancelObserved.Task.WaitAsync(TimeSpan.FromSeconds(3));f.Release.TrySetResult();await run;
             True(c.Snapshot.HasIncomplete&&f.Saves==0);
+            await c.NotifyExternalReviewChangedAsync();Near(c.Snapshot.FinalOffsetPoints["P1"].XUm,8);True(f.Loads==loads&&b.Reads>reads);
         });
         await Check("final_saved_empty_init_and_real_zero_remain_distinct",async()=>
         {
@@ -185,6 +186,7 @@ internal static partial class Program
 
     private sealed class FinalBackend(FakeBackend inner):IManualInspectionBackend
     {
+        public IReadOnlyList<string> WatchRoots=>inner.WatchRoots;
         public CManualInspectionSavedOffsetSnapshot? Saved,Exported;
         public bool FailRead,UseCurrent,CaptureBeforeRead;public int Reads,Exports;public string? ExportedPath;
         public Func<CancellationToken,Task>? ReadHook;

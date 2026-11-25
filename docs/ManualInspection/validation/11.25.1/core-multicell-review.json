@@ -1,0 +1,275 @@
+{
+  "schemaVersion": "a3-manual-multicell-core-review/1",
+  "generatedAtUtc": "2026-11-25T00:23:53.0038648Z",
+  "version": "2026.11.25.1",
+  "passed": true,
+  "productionEngineChanged": false,
+  "newPersistedFields": false,
+  "coreCount": 300,
+  "existingCoreCasesRetained": 294,
+  "newChecks": [
+    {
+      "name": "multiple_selected_cells_commit_once_and_undo_redo_together_without_changing_other_cells",
+      "passed": true
+    },
+    {
+      "name": "multi_cell_population_excludes_ng_empty_masked_and_numeric_rows_without_expanding_to_other_cells",
+      "passed": true
+    },
+    {
+      "name": "multi_cell_commit_preserves_unselected_initialized_and_real_zero_states_raw_and_consumed_ledger",
+      "passed": true
+    },
+    {
+      "name": "multi_cell_shared_shot_conflict_or_field_error_rejects_the_whole_candidate_before_write",
+      "passed": true
+    },
+    {
+      "name": "multi_cell_aborted_writer_keeps_both_cells_and_consumption_unchanged_until_one_successful_retry",
+      "passed": true
+    },
+    {
+      "name": "copied_residuals_across_selected_cells_are_added_once_and_share_duplicate_guards_with_sibling_beams",
+      "passed": true
+    }
+  ],
+  "sourceFiles": [
+    {
+      "path": "Drilling.Common/Review/ManualInspection/CManualInspectionModels.cs",
+      "sha256": "6af6eb882a37e534d431db987182c04a6cba4cd6a77fd85a29dd791b4cda1bda",
+      "matchesReport": true
+    },
+    {
+      "path": "Drilling.Common/Review/ManualInspection/CManualInspectionOffsetBundle.cs",
+      "sha256": "beb2ab2a0c16c00d3ccfd816d25959dde1b281b972ef1e75c0083aa91584b552",
+      "matchesReport": true
+    },
+    {
+      "path": "Drilling.Common/Review/ManualInspection/CManualInspectionWorkspace.cs",
+      "sha256": "6bde9206a739bc15f5e6a45e8208ec73260558bd0f227cdafbd2664a2cde089e",
+      "matchesReport": true
+    }
+  ],
+  "testFiles": [
+    {
+      "path": "tests/ManualInspection/MultiCellBulkCases.cs",
+      "sha256": "bda34d948e340add5997d58fa788f69d74026909a8e1bbd9867361ac075534e0"
+    },
+    {
+      "path": "tests/ManualInspection/Program.cs",
+      "sha256": "80caac6670de2bff58593ef5d9c2fe92e84477a7fa9c844616ca678c51974e5d"
+    },
+    {
+      "path": "tests/ManualInspection/ManualInspection.Tests.csproj",
+      "sha256": "f0730961c33794dc1fd2e89259f9fd43759ee6ee19c111cab865cbacc81f37d8"
+    }
+  ],
+  "artifacts": {
+    "report": {
+      "path": "core-results.json",
+      "sha256": "f9e562accc4691d90d0678ab5b5d6dc5af123c5004a191beb19aed7a1c2c5819"
+    },
+    "log": {
+      "path": "core-final.log",
+      "sha256": "681e98044e13c894704b8e4fb99c369b3e98c3d31784bd3fb026ef1d8374e098"
+    },
+    "assembly": {
+      "path": "core-build/bin/Release/net8.0/ManualInspection.Tests.dll",
+      "sha256": "500dd244a013c08ab921e194540fe5ffbe7b8b6389dc34ad7bb6f93ea0c1696a"
+    }
+  },
+  "contract": {
+    "input": "Controller validates explicit positive existing CellNos; no focus/head/filter or whole-model fallback",
+    "preview": "Points in selected Cell set -> PreviewMeasurementReplacement(union keys)",
+    "candidate": "BuildMeasurementReplacementCandidate(preview.Keys), IsMeasurementReplacement=true, ReplacementCellNo=null",
+    "save": "one CreateApplySnapshot, one writer transaction, one CommitApplied, one history step",
+    "keep": "Full values map retains every other Cell, actual Init/measurement-zero/raw/consumption and shared-Shot safety",
+    "pendingOffsetDraft": "Existing absolute Init/Import remains single-cell; multi-cell request cannot widen it",
+    "staleAndField": "Existing candidate SHA, current B, same Shot differing F, native Field and numeric guards remain"
+  },
+  "limits": [
+    "Synthetic pure Core and fake Field evaluator only; writer abort is simulated with AbortApply, not an equipment CSV write.",
+    "Actual production Controller/Backend one-CSV behavior is QA/root integration scope and must be linked separately.",
+    "No equipment App/Manager/SDK/motion/PLC/Vision/AeroScript executed; no operational CSV read or changed in this task."
+  ],
+  "controllerSelectiveSyncPeer": {
+    "status": "final_source_scope_reviewed_no_additional_confirmed_finding",
+    "foundAndFixed": "EnsureLoaded new lightweight branch initially lacked Dispatcher marshaling; root added it at method entry",
+    "remainingConfirmedFinding": null,
+    "preserved": "FS dirty epoch retained until successful load; no own-measurement file catalogue reload; saved CSV post-write checks and Current SHA remain",
+    "sourceSha256": "5677d618a3d0a00c19cc8eab1700de617b1d006893ea036006d40db98b9d0738",
+    "scopeChecks": [
+      "NotifyFilesChanged increments invalidation epoch only; no catalog or FinalSnapshot starts from watcher.",
+      "EnsureLoaded has owner Dispatcher marshaling; lightweight current Recipe/Run/Offset SHA validation precedes full sync only if pending/dirty/stale. Cancellation is not converted to a reload.",
+      "Busy full Sync records pending before any FinalSnapshot read. Command finally no longer appends a full result scan. Successful native Load consumes only the captured starting file epoch.",
+      "Explicit other-Review notification and manual refresh retain full merge. Save/Init/Undo retain readback verification. External-process updates stay deferred until reentry/Refresh as documented.",
+      "BulkApply requires explicit positive existing Cell set, rejects a conflicting single Cell, rechecks after Current, uses whole selected Cell union, and sends exactly one combined candidate through one Apply.",
+      "Existing absolute Init/import draft can only save its one scoped Cell, not a multiple Cell set."
+    ],
+    "finalChecks": [
+      "Final saved-map retry on absent/read-failed/mismatched confirmation performs RefreshFinalOffsets only after Current validation, without catalog rebuild.",
+      "Negative or zero explicit CurrentCell is rejected; overview requires its own positive existing CellNos."
+    ]
+  },
+  "nativePositionPeer": {
+    "status": "source_reviewed_no_additional_confirmed_finding",
+    "sourceFiles": [
+      {
+        "path": "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs",
+        "sha256": "d5f58a78916cf9b4318c111bff2b9a118e59ef368a53d068700609aec42d1ce5"
+      },
+      {
+        "path": "Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs",
+        "sha256": "2ded8102126e083b3493ba33ef71b9a91d0e34874e05ac8de11dd1d65d610e78"
+      },
+      {
+        "path": "Drilling.Common/Station/CStageReviewSequences.cs",
+        "sha256": "49e1a43341978bc8ae28013cebce4827cb99e933b04df32aab4ad74d5a9402a7"
+      }
+    ],
+    "evidence": [
+      "Native Backend ReadCurrentPositionAsync reads fresh stopped ReviewX/StageY through an exclusive Session, rejects ambiguous targets, verifies the unique target and rechecks Recipe/Run/SIM/CSV.",
+      "Session.Open only acquires existing ownership. Native Session construction verifies an online connection; simulation alone gets a motion lease.",
+      "ReadStationaryPosition uses fresh busy/position reads; VerifyCurrentTarget checks fresh busy and both-axis ±0.0005mm. No Move, Vision or result/offset writer is called.",
+      "Session.Dispose calls Stop, but its motion object is only constructed in simulation; the native query Dispose does not write PLC movement requests.",
+      "Controller clears the previous marker first, checks cancellation and known nonmasked source key with finite feedback before publishing a matching point. Replay returns only its actual synthetic position key, never the last measured key as a guess."
+    ],
+    "hardwareExecuted": false,
+    "runtimeTests": "QA/root-owned separate integration reports"
+  },
+  "status": "final_sources_and_actual_integration_verified",
+  "integration": {
+    "solutionBuild": {
+      "configuration": "Release",
+      "warnings": 0,
+      "errors": 0,
+      "log": "release-build.log",
+      "console": "release-build-console.log"
+    },
+    "actualController": {
+      "report": "controller-production.json",
+      "count": 318,
+      "failed": 0,
+      "assembly": "Drilling.UI",
+      "assemblySha256": "87113c68fb3bc156016e2d8b616a591a84805a94f668155f8bacd4f56198ad58",
+      "loadedVendorAssemblies": [],
+      "scope": "Actual new production Controller+Common+UI contract; synthetic async fake Backend. Generic WPF Application/STA only; Drilling.UI.App/Root/device Manager not constructed. No SDK/motion/PLC/Vision executed."
+    },
+    "actualBackend": {
+      "report": "backend-read.json",
+      "count": 194,
+      "failed": 0,
+      "productionAssemblies": {
+        "Drilling.UI": {
+          "path": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BackendReadHarness\\bin\\Release\\net8.0-windows\\Drilling.UI.dll",
+          "sha256": "87113c68fb3bc156016e2d8b616a591a84805a94f668155f8bacd4f56198ad58"
+        },
+        "Drilling.Common": {
+          "path": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BackendReadHarness\\bin\\Release\\net8.0-windows\\Drilling.Common.dll",
+          "sha256": "ac9286754456ca6d8bb57215eb155588d71a4c5f731cdfb903991b581d83592d"
+        }
+      },
+      "scope": "Actual UI production adapter + actual pure Review/Recipe/Setting managers, parser/writer; synthetic temp data; no equipment Manager/App/Root or vendor objects."
+    },
+    "actualUi": {
+      "report": "ui-final/validation.json",
+      "modes": 21,
+      "checks": 1145,
+      "sourceInputsVerified": 31,
+      "inputMismatches": [],
+      "sourceLinkedStandaloneWpf": true
+    },
+    "core": {
+      "report": "core-results.json",
+      "count": 300
+    },
+    "incrementalLoop": {
+      "report": "incremental-loop.json",
+      "count": 21
+    },
+    "legacySerializer": {
+      "report": "legacy-serialization.json",
+      "count": 37
+    },
+    "scope": {
+      "report": "scope-results.json",
+      "count": 39
+    },
+    "duplicateAggregation": false,
+    "noRerunByThisReview": true
+  },
+  "finalArtifacts": {
+    "core-results.json": {
+      "sha256": "f9e562accc4691d90d0678ab5b5d6dc5af123c5004a191beb19aed7a1c2c5819",
+      "bytes": 36733
+    },
+    "controller-production.json": {
+      "sha256": "0e32367ae1ceaa45ee4063a654c9a9fddd60dbd009bab134f74d582f7d8a048b",
+      "bytes": 41553
+    },
+    "backend-read.json": {
+      "sha256": "611a0e10dee1a93a393d54d7ccbc0143d20d1ae1ba9c5050b0f8c949f66d8af5",
+      "bytes": 26611
+    },
+    "incremental-loop.json": {
+      "sha256": "7b4e551e3c792b2254f56c42da58ac1debcdfdf0413e000ed5c922734dfdd600",
+      "bytes": 2227
+    },
+    "legacy-serialization.json": {
+      "sha256": "e4315554e30ea6b8597e43faf374403b5b5c8088f914e3d7b77d585785acaf78",
+      "bytes": 5934
+    },
+    "scope-results.json": {
+      "sha256": "fa8160f1709e867c88693df13f2915df1fc059e8e05e483dc56b3c8c9156efb3",
+      "bytes": 10893
+    },
+    "ui-final\\validation.json": {
+      "sha256": "74d328ddb27a3660a05ed14cce932a5e14193680fa84038fb080f3b98f298e5b",
+      "bytes": 43182
+    },
+    "release-build.log": {
+      "sha256": "bfe98702fc6139ea2a4a995e577e2000b96feac612444bfdfb85714900e2c9bd",
+      "bytes": 1491874
+    },
+    "release-build-console.log": {
+      "sha256": "d61cb6f7a571fffeaae89fcd5243541d78e8855ea490e6704487c4d6aa486ebf",
+      "bytes": 581
+    }
+  },
+  "crossMenuReview": {
+    "conclusion": "동일 최종 CSV 전달 누락 결함은 소스/합성 실제경로 검증에서 확인되지 않았습니다. Manual 잔차·저장 DESIGN µm와 Monitor 변환/Scale 적용 기여분 mm를 구분해야 합니다.",
+    "formula": "Manual F=B+잔차(DESIGN µm); CSV F/1000(DESIGN mm); Planner Head축변환(F/1000)×ReviewScale/100; Monitor는 이를 선택좌표계 mm로 표시",
+    "sameScaleCondition": "Init B0 + 새 편차 e 후 동일Cell/Shot·DESIGN·Scale100이면Monitor×1000=ManualF. Scale50은적용량1/2이며저장원값은동일합니다.",
+    "sourceEvidence": [
+      "Bridge.FromFile/ToFile: DESIGN mm↔µm",
+      "CMenuMonitor.BuildCoordinateViewerData latest CSV overlay and RefreshCoordinateReviewOffsets path/SHA revision check",
+      "CShotCoordinatePlanBuilder:145-148 Review transform and scale; 277-278 full precision Review input",
+      "CStationProcess:1545-1563 latest overlay;1611 shared planner; CAutomation1ScriptFile shared shot ScannerGx/Gy",
+      "CRootView:1818-1822 latest Review overlay for Shift/A1 preview"
+    ],
+    "runtimeCase": {
+      "name": "manual_init_fresh_fractional_measure_bulk_refreshes_existing_monitor_same_shot_and_csv_sha",
+      "passed": true
+    },
+    "runtimeInputs": {
+      "afterInitDesignUm": [
+        1.234,
+        -2.346
+      ],
+      "savedDesignMm": [
+        0.001234,
+        -0.002346
+      ],
+      "reviewScalesPercent": [
+        100,
+        50
+      ],
+      "existingOpenedMonitor": true,
+      "sameSelectedCellShot": true,
+      "sameCanonicalCsvSha": true,
+      "outsideCellAndOldCsvBytesPreserved": true
+    },
+    "scope": "실제 Controller·CSV 변환/writer/readback·기존 Monitor RefreshLiveData/Build/Apply, 임시합성데이터; 측정과설비SaveGuard는대체. 실제PLC/Vision/장비Manager/A1스크립트는실행하지않음.",
+    "recommendedDisplay": "동일 저장 DESIGN µm·파일SHA를 비교하고 Monitor 기여분에는좌표계/mm/Scale을명확히표시. 지도색상은측정편차 정책유지."
+  }
+}

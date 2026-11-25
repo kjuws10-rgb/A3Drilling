@@ -25,6 +25,8 @@ namespace Drilling.UI.Menu.Menus
         Task<CManualInspectionSavedOffsetSnapshot?> ExportCurrentOffsetCsvAsync(CManualInspectionSource source,string path,CancellationToken token,bool overwriteConfirmed=false)
             => throw new NotSupportedException("Backend does not support current offset CSV export.");
         Task EnsureCurrentAsync(CManualInspectionSource source, CancellationToken token);
+        Task<CManualInspectionPosition> ReadCurrentPositionAsync(CManualInspectionSource source,CancellationToken token)
+            => throw new NotSupportedException("Backend does not support fresh stationary position reading.");
         void GuardOperation();
         Task<CManualInspectionMeasurement> ExecutePointAsync(CManualInspectionSource source, string key,
             EN_MANUAL_OPERATION_KIND kind, Action<string> progress, CancellationToken token);
@@ -57,6 +59,7 @@ namespace Drilling.UI.Menu.Menus
             => throw new NotSupportedException("Backend does not support portable offset import.");
         void Stop();
     }
+    public sealed record CManualInspectionPosition(string? PointKey,double ReviewXmm,double StageYmm);
     public sealed record CManualInspectionSource(ST_MANUAL_CONTEXT Context, IReadOnlyList<ST_MANUAL_POINT> Points,
         IReadOnlyDictionary<string, ST_MANUAL_OFFSET> Values, ST_MANUAL_LIMITS Limits,
         ManualInspectionFieldEvaluator FieldEvaluator, double ToleranceXUm, double ToleranceYUm,

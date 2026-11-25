@@ -88,7 +88,8 @@ internal static partial class Program
             void Bulk() { ((Button)view.FindName("BulkApplyButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Pump(); }
             view.ConfirmationForTesting = (_, text, _) => { confirms++; description = text; return true; };
             Invoke(view, "SetMapCellScope", 0); Invoke(view, "ChangeSelection", new CManualInspectionSelectionEventArgs([state.Points[0].Key], state.Points[0].Key)); Pump(); Bulk();
-            Test("cell_csv_overview_never_falls_back_to_focused_cell_or_whole_model", confirms == 0 && fake.Calls.Count == 0);
+            Test("cell_csv_overview_uses_explicit_selected_cell_not_whole_model", confirms == 1 && fake.Calls.Count == 1 && fake.Calls[0].Request.CurrentCellNo is null && fake.Calls[0].Request.CellNos.SequenceEqual([state.Points[0].CellNo]));
+            fake.Calls.Clear(); confirms=0;
             Invoke(view, "SetMapCellScope", 1);
             ((Task)Invoke(view, "Execute", EN_MANUAL_INSPECTION_UI_ACTION.BulkApply, new CManualInspectionUiRequest { ExpectedVersion = 700, Keys = [state.Points[0].Key] })!).GetAwaiter().GetResult(); Pump();
             Test("cell_csv_missing_request_cell_cannot_fall_back_to_open_cell", confirms == 0 && fake.Calls.Count == 0);
@@ -96,7 +97,7 @@ internal static partial class Program
             SelectViewChoice(view, "HeadFilter", "2"); SelectViewChoice(view, "JudgeFilter", "NG"); Bulk();
             Test("cell_csv_bulk_uses_explicit_cell_even_with_other_cell_focus_and_selection", fake.Calls.Count == 1 && fake.Calls[0].Action == EN_MANUAL_INSPECTION_UI_ACTION.BulkApply && fake.Calls[0].Request.CurrentCellNo == 1);
             Test("cell_csv_bulk_confirmation_uses_current_cell_count_not_global_count", confirms == 1 && description.Contains("Cell 1") && description.Contains(state.CellBulkSummaryTexts[1]) && !description.Contains(state.BulkSummaryText));
-            Test("cell_csv_visual_filters_do_not_shrink_current_cell_bulk_target", description.Contains("필터") && fake.Calls[0].Request.CurrentCellNo == 1 && ((TextBlock)view.FindName("BulkSummaryText")).Text.Contains(state.CellBulkSummaryTexts[1]));
+            Test("cell_csv_visual_filters_do_not_shrink_current_cell_bulk_target", description.Contains("표시한 Cell 전체") && fake.Calls[0].Request.CurrentCellNo == 1 && fake.Calls[0].Request.CellNos.SequenceEqual([1]) && ((TextBlock)view.FindName("BulkSummaryText")).Text.Contains(state.CellBulkSummaryTexts[1]));
             var before = fake.Calls.Count; Invoke(view, "SetMapCellScope", 1); view.ConfirmationForTesting = (_, _, _) => { Invoke(view, "SetMapCellScope", 2); Pump(); return true; }; Bulk();
             Test("cell_csv_cell_change_during_modal_is_stale_even_at_same_snapshot_version", fake.Snapshot.Version == 700 && fake.Calls.Count == before);
             fake.Replace(state with { Version = 703, CellBulkEligibleCounts = new Dictionary<int, int> { [1] = 2, [2] = 0 }, CellBulkSummaryTexts = new Dictionary<int, string> { [1] = state.CellBulkSummaryTexts[1], [2] = "Cell 2 · 새 OK 0" } });

@@ -1,14 +1,18 @@
-# MANUAL INSPECTION · 11.25.0
+# MANUAL INSPECTION · 11.25.1
 
-브랜치: `feature/manual-inspection-performance-20261125.0` · 기준: 11.24.10 `26a7db3e27bb17c4b9f141f2831d168965d978d5`. **master 미병합**.
+브랜치: `feature/manual-inspection-refresh-scope-20261125.1` · 기준: 11.25.0 `0d342edcb105ab5fd007dc3a273df52b2099940b`. **master 미병합**.
 
-현재 동작은 [응답성·진행 표시 개선](PERFORMANCE_11.25.0.md)과 [검증 manifest](validation.json)를 따른다. 보정·초기화 정책은 [11.24.10](INCREMENTAL_OVERWRITE_FIX_11.24.10.md)을 유지하며, 계산·렌더링 중복과 파일 I/O의 UI 정지를 줄였다. 기다리는 단계는 상단 진행 막대로 알린다. 아래 과거 버전 설명은 당시 기록이다.
+현재 동작은 [조회 범위·현 위치 찾기·선택 Cell 보정](REFRESH_LOCATE_CELLS_11.25.1.md)과 [검증 manifest](validation.json)를 따른다. [이전 응답성 개선](PERFORMANCE_11.25.0.md)과 [11.24.10 보정·Init 정책](INCREMENTAL_OVERWRITE_FIX_11.24.10.md)은 유지한다. 현 위치 측정 뒤 불필요한 전체 결과 조회는 붙이지 않으며 외부 파일 변경은 화면 재진입/새로고침에서 확인한다. 아래 과거 버전 설명은 당시 기록이다.
 
 ## 현재 사용법
 
 1. Cell 하나를 열고 우클릭 **이동 후 측정** 또는 기존 키패드로 편차 X/Y를 준비한다. 측정만으로 CSV를 저장하지 않는다.
 2. 필요하면 대표점의 편차·판정을 복사한다. 확인창을 거치며 아직 CSV는 변경하지 않는다.
-3. **현재 Cell 일괄 보정·CSV 저장**에서 확인하면 **각 대상의 기존 Review + 이번 측정·복사 편차**를 저장한다. 기존값 20 µm에 대표 편차 3 µm이면 23 µm다. 같은 원본을 중복 가산하지 않는다. 다른 Cell·보호 Offset은 유지한다.
+3. **일괄 보정·CSV 저장**에서 확인하면 **각 대상의 기존 Review + 이번 측정·복사 편차**를 저장한다. 단일 화면은 현재 Cell, 전체 Cell 화면은 선택한 Cell들 전체가 대상이다. 여러 Cell도 CSV 한 번·Undo 한 단계로 저장한다. 기존값 20 µm에 대표 편차 3 µm이면 23 µm다. 같은 원본을 중복 가산하지 않으며 다른 Cell·보호 Offset은 유지한다.
+
+**현 위치 찾기**는 현재 위치를 새로 확인해 해당 포인트를 보여주고 0.5초 간격으로 4초간 강조한다. 이동·측정·보정은 하지 않는다.
+
+우측에는 **측정 편차와 CSV의 최종 저장 Review 값**을 함께 DESIGN µm로 표시한다. 지도 색상은 **측정 편차 Level**을 유지한다. Monitor REVIEW 행은 좌표계·Scale을 적용한 mm 값이므로 같은 모델/Cell/Shot의 ‘저장 DESIGN µm’와 최종값을 비교한다.
 
 지도는 측정편차 Level로만 표시한다. NG는 빨강, 값 없음/Init은 회색, 실제 측정한 0은 유효값이다. 최종값만 있는 과거 CSV를 새 측정편차라고 표시하지 않는다. 파일 입력은 별도 출처로 표시한다.
 

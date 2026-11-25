@@ -1,0 +1,559 @@
+{
+  "schemaVersion": "a3-manual-inspection-map-first-ui/1",
+  "passed": true,
+  "tests": 73,
+  "failures": 0,
+  "scope": "Source-linked WPF and current app themes, immutable synthetic points/fake controller. DPI is equivalent DIP/render emulation. Double-click helper is called by the real mouse-down handler; no physical input injection or equipment App/SDK/Vision/motion.",
+  "checks": [
+    {
+      "name": "mapfirst_inspector_and_secondary_sections_closed_Light_compact",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_map_uses_almost_full_width_Light_compact",
+      "passed": true,
+      "details": {
+        "ActualWidth": 1037.28,
+        "viewWidth": 1107.2
+      }
+    },
+    {
+      "name": "mapfirst_map_uses_main_vertical_area_Light_compact",
+      "passed": true,
+      "details": {
+        "ActualHeight": 444.20000000000005,
+        "viewHeight": 547.2
+      }
+    },
+    {
+      "name": "mapfirst_compact_at_least_1000x360_Light",
+      "passed": true,
+      "details": {
+        "ActualWidth": 1037.28,
+        "ActualHeight": 444.20000000000005
+      }
+    },
+    {
+      "name": "mapfirst_default_no_scroll_or_parent_clip_Light_compact",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_every_current_cell_slot_fits_Light_compact",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_information_remains_reachable_without_overlay_Light_compact",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_inspector_and_secondary_sections_closed_Light_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_map_uses_almost_full_width_Light_wide",
+      "passed": true,
+      "details": {
+        "ActualWidth": 1397.28,
+        "viewWidth": 1467.2
+      }
+    },
+    {
+      "name": "mapfirst_map_uses_main_vertical_area_Light_wide",
+      "passed": true,
+      "details": {
+        "ActualHeight": 765.8000000000001,
+        "viewHeight": 868.8000000000001
+      }
+    },
+    {
+      "name": "mapfirst_default_no_scroll_or_parent_clip_Light_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_every_current_cell_slot_fits_Light_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_information_remains_reachable_without_overlay_Light_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_inspector_and_secondary_sections_closed_Light_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_map_uses_almost_full_width_Light_dpi125",
+      "passed": true,
+      "details": {
+        "ActualWidth": 1037.28,
+        "viewWidth": 1107.2
+      }
+    },
+    {
+      "name": "mapfirst_map_uses_main_vertical_area_Light_dpi125",
+      "passed": true,
+      "details": {
+        "ActualHeight": 604.2,
+        "viewHeight": 707.2
+      }
+    },
+    {
+      "name": "mapfirst_default_no_scroll_or_parent_clip_Light_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_every_current_cell_slot_fits_Light_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_information_remains_reachable_without_overlay_Light_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_inspector_and_secondary_sections_closed_Light_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_map_uses_almost_full_width_Light_dpi150",
+      "passed": true,
+      "details": {
+        "ActualWidth": 850.8800000000001,
+        "viewWidth": 920.8000000000001
+      }
+    },
+    {
+      "name": "mapfirst_map_uses_main_vertical_area_Light_dpi150",
+      "passed": true,
+      "details": {
+        "ActualHeight": 484.20000000000005,
+        "viewHeight": 587.2
+      }
+    },
+    {
+      "name": "mapfirst_default_no_scroll_or_parent_clip_Light_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_every_current_cell_slot_fits_Light_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_information_remains_reachable_without_overlay_Light_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_inspector_and_secondary_sections_closed_Dark_compact",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_map_uses_almost_full_width_Dark_compact",
+      "passed": true,
+      "details": {
+        "ActualWidth": 1037.28,
+        "viewWidth": 1107.2
+      }
+    },
+    {
+      "name": "mapfirst_map_uses_main_vertical_area_Dark_compact",
+      "passed": true,
+      "details": {
+        "ActualHeight": 444.20000000000005,
+        "viewHeight": 547.2
+      }
+    },
+    {
+      "name": "mapfirst_compact_at_least_1000x360_Dark",
+      "passed": true,
+      "details": {
+        "ActualWidth": 1037.28,
+        "ActualHeight": 444.20000000000005
+      }
+    },
+    {
+      "name": "mapfirst_default_no_scroll_or_parent_clip_Dark_compact",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_every_current_cell_slot_fits_Dark_compact",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_information_remains_reachable_without_overlay_Dark_compact",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_inspector_and_secondary_sections_closed_Dark_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_map_uses_almost_full_width_Dark_wide",
+      "passed": true,
+      "details": {
+        "ActualWidth": 1397.28,
+        "viewWidth": 1467.2
+      }
+    },
+    {
+      "name": "mapfirst_map_uses_main_vertical_area_Dark_wide",
+      "passed": true,
+      "details": {
+        "ActualHeight": 765.8000000000001,
+        "viewHeight": 868.8000000000001
+      }
+    },
+    {
+      "name": "mapfirst_default_no_scroll_or_parent_clip_Dark_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_every_current_cell_slot_fits_Dark_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_information_remains_reachable_without_overlay_Dark_wide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_inspector_and_secondary_sections_closed_Dark_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_map_uses_almost_full_width_Dark_dpi125",
+      "passed": true,
+      "details": {
+        "ActualWidth": 1037.28,
+        "viewWidth": 1107.2
+      }
+    },
+    {
+      "name": "mapfirst_map_uses_main_vertical_area_Dark_dpi125",
+      "passed": true,
+      "details": {
+        "ActualHeight": 604.2,
+        "viewHeight": 707.2
+      }
+    },
+    {
+      "name": "mapfirst_default_no_scroll_or_parent_clip_Dark_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_every_current_cell_slot_fits_Dark_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_information_remains_reachable_without_overlay_Dark_dpi125",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_inspector_and_secondary_sections_closed_Dark_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_map_uses_almost_full_width_Dark_dpi150",
+      "passed": true,
+      "details": {
+        "ActualWidth": 850.8800000000001,
+        "viewWidth": 920.8000000000001
+      }
+    },
+    {
+      "name": "mapfirst_map_uses_main_vertical_area_Dark_dpi150",
+      "passed": true,
+      "details": {
+        "ActualHeight": 484.20000000000005,
+        "viewHeight": 587.2
+      }
+    },
+    {
+      "name": "mapfirst_default_no_scroll_or_parent_clip_Dark_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_every_current_cell_slot_fits_Dark_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_information_remains_reachable_without_overlay_Dark_dpi150",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_inspector_opens_only_on_demand",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_work_info_expands_without_changing_selection_or_source",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_result_table_still_available",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_scatter_still_available",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_closing_secondary_panels_restores_large_map",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_single_click_does_not_reset_zoom",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_doubleclick_resets_zoom_pan_and_cleans_gesture",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_doubleclick_preserves_selection_and_geometry",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_doubleclick_never_dispatches_motion_measurement_or_correction",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_doubleclick_remains_visual_in_busy_readonly_state",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_two_click_sequence_restores_preclick_multiselection_and_focus",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_two_click_sequence_restores_empty_selection_and_null_focus",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_snapshot_change_prevents_old_click_selection_restore",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_drag_result_is_not_replaced_by_prior_click_selection",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_dense_group_grid_uses_full_group_width",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_dense_group_slots_cover_grid_area",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_actual_level_fill_covers_ninety_percent_C1:H1:S1:B11",
+      "passed": true,
+      "details": {
+        "ratio": 0.9779817323390548,
+        "samples": 22663
+      }
+    },
+    {
+      "name": "mapfirst_actual_level_fill_covers_ninety_percent_C1:H2:S2:B11",
+      "passed": true,
+      "details": {
+        "ratio": 0.9714071393901955,
+        "samples": 22663
+      }
+    },
+    {
+      "name": "mapfirst_actual_level_fill_covers_ninety_percent_C1:H1:S3:B11",
+      "passed": true,
+      "details": {
+        "ratio": 0.9713630146053038,
+        "samples": 22663
+      }
+    },
+    {
+      "name": "mapfirst_actual_level_fill_covers_ninety_percent_C1:H2:S4:B11",
+      "passed": true,
+      "details": {
+        "ratio": 0.9788201032519966,
+        "samples": 22663
+      }
+    },
+    {
+      "name": "mapfirst_32000_points_are_not_dropped",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_32000_fit_keeps_all_slots_inside_map",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mapfirst_32000_render_does_not_dispatch_equipment_work",
+      "passed": true,
+      "details": null
+    }
+  ],
+  "observations": [
+    {
+      "theme": "Light",
+      "Name": "compact",
+      "Scale": 1,
+      "viewWidth": 1107.2,
+      "viewHeight": 547.2,
+      "mapWidth": 1037.28,
+      "mapHeight": 444.20000000000005,
+      "ScrollableHeight": 0,
+      "ScrollableWidth": 0
+    },
+    {
+      "theme": "Light",
+      "Name": "wide",
+      "Scale": 1,
+      "viewWidth": 1467.2,
+      "viewHeight": 868.8000000000001,
+      "mapWidth": 1397.28,
+      "mapHeight": 765.8000000000001,
+      "ScrollableHeight": 0,
+      "ScrollableWidth": 0
+    },
+    {
+      "theme": "Light",
+      "Name": "dpi125",
+      "Scale": 1.25,
+      "viewWidth": 1107.2,
+      "viewHeight": 707.2,
+      "mapWidth": 1037.28,
+      "mapHeight": 604.2,
+      "ScrollableHeight": 0,
+      "ScrollableWidth": 0
+    },
+    {
+      "theme": "Light",
+      "Name": "dpi150",
+      "Scale": 1.5,
+      "viewWidth": 920.8000000000001,
+      "viewHeight": 587.2,
+      "mapWidth": 850.8800000000001,
+      "mapHeight": 484.20000000000005,
+      "ScrollableHeight": 0,
+      "ScrollableWidth": 0
+    },
+    {
+      "theme": "Dark",
+      "Name": "compact",
+      "Scale": 1,
+      "viewWidth": 1107.2,
+      "viewHeight": 547.2,
+      "mapWidth": 1037.28,
+      "mapHeight": 444.20000000000005,
+      "ScrollableHeight": 0,
+      "ScrollableWidth": 0
+    },
+    {
+      "theme": "Dark",
+      "Name": "wide",
+      "Scale": 1,
+      "viewWidth": 1467.2,
+      "viewHeight": 868.8000000000001,
+      "mapWidth": 1397.28,
+      "mapHeight": 765.8000000000001,
+      "ScrollableHeight": 0,
+      "ScrollableWidth": 0
+    },
+    {
+      "theme": "Dark",
+      "Name": "dpi125",
+      "Scale": 1.25,
+      "viewWidth": 1107.2,
+      "viewHeight": 707.2,
+      "mapWidth": 1037.28,
+      "mapHeight": 604.2,
+      "ScrollableHeight": 0,
+      "ScrollableWidth": 0
+    },
+    {
+      "theme": "Dark",
+      "Name": "dpi150",
+      "Scale": 1.5,
+      "viewWidth": 920.8000000000001,
+      "viewHeight": 587.2,
+      "mapWidth": 850.8800000000001,
+      "mapHeight": 484.20000000000005,
+      "ScrollableHeight": 0,
+      "ScrollableWidth": 0
+    },
+    {
+      "kind": "measured-color-fill",
+      "Key": "C1:H1:S1:B11",
+      "ratio": 0.9779817323390548,
+      "samples": 22663
+    },
+    {
+      "kind": "measured-color-fill",
+      "Key": "C1:H2:S2:B11",
+      "ratio": 0.9714071393901955,
+      "samples": 22663
+    },
+    {
+      "kind": "measured-color-fill",
+      "Key": "C1:H1:S3:B11",
+      "ratio": 0.9713630146053038,
+      "samples": 22663
+    },
+    {
+      "kind": "measured-color-fill",
+      "Key": "C1:H2:S4:B11",
+      "ratio": 0.9788201032519966,
+      "samples": 22663
+    },
+    {
+      "kind": "synthetic-large-layout",
+      "points": 32000,
+      "milliseconds": 589.5911
+    }
+  ]
+}

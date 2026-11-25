@@ -121,8 +121,9 @@ internal static partial class Program
             var (f, c) = await Loaded(); await Prepared(c); var loads = f.Loads;
             f.SaveHook = async _ => { await c.SynchronizeExternalAsync(); True(c.IsBusy && c.Snapshot.SyncPending && f.Loads == loads); };
             await Do(c, EN_MANUAL_INSPECTION_UI_ACTION.Apply);
-            True(f.Saves == 1 && f.Loads == loads + 1 && c.Snapshot.ActiveRevisionId == "REV-1" && !c.IsBusy);
-            True(!c.Snapshot.SyncPending && !c.Snapshot.CanApply);
+            True(f.Saves == 1 && f.Loads == loads && c.Snapshot.ActiveRevisionId == "REV-1" && !c.IsBusy);
+            True(c.Snapshot.SyncPending && !c.Snapshot.CanApply);
+            await c.SynchronizeExternalAsync();True(f.Loads==loads+1&&!c.Snapshot.SyncPending&&f.Saves==1);
         });
         await Check("hardening_backend_stop_failure_does_not_skip_cleanup_wait_or_leak_gate", async () =>
         {
@@ -190,14 +191,16 @@ internal static partial class Program
             try
             {
                 SetIncoming(f, "watch-enabled", 8, DateTimeOffset.UtcNow.AddMinutes(2));
-                File.WriteAllText(Path.Combine(directory, "first.csv"), "synthetic");
-                await Until(() => c.Snapshot.Points.Single(p => p.Key == "P1").WorkingXUm == 8);
+                var epoch=FileEpoch(c);File.WriteAllText(Path.Combine(directory, "first.csv"), "synthetic");
+                await Until(() => FileEpoch(c)>epoch);await c.EnsureLoaded();
+                True(c.Snapshot.Points.Single(p => p.Key == "P1").WorkingXUm == 8);
                 c.DisableAutomaticUpdates(); await Task.Delay(150); var loads = f.Loads;
                 SetIncoming(f, "watch-disabled", 9, DateTimeOffset.UtcNow.AddMinutes(3));
                 File.WriteAllText(Path.Combine(directory, "second.csv"), "synthetic"); await Task.Delay(850);
                 True(f.Loads == loads && c.Snapshot.Points.Single(p => p.Key == "P1").WorkingXUm == 8);
-                c.EnableAutomaticUpdates(); File.WriteAllText(Path.Combine(directory, "third.csv"), "synthetic");
-                await Until(() => c.Snapshot.Points.Single(p => p.Key == "P1").WorkingXUm == 9);
+                c.EnableAutomaticUpdates();epoch=FileEpoch(c);File.WriteAllText(Path.Combine(directory, "third.csv"), "synthetic");
+                await Until(() => FileEpoch(c)>epoch);await c.EnsureLoaded();
+                True(c.Snapshot.Points.Single(p => p.Key == "P1").WorkingXUm == 9);
                 True(f.Executed.Count == 0 && f.Saves == 0);
             }
             finally { c.DisableAutomaticUpdates(); }

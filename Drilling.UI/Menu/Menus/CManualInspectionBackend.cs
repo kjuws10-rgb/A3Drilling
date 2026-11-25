@@ -10,6 +10,7 @@ using Drilling.Common.Alarm;
 using Drilling.Common.Correction;
 using Drilling.Common.Interface;
 using Drilling.Common.Managers;
+using Drilling.Common.Motion;
 using Drilling.Common.Recipe;
 using Drilling.Common.Review;
 using Drilling.Common.Review.ManualInspection;
@@ -35,6 +36,8 @@ public interface IManualInspectionBackend
         => throw new NotSupportedException("이 연결은 현재 Offset CSV 내보내기를 지원하지 않습니다.");
     string ImportedOffsetDescription => "";
     Task EnsureCurrentAsync(CManualInspectionSource source, CancellationToken token);
+    Task<CManualInspectionPosition> ReadCurrentPositionAsync(CManualInspectionSource source,CancellationToken token)
+        => throw new NotSupportedException("현재 위치 확인을 지원하지 않는 연결입니다.");
     void GuardOperation();
     Task<CManualInspectionMeasurement> ExecutePointAsync(CManualInspectionSource source, string key,
         EN_MANUAL_OPERATION_KIND kind, Action<string> progress, CancellationToken token);
@@ -116,6 +119,9 @@ public sealed record CManualInspectionImportedResult(string Path, DateTimeOffset
 
 public sealed record CManualInspectionMeasurement(string Key, ST_MANUAL_MEASUREMENT Measurement,
     double ReviewXmm, double StageYmm);
+
+/// <summary>Fresh stationary feedback and an exact target match; no nearest/last-point guess.</summary>
+public sealed record CManualInspectionPosition(string? PointKey,double ReviewXmm,double StageYmm);
 
 /// <summary>
 /// Production adapter for the NEW tab only. It reuses the owning Review manager's execution lock,
@@ -780,6 +786,35 @@ public sealed class CManualInspectionBackend(
             new ReadOnlyDictionary<string,ST_MANUAL_OFFSET>(source.Values.ToDictionary(pair=>pair.Key,pair=>pair.Value,StringComparer.Ordinal)),
             (source.StoredInitializedOffsetKeys??source.Points.Where(point=>point.IsMeasurementOffsetInitialized).Select(point=>point.OffsetKey).ToHashSet(StringComparer.Ordinal)).ToFrozenSet(StringComparer.Ordinal),
             source.AppliedOffsetKeys.ToFrozenSet(StringComparer.Ordinal));
+
+    public async Task<CManualInspectionPosition> ReadCurrentPositionAsync(CManualInspectionSource source,CancellationToken token)
+    {
+        GuardOperation();await EnsureCurrentAsync(source,token);
+        var interfaces=manager!.Interface();
+        var device=interfaces.Melsec.Map.FirstOrDefault(row=>row.Id=="MOTOR_STAGE_Y_CUR_POS")?.DeviceNo??0;
+        using var lease=interfaces.StageReviewSequences.Open(device,()=>token.IsCancellationRequested);
+        var x=await lease.ReadStationaryPosition(EN_MANUAL_STAGE_AXIS.ReviewX,token);
+        var y=await lease.ReadStationaryPosition(EN_MANUAL_STAGE_AXIS.StageY,token);
+        var matches=FindPositionTargets(_targets,x,y);
+        if(matches.Count>1)throw new InvalidOperationException("현재 위치에 여러 측정 좌표가 겹칩니다. 포인트를 임의로 선택하지 않았습니다.");
+        var key=matches.SingleOrDefault();
+        if(key is not null)
+        {
+            var point=_targets[key];var motion=ST_REVIEW_MOTION_PARAMETERS.Read(settings);
+            // Read/verify only: no Move, Vision measurement or result/offset file save.
+            await lease.VerifyCurrentTarget(new(point.ReviewTargetX,point.ReviewTargetY,motion.Speed,
+                _plans[point.BeamNo].StageSpeed??motion.Speed,motion.Acceleration),token);
+        }
+        await EnsureCurrentAsync(source,token);
+        return new(key,x,y);
+    }
+
+    internal static IReadOnlyList<string> FindPositionTargets(IReadOnlyDictionary<string,ST_REVIEW_PLAN_POINT> targets,double x,double y)
+    {
+        if(!double.IsFinite(x)||!double.IsFinite(y))return [];
+        return targets.Where(pair=>pair.Value.Use&&Math.Abs(pair.Value.ReviewTargetX-x)<=.0005
+            &&Math.Abs(pair.Value.ReviewTargetY-y)<=.0005).Select(pair=>pair.Key).ToArray();
+    }
 
     public async Task<CManualInspectionMeasurement> ExecutePointAsync(CManualInspectionSource source, string key,
         EN_MANUAL_OPERATION_KIND kind, Action<string> progress, CancellationToken token)

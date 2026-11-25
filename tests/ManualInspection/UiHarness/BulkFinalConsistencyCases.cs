@@ -74,7 +74,7 @@ internal static partial class Program
             view.ConfirmationForTesting = (title, text, button) => { confirms++; seen = title + "\n" + text + "\n" + button; return false; };
             ((Button)view.FindName("BulkApplyButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Pump();
             Test("bulk_final_cancel_preserves_user_mode_and_does_not_dispatch", confirms == 1 && fake.Calls.Count == 0 && MeasurementMapMode(view) == "level" && !(((CManualInspectionScatterControl)view.FindName("ScatterPlot")).DataKind=="OFFSETS"));
-            Test("bulk_final_confirmation_identifies_actual_model_and_current_cell_scope", seen.Contains(state.RecipeId) && seen.Contains("Cell 1") && seen.Contains("필터") && seen.Contains("다른 Cell"));
+            Test("bulk_final_confirmation_identifies_actual_model_and_current_cell_scope", seen.Contains(state.RecipeId) && seen.Contains("Cell 1") && seen.Contains("표시한 Cell 전체") && seen.Contains("다른 Cell"));
             Test("bulk_final_confirmation_explains_target_base_plus_measured_or_copied_error",seen.Contains("F = B + Δ")&&seen.Contains("실측·대표 복사")&&seen.Contains("편차 Δ"));
             Test("bulk_final_confirmation_lists_numeric_limits_and_storage_readback", seen.Contains("31") && seen.Contains("402") && seen.Contains("µm") && seen.Contains("CSV") && seen.Contains("다시 읽"));
             Test("bulk_final_confirmation_retains_ng_unmeasured_and_protected_offsets", seen.Contains("NG") && seen.Contains("미측정") && seen.Contains("보호 Offset"));
@@ -127,7 +127,7 @@ internal static partial class Program
                 };
                 fake.OnExecute = (_, _) => { if (outcome == "THROW") throw new InvalidOperationException("synthetic CSV operation rejected before save"); fake.Replace(reply); };
                 var action = outcome == "FORCE" ? EN_MANUAL_INSPECTION_UI_ACTION.ForceMeasurement : EN_MANUAL_INSPECTION_UI_ACTION.BulkApply;
-                ((Task)Invoke(view, "Execute", action, new CManualInspectionUiRequest { ExpectedVersion = state.Version, Keys = [state.Points[0].Key], CurrentCellNo = 1 })!).GetAwaiter().GetResult(); Pump();
+                ((Task)Invoke(view, "Execute", action, new CManualInspectionUiRequest { ExpectedVersion = state.Version, Keys = [state.Points[0].Key], CurrentCellNo = 1, CellNos = [1] })!).GetAwaiter().GetResult(); Pump();
                 Test("bulk_final_does_not_switch_without_this_verified_save_" + outcome, MeasurementMapMode(view) == "level" && !(((CManualInspectionScatterControl)view.FindName("ScatterPlot")).DataKind=="OFFSETS") && !(((CManualInspectionScatterControl)view.FindName("ScatterPlot")).DataKind=="OFFSETS") && !Field<bool>(view, "_scatterOriginal"));
                 Test("bulk_final_outcome_dispatches_only_requested_non_motion_action_" + outcome, fake.Calls.Count == 1 && fake.Calls[0].Action == action);
                 if (outcome == "READ_FAILED")

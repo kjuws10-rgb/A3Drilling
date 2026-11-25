@@ -1,0 +1,223 @@
+{
+  "schema": "a3-manual-inspection-refresh-scope-independent-review/1",
+  "version": "11.25.1",
+  "status": "passed",
+  "passed": true,
+  "observedAt": "2026-11-25T00:25:34.898636+00:00",
+  "productionEditedByThisAgent": false,
+  "checks": {
+    "sourceController": {
+      "passed": true,
+      "count": 315,
+      "failed": 0,
+      "path": "controller-source.json",
+      "sha256": "4c022565f5d19bb9d0e4c2adee45fcab88068b79e918c790dede173023690b77",
+      "assemblySha256": "8edcf16c1bfc7e6f01827b94695e69a23d8bb9437c2e915dd72aa507691701fd",
+      "loadedVendorAssemblies": []
+    },
+    "newSourceControllerCases": {
+      "refreshScope": 10,
+      "locate": 6,
+      "multiCellBulk": 6,
+      "allPassed": true
+    },
+    "nativePositionPureCases": {
+      "count": 4,
+      "status": "actual_release_helper_passed",
+      "scope": "Only actual pure FindPositionTargets; no station feedback, guards, Manager, motion or SDK instantiated.",
+      "allPassed": true,
+      "reflection": "Internal method is invoked via reflection because production reference assemblies hide internal symbols; no public API change."
+    },
+    "existingAssertionsPreserved": [
+      "startup saved read failure recovers with final-only reread",
+      "committed Bulk READ_FAILED recovers without repeat CSV or raw consumption",
+      "same-frame Init trusted large Undo/Redo remains exact",
+      "external Review completion remains full merge",
+      "required Current authority/CSV SHA safety remains"
+    ],
+    "approvedFixturePolicyChanges": [
+      "real watcher waits for dirty epoch then EnsureLoaded, rather than idle auto-merge",
+      "changed observation fingerprint fixture explicitly notifies file dirtiness",
+      "busy notifications defer final/catalog read and require explicit or next-tab refresh after command"
+    ],
+    "uiPeerSource": {
+      "confirmed": true,
+      "details": "Locate rechecks Recipe/Run/coordinate frame after fresh response, reveals exact Cell/filter/focus, independent 500ms cyan blink; Bulk freezes explicit selected Cell set and rechecks after modal; staged draft requires same singleton. Final Locate Execute returns bool and stops on declined/stale/failed dispatch, preventing an old position key from being rehighlighted."
+    },
+    "uiVisualInspection": [
+      "ui-final/locate-cell-bulk/locate-dark.png",
+      "ui-final/locate-cell-bulk/locate-light.png",
+      "ui-dual-second/locate-cell-bulk/dual-readout-dark.png",
+      "ui-dual-second/locate-cell-bulk/dual-readout-light.png"
+    ],
+    "actualController": {
+      "passed": true,
+      "count": 318,
+      "failed": 0,
+      "report": "controller-production.json",
+      "sha256": "0e32367ae1ceaa45ee4063a654c9a9fddd60dbd009bab134f74d582f7d8a048b",
+      "loadedVendorAssemblies": [],
+      "all315SourceCasesPresent": true,
+      "actualUiAssemblySha256": "87113c68fb3bc156016e2d8b616a591a84805a94f668155f8bacd4f56198ad58"
+    },
+    "actualBackend": {
+      "passed": true,
+      "count": 194,
+      "failed": 0,
+      "report": "backend-read.json",
+      "sha256": "611a0e10dee1a93a393d54d7ccbc0143d20d1ae1ba9c5050b0f8c949f66d8af5",
+      "productionAssemblies": {
+        "Drilling.UI": {
+          "path": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BackendReadHarness\\bin\\Release\\net8.0-windows\\Drilling.UI.dll",
+          "sha256": "87113c68fb3bc156016e2d8b616a591a84805a94f668155f8bacd4f56198ad58"
+        },
+        "Drilling.Common": {
+          "path": "D:\\CodexWork\\A3_Manual_Inspection_20261120\\repository\\tests\\ManualInspection\\BackendReadHarness\\bin\\Release\\net8.0-windows\\Drilling.Common.dll",
+          "sha256": "ac9286754456ca6d8bb57215eb155588d71a4c5f731cdfb903991b581d83592d"
+        }
+      },
+      "loadedFilesMatchCurrentReleaseBytes": true,
+      "newCaseNames": [
+        "native_position_match_uses_actual_review_targets_not_design_or_recent_error",
+        "native_position_match_requires_both_axes_within_half_micrometre_and_never_falls_back_to_nearest",
+        "native_position_match_excludes_disabled_targets_and_nonfinite_feedback_without_inventing_a_point",
+        "native_position_match_preserves_all_ambiguous_matches_for_native_rejection_instead_of_picking_first",
+        "manual_init_fresh_fractional_measure_bulk_refreshes_existing_monitor_same_shot_and_csv_sha"
+      ]
+    },
+    "releaseBuild": {
+      "warnings": 0,
+      "errors": 0,
+      "seconds": 18.28,
+      "log": "release-build.log",
+      "sha256": "bfe98702fc6139ea2a4a995e577e2000b96feac612444bfdfb85714900e2c9bd"
+    },
+    "ui": {
+      "passed": true,
+      "count": 1145,
+      "modes": 21,
+      "report": "ui-final/validation.json",
+      "sha256": "74d328ddb27a3660a05ed14cce932a5e14193680fa84038fb080f3b98f298e5b",
+      "sourceInputs": 31,
+      "allSourceInputsMatchCurrentFiles": true,
+      "all21ChildReportHashesMatch": true
+    },
+    "core": {
+      "passed": true,
+      "count": 300,
+      "report": "core-results.json",
+      "sha256": "f9e562accc4691d90d0678ab5b5d6dc5af123c5004a191beb19aed7a1c2c5819"
+    },
+    "scopeAtFinalRuntimeObservation": {
+      "passed": true,
+      "count": 39,
+      "report": "scope-results.json",
+      "sha256": "fa8160f1709e867c88693df13f2915df1fc059e8e05e483dc56b3c8c9156efb3",
+      "note": "Scope may be regenerated for documentation/evidence path additions; this is the runtime-audit observation, not a self-referential manifest hash."
+    },
+    "measurementVersusSavedFinal": {
+      "policy": "Map/Level/scatter remain measured deviation; right-side dual readout uses canonical saved F independently. No Base/raw/candidate fallback for F.",
+      "syntheticExample": "Delta +2/-3 and stored F -12/+34 remain separate; original NG red fill is retained."
+    }
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "status": "completed",
+      "finding": "Old own-ONE_SHOT watcher/queued sync could trigger full catalog+final read after current measure; retain lightweight authority checks but defer file dirtiness. No change to raw/NG/duplicate/Stop/CSV semantics."
+    },
+    {
+      "round": 2,
+      "status": "completed",
+      "findingsResolved": [
+        "clean Ensure owner Dispatcher marshalling",
+        "startup/committed FinalRead-failure retry preserved without catalog",
+        "negative CurrentCellNo rejected while zero/null overview accepted"
+      ],
+      "result": "315/315 source Controller PASS; 22 new current-scope/locate/selected-Cell cases."
+    },
+    {
+      "round": 3,
+      "status": "completed",
+      "sourceReview": "Native matching uses finite feedback, enabled targets, both-axis 0.0005 mm tolerance and returns all ambiguous matches for native rejection. No nearest/recent fallback. Read-only Locate skips checkpoints; actual device branch source-reviewed only.",
+      "actualController": 318,
+      "actualBackend": 194,
+      "ui": 1145,
+      "uiModes": 21,
+      "summary": "Current Release DLL hashes match both actual runtime reports. All 315 source Controller cases appear in actual318. New actual CSV Init→fresh fractional measurement→Bulk→same open Monitor passes at 100% and 50% scale; pure position helper4 passes. No native hardware path executed."
+    }
+  ],
+  "limitations": [
+    "Actual equipment stationary feedback and native SaveCore device guard not executed.",
+    "No claim of physical travel, Vision timing or actual production-PC speed improvement; this change is verified by call counts, ordering and synthetic fixtures.",
+    "Other Review explicit notification and next-entry/manual refresh still may perform a full catalog load by design."
+  ],
+  "sourceSha256": {
+    "Drilling.UI/Menu/Menus/CManualInspectionController.cs": "5677d618a3d0a00c19cc8eab1700de617b1d006893ea036006d40db98b9d0738",
+    "Drilling.UI/Menu/Menus/CManualInspectionBackend.cs": "d5f58a78916cf9b4318c111bff2b9a118e59ef368a53d068700609aec42d1ce5",
+    "Drilling.UI/Menu/Menus/CManualInspectionReplayBackend.cs": "2ded8102126e083b3493ba33ef71b9a91d0e34874e05ac8de11dd1d65d610e78",
+    "Drilling.UI/Menu/Menus/CManualInspectionUpdateMonitor.cs": "2f237b8efa8ee47de8aa6af04f4d934474bea4e3bcb759217dfbad1591bb9b8b",
+    "Drilling.UI/Views/CManualInspectionUiContract.cs": "aa0371384c0ff175919f55eaaf82f46c3caf6987f7c2c17506ea8988ae9a9f4a",
+    "Drilling.UI/Views/CManualInspectionView.xaml.cs": "52be416cb1f654c0cb1957a73e584282166f11d230e5ae98baab2a210c065509",
+    "Drilling.UI/Views/CManualInspectionView.xaml": "9cd7fb588f73b61e05d1a00b5a69c4bb9aaab161198fc1b419b38893656b71a6",
+    "Drilling.UI/Views/CManualInspectionMapControl.cs": "841ea3de05f846ae4379f8322f8460ee2c4eb3731cbd0cc61b3348977c50f1f4",
+    "tests/ManualInspection/ControllerHarness/RefreshScopeCases.cs": "b1af87bb239c01efb93d360fa3b0704065bdc484dbed30adfb00cc854176c499",
+    "tests/ManualInspection/ControllerHarness/LocateCellBulkControllerCases.cs": "f05728e61dcb91efd2c4ac862a01dc99c2282449a0c003db478486af858e618e",
+    "tests/ManualInspection/ControllerHarness/Contracts.cs": "1a21f46b8bf35b183499c59107ac9b56f458060284964c638b708f8711b72990",
+    "tests/ManualInspection/ControllerHarness/Program.cs": "10ecde77554808c14561ea94c2980424e555e77aa990a163c89291e6ea45cd70",
+    "tests/ManualInspection/ControllerHarness/HardeningCases.cs": "9eb0f110d07c78b2c445a24b910713c20d4d9ecb3fd554ed58694f3cb51eb907",
+    "tests/ManualInspection/ControllerHarness/InitRecoveryCases.cs": "7beefdc59dac2fbb76fd64055528240e259e818359189dda58690e7c15a8e3e7",
+    "tests/ManualInspection/ControllerHarness/FinalOffsetSyncCases.cs": "d29b7c8e5bedd8ff56192d28b347ab779acd35431ff4b344c3d59e7f34f97217",
+    "tests/ManualInspection/BackendReadHarness/CurrentPositionMatchCases.cs": "f6ff367836b226b15d1022df7e3eabc575c44d6070b69577c9db60a2c49df927",
+    "tests/ManualInspection/BackendReadHarness/PortableOffsetCases.cs": "63d4d19c07bd9b2cfc9098d04e4ced93f67aabbf8c04e4870f136621687b42c0",
+    "tests/ManualInspection/BackendReadHarness/InitMeasureMonitorCases.cs": "e4c462555620f38aee98b06eb3c7408c92397f27a4df6d2f8799c3f046ba8466",
+    "tests/ManualInspection/BackendReadHarness/Program.cs": "a3cfbafc9858bf51841f87df342f28df084015d3add0bab62f1b793c205ea452",
+    "tests/ManualInspection/ControllerHarness/ControllerHarness.csproj": "fec87b63ab8ad75c5a1e9549c263b49229d039b818f89565f89914ab4889fc71",
+    "tests/ManualInspection/UiHarness/LocateCellBulkCases.cs": "8fcf1af646efa5dc9c133fdd9f9b491e0388eaaa83cac6d00121eb184711e392"
+  },
+  "crossMenuCoverage": {
+    "actualOpenMonitorRefresh": "MonitorShotDetailCases.cs:41-53 invokes actual RefreshLiveData -> private BuildCoordinateViewerData -> ApplyCoordinateViewerData using the same selected Shot and real temp CSV writer; generic uninitialized Monitor fixture avoids equipment initialization.",
+    "controllerWriterThenNewMonitor": "ReplacementWorkflowCsvCases.cs:29-40,77-91 uses actual Controller + synthetic measurement/save-guard seam + actual CSV conversion/parser/writer; creates a new Monitor builder after save. Does not prove existing-screen polling.",
+    "planOnly": "BulkFinalConsistencyCases.cs:20-24 checks display snapshot overlay + planner, not actual Monitor UI callbacks.",
+    "a1TextOnly": "ReplacementWorkflowCsvCases.cs:173-192 invokes actual pure Station model builder and four A1 text-generation modes. No upload/execution or equipment Guard.",
+    "missingSequenceAdded": "InitMeasureMonitorCases.cs adds exactly one regression: existing selected Monitor -> current Cell immediate Init CSV -> fresh fractional micrometre measurement -> Bulk CSV -> RefreshLiveData. Parameterizes scale100/50 and checks Manual deviation, final DESIGN F, scaled Monitor DESIGN-mm contribution, common SHA, other Cell row and old CSV bytes separately.",
+    "newSequenceStatus": "actual_release_passed_at_scale100_and50",
+    "numericMeaning": {
+      "measurementDeviationUm": [
+        1.234,
+        -2.346
+      ],
+      "afterInitBaseUm": [
+        0,
+        0
+      ],
+      "newSavedFinalDesignUm": [
+        1.234,
+        -2.346
+      ],
+      "monitorDesignRowMmScale100": [
+        0.001234,
+        -0.002346
+      ],
+      "monitorDesignRowMmScale50": [
+        0.000617,
+        -0.001173
+      ],
+      "sameCurrentCsvShaVerified": true,
+      "sameAlreadyOpenMonitorAndSelectionVerified": true,
+      "otherCellAndOldCsvBytesUnchanged": true
+    }
+  },
+  "preflightFindings": [
+    {
+      "kind": "test_compile_only",
+      "file": "backend-read-preflight-compile.log",
+      "sha256": "32f479f5696da1a5015d47d708d957af6987e46a4b888a0dd0cb27e195a8c609",
+      "diagnostic": "CS0117 direct internal method access in CurrentPositionMatchCases; reference assembly hides internals. Changed only test invocation to reflection, preserving four test cases/assertions. Final actual194 passes."
+    },
+    {
+      "kind": "test_expectation_only",
+      "diagnostic": "Locate reads feedback without issuing a device Stop; cancellation fixture now requires zero hardware Stop calls while proving Busy/StopAsync waits for reader cleanup."
+    }
+  ]
+}

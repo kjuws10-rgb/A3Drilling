@@ -542,10 +542,14 @@
                       </Grid.ColumnDefinitions>
                       <StackPanel>
                         <TextBlock x:Name="PointJudgesText" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="11" TextWrapping="NoWrap" Margin="0,0,0,3" TextTrimming="CharacterEllipsis"/>
-                        <TextBlock x:Name="PointErrorText" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="10" TextWrapping="NoWrap" Margin="0,0,0,3" TextTrimming="CharacterEllipsis"/>
                       </StackPanel>
-                      <Button x:Name="MeasureCurrentButton" Content="현 위치 측정" Tag="Measure" Style="{StaticResource ManualButton}" Click="Action_Click" ToolTip="현재 도착한 선택 위치 한 점을 측정합니다." Grid.Column="1" FontSize="11" Padding="5,3" MinHeight="26" Margin="3,0,0,2"/>
+                      <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <Button x:Name="MeasureCurrentButton" Content="현 위치 측정" Tag="Measure" Style="{StaticResource ManualButton}" Click="Action_Click" ToolTip="현재 도착한 선택 위치 한 점을 측정합니다." FontSize="11" Padding="4,3" MinHeight="26" Margin="3,0,0,2"/>
+                        <Button x:Name="LocateCurrentButton" Content="현 위치 찾기" Style="{StaticResource ManualButton}" Click="LocateCurrent_Click" ToolTip="현재 정지 좌표와 일치하는 점을 지도에서 찾습니다. 설비는 이동하지 않습니다." FontSize="11" Padding="4,3" MinHeight="26" Margin="3,0,0,2"/>
+                      </StackPanel>
                     </Grid>
+                    <TextBlock x:Name="PointErrorText" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="10" TextWrapping="NoWrap" Margin="0,0,0,3" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock x:Name="PointFinalOffsetText" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="10" TextWrapping="NoWrap" Margin="0,0,0,3" TextTrimming="CharacterEllipsis"/>
                     <Button x:Name="RetryButton" Content="남은 위치만 재측정" Tag="RetryRemaining" Style="{StaticResource ManualButton}" Click="Action_Click" Margin="0,3,0,0" FontSize="11" MinHeight="26" Padding="4,3"/>
                   </StackPanel>
                 </Border>

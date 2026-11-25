@@ -1,0 +1,365 @@
+{
+  "passed": true,
+  "tests": 70,
+  "failures": 0,
+  "checks": [
+    {
+      "name": "locate_Dark_button_beside_measure",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "locate_Dark_fresh_display_only_action",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "locate_Dark_opens_exact_cell_focus_and_reveals_filtered_point",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "locate_Dark_starts_distinct_500ms_locator",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "locate_Dark_leaves_measurements_unchanged",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "locate_Dark_actual_slot_inside_viewport",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "locate_Dark_large_map_and_no_workspace_scroll",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "locate_Dark_blink_toggles_without_equipment",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "locate_Dark_blink_expires_and_stops_timer",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "locate_Dark_no_match_never_falls_back_to_recent",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "locate_Dark_frame_change_during_read_blocks_highlight",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "locate_Dark_stale_preflight_never_blinks_old_acknowledged_key",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "locate_Dark_failed_dispatch_never_blinks_old_key",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "locate_Dark_busy_button_disabled",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "locate_Dark_busy_cannot_dispatch_second_read",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "locate_Dark_independent_locator_never_changes_measurement_blink",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "locate_Dark_new_frame_clears_old_locator_even_same_key",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "locate_Dark_unknown_map_key_rejected",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "locate_Light_button_beside_measure",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "locate_Light_fresh_display_only_action",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "locate_Light_opens_exact_cell_focus_and_reveals_filtered_point",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "locate_Light_starts_distinct_500ms_locator",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "locate_Light_leaves_measurements_unchanged",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "locate_Light_actual_slot_inside_viewport",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "locate_Light_large_map_and_no_workspace_scroll",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "locate_Light_blink_toggles_without_equipment",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "locate_Light_blink_expires_and_stops_timer",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "locate_Light_no_match_never_falls_back_to_recent",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "locate_Light_frame_change_during_read_blocks_highlight",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "locate_Light_stale_preflight_never_blinks_old_acknowledged_key",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "locate_Light_failed_dispatch_never_blinks_old_key",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "locate_Light_busy_button_disabled",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "locate_Light_busy_cannot_dispatch_second_read",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "locate_Light_independent_locator_never_changes_measurement_blink",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "locate_Light_new_frame_clears_old_locator_even_same_key",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "locate_Light_unknown_map_key_rejected",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_bulk_no_selection_disabled",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_bulk_empty_never_means_whole_model",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_bulk_correction_status_and_section_describe_selected_cells",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_bulk_uses_only_selected_cell_set_not_focus_or_filter",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_bulk_confirmation_lists_cells_and_combined_eligibility",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_bulk_button_and_summary_describe_explicit_scope",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_bulk_selection_cell_change_in_modal_blocks_dispatch",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_bulk_same_cell_point_change_does_not_change_scope",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "single_cell_bulk_ignores_other_cell_point_selection",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_bulk_pending_cell_cannot_mix_other_cells",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_bulk_pending_exact_single_cell_allowed",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_bulk_pending_request_is_explicit_singleton",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_bulk_zero_eligible_does_not_use_other_cells",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "overview_bulk_cancel_never_dispatches",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "saved_readout_Dark_separate_deviation_and_canonical_saved_final",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "saved_readout_Dark_both_lines_visible_full_width",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "saved_readout_Dark_map_level_keeps_actual_deviation_not_large_saved_F",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "saved_readout_Dark_latest_saved_map_updates_without_point_array_change",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "saved_readout_Dark_unknown_final_never_falls_back_to_Base_candidate_or_raw",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "saved_readout_Dark_initialized_saved_row_is_absence_not_numeric_zero",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "saved_readout_Dark_saved_value_requires_applied_row_evidence",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "saved_readout_Dark_actual_saved_zero_remains_numeric_zero",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "saved_readout_Dark_NG_stays_red_independent_of_saved_F",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "saved_readout_Dark_readout_never_dispatches_controller_or_mutates_raw",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "saved_readout_Light_separate_deviation_and_canonical_saved_final",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "saved_readout_Light_both_lines_visible_full_width",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "saved_readout_Light_map_level_keeps_actual_deviation_not_large_saved_F",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "saved_readout_Light_latest_saved_map_updates_without_point_array_change",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "saved_readout_Light_unknown_final_never_falls_back_to_Base_candidate_or_raw",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "saved_readout_Light_initialized_saved_row_is_absence_not_numeric_zero",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "saved_readout_Light_saved_value_requires_applied_row_evidence",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "saved_readout_Light_actual_saved_zero_remains_numeric_zero",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "saved_readout_Light_NG_stays_red_independent_of_saved_F",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "saved_readout_Light_readout_never_dispatches_controller_or_mutates_raw",
+      "passed": true,
+      "details": null
+    }
+  ],
+  "sourceHashes": {
+    "Views/CManualInspectionView.xaml": "9cd7fb588f73b61e05d1a00b5a69c4bb9aaab161198fc1b419b38893656b71a6",
+    "Views/CManualInspectionView.xaml.cs": "52be416cb1f654c0cb1957a73e584282166f11d230e5ae98baab2a210c065509",
+    "Views/CManualInspectionUiContract.cs": "aa0371384c0ff175919f55eaaf82f46c3caf6987f7c2c17506ea8988ae9a9f4a",
+    "Views/CManualInspectionMapControl.cs": "841ea3de05f846ae4379f8322f8460ee2c4eb3731cbd0cc61b3348977c50f1f4",
+    "Views/CManualInspectionScatterControl.cs": "1cc3fb7be94547c2e714d8809906f2df6018e5805b6ed44ecc9fd2c398e6a0bb"
+  },
+  "scope": "Actual source-linked standalone WPF and current themes with immutable synthetic data and fake fresh-position responses. No equipment App, vendor, motion, Vision, physical position read or operating CSV executes. Feedback validation and multi-Cell CSV persistence are separate production Backend/Controller/Core checks."
+}

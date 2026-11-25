@@ -20,7 +20,8 @@ public enum EN_MANUAL_INSPECTION_UI_ACTION
     ExportCsv, Move, MoveMeasure, MoveMeasureCorrect, Measure, RetryRemaining, Stop,
     Calculate, Validate, Apply, Rollback, CopyReference, UndoCopy, UpdateLimits, SetAllowManual, UpdateLevels, ShowPoint,
     ReturnToPreviousWorkspace, InitializeOffsets, CancelOffsetEdit, ExportOffsetBundle, ImportOffsetBundle,
-    BulkApply, UndoOffsets, RedoOffsets, ApplySelectedOffsets, ExportFinalOffsets, ForceMeasurement, ExportCurrentOffsetCsv
+    BulkApply, UndoOffsets, RedoOffsets, ApplySelectedOffsets, ExportFinalOffsets, ForceMeasurement, ExportCurrentOffsetCsv,
+    LocateCurrentPosition
 }
 
 /// <summary>Display-only DESIGN-µm value read from the authoritative saved model file.</summary>
@@ -216,6 +217,8 @@ public sealed record CManualInspectionUiSnapshot
     public bool OffsetInitPending { get; init; }
     public string OffsetSummaryText { get; init; } = "모델별 최신 누적 Review Offset 하나를 사용합니다.";
     public string? LastMeasuredPointKey { get; init; }
+    /// <summary>Point matching verified feedback or arrival in this workspace/frame. Locate refreshes the feedback; it is not continuously polled. Null means no match, never a nearest-point guess.</summary>
+    public string? CurrentPositionPointKey { get; init; }
     /// <summary>Transient measurement targets; not a motor-arrival assertion or saved result.</summary>
     public bool IsMeasurementInProgress { get; init; }
     public string? ActiveMeasurementPointKey { get; init; }
@@ -230,7 +233,7 @@ public sealed record CManualInspectionUiSnapshot
     public int RemainingCount { get; init; }
     public int CompletedCount { get; init; }
     public int TotalCount { get; init; }
-    /// <summary>Last target with verified arrival, not a live motor feedback poll. NaN means unknown.</summary>
+    /// <summary>Last verified feedback or arrival. Locate refreshes it; this is not continuously polled. NaN means unknown.</summary>
     public double StageXmm { get; init; } = double.NaN;
     public double StageYmm { get; init; } = double.NaN;
     public string StatusText { get; init; } = "현재 Recipe 또는 측정 결과를 불러오세요.";
@@ -277,8 +280,10 @@ public sealed record CManualInspectionUiRequest
 {
     public long ExpectedVersion { get; init; }
     public IReadOnlyList<string> Keys { get; init; } = [];
-    /// <summary>Bulk correction requires a displayed, explicitly chosen single Cell. Null never means all Cells.</summary>
+    /// <summary>The opened single Cell, if any. Overview bulk uses the explicit CellNos set; null never means all Cells.</summary>
     public int? CurrentCellNo { get; init; }
+    /// <summary>Explicit bulk scope: the opened Cell, or Cells containing selected points in overview. Empty never means all Cells.</summary>
+    public IReadOnlyList<int> CellNos { get; init; } = [];
     public string? FocusKey { get; init; }
     public string? ReferenceKey { get; init; }
     public string? ResultPath { get; init; }

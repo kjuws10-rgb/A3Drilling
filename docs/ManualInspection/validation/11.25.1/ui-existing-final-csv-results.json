@@ -1,0 +1,145 @@
+{
+  "passed": true,
+  "tests": 20,
+  "failures": 0,
+  "checks": [
+    {
+      "name": "existing_csv_constructor_fixed_measurement_mode",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_saved_data_is_metadata_not_measurement_projection",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_badge_visible_with_closed_side_panels",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_badge_tooltip_preserves_path_sha",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_table_has_measurement_only_no_offset_column",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_metadata_updates_without_recoloring_measurement",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_user_judge_and_original_scope_survive_same_frame_reload",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_file_bookmark_restores_judge_and_original_scope",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_new_model_defaults_measurement_working",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_no_file_is_explicit_but_does_not_erase_raw",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_failure_distinguished_from_no_file",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_no_display_action_mutates_source_or_calls_backend",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_metadata_badge_does_not_displace_map_Darknotebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_theme_keeps_fixed_measurement_view_Darknotebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_metadata_badge_does_not_displace_map_Darkwide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_theme_keeps_fixed_measurement_view_Darkwide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_metadata_badge_does_not_displace_map_Lightnotebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_theme_keeps_fixed_measurement_view_Lightnotebook",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_metadata_badge_does_not_displace_map_Lightwide",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "existing_csv_theme_keeps_fixed_measurement_view_Lightwide",
+      "passed": true,
+      "details": null
+    }
+  ],
+  "observations": [
+    {
+      "existingCsvRemainsMetadata": true,
+      "workingPopulation": 7
+    },
+    {
+      "theme": "Dark",
+      "Name": "notebook",
+      "ActualWidth": 1037.28,
+      "ActualHeight": 444.20000000000005
+    },
+    {
+      "theme": "Dark",
+      "Name": "wide",
+      "ActualWidth": 1407.68,
+      "ActualHeight": 765.8000000000001
+    },
+    {
+      "theme": "Light",
+      "Name": "notebook",
+      "ActualWidth": 1037.28,
+      "ActualHeight": 444.20000000000005
+    },
+    {
+      "theme": "Light",
+      "Name": "wide",
+      "ActualWidth": 1407.68,
+      "ActualHeight": 765.8000000000001
+    }
+  ],
+  "sourceHashes": {
+    "Views/CManualInspectionView.xaml": "9cd7fb588f73b61e05d1a00b5a69c4bb9aaab161198fc1b419b38893656b71a6",
+    "Views/CManualInspectionView.xaml.cs": "52be416cb1f654c0cb1957a73e584282166f11d230e5ae98baab2a210c065509",
+    "Views/CManualInspectionUiContract.cs": "aa0371384c0ff175919f55eaaf82f46c3caf6987f7c2c17506ea8988ae9a9f4a",
+    "Views/CManualInspectionMapControl.cs": "841ea3de05f846ae4379f8322f8460ee2c4eb3731cbd0cc61b3348977c50f1f4",
+    "Views/CManualInspectionScatterControl.cs": "1cc3fb7be94547c2e714d8809906f2df6018e5805b6ed44ecc9fd2c398e6a0bb"
+  },
+  "scope": "Actual source-linked WPF control constructed directly, default selections and existing saved CSV metadata; fake Controller and synthetic records only. No production App/Root/Manager, equipment, vendor, motion, Vision, real CSV or export execution."
+}
